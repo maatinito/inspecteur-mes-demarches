@@ -1,0 +1,25 @@
+.container-fluid
+  .row
+    .col-9.col-sm-10
+      %h3
+        Messages sur les dossiers
+    .col-3.col-sm-2.text-right
+      = link_to 'Vérifier', diese_check_path,class: "btn btn-success"
+  .row
+    .col
+      %table.table.table-striped
+        - @checked_dossiers.each do |check, messages|
+          %tr
+            %td
+              =link_to "Dossier #{check.dossier}", ENV['GRAPHQL_HOST'] + "/procedures/#{check.demarche_id}/dossiers/#{check.dossier}", target: "_blank"
+              %br
+              Vérifié le
+              = check.checked_at.strftime("%d/%m/%Y à %H:%M")
+            %td.col-10
+              %table.table
+                - messages.each do |message|
+                  %tr
+                    %td.col-3=message.field
+                    %td.col-3=message.value
+                    %td.col=message.message
+

@@ -1,0 +1,21 @@
+%html{ lang: "fr" }
+  %head
+    %meta{ "http-equiv": "Content-Type", content: "text/html; charset=UTF-8" }
+    %meta{ "http-equiv": "X-UA-Compatible", content: "IE=edge" }
+    %meta{ name: "viewport", content: "width=device-width, initial-scale=1" }
+    = csrf_meta_tag
+    = csp_meta_tag
+
+    %title
+      = content_for?(:title) ? "#{yield(:title)} · #{SITE_NAME}" : SITE_NAME
+
+    = favicon_link_tag(image_path("favicons/pf16x16.png"), type: "image/png", sizes: "16x16")
+    = favicon_link_tag(image_path("favicons/pf32x32.png"), type: "image/png", sizes: "32x32")
+    = favicon_link_tag(image_path("favicons/pf96x96.png"), type: "image/png", sizes: "96x96")
+
+    = stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload'
+    = javascript_include_tag 'application', 'data-turbolinks-track': 'reload'
+  %body
+    = render partial: "layouts/header"
+    = yield
+

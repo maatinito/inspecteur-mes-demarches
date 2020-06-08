@@ -1,0 +1,13 @@
+%h1
+  Vérification des démarches
+
+- @checked_dossiers.each do |dd, messages|
+  %ul
+    %li=link_to "Dossier #{dd[1]}", ENV['GRAPHQL_HOST'] + "/procedures/#{dd[0]}/dossiers/#{dd[1]}"
+    %table
+      - messages.each do |message|
+        %tr
+          %td=message.field
+          %td=message.value
+          %td=message.message
+

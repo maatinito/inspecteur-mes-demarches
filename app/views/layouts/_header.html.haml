@@ -1,0 +1,16 @@
+.container-fluid
+  .row
+    .col
+      %h2
+        = image_tag "searchtool.svg", style: "width: 60px"
+        = SITE_NAME
+%nav.navbar.navbar-expand-md.navbar-light.bg-faded
+  %button.navbar-toggler{ 'data-toggle': 'collapse', 'data-target': "#navbar_content" }
+    %span.navbar-toggler-icon
+  .collapse.navbar-collapse{ id: 'navbar_content'}
+    %ul.navbar-nav
+      %li.nav-item.active
+        = link_to "Messages", diese_report_path, class: 'nav-link'
+      %li.nav-item
+      = link_to "Erreurs", diese_report_path, class: 'nav-link'
+

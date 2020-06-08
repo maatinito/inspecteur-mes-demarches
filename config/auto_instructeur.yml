@@ -1,0 +1,57 @@
+par_defaut: &par_defaut
+  email_instructeur: clautier@idt.pf
+  pieces_messages:
+    debut_premier_mail: "Bonjour<br>Un controle automatique a été fait sur le dossier."
+    debut_second_mail: "Bonjour<br><p>Une nouvelle vérification automatique a été faite.</p>"
+    entete_anomalies: "Les points suivants sur le dossier doivent être résolus pour que le dossier puisse être traité:"
+    entete_anomalie: "Il n'y a qu'un seul point à résoudre pour que le dossier puisse être traité:"
+    tout_va_bien: "Toutes les vérifications se sont bien passées et le dossier va pouvoir être instruit"
+    fin_anomalie: "<b>Important</b>: Ne donnez pas de corrections via la messagerie. Effectuez les corrections en <b>modifiant directement le dossier</b>."
+    fin_mail: "Si vous avez des difficultés à résoudre ou comprendre ces points, n'hésitez pas à nous décrire comment nous pouvons vous aider en répondant à ce message.<br>Cordialement<br>L'équipe du SEFI"
+
+sefi:
+  controles: &controles_sefi
+    - date_de_naissance:
+        champ: "date"
+        age: 6..18
+        message: "La date de naissance de l'enfant doit correspondre à un enfant entre 6 et 18 ans"
+
+test_local:
+  <<: *par_defaut
+  demarches: [ 5 ]
+  controles:
+    - *controles_sefi
+    - res_excel:
+        champ: "piece jointe"
+        message_type_de_fichier: "Le champ doit contenir un fichier Excel (.xlsx) ou un fichier CSV (.csv) correspondant au modèle fourni."
+        message_colonnes_manquantes: 'Les colonnes suivantes manquent dans le fichier Excel'
+        message_dn: "Le numero DN doit comporter 1 à 7 chiffres"
+        message_date_de_naissance: "La date de naissance doit etre entrée sous la forme 'jour/mois/annee' et anterieure au 20 mars 2002"
+
+#is_periode_2:
+#  <<: *par_defaut
+#  demarches: [ 312 ]
+#  controles:
+#    - numero_dn:
+#        champ: "Numéro DN"
+#        message_format_dn: Le numéro DN doit comporter 6 à 7 chiffres.
+#        message_dn: Ce numéro DN est inconnu.
+#        message_format_ddn: La date de naissance associé au numéro DN doit avoir la forme jj/mm/aaaa.
+#        message_ddn: Cette date de naissance ne correspond pas à ce numéro DN.
+
+#res_excel:
+#  <<: *par_defaut
+#  demarches: [ 217, 320 ]
+#  controles:
+#    - res_excel:
+#        champ: "Etat nominatif des salariés"
+#        message_champ_non_renseigne: "L'état nominatif des salariés n'est pas renseigné"
+#        message_type_de_fichier: "Le champ Etat nominatif des salariés doit contenir un fichier Excel (.xlsx) ou un fichier CSV (.csv) correspondant au modèle fourni."
+#        message_colonnes_manquantes: 'Les colonnes suivantes manquent dans le fichier Excel'
+#        message_format_dn: "Le numero DN doit comporter 7 chiffres sans espace"
+#        message_format_date_de_naissance: "La date de naissance doit etre entrée sous la forme 'jour/mois/annee' et désigner une personne majeure. L'année doit etre sur 4 chiffres."
+#        message_nom_invalide: "Le nom de famille comporte des caractères interdits: "
+#        message_prenom_invalide: "La colonne prénoms comporte des caractères interdits: "
+#        message_date_de_naissance: "La date de naissance ne correspond pas à ce numéro DN"
+#        message_dn: "Le numéro DN est inconnu"
+
