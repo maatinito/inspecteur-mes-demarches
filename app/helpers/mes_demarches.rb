@@ -56,6 +56,12 @@ module MesDemarches
       }
     }
 
+    query DossierId($number: Int!) { 
+      dossier(number: $number) { 
+        id 
+      } 
+    }
+
     query DossiersModifies($demarche: Int!, $since: ISO8601DateTime!, $cursor: String) {
       demarche(number: $demarche) {
         dossiers(createdSince: $since, after: $cursor, state: en_construction) {

@@ -8,13 +8,20 @@
   .row
     .col
       %table.table.table-striped
-        - @checked_dossiers.each do |check, messages|
+        - @checked_dossiers.each do |dossier_number, messages|
           %tr
             %td
-              =link_to "Dossier #{check.dossier}", ENV['GRAPHQL_HOST'] + "/procedures/#{check.demarche_id}/dossiers/#{check.dossier}", target: "_blank"
+              - demarche_number = messages.first.check.demarche_id
+              = link_to "Dossier #{dossier_number}", ENV['GRAPHQL_HOST'] + "/procedures/#{demarche_number}/dossiers/#{dossier_number}", target: "_blank"
               %br
               Vérifié le
-              = check.checked_at.strftime("%d/%m/%Y à %H:%M")
+              = messages.first.check.checked_at.strftime("%d/%m/%Y à %H:%M")
+              - if messages.first.check.posted
+                .btn.btn-light.disabled
+                  = image_tag 'message_sent.svg', width: '32px'
+              - else
+                = link_to post_message_path(dossier_number), class: "btn btn-light",  'data-method': 'put' do
+                  = image_tag 'post_message.png', width: '32px'
             %td.col-10
               %table.table
                 - messages.each do |message|

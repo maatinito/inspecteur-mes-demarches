@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_06_08_011747) do
+ActiveRecord::Schema.define(version: 2020_06_08_230527) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -24,6 +24,7 @@ ActiveRecord::Schema.define(version: 2020_06_08_011747) do
     t.float "version", default: 1.0
     t.integer "demarche_id"
     t.boolean "failed"
+    t.boolean "posted", default: false
     t.index ["dossier", "checker"], name: "unicity", unique: true
     t.index ["dossier"], name: "by_dossier"
   end

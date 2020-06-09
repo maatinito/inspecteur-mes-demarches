@@ -11,12 +11,28 @@ class VerificationService
     http = MesDemarches.http("https://www.mes-demarches.gov.pf")
     pp http
     VerificationService.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
-      @pieces_messages = pieces_messages(procedure_name, procedure)
+      @pieces_messages = get_pieces_messages(procedure_name, procedure)
       @instructeur_email = instructeur_email(procedure)
       controls = create_controls(procedure)
       check_updated_dossiers(controls, procedure)
       check_failed_dossiers(controls)
       check_updated_controls(controls)
+    end
+  end
+
+  def post_message(dossier_number)
+    graphql = MesDemarches::Client.query(MesDemarches::Queries::DossierId,
+                                         variables: { number: dossier_number })
+    if graphql.data.present?
+      md_dossier = graphql.data.dossier
+      checks = Check.where(dossier: dossier_number).all
+      if checks.present? && md_dossier.present?
+        demarche = checks.first.demarche_id
+        VerificationService.config.filter { |_k, d| (d.key? 'demarches') && d['demarches'].include?(demarche) }.each do |procedure_name, procedure|
+          @pieces_messages = get_pieces_messages(procedure_name, procedure)
+        end
+        send_message(md_dossier, checks)
+      end
     end
   end
 
@@ -29,6 +45,7 @@ class VerificationService
     if result.empty?
       raise ArgumentError, "#{procedure_name} devrait définir 'email_instructeur' pour définir qui poste les messages aux usagers"
     end
+
     result
   end
 
@@ -81,8 +98,8 @@ class VerificationService
     Check.where(failed: true)
       .includes(:demarche)
       .find_each do |check|
-      on_dossier(check.dossier) do |dossier|
-        check_dossier(check.demarche, dossier, controls)
+      on_dossier(check.dossier) do |md_dossier|
+        check_dossier(check.demarche, md_dossier, controls)
       end
     end
   end
@@ -116,29 +133,28 @@ class VerificationService
     demarche
   end
 
-  def check_dossier(demarche, dossier, controls)
+  def check_dossier(demarche, md_dossier, controls)
     checks = []
     @dossier_has_new_messages = false
     @second_time = false
-    @instructeur = demarche.instructeur
 
     controls.each do |control|
       next unless control.valid?
 
-      check = Check.find_or_create_by(dossier: dossier.number, checker: control.class.name.underscore) do |c|
+      check = Check.find_or_create_by(dossier: md_dossier.number, checker: control.class.name.underscore) do |c|
         c.checked_at = EPOCH
         c.demarche = demarche
       end
       start_time = Time.zone.now
-      puts "Apply task ? #{check.checked_at} > #{dossier.date_derniere_modification} || #{check.version} < #{control.version}"
-      if check.checked_at < dossier.date_derniere_modification || check.version < control.version
-        apply_control(control, dossier, check)
+      puts "Apply task ? #{check.checked_at} > #{md_dossier.date_derniere_modification} || #{check.version} < #{control.version}"
+      if check.checked_at < md_dossier.date_derniere_modification || check.version < control.version
+        apply_control(control, md_dossier, check)
       end
       check.checked_at = start_time
       check.save
       checks << check
     end
-    send_message(dossier, checks) if @dossier_has_new_messages
+    send_message(md_dossier, checks) if @dossier_has_new_messages && ENV['GRAPHQL_HOST'].include?('localhost')
   end
 
   def apply_control(control, dossier, check)
@@ -154,10 +170,6 @@ class VerificationService
   end
 
   NOMS_PIECES_MESSAGES = %i[debut_premier_mail debut_second_mail entete_anomalies entete_anomalie tout_va_bien fin_mail].freeze
-
-  def pieces_messages(procedure_name, procedure)
-    @pieces_messages ||= get_pieces_messages(procedure_name, procedure)
-  end
 
   def get_pieces_messages(procedure_name, procedure)
     result = procedure['pieces_messages']
@@ -181,15 +193,24 @@ class VerificationService
 
     check.messages.destroy(check.messages.reject { |m| new_messages.include?(m.hashkey) })
     check.messages << task.messages.reject { |m| old_messages.include?(m.hashkey) }
+    check.posted = false
     @dossier_has_new_messages = true
   end
 
-  def send_message(dossier, checks)
+  def send_message(md_dossier, checks)
     debut_mail = "<p>#{@pieces_messages[@second_time ? :debut_second_mail : :debut_premier_mail]}</p>"
     anomalies = liste_anomalies(checks)
     fin_mail = "<p>#{@pieces_messages[:fin_mail]}</p>"
     body = debut_mail + anomalies + fin_mail
-    send_message_to_md(dossier.id, @instructeur, body)
+    instructeur_id = checks.first.demarche.instructeur
+    dossier_id = md_dossier.id
+    checks.each do |check|
+      check.posted = true
+      check.save
+    end
+    return if (checks.first.dossier > 10)
+
+    send_message_to_md(dossier_id, instructeur_id, body)
   end
 
   def liste_anomalies(checks)
@@ -216,15 +237,13 @@ class VerificationService
 
   def send_message_to_md(dossier_id, instructeur_id, body)
     puts "Dossier #{dossier_id}: instruit par #{instructeur_id} #{body}"
-    if ENV['GRAPHQL_HOST'].include?('localhost')
-      MesDemarches::Client.query(MesDemarches::Mutation::EnvoyerMessage,
-                                 variables: {
-                                   dossierId: dossier_id,
-                                   instructeurId: instructeur_id,
-                                   body: body,
-                                   clientMutationId: 'dededed'
-                                 })
-    end
+    MesDemarches::Client.query(MesDemarches::Mutation::EnvoyerMessage,
+                               variables: {
+                                 dossierId: dossier_id,
+                                 instructeurId: instructeur_id,
+                                 body: body,
+                                 clientMutationId: 'dededed'
+                               })
   end
 
   def self.config
