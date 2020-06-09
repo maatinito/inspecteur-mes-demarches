@@ -1,0 +1,86 @@
+version: '3.3'
+
+#------------------------------------------------------------
+# This docker compose describes how to run inspecteur Mes-Démarches. It requires
+#    - environment variables defined via .env file
+#
+# This configuration file defines 4 machines
+#   - app: Main rails application (frontend)
+#   - worker: responsible of running jobs like sending mails, virus analysis
+#   - db: postgresql db
+# Variables
+# IMAGE : name of the docker image to run (sipf/mes-demarches)
+# TAG : Tag of the image to run (eg master or devpf or b38)
+#
+# APP_HOST: host:port pointing to the application to allows creation of absolute links
+#
+# DB_DATABASE: database configuration
+# DB_HOST
+# DB_USERNAME
+# DB_PASSWORD
+#
+# NETWORK_SLOT: Optional, default to 0, Number between 0 and 255 allowing to run multiple env (dev, staging)
+#
+# SENTRY variables to logs exception on the SEntry platform
+#-------------------------------------------------------------
+services:
+  app:
+    image: ${IMAGE}:${TAG:-latest}
+    container_name: app-${ENV:-dev}
+    restart: always
+    ports:
+      - ${PORT}:3000
+    environment:
+      - API_CPS_CLIENT_ID
+      - API_CPS_CLIENT_SECRET
+      - API_CPS_PASSWORD
+      - API_CPS_USERNAME
+      - CAPYBARA_DRIVER
+      - DB_DATABASE
+      - DB_HOST=db-${ENV:-dev}
+      - DB_PASSWORD
+      - DB_POOL
+      - DB_USERNAME
+      - GRAPHQL_BEARER
+      - GRAPHQL_HOST
+    volumes:
+      - imd-data-files:/imd/storage
+      - imd-uploads:/imd/public/uploads
+      - imd-downloads:/imd/public/downloads
+    depends_on:
+      - db
+
+  db:
+    image: postgres:10-alpine
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=$DB_PASSWORD
+    volumes:
+      - db:/var/lib/postgresql/data
+
+volumes:
+  imd-data-files:
+    driver: local
+    driver_opts:
+      type: none
+      device: $ROOT/storage
+      o: bind
+  imd-uploads:
+    driver: local
+    driver_opts:
+      type: none
+      device: $ROOT/uploads
+      o: bind
+  imd-downloads:
+    driver: local
+    driver_opts:
+      type: none
+      device: $ROOT/downloads
+      o: bind
+  db:
+    driver: local
+    driver_opts:
+      type: none
+      device: $ROOT/postgres
+      o: bind
+
