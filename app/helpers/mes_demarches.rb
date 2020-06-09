@@ -27,8 +27,6 @@ module MesDemarches
     end
   end
 
-  Controls = YAML.safe_load(File.read(Rails.root.join('config', 'auto_instructeur.yml')), [], [], true)
-
   # Fetch latest schema on init, this will make a network request
   Schema = GraphQL::Client.load_schema(HTTP)
 

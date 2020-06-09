@@ -256,6 +256,6 @@ class VerificationService
   end
 
   def self.config_file_name
-    @@config_file_name ||= Rails.root.join('config', 'auto_instructeur.yml')
+    @@config_file_name ||= Rails.root.join('storage', 'auto_instructeur.yml')
   end
 end
