@@ -208,7 +208,6 @@ class VerificationService
       check.posted = true
       check.save
     end
-    return if (checks.first.dossier > 10)
 
     send_message_to_md(dossier_id, instructeur_id, body)
   end
