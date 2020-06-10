@@ -44,7 +44,7 @@ services:
       - GRAPHQL_BEARER
       - GRAPHQL_HOST
       - RAILS_ENV=${ENV:-production}
-      volumes:
+    volumes:
       - imd-data-files:/imd/storage
       - imd-uploads:/imd/public/uploads
       - imd-downloads:/imd/public/downloads
