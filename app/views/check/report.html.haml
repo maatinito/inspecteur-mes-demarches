@@ -4,7 +4,7 @@
       %h3
         Messages sur les dossiers
     .col-3.col-sm-2.text-right
-      = link_to 'Vérifier', diese_check_path,class: "btn btn-success"
+      = link_to 'Vérifier', check_verify_path,class: "btn btn-success"
   .row
     .col
       %table.table.table-striped
@@ -20,7 +20,7 @@
                 .btn.btn-light.disabled
                   = image_tag 'message_sent.svg', width: '32px'
               - else
-                = link_to post_message_path(dossier_number), class: "btn btn-light",  'data-method': 'put' do
+                = link_to check_post_message_path(dossier_number), class: "btn btn-light",  'data-method': 'put' do
                   = image_tag 'post_message.png', width: '32px'
             %td.col-10
               %table.table

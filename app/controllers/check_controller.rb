@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-class DieseController < ApplicationController
-  def check
+class CheckController < ApplicationController
+  def verify
     @verification_service = VerificationService.new
     @verification_service.check
-    redirect_to diese_report_path
+    redirect_to check_report_path
   end
 
   def report
@@ -15,6 +15,6 @@ class DieseController < ApplicationController
     dossier_number = params['dossier'].to_i
     @verification_service = VerificationService.new
     @verification_service.post_message(dossier_number)
-    redirect_to diese_report_path
+    redirect_to check_report_path
   end
 end
