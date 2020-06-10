@@ -37,13 +37,14 @@ services:
       - API_CPS_USERNAME
       - CAPYBARA_DRIVER
       - DB_DATABASE
-      - DB_HOST=db-${ENV:-dev}
+      - DB_HOST
       - DB_PASSWORD
       - DB_POOL
       - DB_USERNAME
       - GRAPHQL_BEARER
       - GRAPHQL_HOST
-    volumes:
+      - RAILS_ENV=${ENV:-production}
+      volumes:
       - imd-data-files:/imd/storage
       - imd-uploads:/imd/public/uploads
       - imd-downloads:/imd/public/downloads

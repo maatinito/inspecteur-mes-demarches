@@ -22,6 +22,8 @@ default: &default
   pool: <%= ENV.fetch("DB_POOL") { 5 } %>
   username: <%= ENV['DB_USERNAME'] %>
   password: <%= ENV['DB_PASSWORD'] %>
+  host: <%= ENV["DB_HOST"] %>
+  database: <%= ENV["DB_DATABASE"] %>
   timeout: 5000
   # sql queries will be killed after 60s
   # we should reduce this number
@@ -89,4 +91,6 @@ test:
 #
 production:
   <<: *default
-  database: rosso_production
+  host: <%= ENV["DB_HOST"] %>
+  database: <%= ENV["DB_DATABASE"] %>
+
