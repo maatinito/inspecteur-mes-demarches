@@ -11,7 +11,7 @@
     .col
       %table.table.table-striped
         - @checked_dossiers.each do |dossier_number, messages|
-          %tr
+          %tr.d-flex
             %td
               - demarche_number = messages.first.check.demarche_id
               = link_to "Dossier #{dossier_number}", ENV['GRAPHQL_HOST'] + "/procedures/#{demarche_number}/dossiers/#{dossier_number}", target: "_blank"
@@ -27,8 +27,8 @@
             %td.col-10
               %table.table
                 - messages.sort_by { |m| m.field + m.value }.each do |message|
-                  %tr
-                    %td.col-3=message.field
-                    %td.col-3=message.value
-                    %td.col=message.message
+                  %tr.d-flex
+                    %td.col-3.col-md-2=message.field
+                    %td.col-3.col-md-2=message.value
+                    %td.col-6.col-md-8=message.message
 
