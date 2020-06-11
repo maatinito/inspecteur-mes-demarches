@@ -31,7 +31,8 @@ class VerificationService
         VerificationService.config.filter { |_k, d| (d.key? 'demarches') && d['demarches'].include?(demarche) }.each do |procedure_name, procedure|
           @pieces_messages = get_pieces_messages(procedure_name, procedure)
         end
-        send_message(md_dossier, checks)
+        # send_message(md_dossier, checks)
+        puts "envoyer message sur #{md_dossier.id} #{checks.size} checks"
       end
     end
   end
@@ -53,8 +54,8 @@ class VerificationService
     start_time = Time.zone.now
     demarche = find_or_create_demarche(demarche_number)
     cursor = nil
+    since = reset ? EPOCH : demarche.checked_at
     begin
-      since = reset ? EPOCH : demarche.checked_at
       result = MesDemarches::Client.query(MesDemarches::Queries::DossiersModifies,
                                           variables: {
                                             demarche: demarche_number,
