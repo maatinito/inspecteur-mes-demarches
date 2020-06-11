@@ -11,7 +11,7 @@ class ResExcel < FieldChecker
   end
 
   def version
-    12
+    13
   end
 
   def required_fields
@@ -44,7 +44,7 @@ class ResExcel < FieldChecker
     jours_suspendus: /suspendus/
   }.freeze
 
-  Checks = %i[format_dn format_date_de_naissance nom prenoms cps].freeze
+  Checks = %i[format_dn nom prenoms].freeze
 
   def check_xlsx(champ, file)
     xlsx = Roo::Spreadsheet.open(file)
@@ -127,7 +127,7 @@ class ResExcel < FieldChecker
     dn = line[:numero_dn]
     dn = dn.to_s if dn.is_a? Integer
     dn = dn.to_i.to_s if dn.is_a? Float
-    return true if dn.is_a?(String) && dn.gsub(/\s+/, '').match?(/^\d{6,7}$/)
+    return check_format_date_de_naissance(line) if dn.is_a?(String) && dn.gsub(/\s+/, '').match?(/^\d{6,7}$/)
 
     @params[:message_format_dn] + ':' + dn
   end
@@ -149,7 +149,7 @@ class ResExcel < FieldChecker
 
     if ddn.is_a? Date
       good_range = (Date.iso8601('1920-01-01')..Date.iso8601('2002-06-01')).cover?(ddn)
-      return true if good_range
+      return check_cps(line) if good_range
     end
 
     @params[:message_format_date_de_naissance] + ':' + ddn.to_s
@@ -173,7 +173,6 @@ class ResExcel < FieldChecker
     dn = dn.to_s if dn.is_a? Integer
     dn.gsub!(/\s+/, '')
     dn = dn.rjust(7, '0')
-    puts dn if dn == '0705079'
     ddn = line[:date_de_naissance]
 
     result = @cps.verify({ dn => ddn })
