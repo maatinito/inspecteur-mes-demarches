@@ -2,7 +2,9 @@
   .row
     .col-9.col-sm-10
       %h3
-        Messages sur les dossiers
+        = @checked_dossiers.size
+        dossiers
+
     .col-3.col-sm-2.text-right
       = link_to 'Vérifier', check_verify_path,class: "btn btn-success"
   .row
@@ -24,7 +26,7 @@
                   = image_tag 'post_message.png', width: '32px'
             %td.col-10
               %table.table
-                - messages.each do |message|
+                - messages.sort_by { |m| m.field + m.value }.each do |message|
                   %tr
                     %td.col-3=message.field
                     %td.col-3=message.value
