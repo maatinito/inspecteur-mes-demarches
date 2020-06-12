@@ -6,10 +6,10 @@ class VerificationService
   @@config = nil
 
   def check
-    http = MesDemarches.http("https://www.mes-demarches.gov.pf")
-    pp http
-    http = MesDemarches.http("https://www.mes-demarches.gov.pf")
-    pp http
+    # http = MesDemarches.http("https://www.mes-demarches.gov.pf")
+    # pp http
+    # http = MesDemarches.http("https://www.mes-demarches.gov.pf")
+    # pp http
     VerificationService.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
       @pieces_messages = get_pieces_messages(procedure_name, procedure)
       @instructeur_email = instructeur_email(procedure)
@@ -31,8 +31,7 @@ class VerificationService
         VerificationService.config.filter { |_k, d| (d.key? 'demarches') && d['demarches'].include?(demarche) }.each do |procedure_name, procedure|
           @pieces_messages = get_pieces_messages(procedure_name, procedure)
         end
-        # send_message(md_dossier, checks)
-        puts "envoyer message sur #{md_dossier.id} #{checks.size} checks"
+        send_message(md_dossier, checks)
       end
     end
   end
