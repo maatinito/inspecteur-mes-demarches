@@ -11,7 +11,7 @@ class ResExcel < FieldChecker
   end
 
   def version
-    13
+    15
   end
 
   def required_fields

@@ -154,7 +154,7 @@ class VerificationService
       check.save
       checks << check
     end
-    send_message(md_dossier, checks) if @dossier_has_new_messages && ENV['GRAPHQL_HOST'].include?('localhost')
+    # send_message(md_dossier, checks) if @dossier_has_new_messages && ENV['GRAPHQL_HOST'].include?('localhost')
   end
 
   def apply_control(control, dossier, check)
