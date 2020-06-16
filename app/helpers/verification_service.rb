@@ -55,17 +55,18 @@ class VerificationService
     cursor = nil
     since = reset ? EPOCH : demarche.checked_at
     begin
-      result = MesDemarches::Client.query(MesDemarches::Queries::DossiersModifies,
-                                          variables: {
-                                            demarche: demarche_number,
-                                            since: since.iso8601,
-                                            cursor: cursor
-                                          })
-      unless result.data.demarche? && result.data.demarche.dossiers?
-        throw StandardError.new "La démarche #{demarche_number} est introuvable #{ENV['GRAPHQL_HOST']}"
+      response = MesDemarches::Client.query(MesDemarches::Queries::DossiersModifies,
+                                            variables: {
+                                              demarche: demarche_number,
+                                              since: since.iso8601,
+                                              cursor: cursor
+                                            })
+
+      unless (data = response.data)
+        throw StandardError.new "La démarche #{demarche_number} est introuvable #{ENV['GRAPHQL_HOST']}: #{response.errors.values.join(',')}"
       end
 
-      dossiers = result.data.demarche.dossiers
+      dossiers = data.demarche.dossiers
       dossiers.nodes.each do |dossier|
         yield demarche, dossier if dossier.present?
       end
@@ -79,8 +80,10 @@ class VerificationService
   def on_dossier(dossier_number)
     result = MesDemarches::Client.query(MesDemarches::Queries::Dossier,
                                         variables: { dossier: dossier_number })
-    dossier = result.data.dossier? ? result.data.dossier : nil
+    pp result.to_h
+    dossier = (data = result.data) ? data.dossier : nil
     yield dossier
+    Rails.logger.error(result.errors.values.join(',')) unless data
   end
 
   def create_controls(procedure)
@@ -100,8 +103,8 @@ class VerificationService
 
   def check_failed_dossiers(controls)
     Check.where(failed: true)
-         .includes(:demarche)
-         .find_each do |check|
+      .includes(:demarche)
+      .find_each do |check|
       on_dossier(check.dossier) do |md_dossier|
         check_dossier(check.demarche, md_dossier, controls)
       end
