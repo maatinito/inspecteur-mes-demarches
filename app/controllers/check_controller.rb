@@ -8,7 +8,7 @@ class CheckController < ApplicationController
   end
 
   def report
-    @checked_dossiers = Message.order('checks.checked_at desc').includes(:check).joins(:check).group_by { |m| m.check.dossier }
+    @checked_dossiers = Check.order('checks.checked_at DESC').includes(:messages).group_by { |m| m.dossier }
   end
 
   def post_message

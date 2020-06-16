@@ -23,7 +23,7 @@ class VerificationService
   def post_message(dossier_number)
     graphql = MesDemarches::Client.query(MesDemarches::Queries::DossierId,
                                          variables: { number: dossier_number })
-    if graphql.data.present?
+    if graphql.data.dossier?
       md_dossier = graphql.data.dossier
       checks = Check.where(dossier: dossier_number).all
       if checks.present? && md_dossier.present?
@@ -61,6 +61,10 @@ class VerificationService
                                             since: since.iso8601,
                                             cursor: cursor
                                           })
+      unless result.data.demarche? && result.data.demarche.dossiers?
+        throw StandardError.new "La démarche #{demarche_number} est introuvable #{ENV['GRAPHQL_HOST']}"
+      end
+
       dossiers = result.data.demarche.dossiers
       dossiers.nodes.each do |dossier|
         yield demarche, dossier if dossier.present?
@@ -75,8 +79,8 @@ class VerificationService
   def on_dossier(dossier_number)
     result = MesDemarches::Client.query(MesDemarches::Queries::Dossier,
                                         variables: { dossier: dossier_number })
-    dossier = result.data.dossier
-    yield dossier if dossier.present?
+    dossier = result.data.dossier? ? result.data.dossier : nil
+    yield dossier
   end
 
   def create_controls(procedure)
@@ -96,8 +100,8 @@ class VerificationService
 
   def check_failed_dossiers(controls)
     Check.where(failed: true)
-      .includes(:demarche)
-      .find_each do |check|
+         .includes(:demarche)
+         .find_each do |check|
       on_dossier(check.dossier) do |md_dossier|
         check_dossier(check.demarche, md_dossier, controls)
       end
@@ -112,7 +116,11 @@ class VerificationService
         .includes(:demarche)
         .find_each do |check|
         on_dossier(check.dossier) do |dossier|
-          check_dossier(check.demarche, dossier, controls)
+          if dossier.present?
+            check_dossier(check.demarche, dossier, controls)
+          else
+            check.destroy!
+          end
         end
       end
     end
@@ -126,8 +134,10 @@ class VerificationService
       d.checked_at = EPOCH
     end
     demarche.libelle = gql_demarche.title
-    gql_instructeur = gql_demarche.groupe_instructeurs.flat_map { |gi| gi.instructeurs }.find { |i| i.email == @instructeur_email }
-    throw StandardError.new "Aucun instructeur #{@instructeur.email} sur la demarche #{demarche_number}" if gql_instructeur.nil?
+    gql_instructeur = gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == @instructeur_email }
+    if gql_instructeur.nil?
+      throw StandardError.new "Aucun instructeur #{@instructeur.email} sur la demarche #{demarche_number}"
+    end
     demarche.instructeur = gql_instructeur.id
     demarche.save!
     demarche
@@ -173,15 +183,11 @@ class VerificationService
 
   def get_pieces_messages(procedure_name, procedure)
     result = procedure['pieces_messages']
-    if result.empty?
-      raise ArgumentError, "#{procedure_name} devrait définir une section pieces_messages"
-    end
+    raise ArgumentError, "#{procedure_name} devrait définir une section pieces_messages" if result.empty?
 
     result.symbolize_keys!
     missing = NOMS_PIECES_MESSAGES.reject { |nom| result.key?(nom) }
-    if missing.present?
-      raise ArgumentError, "#{procedure_name} devrait définir les libelles #{missing.join(',')}"
-    end
+    raise ArgumentError, "#{procedure_name} devrait définir les libelles #{missing.join(',')}" if missing.present?
 
     result
   end

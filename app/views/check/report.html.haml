@@ -10,25 +10,29 @@
   .row
     .col
       %table.table.table-striped
-        - @checked_dossiers.each do |dossier_number, messages|
+        - @checked_dossiers.each do |dossier_number, checks|
           %tr.d-flex
             %td
-              - demarche_number = messages.first.check.demarche_id
+              - demarche_number = checks.first.demarche_id
               = link_to "Dossier #{dossier_number}", ENV['GRAPHQL_HOST'] + "/procedures/#{demarche_number}/dossiers/#{dossier_number}", target: "_blank"
               %br
               Vérifié le
-              = messages.first.check.checked_at.strftime("%d/%m/%Y à %H:%M")
-              - if messages.first.check.posted
+              = checks.first.checked_at.strftime("%d/%m/%Y à %H:%M")
+              - if checks.first.posted
                 .btn.btn-light.disabled
                   = image_tag 'message_sent.svg', width: '32px'
               - else
                 = link_to check_post_message_path(dossier_number), class: "btn btn-light",  'data-method': 'put' do
                   = image_tag 'post_message.png', width: '32px'
             %td.col-10
-              %table.table
-                - messages.sort_by { |m| m.field + m.value }.each do |message|
-                  %tr.d-flex
-                    %td.col-3.col-md-2=message.field
-                    %td.col-3.col-md-2=message.value
-                    %td.col-6.col-md-8=message.message
+              - messages = checks.flat_map { |c| c.messages }.sort_by { |m| m.field + m.value }
+              - if messages.empty?
+                Dossier correct pouvant passer en instruction. Cliquez sur le bouton d'envoi de message pour prévenir l'usager puis passez le dossier en instruction.
+              - else
+                %table.table
+                  - messages.each do |message|
+                    %tr.d-flex
+                      %td.col-3.col-md-2=message.field
+                      %td.col-3.col-md-2=message.value
+                      %td.col-6.col-md-8=message.message
 
