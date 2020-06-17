@@ -62,7 +62,7 @@ module MesDemarches
 
     query DossiersModifies($demarche: Int!, $since: ISO8601DateTime!, $cursor: String) {
       demarche(number: $demarche) {
-        dossiers(updatedSince: $since, after: $cursor, state: en_construction) {
+        dossiers(updatedSince: $since, after: $cursor) {
           pageInfo {
               endCursor
               hasNextPage

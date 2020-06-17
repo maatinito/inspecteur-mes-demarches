@@ -96,7 +96,7 @@ class VerificationService
     reset = controls.find { |control| Check.find_by_checker(control.class.name.underscore).nil? }.present?
     [*procedure['demarches']].each do |demarche_number|
       on_dossiers(demarche_number, reset) do |demarche, dossier|
-        check_dossier(demarche, dossier, controls)
+        process_dossier(demarche, dossier, controls)
       end
     end
   end
@@ -106,7 +106,7 @@ class VerificationService
       .includes(:demarche)
       .find_each do |check|
       on_dossier(check.dossier) do |md_dossier|
-        check_dossier(check.demarche, md_dossier, controls)
+        process_dossier(check.demarche, md_dossier, controls)
       end
     end
   end
@@ -120,7 +120,7 @@ class VerificationService
         .find_each do |check|
         on_dossier(check.dossier) do |dossier|
           if dossier.present?
-            check_dossier(check.demarche, dossier, controls)
+            process_dossier(check.demarche, dossier, controls)
           else
             check.destroy!
           end
@@ -146,6 +146,18 @@ class VerificationService
     demarche
   end
 
+  def process_dossier(demarche, md_dossier, controls)
+    if md_dossier.state == 'en_construction'
+      check_dossier(demarche, md_dossier, controls)
+    else
+      remove_checks(md_dossier.number)
+    end
+  end
+
+  def remove_checks(dossier_nb)
+    Check.find_by_dossier(dossier_nb)&.destroy!
+  end
+
   def check_dossier(demarche, md_dossier, controls)
     checks = []
     @dossier_has_new_messages = false
@@ -159,7 +171,6 @@ class VerificationService
         c.demarche = demarche
       end
       start_time = Time.zone.now
-      puts "Apply task ? #{check.checked_at} > #{md_dossier.date_derniere_modification} || #{check.version} < #{control.version}"
       if check.checked_at < md_dossier.date_derniere_modification || check.version < control.version
         apply_control(control, md_dossier, check)
       end
