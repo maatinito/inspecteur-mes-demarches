@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateChecks < ActiveRecord::Migration[5.2]
   def change
     create_table :checks do |t|
@@ -7,6 +9,6 @@ class CreateChecks < ActiveRecord::Migration[5.2]
       t.timestamps
     end
     add_index :checks, :dossier, name: 'by_dossier'
-    add_index :checks, [:dossier, :checker], name: 'unicity', unique: true
+    add_index :checks, %i[dossier checker], name: 'unicity', unique: true
   end
 end

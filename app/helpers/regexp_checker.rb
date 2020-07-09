@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 class DateDeNaissance < FieldChecker
   def initialize(params)
@@ -23,9 +24,7 @@ class DateDeNaissance < FieldChecker
 
         message = params[:message]
         aides = champ.value.scan(/#{@params[:regex_aide]}/)
-        if aides.present?
-          message = message + @params[:message_aide] + aides.joins(',')
-        end
+        message = message + @params[:message_aide] + aides.joins(',') if aides.present?
         add_message(champ.libelle, champ.value, message)
       end
     end

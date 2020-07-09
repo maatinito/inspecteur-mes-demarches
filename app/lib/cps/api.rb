@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'json'
 
 class Cps::API
-  RESOURCE_NAME = "covid/assures/coherenceDnDdn/multiples"
-  API_CPS_AUTH = ENV.fetch("API_CPS_AUTH", "https://connect.cps.pf/auth/realms/TatouAssures/protocol/openid-connect/token")
-  API_CPS_URL = ENV.fetch("API_CPS_URL", "https://tatouapi.cps.pf")
+  RESOURCE_NAME = 'covid/assures/coherenceDnDdn/multiples'
+  API_CPS_AUTH = ENV.fetch('API_CPS_AUTH', 'https://connect.cps.pf/auth/realms/TatouAssures/protocol/openid-connect/token')
+  API_CPS_URL = ENV.fetch('API_CPS_URL', 'https://tatouapi.cps.pf')
 
   TIMEOUT = 3
 
@@ -32,11 +34,11 @@ class Cps::API
   end
 
   def url(resource_name)
-    base_url = [API_CPS_URL, resource_name].join("/")
+    base_url = [API_CPS_URL, resource_name].join('/')
     base_url
   end
 
-  TWO_DIGIT_YEAR = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d\d?)\s*$/
+  TWO_DIGIT_YEAR = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d\d?)\s*$/.freeze
 
   def json_dn(dn_pairs)
     dn_pairs = Hash[dn_pairs.map do |dn, date|
@@ -54,7 +56,7 @@ class Cps::API
       if date.is_a? Date
         [dn, date.strftime('%d/%m/%Y')]
       else
-        raise ArgumentError "Invalid date format " + date
+        raise ArgumentError 'Invalid date format ' + date
       end
     end]
     {

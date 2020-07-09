@@ -66,16 +66,33 @@ GEM
     coffee-script-source (1.12.2)
     concurrent-ruby (1.1.6)
     crass (1.0.6)
+    delayed_cron_job (0.7.2)
+      delayed_job (>= 4.1)
+    delayed_job (4.1.8)
+      activesupport (>= 3.0, < 6.1)
+    delayed_job_active_record (4.1.4)
+      activerecord (>= 3.0, < 6.1)
+      delayed_job (>= 3.0, < 5)
+    delayed_job_web (1.4.3)
+      activerecord (> 3.0.0)
+      delayed_job (> 2.0.3)
+      rack-protection (>= 1.5.5)
+      sinatra (>= 1.4.4)
     dotenv (2.7.5)
     dotenv-rails (2.7.5)
       dotenv (= 2.7.5)
       railties (>= 3.2, < 6.1)
     erubi (1.9.0)
     erubis (2.7.0)
+    et-orbi (1.2.4)
+      tzinfo
     ethon (0.12.0)
       ffi (>= 1.3.0)
     execjs (2.7.0)
     ffi (1.13.0)
+    fugit (1.3.3)
+      et-orbi (~> 1.1, >= 1.1.8)
+      raabro (~> 1.1)
     globalid (0.4.2)
       activesupport (>= 4.2.0)
     graphql (1.10.10)
@@ -136,6 +153,8 @@ GEM
     mini_portile2 (2.4.0)
     minitest (5.14.1)
     msgpack (1.3.3)
+    mustermann (1.1.1)
+      ruby2_keywords (~> 0.0.1)
     nio4r (2.5.2)
     nokogiri (1.10.9)
       mini_portile2 (~> 2.4.0)
@@ -146,7 +165,10 @@ GEM
     popper_js (1.16.0)
     public_suffix (4.0.5)
     puma (3.12.6)
+    raabro (1.1.6)
     rack (2.2.2)
+    rack-protection (2.0.8.1)
+      rack
     rack-proxy (0.6.5)
       rack
     rack-test (1.1.0)
@@ -164,6 +186,8 @@ GEM
       bundler (>= 1.3.0)
       railties (= 5.2.4.3)
       sprockets-rails (>= 2.0.0)
+    rails-bootstrap-tabs (0.2.2)
+      rails (>= 3.2.11)
     rails-dom-testing (2.0.3)
       activesupport (>= 4.2.0)
       nokogiri (>= 1.6)
@@ -215,6 +239,7 @@ GEM
       rubocop (>= 0.51)
     ruby-ole (1.2.12.2)
     ruby-progressbar (1.10.1)
+    ruby2_keywords (0.0.2)
     ruby_dep (1.5.0)
     ruby_parser (3.14.2)
       sexp_processor (~> 4.9)
@@ -242,6 +267,11 @@ GEM
       sass (~> 3.5, >= 3.5.5)
     semantic_range (2.3.0)
     sexp_processor (4.14.1)
+    sinatra (2.0.8.1)
+      mustermann (~> 1.0)
+      rack (~> 2.0)
+      rack-protection (= 2.0.8.1)
+      tilt (~> 2.0)
     spreadsheet (1.2.6)
       ruby-ole (>= 1.0)
     spring (2.1.0)
@@ -294,7 +324,11 @@ DEPENDENCIES
   bootstrap (~> 4.5.0)
   byebug
   coffee-rails (~> 4.2)
+  delayed_cron_job
+  delayed_job_active_record
+  delayed_job_web
   dotenv-rails
+  fugit
   graphql-client (~> 0.16.0)
   haml-lint
   haml-rails
@@ -305,6 +339,7 @@ DEPENDENCIES
   pg (>= 0.18, < 2.0)
   puma (>= 3.12.6)
   rails (~> 5.2.4, >= 5.2.4.3)
+  rails-bootstrap-tabs (~> 0.2.2)
   roo-xls
   rubocop
   rubocop-rails_config

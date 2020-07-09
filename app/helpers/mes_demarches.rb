@@ -125,6 +125,9 @@ module MesDemarches
                   ... on DateChamp  {
                       value
                   }
+                  ... on DossierLinkChamp {
+                    stringValue
+                  }
                   ... on PieceJustificativeChamp  {
                       file {
                           contentType
@@ -215,6 +218,9 @@ module MesDemarches
             }
             ... on DateChamp {
               value
+            }
+            ... on DossierLinkChamp {
+              stringValue
             }
             ... on PieceJustificativeChamp {
               file {

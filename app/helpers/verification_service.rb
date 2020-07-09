@@ -13,6 +13,7 @@ class VerificationService
     VerificationService.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
       @pieces_messages = get_pieces_messages(procedure_name, procedure)
       @instructeur_email = instructeur_email(procedure)
+      procedure['name'] = procedure_name
       controls = create_controls(procedure)
       check_updated_dossiers(controls, procedure)
       check_failed_dossiers(controls)
@@ -49,15 +50,14 @@ class VerificationService
     result
   end
 
-  def on_dossiers(demarche_number, reset)
+  def on_dossiers(demarche, reset)
     start_time = Time.zone.now
-    demarche = find_or_create_demarche(demarche_number)
     cursor = nil
     since = reset ? EPOCH : demarche.checked_at
     begin
       response = MesDemarches::Client.query(MesDemarches::Queries::DossiersModifies,
                                             variables: {
-                                              demarche: demarche_number,
+                                              demarche: demarche.id,
                                               since: since.iso8601,
                                               cursor: cursor
                                             })
@@ -68,7 +68,7 @@ class VerificationService
 
       dossiers = data.demarche.dossiers
       dossiers.nodes.each do |dossier|
-        yield demarche, dossier if dossier.present?
+        yield dossier if dossier.present?
       end
       page_info = dossiers.page_info
       cursor = page_info.end_cursor
@@ -95,7 +95,8 @@ class VerificationService
   def check_updated_dossiers(controls, procedure)
     reset = controls.find { |control| Check.find_by_checker(control.class.name.underscore).nil? }.present?
     [*procedure['demarches']].each do |demarche_number|
-      on_dossiers(demarche_number, reset) do |demarche, dossier|
+      demarche = find_or_create_demarche(demarche_number, procedure)
+      on_dossiers(demarche, reset) do |dossier|
         process_dossier(demarche, dossier, controls)
       end
     end
@@ -103,8 +104,8 @@ class VerificationService
 
   def check_failed_dossiers(controls)
     Check.where(failed: true)
-      .includes(:demarche)
-      .find_each do |check|
+         .includes(:demarche)
+         .find_each do |check|
       on_dossier(check.dossier) do |md_dossier|
         process_dossier(check.demarche, md_dossier, controls)
       end
@@ -129,7 +130,7 @@ class VerificationService
     end
   end
 
-  def find_or_create_demarche(demarche_number)
+  def find_or_create_demarche(demarche_number, procedure)
     result = MesDemarches::Client.query(MesDemarches::Queries::Demarche,
                                         variables: { demarche: demarche_number })
     gql_demarche = result.data.demarche
@@ -137,6 +138,7 @@ class VerificationService
       d.checked_at = EPOCH
     end
     demarche.libelle = gql_demarche.title
+    demarche.configuration = procedure['name']
     gql_instructeur = gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == @instructeur_email }
     if gql_instructeur.nil?
       throw StandardError.new "Aucun instructeur #{@instructeur.email} sur la demarche #{demarche_number}"

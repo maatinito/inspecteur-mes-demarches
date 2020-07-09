@@ -11,6 +11,8 @@ bundle exec rake db:migrate || bundle exec rake db:setup
 echo Database migration/creation done
 
 # bundle exec rake after_party:run || true
-# bundle exec rake jobs:schedule
+
+#----- setup cron jobs
+bundle exec rake jobs:schedule
 
 exec bundle exec "$@"

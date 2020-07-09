@@ -10,7 +10,7 @@ gem 'rails', '~> 5.2.4', '>= 5.2.4.3'
 # Use postgresql as the database for Active Record
 gem 'pg', '>= 0.18', '< 2.0'
 # Use Puma as the app server
-gem "puma", ">= 3.12.6"
+gem 'puma', '>= 3.12.6'
 # Use SCSS for stylesheets
 gem 'sass-rails', '~> 5.0'
 # Use Uglifier as compressor for JavaScript assets
@@ -39,11 +39,17 @@ gem 'jbuilder', '~> 2.5'
 
 # Reduces boot times through caching; required in config/boot.rb
 gem 'bootsnap', '>= 1.1.0', require: false
+gem 'bootstrap', '~> 4.5.0'
+gem 'delayed_cron_job' # Cron jobs
+gem 'delayed_job_active_record'
+gem 'delayed_job_web'
+gem 'fugit'
 gem 'haml-rails'
+gem 'jquery-rails'
+gem 'rails-bootstrap-tabs', '~> 0.2.2'
 gem 'roo-xls'
 gem 'typhoeus'
-gem 'bootstrap', '~> 4.5.0'
-gem 'jquery-rails'
+
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console

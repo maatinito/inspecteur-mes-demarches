@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ChangeCheckDemarche < ActiveRecord::Migration[5.2]
   def change
     rename_column :checks, :demarche, :demarche_id

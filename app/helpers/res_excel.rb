@@ -80,7 +80,7 @@ class ResExcel < FieldChecker
         if file.present?
           filename = file.filename
           url = file.url
-          extension = filename.match /(\.[^.]+)$/
+          extension = filename.match(/(\.[^.]+)$/)
           extension &&= extension[1].downcase
           if bad_extension(extension)
             add_message(champ.label, file.filename, @params[:message_type_de_fichier])
@@ -132,7 +132,7 @@ class ResExcel < FieldChecker
     @params[:message_format_dn] + ':' + dn
   end
 
-  DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/
+  DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/.freeze
 
   def check_format_date_de_naissance(line)
     ddn = line[:date_de_naissance]

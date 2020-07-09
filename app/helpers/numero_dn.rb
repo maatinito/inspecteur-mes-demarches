@@ -1,6 +1,6 @@
+# frozen_string_literal: true
+
 class NumeroDn < FieldChecker
-
-
   def initialize(params)
     super(params)
     @cps = Cps::API.new

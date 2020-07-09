@@ -1,5 +1,6 @@
-class DateDeNaissance < FieldChecker
+# frozen_string_literal: true
 
+class DateDeNaissance < FieldChecker
   def version
     1.5
   end
@@ -24,9 +25,7 @@ class DateDeNaissance < FieldChecker
     if champs.present?
       champs.map do |champ|
         date = Date.parse(champ.value)
-        unless range.cover?(date)
-          add_message(@params[:champ],date, @params[:message])
-        end
+        add_message(@params[:champ], date, @params[:message]) unless range.cover?(date)
       end
     end
   end

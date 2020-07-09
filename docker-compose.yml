@@ -51,6 +51,32 @@ services:
     depends_on:
       - db
 
+  worker:
+    image: ${IMAGE}:${TAG:-latest}
+    entrypoint: ["bundle", "exec"]
+    command: rails jobs:work
+    restart: always
+    environment:
+      - API_CPS_CLIENT_ID
+      - API_CPS_CLIENT_SECRET
+      - API_CPS_PASSWORD
+      - API_CPS_USERNAME
+      - CAPYBARA_DRIVER
+      - DB_DATABASE
+      - DB_HOST
+      - DB_PASSWORD
+      - DB_POOL
+      - DB_USERNAME
+      - GRAPHQL_BEARER
+      - GRAPHQL_HOST
+      - RAILS_ENV=${ENV:-production}
+    volumes:
+      - imd-data-files:/imd/storage
+      - imd-uploads:/imd/public/uploads
+      - imd-downloads:/imd/public/downloads
+    depends_on:
+      - db
+
   db:
     image: postgres:10-alpine
     restart: always

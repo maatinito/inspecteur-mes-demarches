@@ -1,7 +1,8 @@
+# frozen_string_literal: true
+
 require 'set'
 
 class FieldChecker
-
   attr_reader :messages
 
   attr_reader :accessed_fields
@@ -12,10 +13,14 @@ class FieldChecker
     @errors        = []
     @params        = params.symbolize_keys
     missing_fields = (required_fields - @params.keys)
-    @errors << "Les champs #{missing_fields.join(',')} devrait être définis sur #{self.class.name.underscore}" if missing_fields.present?
+    if missing_fields.present?
+      @errors << "Les champs #{missing_fields.join(',')} devrait être définis sur #{self.class.name.underscore}"
+    end
     unknown_fields = @params.keys - authorized_fields - required_fields
-    @errors << "#{unknown_fields.join(',')} n'existe(nt) pas sur #{self.class.name.underscore}" if unknown_fields.present?
-    @messages        = []
+    if unknown_fields.present?
+      @errors << "#{unknown_fields.join(',')} n'existe(nt) pas sur #{self.class.name.underscore}"
+    end
+    @messages = []
     @accessed_fields = Set[]
   end
 
