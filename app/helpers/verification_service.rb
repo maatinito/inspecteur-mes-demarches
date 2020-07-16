@@ -13,6 +13,7 @@ class VerificationService
     VerificationService.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
       @pieces_messages = get_pieces_messages(procedure_name, procedure)
       @instructeur_email = instructeur_email(procedure)
+      @send_messages = procedure['messages_automatiques']
       procedure['name'] = procedure_name
       controls = create_controls(procedure)
       check_updated_dossiers(controls, procedure)
@@ -162,7 +163,7 @@ class VerificationService
 
   def check_dossier(demarche, md_dossier, controls)
     checks = []
-    @dossier_has_new_messages = false
+    @dossier_has_different_messages = false
     @second_time = false
 
     controls.each do |control|
@@ -180,7 +181,7 @@ class VerificationService
       check.save
       checks << check
     end
-    # send_message(md_dossier, checks) if @dossier_has_new_messages && ENV['GRAPHQL_HOST'].include?('localhost')
+    send_message(md_dossier, checks) if @dossier_has_different_messages && @send_messages
   end
 
   def apply_control(control, dossier, check)
@@ -216,7 +217,7 @@ class VerificationService
     check.messages.destroy(check.messages.reject { |m| new_messages.include?(m.hashkey) })
     check.messages << task.messages.reject { |m| old_messages.include?(m.hashkey) }
     check.posted = false
-    @dossier_has_new_messages = true
+    @dossier_has_different_messages = true
   end
 
   def send_message(md_dossier, checks)
