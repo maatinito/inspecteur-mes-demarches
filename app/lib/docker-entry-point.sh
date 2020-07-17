@@ -13,6 +13,9 @@ echo Database migration/creation done
 # bundle exec rake after_party:run || true
 
 #----- setup cron jobs
+echo Setting up inspect job
 bundle exec rake jobs:schedule
+echo Done
 
+echo Launching server
 exec bundle exec "$@"
