@@ -16,7 +16,8 @@ class VerificationService
       @send_messages = procedure['messages_automatiques']
       procedure['name'] = procedure_name
       controls = create_controls(procedure)
-      check_updated_dossiers(controls, procedure)
+      @procedure = procedure
+      check_updated_dossiers(controls)
       check_failed_dossiers(controls)
       check_updated_controls(controls)
     end
@@ -93,10 +94,10 @@ class VerificationService
     end.flatten
   end
 
-  def check_updated_dossiers(controls, procedure)
+  def check_updated_dossiers(controls)
     reset = controls.find { |control| Check.find_by_checker(control.class.name.underscore).nil? }.present?
-    [*procedure['demarches']].each do |demarche_number|
-      demarche = find_or_create_demarche(demarche_number, procedure)
+    [*@procedure['demarches']].each do |demarche_number|
+      demarche = find_or_create_demarche(demarche_number, @procedure)
       on_dossiers(demarche, reset) do |dossier|
         process_dossier(demarche, dossier, controls)
       end
@@ -175,6 +176,7 @@ class VerificationService
       end
       start_time = Time.zone.now
       if check.checked_at < md_dossier.date_derniere_modification || check.version < control.version
+        control.demarche = demarche
         apply_control(control, md_dossier, check)
       end
       check.checked_at = start_time
@@ -182,10 +184,27 @@ class VerificationService
       checks << check
     end
     send_message(md_dossier, checks) if @dossier_has_different_messages && @send_messages
+    when_ok(demarche, md_dossier.number, checks) if @procedure['when_ok']
   end
 
-  def apply_control(control, dossier, check)
-    control.control(dossier)
+  def when_ok(demarche, dossier_number, checks)
+    message_nb = checks.flat_map(&:messages).size
+    if message_nb == 0
+      @ok_tasks ||= @procedure['when_ok'].map do |task|
+        if task.is_a?(String)
+          Object.const_get(task.camelize).new({})
+        else # hash
+          task.map { |taskname, params| Object.const_get(taskname.camelize).new(params) }
+        end
+      end.flatten
+      @ok_tasks.each do |task|
+        task.process(demarche, dossier_number) if task.valid?
+      end
+    end
+  end
+
+  def apply_control(control, md_dossier, check)
+    control.control(md_dossier)
     update_check_messages(check, control)
     @second_time ||= check.checked_at > EPOCH
     check.failed = false

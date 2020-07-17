@@ -10,18 +10,28 @@ class MemeDemandeur < FieldChecker
   end
 
   def version
-    6
+    10
   end
 
   def required_fields
-    %i[champ message_mauvais_demandeur ]
+    %i[champ message_mauvais_demandeur]
   end
 
   def authorized_fields
     %i[champ_cible message_mauvaise_demarche verifier_usager message_mauvais_usager]
   end
 
-  Queries =  MesDemarches::Client.parse <<-'GRAPHQL'
+  Queries = MesDemarches::Client.parse <<-'GRAPHQL'
+    query Instructeurs($demarche : Int!) {
+      demarche(number: $demarche) {
+        groupeInstructeurs {
+          instructeurs {
+            email
+          }
+        }
+      }
+    }
+
     query Dossier($dossier: Int!) {
       dossier(number: $dossier) {
           usager {
@@ -42,6 +52,19 @@ class MemeDemandeur < FieldChecker
         }
       }
   GRAPHQL
+
+  def instructeurs
+    @instructeurs ||= load_instructeurs
+  end
+
+  def load_instructeurs
+    response = MesDemarches::Client.query(Queries::Instructeurs, variables: { demarche: @demarche.number })
+    return Set[] unless (data = response.data)
+
+    data.demarche.groupe_instructeurs.map { |group|
+      group.instructeurs.map(&:email)
+    }.flatten
+  end
 
   def check(dossier)
     champs = field(dossier, @params[:champ])
@@ -67,13 +90,14 @@ class MemeDemandeur < FieldChecker
             add_message(@params[:champ], dossier_number, @params[:message_mauvaise_demarche])
           end
         end
-        if @params[:verifier_usager].present?
-          current_user = dossier&.usager&.email
-          target_user  = target_dossier&.usager.email
-          if current_user != target_user
-            add_message(@params[:champ], dossier_number, @params[:message_mauvais_usager])
-          end
-        end
+        next unless @params[:verifier_usager].present?
+
+        current_user = dossier&.usager&.email
+        target_user = target_dossier&.usager.email
+        # ignore check if a user is also an instructor
+        next unless instructeurs.include?(current_user) || instructeurs.include?(target_user)
+
+        add_message(@params[:champ], dossier_number, @params[:message_mauvais_usager]) if current_user != target_user
       end
     end
   end

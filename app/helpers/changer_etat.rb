@@ -1,0 +1,3 @@
+class ChangerEtat < InspectorTask
+
+end

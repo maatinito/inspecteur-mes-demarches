@@ -87,7 +87,6 @@ module MesDemarches
                   }
                   ... on PersonneMorale {
                       adresse
-                      codePostal
                       libelleNaf
                       localite
                       naf
@@ -181,7 +180,6 @@ module MesDemarches
             }
                    ... on PersonneMorale {
               adresse
-              codePostal
               libelleNaf
               localite
               naf
