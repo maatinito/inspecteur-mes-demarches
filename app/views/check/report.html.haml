@@ -28,7 +28,9 @@
                   %td.col-10
                     - messages = checks.flat_map { |c| c.messages }.sort_by { |m| m.field + m.value }
                     - if messages.empty?
-                      Dossier correct pouvant passer en instruction. Cliquez sur le bouton d'envoi de message pour prévenir l'usager puis passez le dossier en instruction.
+                      Dossier correct pouvant passer en instruction.
+                      - unless checks.first.posted
+                        Cliquez sur le bouton d'envoi de message pour prévenir l'usager puis passez le dossier en instruction.
                     - else
                       %table.table
                         - messages.each do |message|

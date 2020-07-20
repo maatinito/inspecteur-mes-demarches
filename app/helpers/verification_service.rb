@@ -106,8 +106,8 @@ class VerificationService
 
   def check_failed_dossiers(controls)
     Check.where(failed: true)
-         .includes(:demarche)
-         .find_each do |check|
+      .includes(:demarche)
+      .find_each do |check|
       on_dossier(check.dossier) do |md_dossier|
         process_dossier(check.demarche, md_dossier, controls)
       end
@@ -166,6 +166,7 @@ class VerificationService
     checks = []
     @dossier_has_different_messages = false
     @second_time = false
+    failed_checks = false
 
     controls.each do |control|
       next unless control.valid?
@@ -182,9 +183,12 @@ class VerificationService
       check.checked_at = start_time
       check.save
       checks << check
+      failed_checks ||= check.failed
     end
-    send_message(md_dossier, checks) if @dossier_has_different_messages && @send_messages
-    when_ok(demarche, md_dossier.number, checks) if @procedure['when_ok']
+    unless failed_checks
+      send_message(md_dossier, checks) if @dossier_has_different_messages && @send_messages
+      when_ok(demarche, md_dossier.number, checks) if @procedure['when_ok']
+    end
   end
 
   def when_ok(demarche, dossier_number, checks)

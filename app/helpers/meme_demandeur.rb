@@ -58,7 +58,7 @@ class MemeDemandeur < FieldChecker
   end
 
   def load_instructeurs
-    response = MesDemarches::Client.query(Queries::Instructeurs, variables: { demarche: @demarche.number })
+    response = MesDemarches::Client.query(Queries::Instructeurs, variables: { demarche: @demarche.id })
     return Set[] unless (data = response.data)
 
     data.demarche.groupe_instructeurs.map { |group|
@@ -95,7 +95,7 @@ class MemeDemandeur < FieldChecker
         current_user = dossier&.usager&.email
         target_user = target_dossier&.usager.email
         # ignore check if a user is also an instructor
-        next unless instructeurs.include?(current_user) || instructeurs.include?(target_user)
+        next if instructeurs.include?(current_user) || instructeurs.include?(target_user)
 
         add_message(@params[:champ], dossier_number, @params[:message_mauvais_usager]) if current_user != target_user
       end
