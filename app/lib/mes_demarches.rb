@@ -115,6 +115,9 @@ module MesDemarches
                   ... on TextChamp {
                       value
                   }
+                  ... on CheckboxChamp {
+                      value
+                  }
                   ... on IntegerNumberChamp {
                       value
                   }
@@ -207,6 +210,9 @@ module MesDemarches
             label
             ... on TextChamp {
               value
+            }
+            ... on CheckboxChamp {
+                value
             }
             ... on IntegerNumberChamp {
               value
