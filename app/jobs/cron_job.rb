@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CronJob < ApplicationJob
   queue_as :cron
   class_attribute :schedule_expression
@@ -5,7 +7,7 @@ class CronJob < ApplicationJob
   class << self
     def schedule
       remove if cron_expression_changed?
-      set(cron: cron_expression).perform_later if !scheduled?
+      set(cron: cron_expression).perform_later unless scheduled?
     end
 
     def remove

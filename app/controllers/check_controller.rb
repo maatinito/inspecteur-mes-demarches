@@ -10,13 +10,13 @@ class CheckController < ApplicationController
   def report
     # nested hash table  { demarche => dossier => check } unsorted
     @checked_dossiers = Check.order('checks.checked_at DESC').includes(:messages).includes(:demarche)
-                          .each_with_object({}) { |c, h|
-                            h.update(c.demarche => { c.dossier => [c] }) { |_, h1, h2|
-                              h1.update(h2) { |_, l1, l2|
-                                l1 + l2
-                              }
-                            }
-                          }
+                             .each_with_object({}) do |c, h|
+      h.update(c.demarche => { c.dossier => [c] }) do |_, h1, h2|
+        h1.update(h2) do |_, l1, l2|
+          l1 + l2
+        end
+      end
+    end
   end
 
   def post_message

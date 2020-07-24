@@ -106,8 +106,8 @@ class VerificationService
 
   def check_failed_dossiers(controls)
     Check.where(failed: true)
-      .includes(:demarche)
-      .find_each do |check|
+         .includes(:demarche)
+         .find_each do |check|
       on_dossier(check.dossier) do |md_dossier|
         process_dossier(check.demarche, md_dossier, controls)
       end

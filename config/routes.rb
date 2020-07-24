@@ -8,5 +8,5 @@ Rails.application.routes.draw do
   put 'check/post_message/:dossier', to: 'check#post_message', as: :check_post_message
 
   # view jobs
-  match "/delayed_job" => DelayedJobWeb, :anchor => false, :via => [:get, :post]
+  match '/delayed_job' => DelayedJobWeb, :anchor => false, :via => %i[get post]
 end

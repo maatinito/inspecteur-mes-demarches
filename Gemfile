@@ -50,7 +50,6 @@ gem 'rails-bootstrap-tabs', '~> 0.2.2'
 gem 'roo-xls'
 gem 'typhoeus'
 
-
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug', platforms: %i[mri mingw x64_mingw]
@@ -64,11 +63,13 @@ group :development do
   # Spring speeds up development by keeping your application running in the background. Read more: https://github.com/rails/spring
   gem 'haml-lint'
   gem 'letter_opener_web'
+  gem 'rspec-rails', '~> 4.0.1'
   gem 'rubocop', require: false
   gem 'rubocop-rails_config'
   gem 'rubocop-rspec-focused', require: false
   gem 'scss_lint', require: false
   gem 'spring'
+  gem 'spring-commands-rspec'
   gem 'spring-watcher-listen', '~> 2.0.0'
   gem 'xray-rails'
 end

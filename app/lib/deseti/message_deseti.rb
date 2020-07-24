@@ -1,9 +1,10 @@
-class MessageDeseti < FieldChecker
+# frozen_string_literal: true
 
+class MessageDeseti < FieldChecker
   def initialize(params)
     super
-    @jours_ecoules = params['jours_ecoules']
-    @message = [*params['corps']].join
+    @jours_ecoules = @params[:jours_ecoules]
+    @message = [*@params[:corps]].join
   end
 
   def check(dossier)
