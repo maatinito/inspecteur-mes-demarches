@@ -27,7 +27,10 @@
                         = image_tag 'post_message.png', width: '32px'
                   %td.col-10
                     - messages = checks.flat_map { |c| c.messages }.sort_by { |m| m.field + m.value }
-                    - if messages.empty?
+                    - failed = checks.any?(&:failed)
+                    - if failed
+                      Exception interne lors du traitement de ce dossier. Contactez le support technique.
+                    - elsif messages.empty?
                       Dossier correct pouvant passer en instruction.
                       - unless checks.first.posted
                         Cliquez sur le bouton d'envoi de message pour prévenir l'usager puis passez le dossier en instruction.
