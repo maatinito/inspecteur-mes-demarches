@@ -7,9 +7,7 @@ class DateDeNaissance < FieldChecker
 
   def initialize(params)
     super(params)
-    if @params[:age] !~ /\d+\.\.\d+/
-      @errors << "#{@params[:age]}: Pour une date de naissance, spécifiez l'age sous forme d'intervalle x..y"
-    end
+    @errors << "#{@params[:age]}: Pour une date de naissance, spécifiez l'age sous forme d'intervalle x..y" if @params[:age] !~ /\d+\.\.\d+/
   end
 
   def required_fields

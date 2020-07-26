@@ -7,13 +7,9 @@ class InspectorTask
     @errors = []
     @params = params.symbolize_keys
     missing_fields = (required_fields - @params.keys)
-    if missing_fields.present?
-      @errors << "Les champs #{missing_fields.join(',')} devrait être définis sur #{self.class.name.underscore}"
-    end
+    @errors << "Les champs #{missing_fields.join(',')} devrait être définis sur #{self.class.name.underscore}" if missing_fields.present?
     unknown_fields = @params.keys - authorized_fields - required_fields
-    if unknown_fields.present?
-      @errors << "#{unknown_fields.join(',')} n'existe(nt) pas sur #{self.class.name.underscore}"
-    end
+    @errors << "#{unknown_fields.join(',')} n'existe(nt) pas sur #{self.class.name.underscore}" if unknown_fields.present?
     @messages = []
     @accessed_fields = Set[]
   end

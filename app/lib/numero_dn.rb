@@ -22,9 +22,7 @@ class NumeroDn < FieldChecker
       champs.map do |champ|
         puts "#{champ.numero_dn}:#{champ.date_de_naissance}"
         status = verify(champ.numero_dn, champ.date_de_naissance)
-        if status != :good_dn
-          add_message(@params[:champ], "#{champ.numero_dn}:#{champ.date_de_naissance}", @params[status])
-        end
+        add_message(@params[:champ], "#{champ.numero_dn}:#{champ.date_de_naissance}", @params[status]) if status != :good_dn
       end
     end
   end

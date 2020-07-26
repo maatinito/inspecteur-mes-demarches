@@ -39,15 +39,26 @@ class VerificationService
     end
   end
 
+  def self.config
+    file_mtime = File.mtime(config_file_name)
+    if @@config.nil? || @@config_time < file_mtime
+      @@config = YAML.safe_load(File.read(config_file_name), [], [], true)
+      @@config_time = file_mtime
+    end
+    @@config
+  end
+
+  def self.config_file_name
+    @@config_file_name ||= Rails.root.join('storage', 'auto_instructeur.yml')
+  end
+
   private
 
   EPOCH = Time.zone.parse('2000-01-01 00:00')
 
   def instructeur_email(procedure)
     result = procedure['email_instructeur']
-    if result.empty?
-      raise ArgumentError, "#{procedure_name} devrait définir 'email_instructeur' pour définir qui poste les messages aux usagers"
-    end
+    raise ArgumentError, "#{procedure_name} devrait définir 'email_instructeur' pour définir qui poste les messages aux usagers" if result.empty?
 
     result
   end
@@ -56,7 +67,7 @@ class VerificationService
     start_time = Time.zone.now
     cursor = nil
     since = reset ? EPOCH : demarche.checked_at
-    begin
+    loop do
       response = MesDemarches::Client.query(MesDemarches::Queries::DossiersModifies,
                                             variables: {
                                               demarche: demarche.id,
@@ -73,8 +84,12 @@ class VerificationService
         yield dossier if dossier.present?
       end
       page_info = dossiers.page_info
+
+      break unless page_info.has_next_page
+
       cursor = page_info.end_cursor
-    end while page_info.has_next_page
+    end
+
     demarche.checked_at = start_time
     demarche.save
   end
@@ -142,9 +157,7 @@ class VerificationService
     demarche.libelle = gql_demarche.title
     demarche.configuration = procedure['name']
     gql_instructeur = gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == @instructeur_email }
-    if gql_instructeur.nil?
-      throw StandardError.new "Aucun instructeur #{@instructeur.email} sur la demarche #{demarche_number}"
-    end
+    throw StandardError.new "Aucun instructeur #{@instructeur.email} sur la demarche #{demarche_number}" if gql_instructeur.nil?
     demarche.instructeur = gql_instructeur.id
     demarche.save!
     demarche
@@ -193,7 +206,7 @@ class VerificationService
 
   def when_ok(demarche, dossier_number, checks)
     message_nb = checks.flat_map(&:messages).size
-    if message_nb == 0
+    if message_nb.zero?
       @ok_tasks ||= @procedure['when_ok'].map do |task|
         if task.is_a?(String)
           Object.const_get(task.camelize).new({})
@@ -289,18 +302,5 @@ class VerificationService
                                  body: body,
                                  clientMutationId: 'dededed'
                                })
-  end
-
-  def self.config
-    file_mtime = File.mtime(config_file_name)
-    if @@config.nil? || @@config_time < file_mtime
-      @@config = YAML.safe_load(File.read(config_file_name), [], [], true)
-      @@config_time = file_mtime
-    end
-    @@config
-  end
-
-  def self.config_file_name
-    @@config_file_name ||= Rails.root.join('storage', 'auto_instructeur.yml')
   end
 end
