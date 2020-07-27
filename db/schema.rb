@@ -24,7 +24,7 @@ ActiveRecord::Schema.define(version: 20_200_726_032_842) do
     t.datetime 'checked_at'
     t.float 'version', default: 1.0
     t.integer 'demarche_id'
-    t.boolean 'failed', default: false
+    t.boolean 'failed'
     t.boolean 'posted', default: false
     t.index %w[dossier checker], name: 'unicity', unique: true
     t.index ['dossier'], name: 'by_dossier'
