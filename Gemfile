@@ -58,6 +58,8 @@ group :development, :test do
   gem 'spring'
   gem 'spring-commands-rspec'
   gem 'spring-watcher-listen', '~> 2.0.0'
+  gem 'vcr', '~> 6.0.0'
+  gem 'webmock', '~> 3.8.0'
   gem 'xray-rails'
 end
 
