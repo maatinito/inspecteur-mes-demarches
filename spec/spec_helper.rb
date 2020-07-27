@@ -103,11 +103,11 @@ RSpec.configure do |config|
     c.cassette_library_dir = 'spec/cassettes'
     c.configure_rspec_metadata!
     c.ignore_hosts 'test.host', 'chromedriver.storage.googleapis.com'
-    c.filter_sensitive_data('<BEARER_TOKEN>') { |interaction|
+    c.filter_sensitive_data('<BEARER_TOKEN>') do |interaction|
       auths = interaction.request.headers['Authorization'].first
-      if (match = auths.match /^Bearer\s+([^,\s]+)/ )
+      if (match = auths.match(/^Bearer\s+([^,\s]+)/))
         match.captures.first
       end
-    }
+    end
   end
 end

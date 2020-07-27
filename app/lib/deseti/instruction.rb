@@ -8,10 +8,16 @@ module Deseti
   #   Mes-Demarches dismiss the mini deseti if user has resumed his activity
   #   Mes-Demarches put dossier under instruction if mini-deseti is correct & user has no activity
   class Instruction < InspectorTask
+    attr_reader :passer_en_instruction
+    attr_reader :classer_sans_suite
+    attr_reader :operation
+
     def initialize(params)
       super
 
       @passer_en_instruction = DossierPasserEnInstruction.new(params)
+      puts '----- passer en instruction -----'
+      pp @passer_en_instruction
 
       motivation = @params[:motivation_reprise] || MOTIVATION_REPRISE
       @classer_sans_suite = DossierClasserSansSuite.new(params.merge(motivation: motivation))
@@ -29,6 +35,7 @@ module Deseti
     end
 
     def process(demarche, dossier_number)
+      puts '-- processing dossier --'
       dossier = pull_dossier(dossier_number)
       deseti_number = field(dossier, DESETI_FIELD)&.string_value
       instruction(demarche, deseti_number, dossier, dossier_number) if deseti_number.present?
@@ -51,6 +58,7 @@ module Deseti
       if resumed
         close_dossier(demarche, dossier_number, @classer_sans_suite)
       else # dossier ready for CPS
+        puts '-- instruct dossier --'
         @passer_en_instruction.process(demarche, dossier_number)
       end
     end
@@ -71,6 +79,9 @@ module Deseti
     end
 
     def close_dossier(demarche, dossier_number, operation)
+      puts '-- closing dossier --'
+      pp operation
+
       @passer_en_instruction.process(demarche, dossier_number)
       operation.process(demarche, dossier_number)
     end
