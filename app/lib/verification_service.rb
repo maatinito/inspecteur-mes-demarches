@@ -63,37 +63,6 @@ class VerificationService
     result
   end
 
-  def on_dossiers(demarche, reset)
-    start_time = Time.zone.now
-    cursor = nil
-    since = reset ? EPOCH : demarche.checked_at
-    loop do
-      response = MesDemarches::Client.query(MesDemarches::Queries::DossiersModifies,
-                                            variables: {
-                                              demarche: demarche.id,
-                                              since: since.iso8601,
-                                              cursor: cursor
-                                            })
-
-      unless (data = response.data)
-        throw StandardError.new "La démarche #{demarche_number} est introuvable #{ENV['GRAPHQL_HOST']}: #{response.errors.values.join(',')}"
-      end
-
-      dossiers = data.demarche.dossiers
-      dossiers.nodes.each do |dossier|
-        yield dossier if dossier.present?
-      end
-      page_info = dossiers.page_info
-
-      break unless page_info.has_next_page
-
-      cursor = page_info.end_cursor
-    end
-
-    demarche.checked_at = start_time
-    demarche.save
-  end
-
   def on_dossier(dossier_number)
     result = MesDemarches::Client.query(MesDemarches::Queries::Dossier,
                                         variables: { dossier: dossier_number })
@@ -112,11 +81,19 @@ class VerificationService
   def check_updated_dossiers(controls)
     reset = controls.find { |control| Check.find_by_checker(control.class.name.underscore).nil? }.present?
     [*@procedure['demarches']].each do |demarche_number|
-      demarche = find_or_create_demarche(demarche_number, @procedure)
-      on_dossiers(demarche, reset) do |dossier|
-        process_dossier(demarche, dossier, controls)
-      end
+      check_demarche(controls, demarche_number, reset, @procedure['name'])
     end
+  end
+
+  def check_demarche(controls, demarche_number, reset, configuration_name)
+    demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
+    start_time = Time.zone.now
+    since = reset ? EPOCH : demarche.checked_at
+    DossierActions.on_dossiers(demarche.id, since) do |dossier|
+      process_dossier(demarche, dossier, controls)
+    end
+    demarche.checked_at = start_time
+    demarche.save
   end
 
   def check_failed_dossiers(controls)
@@ -145,22 +122,6 @@ class VerificationService
         end
       end
     end
-  end
-
-  def find_or_create_demarche(demarche_number, procedure)
-    result = MesDemarches::Client.query(MesDemarches::Queries::Demarche,
-                                        variables: { demarche: demarche_number })
-    gql_demarche = result.data.demarche
-    demarche = Demarche.find_or_create_by(id: demarche_number) do |d|
-      d.checked_at = EPOCH
-    end
-    demarche.libelle = gql_demarche.title
-    demarche.configuration = procedure['name']
-    gql_instructeur = gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == @instructeur_email }
-    throw StandardError.new "Aucun instructeur #{@instructeur.email} sur la demarche #{demarche_number}" if gql_instructeur.nil?
-    demarche.instructeur = gql_instructeur.id
-    demarche.save!
-    demarche
   end
 
   def process_dossier(demarche, md_dossier, controls)
