@@ -1,0 +1,187 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MesDemarches__Queries__Demarche($demarche: Int!) {\n  demarche(number:
+        $demarche) {\n    title\n    groupeInstructeurs {\n      instructeurs {\n        id\n        email\n      }\n    }\n  }\n}","variables":{"demarche":217},"operationName":"MesDemarches__Queries__Demarche"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Mon, 27 Jul 2020 03:30:25 GMT
+      Server:
+      - nginx/1.10.3
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=63072000; includeSubdomains; preload
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      X-Request-Id:
+      - c98edccd-f2d8-475f-9677-e49f359b10ba
+      X-Runtime:
+      - '0.227783'
+      Content-Length:
+      - '4524'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRlbWFyY2hlIjp7InRpdGxlIjoiRGVtYW5kZSBkZSBSZXZlbnUgRXhjZXB0aW9ubmVsIGRlIFNvbGlkYXJpdMOpIFtSRVNdICgrIGRlIDEwIHBlcnNvbm5lcykiLCJncm91cGVJbnN0cnVjdGV1cnMiOlt7Imluc3RydWN0ZXVycyI6W3siaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWc9PSIsImVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXROQT09IiwiZW1haWwiOiJ3aWxsaWFtLmpvc2VwaEBtb2Rlcm5pc2F0aW9uLmdvdi5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRRMSIsImVtYWlsIjoidmFpdGlhLmJ1Y2hpbkBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFEyIiwiZW1haWwiOiJkb21pbmlxdWUubGVzdGFnZUBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFE0IiwiZW1haWwiOiJjYXJpbm5lLm5vcm1hbmQtcmljYXJkQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UUXoiLCJlbWFpbCI6InRlcmlpLnBlbGxpc3NpZXJAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRRNSIsImVtYWlsIjoiaGVpbGFuaS5saXNzYW50QHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVXciLCJlbWFpbCI6ImJlYXRyaWNlLm1haXRlcmVAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRVMCIsImVtYWlsIjoiaGVpbWFuYS5hcGVhbmdAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRVMSIsImVtYWlsIjoicmF2YS5kb21pbmdvQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVTIiLCJlbWFpbCI6ImRhdmlkLmNoZW9uQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVTMiLCJlbWFpbCI6Im1pcmlhbWEuZmFpdnJlQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVTQiLCJlbWFpbCI6InBvZWl0aS5tYWxsZWdvbGxAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRRMCIsImVtYWlsIjoic3RlcGhhbmllLmJhcmljYXVsdEBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGN4IiwiZW1haWwiOiJ2YWloYXVudWkudGFoaUBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGN5IiwiZW1haWwiOiJ2YWxlcmllLmNob2xldEBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGN6IiwiZW1haWwiOiJqdWxpZW5uZS5jaHVuZ0BzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGN3IiwiZW1haWwiOiJtYWltYS5wYWlhQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UWTUiLCJlbWFpbCI6InRldmEuY2xhdmVhdUBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFk0IiwiZW1haWwiOiJzYW5kcmluZS55YW5Ac2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRZMCIsImVtYWlsIjoidmFpaGVyZS5mcm9naWVyQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UWTMiLCJlbWFpbCI6InZhaWFuYS5jbGFya0BzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFkxIiwiZW1haWwiOiJtYW51ZWxhLm1hdWFoaXRpQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UWTIiLCJlbWFpbCI6ImhlaXJvdGkudGNoZW5Ac2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpVMyIsImVtYWlsIjoiaGVpcHVhLmx1Y2FzQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1qVXgiLCJlbWFpbCI6ImhlbnJpZXR0ZS50YW1hdGFAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpVeiIsImVtYWlsIjoidGFtYWhlcmUuY2hhbnNvbkBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNalUyIiwiZW1haWwiOiJ2YWVhLnRlcm9yb2hhdWVwYUBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFV6IiwiZW1haWwiOiJsZW9uYXJkLnRhdmFlQGluZm9ybWF0aXF1ZS5nb3YucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UazAiLCJlbWFpbCI6ImVyaWMuY2hldW5nQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1Ua3kiLCJlbWFpbCI6InRlYWhhLnJhaW5hQGdtYWlsLmNvbSJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRnNSIsImVtYWlsIjoidGl0aWFncmFzQGhvdG1haWwuY29tIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGcyIiwiZW1haWwiOiJnaWxsZXMubG9ycGhlbGluQG1vZGVybmlzYXRpb24uZ292LnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGcxIiwiZW1haWwiOiJ0ZWFuaS5paG9wdUBqZXVuZXNzZS5nb3YucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UZzAiLCJlbWFpbCI6InN0ZXBoYW5pZS5jaGV1bmdoaUBtb2Rlcm5pc2F0aW9uLmdvdi5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpVMSIsImVtYWlsIjoibWFyYXUuYnJvdGhlcnNAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpVeSIsImVtYWlsIjoidGluaWhhdS50YXZhaGVAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpRNCIsImVtYWlsIjoid2VpbGxpbmEucmV2YUBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGMxIiwiZW1haWwiOiJoaW5hLmdyZXBpbi1sb3Vpc29uQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UYzAiLCJlbWFpbCI6ImNocmlzdG9waGUubWlzc2VsaXNAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRrMSIsImVtYWlsIjoic3RldmVuLndvbmdAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRreiIsImVtYWlsIjoidGluaWhhdXRhdkBob3RtYWlsLmZyIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGt3IiwiZW1haWwiOiJiZW5uZXR0LnR1cm91cnVAZ21haWwuY29tIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGc0IiwiZW1haWwiOiJtZWRpYXRpb25AbXVzZWV0YWhpdGkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UZzMiLCJlbWFpbCI6InZpcmdpbmllLmFtYXJ1QG1vZGVybmlzYXRpb24uZ292LnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGd6IiwiZW1haWwiOiJsbXlybmFAaG90bWFpbC5mciJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpVMCIsImVtYWlsIjoianVuZS50ZWF1bmFAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpZMSIsImVtYWlsIjoiaGVpbmFyaWkudGlhcmVAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRrMyIsImVtYWlsIjoibWFlbC5jb25nYXJkQGluZm9ybWF0aXF1ZS5nb3YucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1qVXciLCJlbWFpbCI6InR1cm91cnUuYmVubmV0dEBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNalE1IiwiZW1haWwiOiJhbWVsaWUucG9ucy1oaXJpZ295ZW5Ac2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpZNCIsImVtYWlsIjoiZmxvcmlhbmEubGFpQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1qWTMiLCJlbWFpbCI6ImplYW4uY2xhcmV0QHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UazUiLCJlbWFpbCI6ImZlbGl4LmNoZW5vbkBpbmZvcm1hdGlxdWUuZ292LnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVEU9IiwiZW1haWwiOiJjbGF1ZGUubGVncmFuZEBqZXVuZXNzZS5nb3YucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1qWXoiLCJlbWFpbCI6InJhaW5hLmZvbmdzdW5nQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1qWTIiLCJlbWFpbCI6Im1hbmF2YS50ZXJpaXRldG9mYUBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGt4IiwiZW1haWwiOiJ2YWltYW5hMTdAaG90bWFpbC5mciJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpZNSIsImVtYWlsIjoibWFuYXZhLnRlcmlpdGV0b29mYUBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNalkwIiwiZW1haWwiOiJ0b20udGVmYWFvcmFAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TXpFPSIsImVtYWlsIjoicG9lcmFuaS5jcmF3Zm9yZEBqZXVuZXNzZS5nb3YucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UUXkiLCJlbWFpbCI6InBvZW1hLnRhbmdAZ21haWwuY29tIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNamMyIiwiZW1haWwiOiJyYXBoYWVsLmNvc3RhQHRvdXJpc21lLmdvdi5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWpjMSIsImVtYWlsIjoidGF1aGlhLnRla3VyYXJlcmVAdG91cmlzbWUuZ292LnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNamd3IiwiZW1haWwiOiJtYXJvdGVhLnRlYXBlaHVAdHJhdmFpbC5nb3YucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1qYzUiLCJlbWFpbCI6InZhZWhlYW5hLmxhYmFzdGVAdHJhdmFpbC5nb3YucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UazIiLCJlbWFpbCI6ImhlaXJhbmkuY2Fyb25Ac2VmaS5wZiJ9XX1dfX19
+  recorded_at: Mon, 27 Jul 2020 03:30:25 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number:
+        $dossier) {\n    id\n    number\n    state\n    datePassageEnConstruction\n    datePassageEnInstruction\n    dateTraitement\n    dateDerniereModification\n    usager
+        {\n      email\n    }\n    demandeur {\n      __typename\n      ... on PersonnePhysique
+        {\n        civilite\n        dateDeNaissance\n        nom\n        prenom\n      }\n      ...
+        on PersonneMorale {\n        adresse\n        libelleNaf\n        localite\n        naf\n        siret\n        association
+        {\n          titre\n        }\n        entreprise {\n          formeJuridique\n          nomCommercial\n          raisonSociale\n          siretSiegeSocial\n          prenom\n          nom\n        }\n      }\n    }\n    annotations
+        {\n      __typename\n      label\n      ... on TextChamp {\n        value\n      }\n    }\n    champs
+        {\n      __typename\n      label\n      ... on TextChamp {\n        value\n      }\n      ...
+        on CheckboxChamp {\n        value\n      }\n      ... on IntegerNumberChamp
+        {\n        value\n      }\n      ... on DecimalNumberChamp {\n        value\n      }\n      ...
+        on DateChamp {\n        value\n      }\n      ... on DossierLinkChamp {\n        stringValue\n      }\n      ...
+        on PieceJustificativeChamp {\n        file {\n          contentType\n          byteSize\n          filename\n          url\n        }\n        stringValue\n      }\n      ...
+        on NumeroDnChamp {\n        dateDeNaissance\n        numeroDn\n      }\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          label\n          ...
+        on TextChamp {\n            value\n          }\n          ... on IntegerNumberChamp
+        {\n            value\n          }\n          ... on DecimalNumberChamp {\n            value\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":40059},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Mon, 27 Jul 2020 03:30:26 GMT
+      Server:
+      - nginx/1.10.3
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=63072000; includeSubdomains; preload
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      X-Request-Id:
+      - b6b09f05-e481-40e7-a8a8-d24cebc027e1
+      X-Runtime:
+      - '0.221457'
+      Content-Length:
+      - '751'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsiaWQiOiJSRzl6YzJsbGNpMDBNREExT1E9PSIsIm51bWJlciI6NDAwNTksInN0YXRlIjoiZW5fY29uc3RydWN0aW9uIiwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjAtMDctMjZUMTc6Mjk6MTYtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIwLTA3LTI2VDE3OjI5OjE3LTEwOjAwIiwidXNhZ2VyIjp7ImVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIn0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVNb3JhbGUiLCJhZHJlc3NlIjoiQlAgMTUxMywgOTk5OTkgTm9uIGTDqWNsYXLDqSxcbk1vdHUgVGFwdS1NaWhpcmF1IExvdCA0IC0gUmFpYXRlYSxcblV0dXJvYSIsImxpYmVsbGVOYWYiOiJBdXRyZXMgc2VydmljZXMgcGVyc29ubmVscyBuLmMuYS4iLCJsb2NhbGl0ZSI6IlV0dXJvYSIsIm5hZiI6Ijk2MDlaIiwic2lyZXQiOiI1OTY2OTIiLCJhc3NvY2lhdGlvbiI6bnVsbCwiZW50cmVwcmlzZSI6bnVsbH0sImFubm90YXRpb25zIjpbXSwiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiRG9zc2llckxpbmtDaGFtcCIsImxhYmVsIjoiTnVtw6lybyBkb3NzaWVyIERFU0VUSSIsInN0cmluZ1ZhbHVlIjoiMzMyMTcifSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwibGFiZWwiOiJSZXByaXNlIGQnYWN0aXZpdMOpIiwidmFsdWUiOnRydWV9XX19fQ==
+  recorded_at: Mon, 27 Jul 2020 03:30:26 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query DossierChangerEtat__DossierQuery__Dossier($dossier:
+        Int!) {\n  dossier(number: $dossier) {\n    id\n    state\n    datePassageEnConstruction\n    datePassageEnInstruction\n    dateTraitement\n    dateDerniereModification\n  }\n}","variables":{"dossier":33217},"operationName":"DossierChangerEtat__DossierQuery__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Mon, 27 Jul 2020 03:30:26 GMT
+      Server:
+      - nginx/1.10.3
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=63072000; includeSubdomains; preload
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      X-Request-Id:
+      - 4b4ac82a-44e4-40e9-bb48-00dd4a3d65b7
+      X-Runtime:
+      - '0.263886'
+      Content-Length:
+      - '279'
+    body:
+      encoding: UTF-8
+      string: '{"data":{"dossier":{"id":"RG9zc2llci0zMzIxNw==","state":"accepte","datePassageEnConstruction":"2020-05-29T14:56:27-10:00","datePassageEnInstruction":"2020-06-05T08:48:17-10:00","dateTraitement":"2020-06-15T16:53:09-10:00","dateDerniereModification":"2020-07-23T13:53:00-10:00"}}}'
+  recorded_at: Mon, 27 Jul 2020 03:30:26 GMT
+recorded_with: VCR 6.0.0

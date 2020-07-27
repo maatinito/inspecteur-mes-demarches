@@ -3,9 +3,7 @@
 class DateDeNaissance < FieldChecker
   def initialize(params)
     super(params)
-    if params.key?(:regex_aide) ^ params.key?(:message_aide)
-      @errors << 'regex_aide et regex_message doivent être tous les deux définis'
-    end
+    @errors << 'regex_aide et regex_message doivent être tous les deux définis' if params.key?(:regex_aide) ^ params.key?(:message_aide)
   end
 
   def required_fields

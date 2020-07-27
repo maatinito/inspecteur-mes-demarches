@@ -1,0 +1,8 @@
+inherit_from: .rubocop_todo.yml
+
+# Configuration parameters: MinNameLength, AllowNamesEndingInNumbers, AllowedNames, ForbiddenNames.
+# AllowedNames: io, id, to, by, on, in, at, ip, db, os, pp
+Naming/MethodParameterName:
+  AllowedNames:
+    - 'dn'
+

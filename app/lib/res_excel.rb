@@ -30,7 +30,7 @@ class ResExcel < FieldChecker
     []
   end
 
-  Columns = {
+  COLUMNS = {
     nom: /Nom/,
     prenoms: /Prénoms/,
     numero_dn: /Numéro DN/,
@@ -44,16 +44,16 @@ class ResExcel < FieldChecker
     jours_suspendus: /suspendus/
   }.freeze
 
-  Checks = %i[format_dn nom prenoms].freeze
+  CHECKS = %i[format_dn nom prenoms].freeze
 
   def check_xlsx(champ, file)
     xlsx = Roo::Spreadsheet.open(file)
     sheet = xlsx.sheet(0)
-    rows = sheet.parse(Columns).reject { |line| line[:prenoms].nil? || line[:prenoms] =~ /Prénom/ }
+    rows = sheet.parse(COLUMNS).reject { |line| line[:prenoms].nil? || line[:prenoms] =~ /Prénom/ }
     rows.each do |line|
       nom = line[:nom]
       prenoms = line[:prenoms]
-      Checks.each do |name|
+      CHECKS.each do |name|
         method = 'check_' + name.to_s.downcase
         v = send(method, line)
         unless v == true

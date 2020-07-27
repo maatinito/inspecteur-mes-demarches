@@ -39,44 +39,28 @@ class VerificationService
     end
   end
 
+  def self.config
+    file_mtime = File.mtime(config_file_name)
+    if @@config.nil? || @@config_time < file_mtime
+      @@config = YAML.safe_load(File.read(config_file_name), [], [], true)
+      @@config_time = file_mtime
+    end
+    @@config
+  end
+
+  def self.config_file_name
+    @@config_file_name ||= Rails.root.join('storage', 'auto_instructeur.yml')
+  end
+
   private
 
   EPOCH = Time.zone.parse('2000-01-01 00:00')
 
   def instructeur_email(procedure)
     result = procedure['email_instructeur']
-    if result.empty?
-      raise ArgumentError, "#{procedure_name} devrait définir 'email_instructeur' pour définir qui poste les messages aux usagers"
-    end
+    raise ArgumentError, "#{procedure_name} devrait définir 'email_instructeur' pour définir qui poste les messages aux usagers" if result.empty?
 
     result
-  end
-
-  def on_dossiers(demarche, reset)
-    start_time = Time.zone.now
-    cursor = nil
-    since = reset ? EPOCH : demarche.checked_at
-    begin
-      response = MesDemarches::Client.query(MesDemarches::Queries::DossiersModifies,
-                                            variables: {
-                                              demarche: demarche.id,
-                                              since: since.iso8601,
-                                              cursor: cursor
-                                            })
-
-      unless (data = response.data)
-        throw StandardError.new "La démarche #{demarche_number} est introuvable #{ENV['GRAPHQL_HOST']}: #{response.errors.values.join(',')}"
-      end
-
-      dossiers = data.demarche.dossiers
-      dossiers.nodes.each do |dossier|
-        yield dossier if dossier.present?
-      end
-      page_info = dossiers.page_info
-      cursor = page_info.end_cursor
-    end while page_info.has_next_page
-    demarche.checked_at = start_time
-    demarche.save
   end
 
   def on_dossier(dossier_number)
@@ -97,11 +81,19 @@ class VerificationService
   def check_updated_dossiers(controls)
     reset = controls.find { |control| Check.find_by_checker(control.class.name.underscore).nil? }.present?
     [*@procedure['demarches']].each do |demarche_number|
-      demarche = find_or_create_demarche(demarche_number, @procedure)
-      on_dossiers(demarche, reset) do |dossier|
-        process_dossier(demarche, dossier, controls)
-      end
+      check_demarche(controls, demarche_number, reset, @procedure['name'])
     end
+  end
+
+  def check_demarche(controls, demarche_number, reset, configuration_name)
+    demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
+    start_time = Time.zone.now
+    since = reset ? EPOCH : demarche.checked_at
+    DossierActions.on_dossiers(demarche.id, since) do |dossier|
+      process_dossier(demarche, dossier, controls)
+    end
+    demarche.checked_at = start_time
+    demarche.save
   end
 
   def check_failed_dossiers(controls)
@@ -130,24 +122,6 @@ class VerificationService
         end
       end
     end
-  end
-
-  def find_or_create_demarche(demarche_number, procedure)
-    result = MesDemarches::Client.query(MesDemarches::Queries::Demarche,
-                                        variables: { demarche: demarche_number })
-    gql_demarche = result.data.demarche
-    demarche = Demarche.find_or_create_by(id: demarche_number) do |d|
-      d.checked_at = EPOCH
-    end
-    demarche.libelle = gql_demarche.title
-    demarche.configuration = procedure['name']
-    gql_instructeur = gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == @instructeur_email }
-    if gql_instructeur.nil?
-      throw StandardError.new "Aucun instructeur #{@instructeur.email} sur la demarche #{demarche_number}"
-    end
-    demarche.instructeur = gql_instructeur.id
-    demarche.save!
-    demarche
   end
 
   def process_dossier(demarche, md_dossier, controls)
@@ -193,7 +167,7 @@ class VerificationService
 
   def when_ok(demarche, dossier_number, checks)
     message_nb = checks.flat_map(&:messages).size
-    if message_nb == 0
+    if message_nb.zero?
       @ok_tasks ||= @procedure['when_ok'].map do |task|
         if task.is_a?(String)
           Object.const_get(task.camelize).new({})
@@ -289,18 +263,5 @@ class VerificationService
                                  body: body,
                                  clientMutationId: 'dededed'
                                })
-  end
-
-  def self.config
-    file_mtime = File.mtime(config_file_name)
-    if @@config.nil? || @@config_time < file_mtime
-      @@config = YAML.safe_load(File.read(config_file_name), [], [], true)
-      @@config_time = file_mtime
-    end
-    @@config
-  end
-
-  def self.config_file_name
-    @@config_file_name ||= Rails.root.join('storage', 'auto_instructeur.yml')
   end
 end

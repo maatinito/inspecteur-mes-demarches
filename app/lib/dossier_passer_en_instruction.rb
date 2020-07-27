@@ -25,6 +25,6 @@ class DossierPasserEnInstruction < DossierChangerEtat
         dossierId: dossier.id,
         instructeurId: demarche.instructeur
       })
-    pp result.errors
+    throw StandardError.new result.errors if result.errors.present?
   end
 end

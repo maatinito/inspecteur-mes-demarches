@@ -81,19 +81,15 @@ class MemeDemandeur < FieldChecker
 
         target_dossier = data.dossier
         field_siret = target_dossier&.demandeur&.siret
-        if dossier_siret != field_siret
-          add_message(@params[:champ], dossier_number, @params[:message_mauvais_demandeur] + ':' + dossier_siret)
-        end
+        add_message(@params[:champ], dossier_number, @params[:message_mauvais_demandeur] + ':' + dossier_siret) if dossier_siret != field_siret
         champ_cible = @params[:champ_cible]
         if champ_cible.present?
-          unless field(target_dossier, champ_cible).present?
-            add_message(@params[:champ], dossier_number, @params[:message_mauvaise_demarche])
-          end
+          add_message(@params[:champ], dossier_number, @params[:message_mauvaise_demarche]) unless field(target_dossier, champ_cible).present?
         end
         next unless @params[:verifier_usager].present?
 
         current_user = dossier&.usager&.email
-        target_user = target_dossier&.usager.email
+        target_user = target_dossier&.usager&.email
         # ignore check if a user is also an instructor
         next if instructeurs.include?(current_user) || instructeurs.include?(target_user)
 

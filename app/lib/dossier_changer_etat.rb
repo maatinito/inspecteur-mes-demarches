@@ -13,6 +13,7 @@ class DossierChangerEtat < InspectorTask
     query Dossier($dossier: Int!) {
       dossier(number: $dossier) {
           id
+          number
           state
           datePassageEnConstruction
           datePassageEnInstruction
