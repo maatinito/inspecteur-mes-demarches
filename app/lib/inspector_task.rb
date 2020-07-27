@@ -3,6 +3,8 @@
 class InspectorTask
   attr_reader :errors
 
+  attr_reader :params
+
   def initialize(params)
     @errors = []
     @params = params.symbolize_keys

@@ -6,4 +6,10 @@ class Message < ApplicationRecord
   def hashkey
     message + value + field
   end
+
+  def ==(other)
+    message == other.message &&
+      field == other.field &&
+      value == other.value
+  end
 end

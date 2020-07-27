@@ -20,7 +20,7 @@ module MesDemarches
     Rails.cache.fetch("#{host} http client") do
       graphql_url = host + '/api/v2/graphql'
       GraphQL::Client::HTTP.new(graphql_url) do
-        headers = lambda do
+        lambda do # headers
           { "Authorization": 'Bearer ' + ENV['GRAPHQL_BEARER'] }
         end
       end
