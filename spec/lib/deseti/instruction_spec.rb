@@ -43,6 +43,8 @@ VCR.use_cassette('mes_demarches') do
 
       it 'should put dossier en_instruction' do
         expect(operation_passer_en_instruction).to receive(:process).once
+        expect(task.errors).to be_empty
+        expect(task.valid?).to be true
         task.process(demarche, dossier_nb)
       end
     end
@@ -53,6 +55,7 @@ VCR.use_cassette('mes_demarches') do
       it 'should dismiss the dossier' do
         expect(operation_passer_en_instruction).to receive(:process).once
         expect(operation_classer_sans_suite).to receive(:process).once
+        expect(task.valid?).to be true
         task.process(demarche, dossier_nb)
       end
     end
@@ -63,6 +66,7 @@ VCR.use_cassette('mes_demarches') do
       it 'should refuse the dossier' do
         expect(operation_passer_en_instruction).to receive(:process).once
         expect(operation_when_refuse).to receive(:process).once
+        expect(task.valid?).to be true
         task.process(demarche, dossier_nb)
       end
     end
@@ -73,6 +77,7 @@ VCR.use_cassette('mes_demarches') do
       it 'should refuse the dossier' do
         expect(operation_passer_en_instruction).to receive(:process).once
         expect(operation_when_sans_suite).to receive(:process).once
+        expect(task.valid?).to be true
         task.process(demarche, dossier_nb)
       end
     end
@@ -83,6 +88,7 @@ VCR.use_cassette('mes_demarches') do
       it 'should refuse the dossier' do
         expect(operation_passer_en_instruction).to receive(:process).once
         expect(operation_when_en_construction).to receive(:process).once
+        expect(task.valid?).to be true
         task.process(demarche, dossier_nb)
       end
     end
@@ -93,6 +99,7 @@ VCR.use_cassette('mes_demarches') do
       it 'should refuse the dossier' do
         expect(operation_passer_en_instruction).to receive(:process).once
         expect(operation_when_en_instruction).to receive(:process).once
+        expect(task.valid?).to be true
         task.process(demarche, dossier_nb)
       end
     end

@@ -27,7 +27,13 @@ module Deseti
     end
 
     def authorized_fields
-      super + %i[motivation_reprise motivation_deseti_sans_suite motivation_deseti_refuse motivation_deseti_en_construction motivation_deseti_en_instruction]
+      super + %i[
+        motivation_reprise
+        motivation_deseti_sans_suite
+        motivation_deseti_refuse
+        motivation_deseti_en_construction
+        motivation_deseti_en_instruction
+      ]
     end
 
     def process(demarche, dossier_number)
