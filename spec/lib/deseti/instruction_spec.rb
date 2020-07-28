@@ -25,7 +25,7 @@ VCR.use_cassette('mes_demarches') do
       allow(refuser_class).to receive(:new).and_return(
         operation_when_en_construction,
         operation_when_en_instruction,
-        operation_when_refuse,
+        operation_when_refuse
       )
     end
 

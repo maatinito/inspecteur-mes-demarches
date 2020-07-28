@@ -168,13 +168,16 @@ class VerificationService
   def when_ok(demarche, dossier_number, checks)
     message_nb = checks.flat_map(&:messages).size
     if message_nb.zero?
-      @ok_tasks ||= @procedure['when_ok'].map do |task|
-        if task.is_a?(String)
-          Object.const_get(task.camelize).new({})
-        else # hash
-          task.map { |taskname, params| Object.const_get(taskname.camelize).new(params) }
-        end
-      end.flatten
+      if @ok_tasks.nil?
+        @ok_tasks = @procedure['when_ok'].map do |task|
+          if task.is_a?(String)
+            Object.const_get(task.camelize).new({})
+          else # hash
+            task.map { |taskname, params| Object.const_get(taskname.camelize).new(params) }
+          end
+        end.flatten
+        @ok_tasks.reject(&:valid?).each { |task| puts "#{task.class.name}: #{task.errors.join(',')}" }
+      end
       @ok_tasks.each do |task|
         task.process(demarche, dossier_number) if task.valid?
       end

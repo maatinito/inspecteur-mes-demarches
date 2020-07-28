@@ -27,7 +27,7 @@ module Deseti
     end
 
     def authorized_fields
-      super + %i[motivation_reprise motivation_deseti_css motivation_deseti_refuse motivation_deseti_en_instruction]
+      super + %i[motivation_reprise motivation_deseti_sans_suite motivation_deseti_refuse motivation_deseti_en_construction motivation_deseti_en_instruction]
     end
 
     def process(demarche, dossier_number)
@@ -43,8 +43,8 @@ module Deseti
     DESETI_FIELD = 'Numéro dossier DESETI'
 
     MOTIVATIONS = {
-      motivation_en_instruction: 'Votre précédent dossier DESETI est toujours en instruction',
-      motivation_en_construction: 'Votre précédent dossier DESETI est toujours en instruction',
+      motivation_deseti_en_instruction: 'Votre précédent dossier DESETI est toujours en instruction',
+      motivation_deseti_en_construction: 'Votre précédent dossier DESETI est toujours en instruction',
       motivation_deseti_refuse: 'Votre précédent dossier DESETI a été rejeté',
       motivation_deseti_sans_suite: 'Votre précédent dossier DESETI a été classé sans suite',
       motivation_reprise: 'Vous avez repris votre activité'
