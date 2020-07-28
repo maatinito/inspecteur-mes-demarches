@@ -12,21 +12,20 @@ VCR.use_cassette('mes_demarches') do
     let(:operation_when_en_construction) { instance_double(DossierRefuser) }
     let(:operation_when_en_instruction) { instance_double(DossierRefuser) }
     let(:operation_when_refuse) { instance_double(DossierRefuser) }
-    let(:operation_when_sans_suite) { instance_double(DossierRefuser) }
+    let(:operation_when_sans_suite) { instance_double(DossierClasserSansSuite) }
 
     before do
       passer_en_instruction_class = class_double('DossierPasserEnInstruction').as_stubbed_const
       allow(passer_en_instruction_class).to receive(:new).and_return(operation_passer_en_instruction)
 
       classer_sans_suite_class = class_double('DossierClasserSansSuite').as_stubbed_const
-      allow(classer_sans_suite_class).to receive(:new).and_return(operation_classer_sans_suite)
+      allow(classer_sans_suite_class).to receive(:new).and_return(operation_classer_sans_suite, operation_when_sans_suite)
 
       refuser_class = class_double('DossierRefuser').as_stubbed_const
       allow(refuser_class).to receive(:new).and_return(
         operation_when_en_construction,
         operation_when_en_instruction,
         operation_when_refuse,
-        operation_when_sans_suite
       )
     end
 

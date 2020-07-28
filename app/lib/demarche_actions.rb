@@ -13,16 +13,14 @@ class DemarcheActions
     gql_instructeur = gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == instructeur_email }
     throw StandardError.new "Aucun instructeur #{@instructeur.email} sur la demarche #{demarche_number}" if gql_instructeur.nil?
 
-    demarche_attributes = {
-      id: demarche_number,
-      libelle: gql_demarche.title,
-      configuration: configuration_name,
-      instructeur: gql_instructeur.id
-    }
-    demarche = Demarche.find_or_create_by(demarche_attributes) do |d|
+    demarche = Demarche.find_or_create_by({ id: demarche_number }) do |d|
       d.checked_at = EPOCH
     end
-    demarche.save!
+    demarche.update({
+                      libelle: gql_demarche.title,
+                      configuration: configuration_name,
+                      instructeur: gql_instructeur.id
+                    })
     demarche
   end
 end
