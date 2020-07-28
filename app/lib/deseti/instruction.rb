@@ -16,17 +16,13 @@ module Deseti
       super
 
       @passer_en_instruction = DossierPasserEnInstruction.new(params)
-      puts '----- passer en instruction -----'
-      pp @passer_en_instruction
-
-      motivation = @params[:motivation_reprise] || MOTIVATION_REPRISE
-      @classer_sans_suite = DossierClasserSansSuite.new(params.merge(motivation: motivation))
+      @classer_sans_suite = action(DossierClasserSansSuite, params, motivation(:motivation_reprise))
 
       @operation = {
-        en_construction: refuse_open(params),
-        en_instruction: refuse_open(params),
-        refuse: refuse_closed(params),
-        sans_suite: refuse_dismissed(params)
+        en_construction: action(DossierRefuser, params, motivation(:motivation_deseti_en_construction)),
+        en_instruction: action(DossierRefuser, params, motivation(:motivation_deseti_en_instruction)),
+        refuse: action(DossierRefuser, params, motivation(:motivation_deseti_refuse)),
+        sans_suite: action(DossierClasserSansSuite, params, motivation(:motivation_deseti_sans_suite))
       }
     end
 
@@ -35,13 +31,24 @@ module Deseti
     end
 
     def process(demarche, dossier_number)
-      puts '-- processing dossier --'
+      puts "-- dossier #{dossier_number} ok ==> automatic instruction --"
       dossier = pull_dossier(dossier_number)
       deseti_number = field(dossier, DESETI_FIELD)&.string_value
       instruction(demarche, deseti_number, dossier, dossier_number) if deseti_number.present?
     end
 
     private
+
+    RESUMED_ACTIVITY_FIELD = "Reprise d'activité"
+    DESETI_FIELD = 'Numéro dossier DESETI'
+
+    MOTIVATIONS = {
+      motivation_en_instruction: 'Votre précédent dossier DESETI est toujours en instruction',
+      motivation_en_construction: 'Votre précédent dossier DESETI est toujours en instruction',
+      motivation_deseti_refuse: 'Votre précédent dossier DESETI a été rejeté',
+      motivation_deseti_sans_suite: 'Votre précédent dossier DESETI a été classé sans suite',
+      motivation_reprise: 'Vous avez repris votre activité'
+    }.freeze
 
     def instruction(demarche, deseti_number, dossier, dossier_number)
       deseti = pull_deseti(deseti_number.to_i)
@@ -58,24 +65,16 @@ module Deseti
       if resumed
         close_dossier(demarche, dossier_number, @classer_sans_suite)
       else # dossier ready for CPS
-        puts '-- instruct dossier --'
         @passer_en_instruction.process(demarche, dossier_number)
       end
     end
 
-    def refuse_open(params)
-      motivation = @params[:motivation_en_instruction] || MOTIVATION_DESETI_INSTRUCTION
-      DossierRefuser.new(params.merge(motivation: motivation))
+    def motivation(name)
+      @params[name] || MOTIVATIONS[name]
     end
 
-    def refuse_closed(params)
-      motivation = @params[:motivation_refuse] || MOTIVATION_DESETI_REFUSE
-      DossierRefuser.new(params.merge(motivation: motivation))
-    end
-
-    def refuse_dismissed(params)
-      motivation = @params[:motivation_css] || MOTIVATION_DESETI_CSS
-      DossierRefuser.new(params.merge(motivation: motivation))
+    def action(klass, params, motivation)
+      klass.new(params.merge(motivation: motivation))
     end
 
     def close_dossier(demarche, dossier_number, operation)
@@ -93,14 +92,6 @@ module Deseti
     def pull_dossier(dossier_number)
       get_dossier(dossier_number, MesDemarches::Queries::Dossier)
     end
-
-    RESUMED_ACTIVITY_FIELD = "Reprise d'activité"
-    DESETI_FIELD = 'Numéro dossier DESETI'
-
-    MOTIVATION_REPRISE = "Reprise d'activité"
-    MOTIVATION_DESETI_INSTRUCTION = 'Votre dossier DESETI est toujours en instruction'
-    MOTIVATION_DESETI_REFUSE = 'Votre dossier DESETI a été rejeté'
-    MOTIVATION_DESETI_CSS = 'Votre dossier DESETI a été classé sans suite'
 
     def fields(dossier, field)
       @accessed_fields.add(field)
