@@ -6,18 +6,7 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 2
-Lint/NonLocalExitFromIterator:
-  Exclude:
-    - 'app/lib/meme_demandeur.rb'
-    - 'app/lib/res_excel.rb'
-
-# Offense count: 1
 # Configuration parameters: AllowComments.
-Lint/SuppressedException:
-  Exclude:
-    - 'app/lib/res_excel.rb'
-
 # Offense count: 2
 Lint/UselessAssignment:
   Exclude:
@@ -83,10 +72,8 @@ Style/GuardClause:
     - 'app/lib/cps/api.rb'
     - 'app/lib/date_de_naissance.rb'
     - 'app/lib/deseti/message_deseti.rb'
-    - 'app/lib/meme_demandeur.rb'
     - 'app/lib/numero_dn.rb'
     - 'app/lib/regexp_checker.rb'
-    - 'app/lib/res_excel.rb'
     - 'app/lib/verification_service.rb'
 
 # Offense count: 1
