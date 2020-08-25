@@ -104,8 +104,8 @@ RSpec.configure do |config|
     c.configure_rspec_metadata!
     c.ignore_hosts 'test.host', 'chromedriver.storage.googleapis.com'
     c.filter_sensitive_data('<BEARER_TOKEN>') do |interaction|
-      auths = interaction.request.headers['Authorization'].first
-      if (match = auths.match(/^Bearer\s+([^,\s]+)/))
+      auths = interaction.request.headers['Authorization']
+      if auths && (match = auths.first.match(/^Bearer\s+([^,\s]+)/))
         match.captures.first
       end
     end

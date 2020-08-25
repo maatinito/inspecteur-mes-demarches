@@ -10,7 +10,7 @@ class MemeDemandeur < FieldChecker
   end
 
   def version
-    10
+    11
   end
 
   def required_fields
@@ -68,33 +68,45 @@ class MemeDemandeur < FieldChecker
 
   def check(dossier)
     champs = field(dossier, @params[:champ])
-    if champs.present?
-      champs.each do |champ|
-        dossier_siret = dossier&.demandeur&.siret
-        dossier_number = champ.string_value&.to_i
-        response = MesDemarches::Client.query(Queries::Dossier,
-                                              variables: { dossier: dossier_number })
-        unless (data = response.data)
-          add_message(@params[:champ], dossier_siret, "Le dossier #{dossier_number} est introuvable")
-          return
-        end
+    return if champs.blank?
 
-        target_dossier = data.dossier
-        field_siret = target_dossier&.demandeur&.siret
-        add_message(@params[:champ], dossier_number, @params[:message_mauvais_demandeur] + ':' + dossier_siret) if dossier_siret != field_siret
-        champ_cible = @params[:champ_cible]
-        if champ_cible.present?
-          add_message(@params[:champ], dossier_number, @params[:message_mauvaise_demarche]) unless field(target_dossier, champ_cible).present?
-        end
-        next unless @params[:verifier_usager].present?
-
-        current_user = dossier&.usager&.email
-        target_user = target_dossier&.usager&.email
-        # ignore check if a user is also an instructor
-        next if instructeurs.include?(current_user) || instructeurs.include?(target_user)
-
-        add_message(@params[:champ], dossier_number, @params[:message_mauvais_usager]) if current_user != target_user
+    champs.each do |champ|
+      dossier_siret = dossier&.demandeur&.siret
+      dossier_number = champ.string_value&.to_i
+      response = MesDemarches::Client.query(Queries::Dossier,
+                                            variables: { dossier: dossier_number })
+      unless (data = response.data)
+        add_message(@params[:champ], dossier_siret, "Le dossier #{dossier_number} est introuvable")
+        next
       end
+
+      target_dossier = data.dossier
+      check_numero_tahiti(dossier_number, dossier_siret, target_dossier)
+      check_target_field(dossier_number, target_dossier)
+      check_user_account(dossier, dossier_number, target_dossier) if @params[:verifier_usager].present?
     end
+  end
+
+  private
+
+  def check_user_account(dossier, dossier_number, target_dossier)
+    current_user = dossier&.usager&.email
+    target_user = target_dossier&.usager&.email
+    # OK if a user is also an instructor or if users are different
+    return if instructeurs.include?(current_user) || instructeurs.include?(target_user) || current_user != target_user
+
+    add_message(@params[:champ], dossier_number, @params[:message_mauvais_usager])
+  end
+
+  def check_target_field(dossier_number, target_dossier)
+    champ_cible = @params[:champ_cible]
+    return if champ_cible.blank? || field(target_dossier, champ_cible).present?
+
+    add_message(@params[:champ], dossier_number, @params[:message_mauvaise_demarche])
+  end
+
+  def check_numero_tahiti(dossier_number, dossier_siret, target_dossier)
+    field_siret = target_dossier&.demandeur&.siret
+    add_message(@params[:champ], dossier_number, @params[:message_mauvais_demandeur] + ':' + dossier_siret) if dossier_siret != field_siret
   end
 end

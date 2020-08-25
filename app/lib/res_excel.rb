@@ -74,23 +74,23 @@ class ResExcel < FieldChecker
 
   def check(dossier)
     champs = field(dossier, @params[:champ])
-    if champs.present?
-      champs.each do |champ|
-        file = champ.file
-        if file.present?
-          filename = file.filename
-          url = file.url
-          extension = filename.match(/(\.[^.]+)$/)
-          extension &&= extension[1].downcase
-          if bad_extension(extension)
-            add_message(champ.label, file.filename, @params[:message_type_de_fichier])
-            return
-          end
-          check_file(champ, extension, url)
-        else
-          throw StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
-          # add_message(champ.label, '', @params[:message_champ_non_renseigne])
+    return if champ.blank?
+
+    champs.each do |champ|
+      file = champ.file
+      if file.present?
+        filename = file.filename
+        url = file.url
+        extension = filename.match(/(\.[^.]+)$/)
+        extension &&= extension[1].downcase
+        if bad_extension(extension)
+          add_message(champ.label, file.filename, @params[:message_type_de_fichier])
+          next
         end
+        check_file(champ, extension, url)
+      else
+        throw StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
+        # add_message(champ.label, '', @params[:message_champ_non_renseigne])
       end
     end
   end
@@ -113,7 +113,7 @@ class ResExcel < FieldChecker
   def download(url, extension)
     Tempfile.create(['res', extension]) do |f|
       f.binmode
-      f.write open(url).read
+      f.write URI.open(url).read
       f.rewind
       yield f
     end
@@ -137,14 +137,11 @@ class ResExcel < FieldChecker
   def check_format_date_de_naissance(line)
     ddn = line[:date_de_naissance]
     if ddn.is_a?(String) && (m = ddn.match(DATE))
-      begin
-        year = m[:year].to_i
-        if year < 100
-          year += (year + 2000) <= Date.today.year ? 2000 : 1900
-        end
-        ddn = Date.parse("#{m[:day]}/#{m[:month]}/#{year}")
-      rescue StandardError
+      year = m[:year].to_i
+      if year < 100
+        year += (year + 2000) <= Date.today.year ? 2000 : 1900
       end
+      ddn = Date.parse("#{m[:day]}/#{m[:month]}/#{year}")
     end
 
     if ddn.is_a? Date

@@ -6,7 +6,9 @@
     "vue": "^2.6.11",
     "vue-loader": "^15.9.1",
     "vue-template-compiler": "^2.6.11",
-    "websocket-extensions": "^0.1.4"
+    "websocket-extensions": "^0.1.4",
+    "elliptic": "^6.5.3",
+    "lodash": "^4.17.19"
   },
   "devDependencies": {
     "webpack-dev-server": "^3.10.3"
