@@ -10,7 +10,7 @@ class MemeDemandeur < FieldChecker
   end
 
   def version
-    11
+    12
   end
 
   def required_fields
@@ -92,8 +92,8 @@ class MemeDemandeur < FieldChecker
   def check_user_account(dossier, dossier_number, target_dossier)
     current_user = dossier&.usager&.email
     target_user = target_dossier&.usager&.email
-    # OK if a user is also an instructor or if users are different
-    return if instructeurs.include?(current_user) || instructeurs.include?(target_user) || current_user != target_user
+    # OK if dossiers are created by same user or if one dossier's author is an instructor
+    return if current_user == target_user || instructeurs.include?(current_user) || instructeurs.include?(target_user)
 
     add_message(@params[:champ], dossier_number, @params[:message_mauvais_usager])
   end
