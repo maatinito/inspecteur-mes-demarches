@@ -24,10 +24,13 @@ module Deseti
         refuse: action(DossierRefuser, params, motivation(:motivation_deseti_refuse)),
         sans_suite: action(DossierClasserSansSuite, params, motivation(:motivation_deseti_sans_suite))
       }
+
+      @champ = @params[:champ] || DESETI_FIELD
     end
 
     def authorized_fields
       super + %i[
+        champ
         motivation_reprise
         motivation_deseti_sans_suite
         motivation_deseti_refuse
@@ -39,7 +42,8 @@ module Deseti
     def process(demarche, dossier_number)
       puts "-- dossier #{dossier_number} ok ==> automatic instruction --"
       dossier = pull_dossier(dossier_number)
-      deseti_number = field(dossier, DESETI_FIELD)&.string_value
+      deseti_number = field(dossier, @champ)&.string_value
+      throw StandardError.new "Impossible de trouver le champ #{@champ} dans la démarche #{demarche.id}" unless deseti_number
       instruction(demarche, deseti_number, dossier, dossier_number) if deseti_number.present?
     end
 
