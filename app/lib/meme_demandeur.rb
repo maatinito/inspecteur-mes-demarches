@@ -10,7 +10,7 @@ class MemeDemandeur < FieldChecker
   end
 
   def version
-    13
+    14
   end
 
   def required_fields
@@ -68,6 +68,9 @@ class MemeDemandeur < FieldChecker
 
   def check(dossier)
     champs = field(dossier, @params[:champ])
+    if champs.blank?
+      puts "Le champ #{@params[:champ]} n'existe pas sur le dossier #{dossier.number}"
+    end
     throw StandardError.new "Le champ #{@params[:champ]} n'existe pas sur le dossier #{dossier.number}"  if champs.blank?
 
     champs.each do |champ|
