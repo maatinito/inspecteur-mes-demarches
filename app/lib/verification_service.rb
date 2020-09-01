@@ -97,9 +97,11 @@ class VerificationService
   end
 
   def check_failed_dossiers(controls)
-    Check.where(failed: true)
-         .includes(:demarche)
-         .find_each do |check|
+    Check
+      .where(failed: true, demarche: [*@procedure['demarches']])
+      .includes(:demarche)
+      .select(:dossier, :demarche_id)
+      .distinct do |check|
       on_dossier(check.dossier) do |md_dossier|
         process_dossier(check.demarche, md_dossier, controls)
       end
@@ -107,18 +109,21 @@ class VerificationService
   end
 
   def check_updated_controls(controls)
-    controls.map do |control|
+    conditions = controls.map do |control|
       Check
         .where.not(version: control.version)
         .where(checker: control.class.name.underscore)
-        .includes(:demarche)
-        .find_each do |check|
-        on_dossier(check.dossier) do |dossier|
-          if dossier.present?
-            process_dossier(check.demarche, dossier, controls)
-          else
-            check.destroy!
-          end
+    end
+    conditions
+      .reduce { |c1, c2| c1.or(c2) }
+      .where(demarche: [*@procedure['demarches']])
+      .includes(:demarche)
+      .each do |check|
+      on_dossier(check.dossier) do |dossier|
+        if dossier.present?
+          process_dossier(check.demarche, dossier, controls)
+        else
+          Check.where(dossier: check.dossier).destroy!
         end
       end
     end
