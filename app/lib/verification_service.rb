@@ -123,7 +123,7 @@ class VerificationService
         if dossier.present?
           process_dossier(check.demarche, dossier, controls)
         else
-          Check.where(dossier: check.dossier).destroy!
+          Check.where(dossier: check.dossier).destroy_all
         end
       end
     end
