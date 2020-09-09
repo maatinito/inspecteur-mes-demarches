@@ -11,7 +11,7 @@ module Diese
     end
 
     def version
-      1
+      3
     end
 
     def required_fields
@@ -48,9 +48,8 @@ module Diese
       xlsx = Roo::Spreadsheet.open(file)
       (0..2).map { |i| check_sheet(champ, xlsx.sheet(i), xlsx.sheets[i]) }
     rescue Roo::HeaderRowNotFoundError => e
-      puts e.backtrace
       columns = e.message.gsub(%r{[/\[\]]}, '')
-      add_message(champ.label, champ.file.filename, @params[:message_colonnes_manquantes] + ':' + columns)
+      add_message(champ.label, champ.file.filename, @params[:message_colonnes_manquantes] + ': ' + columns)
       nil
     end
 
@@ -76,7 +75,7 @@ module Diese
           return
         end
         summary = check_file(champ, extension, url)
-        check_procedure_numbers(dossier, summary)
+        check_procedure_numbers(dossier, summary) if summary
       else
         throw StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
         # add_message(champ.label, '', @params[:message_champ_non_renseigne])
@@ -94,7 +93,7 @@ module Diese
           name = field_name(base, m)
           value = field(dossier, name)&.first&.value&.to_i
           puts "  base=#{base}, i=#{i}, name=#{name}, value=#{value}"
-          add_message(name, value, @params[:message_different_value] + excel_values[i].round.to_s) if value != excel_values[i].round
+          add_message(name, value, @params[:message_different_value] + ': ' + excel_values[i].round.to_s) if value != excel_values[i].round
         end
       end
     end

@@ -16,13 +16,14 @@ SUMS = [
 ].freeze
 
 DN = [
-  ['Mauvais DN', :message_dn, ': 1234567,13/06/1985'],
-  ['Mauvaise DDN', :message_date_de_naissance, ': 2214605,13/07/1985']
+  ['Mauvais DN', :message_dn, '1234567,13/06/1985'],
+  ['Mauvaise DDN', :message_date_de_naissance, '2214605,13/07/1985']
 ].freeze
 
 def new_message(field, value, message_type, correction)
+  pp controle.params, message_type, 'impossible de trouver' if controle.params[message_type].nil?
   msg = controle.params[message_type]
-  msg += correction.to_s if correction.present?
+  msg += ': ' + correction.to_s if correction.present?
   FactoryBot.build :message, field: field, value: value, message: msg
 end
 
@@ -37,7 +38,7 @@ VCR.use_cassette('diese_excel_check') do
       controle
     end
 
-    context 'everything is wrong', vcr: { cassette_name: 'diese_excel_check_wrong_dossier' } do
+    context 'DNs, sum copies, user are wrong', vcr: { cassette_name: 'diese_excel_check_wrong_dossier' } do
       let(:dossier_nb) { 46_761 }
       let(:libelle) { "#{controle.params[:message_mauvais_demandeur]}:378208" }
       let(:report_messages) do
@@ -52,7 +53,19 @@ VCR.use_cassette('diese_excel_check') do
       let(:dn_messages) { (3..5).flat_map { |i| DN.map { |msg| new_message(field + i.to_s, msg[0], msg[1], msg[2]) } } }
       let(:messages) { [*dn_messages, *report_messages] }
 
-      it 'have one error on Tahiti number' do
+      it 'have error messages' do
+        pp subject.messages
+        expect(subject.messages).to eq messages
+      end
+    end
+
+    context 'Excel file has missing column', vcr: { cassette_name: 'diese_excel_colonne_manquante' } do
+      let(:dossier_nb) { 49_772 }
+      let(:field) { 'Etat nominatif des salariés' }
+      let(:value) { 'Etat nominatif DiESE_teav-sept.xlsx' }
+      let(:messages) { [new_message(field, value, :message_colonnes_manquantes, 'Date de naissance')] }
+
+      it 'have one error message' do
         pp subject.messages
         expect(subject.messages).to eq messages
       end
