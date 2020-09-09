@@ -38,8 +38,8 @@ VCR.use_cassette('diese_excel_check') do
       controle
     end
 
-    context 'DNs, sum copies, user are wrong', vcr: { cassette_name: 'diese_excel_check_wrong_dossier' } do
-      let(:dossier_nb) { 46_761 }
+    context 'DNs, sum copies, user are wrong', vcr: { cassette_name: 'diese_excel_check_48289' } do
+      let(:dossier_nb) { 48_289 } # 46_761
       let(:libelle) { "#{controle.params[:message_mauvais_demandeur]}:378208" }
       let(:report_messages) do
         (3..5).flat_map do |m|
@@ -59,11 +59,21 @@ VCR.use_cassette('diese_excel_check') do
       end
     end
 
-    context 'Excel file has missing column', vcr: { cassette_name: 'diese_excel_colonne_manquante' } do
+    context 'Excel file has missing column', vcr: { cassette_name: 'diese_excel_check_49792' } do
       let(:dossier_nb) { 49_772 }
       let(:field) { 'Etat nominatif des salariés' }
       let(:value) { 'Etat nominatif DiESE_teav-sept.xlsx' }
-      let(:messages) { [new_message(field, value, :message_colonnes_manquantes, 'Date de naissance')] }
+      let(:messages) { [new_message(field, value, :message_colonnes_manquantes, 'Nom de famille, Nom marital, Date de naissance')] }
+
+      it 'have one error message' do
+        pp subject.messages
+        expect(subject.messages).to eq messages
+      end
+    end
+
+    context 'Excel file has empty "nom de famille"', vcr: { cassette_name: 'diese_excel_check_49594' } do
+      let(:dossier_nb) { 49_594 }
+      let(:messages) { [] }
 
       it 'have one error message' do
         pp subject.messages

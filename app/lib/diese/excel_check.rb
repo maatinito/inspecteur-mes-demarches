@@ -32,7 +32,8 @@ module Diese
     end
 
     COLUMNS = {
-      nom: /Nom/,
+      nom: /Nom de famille/,
+      nom_marital: /Nom marital/,
       prenoms: /Prénom/,
       date_de_naissance: /Date de naissance/,
       numero_dn: /DN/,
@@ -106,7 +107,7 @@ module Diese
       rows = sheet.parse(COLUMNS)
       employees = rows.reject { |line| line[:prenoms].nil? || line[:prenoms] =~ /Prénom/ }
       employees.each do |line|
-        nom = line[:nom]
+        nom = line[:nom] || line[:nom_marital]
         prenoms = line[:prenoms]
         CHECKS.each do |name|
           method = 'check_' + name.to_s.downcase
@@ -187,8 +188,8 @@ module Diese
     end
 
     def check_nom(line)
-      value = line[:nom]
-      invalides = value.scan(%r{[^[:alpha:] \-/'()]+})
+      value = line[:nom] || line[:nom_marital]
+      invalides = value&.scan(%r{[^[:alpha:] \-/'()]+})
       invalides.present? ? @params[:message_nom_invalide] + invalides.join(' ') : true
     end
 
