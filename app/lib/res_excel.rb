@@ -74,7 +74,7 @@ class ResExcel < FieldChecker
 
   def check(dossier)
     champs = field(dossier, @params[:champ])
-    return if champ.blank?
+    return if champs.blank?
 
     champs.each do |champ|
       file = champ.file

@@ -26,11 +26,13 @@ module Deseti
       }
 
       @champ = @params[:champ] || DESETI_FIELD
+      @champ_reprise = @params[:champ_reprise] || RESUMED_ACTIVITY_FIELD
     end
 
     def authorized_fields
       super + %i[
         champ
+        champ_reprise
         motivation_reprise
         motivation_deseti_sans_suite
         motivation_deseti_refuse
@@ -71,10 +73,13 @@ module Deseti
     end
 
     def instruction_on_activity(demarche, dossier, dossier_number)
-      resumed = field(dossier, RESUMED_ACTIVITY_FIELD)&.value
-      if resumed
+      resumed = field(dossier, @champ_reprise)
+      throw StandardError.new "Le champ #{@champ_reprise} n'existe pas sur la démarche #{demarche.id}" unless resumed
+
+      if resumed.value
         close_dossier(demarche, dossier_number, @classer_sans_suite)
-      else # dossier ready for CPS
+      else
+        # dossier ready for CPS
         @passer_en_instruction.process(demarche, dossier_number)
       end
     end
