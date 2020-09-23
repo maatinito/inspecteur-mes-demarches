@@ -3,10 +3,10 @@
 require 'spec_helper'
 
 FIELD_NAMES = [
-  'Nombre de salariés DiESE au mois M+',
-  "Montant intermédiaire de l'aide au mois M+",
-  'Montant du complément au titre du revenu plancher au mois M+',
-  'Montant total du DiESE au mois M+'
+  'Nombre de salariés DiESE au mois M',
+  "Montant intermédiaire de l'aide au mois M",
+  'Montant du complément au titre du revenu plancher au mois M',
+  'Montant total du DiESE au mois M'
 ].freeze
 
 SUMS = [
@@ -27,57 +27,94 @@ def new_message(field, value, message_type, correction)
   FactoryBot.build :message, field: field, value: value, message: msg
 end
 
+def field_name(base, index)
+  index > 0 ? base + '+' + index.to_s : base
+end
+
 VCR.use_cassette('diese_excel_check') do
   RSpec.describe Diese::ExcelCheck do
-    let(:demarche) { DemarcheActions.get_demarche(459, 'DIESE', 'clautier@idt.pf') }
-    let(:controle) { FactoryBot.build :diese_excel_check }
-    subject do
-      DossierActions.on_dossier(dossier_nb) do |dossier|
-        controle.check(dossier)
+    context 'Renouvellement' do
+      let(:demarche) { DemarcheActions.get_demarche(459, 'DIESE', 'clautier@idt.pf') }
+      let(:controle) { FactoryBot.build :diese_excel_check, offset: 3 }
+      subject do
+        DossierActions.on_dossier(dossier_nb) do |dossier|
+          controle.check(dossier)
+        end
+        controle
       end
-      controle
-    end
 
-    context 'DNs, sum copies, user are wrong', vcr: { cassette_name: 'diese_excel_check_48289' } do
-      let(:dossier_nb) { 48_289 } # 46_761
-      let(:libelle) { "#{controle.params[:message_mauvais_demandeur]}:378208" }
-      let(:report_messages) do
-        (3..5).flat_map do |m|
-          FIELD_NAMES.each_with_index.map do |_name, i|
-            value = (6 + m) * (10**i) # 9, 90, 900, 9000 then 10, 100, 1000, 1000, ...
-            new_message(FIELD_NAMES[i] + m.to_s, value, :message_different_value, SUMS[m - 3][i])
+      context 'DNs, sum copies, user are wrong', vcr: { cassette_name: 'diese_excel_check_48289' } do
+        let(:dossier_nb) { 48_289 } # 46_761
+        let(:libelle) { "#{controle.params[:message_mauvais_demandeur]}:378208" }
+        let(:report_messages) do
+          (3..5).flat_map do |m|
+            FIELD_NAMES.each_with_index.map do |_name, i|
+              value = (6 + m) * (10**i) # 9, 90, 900, 9000 then 10, 100, 1000, 1000, ...
+              new_message(field_name(FIELD_NAMES[i], m), value, :message_different_value, SUMS[m - 3][i])
+            end
           end
         end
-      end
-      let(:field) { 'Etat nominatif des salariés/Mois M+' }
-      let(:dn_messages) { (3..5).flat_map { |i| DN.map { |msg| new_message(field + i.to_s, msg[0], msg[1], msg[2]) } } }
-      let(:messages) { [*dn_messages, *report_messages] }
+        let(:field) { 'Etat nominatif des salariés/Mois M' }
+        let(:dn_messages) { (3..5).flat_map { |i| DN.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
+        let(:messages) { [*dn_messages, *report_messages] }
 
-      it 'have error messages' do
-        pp subject.messages
-        expect(subject.messages).to eq messages
+        it 'have error messages' do
+          pp subject.messages
+          expect(subject.messages).to eq messages
+        end
+      end
+
+      context 'Excel file has missing column', vcr: { cassette_name: 'diese_excel_check_49792' } do
+        let(:dossier_nb) { 49_772 }
+        let(:field) { 'Etat nominatif des salariés' }
+        let(:value) { 'Etat nominatif DiESE_teav-sept.xlsx' }
+        let(:messages) { [new_message(field, value, :message_colonnes_manquantes, 'Nom de famille, Nom marital, Date de naissance')] }
+
+        it 'have one error message' do
+          pp subject.messages
+          expect(subject.messages).to eq messages
+        end
+      end
+
+      context 'Excel file has empty "nom de famille"', vcr: { cassette_name: 'diese_excel_check_49594' } do
+        let(:dossier_nb) { 49_594 }
+        let(:messages) { [] }
+
+        it 'have one error message' do
+          pp subject.messages
+          expect(subject.messages).to eq messages
+        end
       end
     end
 
-    context 'Excel file has missing column', vcr: { cassette_name: 'diese_excel_check_49792' } do
-      let(:dossier_nb) { 49_772 }
-      let(:field) { 'Etat nominatif des salariés' }
-      let(:value) { 'Etat nominatif DiESE_teav-sept.xlsx' }
-      let(:messages) { [new_message(field, value, :message_colonnes_manquantes, 'Nom de famille, Nom marital, Date de naissance')] }
-
-      it 'have one error message' do
-        pp subject.messages
-        expect(subject.messages).to eq messages
+    context 'Nouveau Secteurs' do
+      let(:demarche) { DemarcheActions.get_demarche(539, 'DIESE', 'clautier@idt.pf') }
+      let(:controle) { FactoryBot.build :diese_excel_check, offset: 0 }
+      subject do
+        DossierActions.on_dossier(dossier_nb) do |dossier|
+          controle.check(dossier)
+        end
+        controle
       end
-    end
 
-    context 'Excel file has empty "nom de famille"', vcr: { cassette_name: 'diese_excel_check_49594' } do
-      let(:dossier_nb) { 49_594 }
-      let(:messages) { [] }
+      context 'DNs, sum copies, user are wrong', vcr: { cassette_name: 'diese_excel_check_52481' } do
+        let(:dossier_nb) { 52_481 }
+        let(:report_messages) do
+          (0..2).flat_map do |m|
+            FIELD_NAMES.each_with_index.map do |_name, i|
+              value = (2 + m) * (10**i) # 2,20,200,2000, 3,30,300,3000 ...
+              new_message(field_name(FIELD_NAMES[i], m), value, :message_different_value, SUMS[m - 3][i])
+            end
+          end
+        end
+        let(:field) { 'Etat nominatif des salariés/Mois M' }
+        let(:dn_messages) { (0..2).flat_map { |i| DN.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
+        let(:messages) { [*dn_messages, *report_messages] }
 
-      it 'have one error message' do
-        pp subject.messages
-        expect(subject.messages).to eq messages
+        it 'have error messages' do
+          pp subject.messages
+          expect(subject.messages).to eq messages
+        end
       end
     end
   end

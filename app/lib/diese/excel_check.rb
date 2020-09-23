@@ -11,11 +11,11 @@ module Diese
     end
 
     def version
-      3
+      4
     end
 
     def required_fields
-      %i[champ message_type_de_fichier
+      %i[champ offset message_type_de_fichier
          message_colonnes_manquantes
          message_format_dn
          message_format_date_de_naissance
@@ -55,10 +55,10 @@ module Diese
     end
 
     FIELD_NAMES = [
-      'Nombre de salariés DiESE au mois M+',
-      "Montant intermédiaire de l'aide au mois M+",
-      'Montant du complément au titre du revenu plancher au mois M+',
-      'Montant total du DiESE au mois M+'
+      'Nombre de salariés DiESE au mois M',
+      "Montant intermédiaire de l'aide au mois M",
+      'Montant du complément au titre du revenu plancher au mois M',
+      'Montant total du DiESE au mois M'
     ].freeze
 
     def check(dossier)
@@ -92,7 +92,9 @@ module Diese
 
         FIELD_NAMES.each_with_index do |base, i|
           name = field_name(base, m)
-          value = field(dossier, name)&.first&.value&.to_i
+          field = field(dossier, name)
+          throw StandardError.new "Champ #{name} non trouvé sur le dossier #{dossier}" if field.blank?
+          value = field&.first&.value&.to_i
           puts "  base=#{base}, i=#{i}, name=#{name}, value=#{value}"
           add_message(name, value, @params[:message_different_value] + ': ' + excel_values[i].round.to_s) if value != excel_values[i].round
         end
@@ -100,7 +102,8 @@ module Diese
     end
 
     def field_name(base, index)
-      base + (index + 3).to_s
+      pos = index + @params[:offset]
+      pos.positive? ? base + '+' + pos.to_s : base
     end
 
     def check_sheet(champ, sheet, sheet_name)

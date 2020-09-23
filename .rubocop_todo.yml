@@ -24,7 +24,7 @@ Metrics/AbcSize:
 Metrics/BlockLength:
   Exclude:
     - 'spec/lib/deseti/instruction_spec.rb'
-  Max: 46
+  Max: 100
 
 # Offense count: 2
 # Configuration parameters: CountComments.
