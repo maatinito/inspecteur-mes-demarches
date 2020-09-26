@@ -11,20 +11,25 @@ module Diese
     end
 
     def version
-      4
+      5
     end
 
     def required_fields
-      %i[champ offset message_type_de_fichier
-         message_colonnes_manquantes
-         message_format_dn
-         message_format_date_de_naissance
-         message_dn
-         message_date_de_naissance
-         message_nom_invalide
-         message_prenom_invalide
-         message_champ_non_renseigne
-         message_different_value]
+      %i[
+        champ
+        message_champ_non_renseigne
+        message_colonnes_manquantes
+        message_date_de_naissance
+        message_different_value
+        message_dmo
+        message_dn
+        message_format_date_de_naissance
+        message_format_dn
+        message_nom_invalide
+        message_prenom_invalide
+        message_type_de_fichier
+        offset
+      ]
     end
 
     def authorized_fields
@@ -37,13 +42,14 @@ module Diese
       prenoms: /Prénom/,
       date_de_naissance: /Date de naissance/,
       numero_dn: /DN/,
+      dmo: /Heures travaillées/,
       taux: /Taux RTT\* appliqué/,
       intermediaire: /Montant intermédiaire de l'aide/,
       complement: /Montant du complément au titre du revenu plancher/,
       total: /Montant total du DiESE/
     }.freeze
 
-    CHECKS = %i[format_dn nom prenoms].freeze
+    CHECKS = %i[format_dn nom prenoms dmo].freeze
 
     def check_xlsx(champ, file)
       xlsx = Roo::Spreadsheet.open(file)
@@ -95,7 +101,6 @@ module Diese
           field = field(dossier, name)
           throw StandardError.new "Champ #{name} non trouvé sur le dossier #{dossier}" if field.blank?
           value = field&.first&.value&.to_i
-          puts "  base=#{base}, i=#{i}, name=#{name}, value=#{value}"
           add_message(name, value, @params[:message_different_value] + ': ' + excel_values[i].round.to_s) if value != excel_values[i].round
         end
       end
@@ -126,7 +131,7 @@ module Diese
     end
 
     def amount_sums(champ, rows)
-      sums = rows.filter { |line| line[:taux] =~ /TOTAL/ }&.first
+      sums = rows.filter { |line| line[:taux].is_a?(String) && line[:taux] =~ /TOTAL/ }&.first
       if sums
         [sums[:intermediaire], sums[:complement], sums[:total]]
       else
@@ -200,6 +205,11 @@ module Diese
       value = line[:prenoms]
       invalides = value.scan(%r{[^[:alpha:] \-,/'()]+})
       invalides.present? ? @params[:message_prenom_invalide] + invalides.join(' ') : true
+    end
+
+    def check_dmo(line)
+      value = line[:dmo]
+      value.blank?
     end
 
     def check_cps(line)

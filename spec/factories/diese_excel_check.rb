@@ -8,6 +8,7 @@ FactoryBot.define do
     message_format_dn { 'message_format_dn' }
     message_format_date_de_naissance { 'message_format_date_de_naissance' }
     message_dn { 'message_dn' }
+    message_dmo { 'message_dmo' }
     message_date_de_naissance { 'message_date_de_naissance' }
     message_nom_invalide { 'message_nom_invalide' }
     message_prenom_invalide { 'message_prenom_invalide' }
