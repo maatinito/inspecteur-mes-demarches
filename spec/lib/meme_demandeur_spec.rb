@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-# require 'app/lib/inspector_task'
+require 'rails_helper'
+require 'inspector_task'
 
 VCR.use_cassette('mes_demarches') do
   RSpec.describe MemeDemandeur do
