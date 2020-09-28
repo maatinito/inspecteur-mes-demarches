@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require 'rails_helper'
 
 FIELD_NAMES = [
   'Nombre de salariés DiESE au mois M',
@@ -10,12 +10,15 @@ FIELD_NAMES = [
 ].freeze
 
 SUMS = [
-  [12, 491_602, 0, 491_602],
-  [11, 460_834, 0, 460_834],
-  [10, 400_834, 0, 400_834]
+  [12, 454_268, 7_559, 461_827],
+  [11, 423_500, 7_559, 431_059],
+  [10, 363_500, 7_559, 371_059]
 ].freeze
 
-DN = [
+pp ActiveSupport::Dependencies.autoload_paths
+
+LM = [
+  ['Mauvaise DMO', :message_dmo, nil],
   ['Mauvais DN', :message_dn, '1234567,13/06/1985'],
   ['Mauvaise DDN', :message_date_de_naissance, '2214605,13/07/1985']
 ].freeze
@@ -55,7 +58,7 @@ VCR.use_cassette('diese_excel_check') do
           end
         end
         let(:field) { 'Etat nominatif des salariés/Mois M' }
-        let(:dn_messages) { (3..5).flat_map { |i| DN.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
+        let(:dn_messages) { (3..5).flat_map { |i| LM.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
         let(:messages) { [*dn_messages, *report_messages] }
 
         it 'have error messages' do
@@ -87,7 +90,7 @@ VCR.use_cassette('diese_excel_check') do
       end
     end
 
-    context 'Nouveau Secteurs' do
+    context 'On Nouveau Secteurs procedure,' do
       let(:demarche) { DemarcheActions.get_demarche(539, 'DIESE', 'clautier@idt.pf') }
       let(:controle) { FactoryBot.build :diese_excel_check, offset: 0 }
       subject do
@@ -97,7 +100,7 @@ VCR.use_cassette('diese_excel_check') do
         controle
       end
 
-      context 'DNs, sum copies, user are wrong', vcr: { cassette_name: 'diese_excel_check_52481' } do
+      context 'DNs, sum copies, user are wrong,', vcr: { cassette_name: 'diese_excel_check_52481' } do
         let(:dossier_nb) { 52_481 }
         let(:report_messages) do
           (0..2).flat_map do |m|
@@ -108,10 +111,10 @@ VCR.use_cassette('diese_excel_check') do
           end
         end
         let(:field) { 'Etat nominatif des salariés/Mois M' }
-        let(:dn_messages) { (0..2).flat_map { |i| DN.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
+        let(:dn_messages) { (0..2).flat_map { |i| LM.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
         let(:messages) { [*dn_messages, *report_messages] }
 
-        it 'have error messages' do
+        it 'should trigger error messages' do
           pp subject.messages
           expect(subject.messages).to eq messages
         end

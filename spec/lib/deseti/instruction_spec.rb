@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require 'rails_helper'
 
 VCR.use_cassette('mes_demarches') do
   RSpec.describe Deseti::Instruction do
-    let(:demarche) { DemarcheActions.get_demarche(217, 'DESETI', 'clautier@idt.pf') }
+    let(:demarche) { DemarcheActions.get_demarche(113, 'DESETI', 'clautier@idt.pf') }
     let(:passer_en_instruction) { instance_double(DossierPasserEnInstruction) }
     let(:task) { FactoryBot.build :deseti_instruction }
     let(:operation_passer_en_instruction) { instance_double(DossierPasserEnInstruction) }
