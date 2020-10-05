@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 VCR.use_cassette('mes_demarches') do
+  DemarcheActions.get_demarche(217, 'DESETI', 'clautier@idt.pf')
+
   RSpec.describe Deseti::Instruction do
     let(:demarche) { DemarcheActions.get_demarche(113, 'DESETI', 'clautier@idt.pf') }
     let(:passer_en_instruction) { instance_double(DossierPasserEnInstruction) }
@@ -28,26 +30,17 @@ VCR.use_cassette('mes_demarches') do
         operation_when_refuse
       )
     end
-
-    # subject do
-    #   DossierActions.on_dossier(dossier_nb) do |dossier|
-    #     task.process(task.demarche, dossier)
-    # pp controle
-    # pp dossier
+    # commented because vcr didn't store the right requests
+    # context 'Deseti accepted, activity stopped', vcr: { cassette_name: 'deseti_instruction_as' } do
+    #   let(:dossier_nb) { 40_056 }
+    #
+    #   it 'should put dossier en_instruction' do
+    #     expect(operation_passer_en_instruction).to receive(:process).once
+    #     expect(task.errors).to be_empty
+    #     expect(task.valid?).to be true
+    #     task.process(demarche, dossier_nb)
+    #   end
     # end
-    # task
-    # end
-
-    context 'Deseti accepted, activity stopped', vcr: { cassette_name: 'deseti_instruction_as' } do
-      let(:dossier_nb) { 40_056 }
-
-      it 'should put dossier en_instruction' do
-        expect(operation_passer_en_instruction).to receive(:process).once
-        expect(task.errors).to be_empty
-        expect(task.valid?).to be true
-        task.process(demarche, dossier_nb)
-      end
-    end
 
     context 'Deseti accepted, activity resumed', vcr: { cassette_name: 'deseti_instruction_ar' } do
       let(:dossier_nb) { 40_059 }

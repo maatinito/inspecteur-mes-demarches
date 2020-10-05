@@ -155,6 +155,9 @@ module MesDemarches
                           ... on DecimalNumberChamp  {
                               value
                           }
+                          ... on DateChamp  {
+                              value
+                          }
                       }
                   }
               }
@@ -249,6 +252,9 @@ module MesDemarches
                   value
                 }
                 ... on DecimalNumberChamp {
+                  value
+                }
+                ... on DateChamp {
                   value
                 }
               }
