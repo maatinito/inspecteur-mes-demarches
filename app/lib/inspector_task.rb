@@ -5,7 +5,7 @@ class InspectorTask
 
   attr_reader :params
 
-  def initialize(params)
+  def   initialize(params)
     @errors = []
     @params = params.symbolize_keys
     missing_fields = (required_fields - @params.keys)

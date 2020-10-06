@@ -4,6 +4,8 @@ require 'rails_helper'
 require 'inspector_task'
 
 VCR.use_cassette('mes_demarches') do
+  DemarcheActions.get_demarche(217, 'DESETI', 'clautier@idt.pf')
+
   RSpec.describe MemeDemandeur do
     let(:controle) { FactoryBot.build :meme_demandeur }
     subject do
