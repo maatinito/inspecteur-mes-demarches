@@ -1,0 +1,136 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number:
+        $dossier) {\n    id\n    number\n    state\n    datePassageEnConstruction\n    datePassageEnInstruction\n    dateTraitement\n    dateDerniereModification\n    usager
+        {\n      email\n    }\n    demandeur {\n      __typename\n      ... on PersonnePhysique
+        {\n        civilite\n        dateDeNaissance\n        nom\n        prenom\n      }\n      ...
+        on PersonneMorale {\n        adresse\n        libelleNaf\n        localite\n        naf\n        siret\n        association
+        {\n          titre\n        }\n        entreprise {\n          formeJuridique\n          nomCommercial\n          raisonSociale\n          siretSiegeSocial\n          prenom\n          nom\n        }\n      }\n    }\n    annotations
+        {\n      __typename\n      label\n      ... on TextChamp {\n        value\n      }\n    }\n    champs
+        {\n      __typename\n      label\n      ... on TextChamp {\n        value\n      }\n      ...
+        on CheckboxChamp {\n        value\n      }\n      ... on IntegerNumberChamp
+        {\n        value\n      }\n      ... on DecimalNumberChamp {\n        value\n      }\n      ...
+        on DateChamp {\n        value\n      }\n      ... on DossierLinkChamp {\n        stringValue\n      }\n      ...
+        on PieceJustificativeChamp {\n        file {\n          contentType\n          byteSize\n          filename\n          url\n        }\n        stringValue\n      }\n      ...
+        on NumeroDnChamp {\n        dateDeNaissance\n        numeroDn\n      }\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          label\n          ...
+        on TextChamp {\n            value\n          }\n          ... on IntegerNumberChamp
+        {\n            value\n          }\n          ... on DecimalNumberChamp {\n            value\n          }\n          ...
+        on DateChamp {\n            value\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":54045},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Tue, 06 Oct 2020 00:15:51 GMT
+      Server:
+      - nginx/1.10.3
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=63072000; includeSubdomains; preload
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      Etag:
+      - W/"e12ffb67dbc89e5e9a0e3a14020826c9"
+      X-Request-Id:
+      - d072ce8b-61ec-44b9-8337-42357525fd6a
+      X-Runtime:
+      - '0.168932'
+      Content-Length:
+      - '4429'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsiaWQiOiJSRzl6YzJsbGNpMDFOREEwTlE9PSIsIm51bWJlciI6NTQwNDUsInN0YXRlIjoiZW5fY29uc3RydWN0aW9uIiwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjAtMTAtMDVUMTQ6MTI6MDEtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIwLTEwLTA1VDE0OjEyOjAyLTEwOjAwIiwidXNhZ2VyIjp7ImVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIn0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVNb3JhbGUiLCJhZHJlc3NlIjoiQlAgNTIwOTQsIDk4NzE2IFBJUkFFLFxuUGFwZWV0ZSIsImxpYmVsbGVOYWYiOiJBdXRyZXMgc2VydmljZXMgcGVyc29ubmVscyBuLmMuYS4iLCJsb2NhbGl0ZSI6IlBhcGVldGUiLCJuYWYiOiI5NjA5WiIsInNpcmV0IjoiODc5OTk5IiwiYXNzb2NpYXRpb24iOm51bGwsImVudHJlcHJpc2UiOm51bGx9LCJhbm5vdGF0aW9ucyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiSW5zdHJ1Y3RldXJzIFNFRkkiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJBdmlzIFNFRkkiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiRGF0ZUNoYW1wIiwibGFiZWwiOiJEYXRlIEF2aXMifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6Ik1vdGl2YXRpb24iLCJ2YWx1ZSI6bnVsbH1dLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkwnZW50cmVwcmlzZSIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJsYWJlbCI6Ik51bcOpcm8gZW1wbG95ZXVyIENQUyIsInZhbHVlIjoiMTIzNDU2NzgifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6Ik51bcOpcm8gUkMiLCJ2YWx1ZSI6IjEyMzQ1Njc4OSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiTm9tIGR1IHJlc3BvbnNhYmxlIiwidmFsdWUiOiJkZWRlIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJQcsOpbm9tIGR1IHJlc3BvbnNhYmxlIiwidmFsdWUiOiJkZWRlIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJDb21tdW5lIGfDqW9ncmFwaGlxdWUiLCJ2YWx1ZSI6IkFydWUgLSBUYWhpdGkgLSA5ODcwMSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiQ29kZSBwb3N0YWwiLCJ2YWx1ZSI6Ijk4NzAxIC0gQXJ1ZSAtIFRhaGl0aSJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImxhYmVsIjoiQm/DrnRlIHBvc3RhbGUiLCJ2YWx1ZSI6IjEyMzQ1In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJOdW3DqXJvIGRlIHTDqWzDqXBob25lIiwidmFsdWUiOiI4NzU0MjE0NSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiRMOpY2xhcmF0aW9uIGRlcyBzYWxhcmnDqXMiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJBdmVydGlzc2VtZW50IiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlJlcGV0aXRpb25DaGFtcCIsImxhYmVsIjoiTGlzdGUgZGVzIHNhbGFyacOpcyIsImNoYW1wcyI6W3siX190eXBlbmFtZSI6Ik51bWVyb0RuQ2hhbXAiLCJsYWJlbCI6Ik51bcOpcm8gRE4ifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6Ik5vbSIsInZhbHVlIjoiZmlmaSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiUHLDqW5vbShzKSIsInZhbHVlIjoiZmlmaSJ9LHsiX190eXBlbmFtZSI6IkRhdGVDaGFtcCIsImxhYmVsIjoiRGF0ZSBkZSBkw6lidXQgZGUgbGEgcXVhcmFudGFpbmUiLCJ2YWx1ZSI6IjIwMjAtMTAtMDFUMDA6MDA6MDAtMTA6MDAifSx7Il9fdHlwZW5hbWUiOiJEYXRlQ2hhbXAiLCJsYWJlbCI6IkRhdGUgZGUgZmluIGRlIGxhIHF1YXJhbnRhaW5lIiwidmFsdWUiOiIyMDIwLTEwLTA3VDAwOjAwOjAwLTEwOjAwIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwibGFiZWwiOiJRdW90aXTDqSBkZSB0cmF2YWlsIGR1IHNhbGFyacOpIGF1IG1vbWVudCBkZSBsYSBkZW1hbmRlICIsInZhbHVlIjoiMTAwIn0seyJfX3R5cGVuYW1lIjoiTnVtZXJvRG5DaGFtcCIsImxhYmVsIjoiTnVtw6lybyBETiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiTm9tIiwidmFsdWUiOiJqaWppIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJQcsOpbm9tKHMpIiwidmFsdWUiOiJqaWppIn0seyJfX3R5cGVuYW1lIjoiRGF0ZUNoYW1wIiwibGFiZWwiOiJEYXRlIGRlIGTDqWJ1dCBkZSBsYSBxdWFyYW50YWluZSIsInZhbHVlIjoiMjAyMC0xMC0wMVQwMDowMDowMC0xMDowMCJ9LHsiX190eXBlbmFtZSI6IkRhdGVDaGFtcCIsImxhYmVsIjoiRGF0ZSBkZSBmaW4gZGUgbGEgcXVhcmFudGFpbmUiLCJ2YWx1ZSI6IjIwMjAtMTAtMDhUMDA6MDA6MDAtMTA6MDAifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJsYWJlbCI6IlF1b3RpdMOpIGRlIHRyYXZhaWwgZHUgc2FsYXJpw6kgYXUgbW9tZW50IGRlIGxhIGRlbWFuZGUgIiwidmFsdWUiOiIxMDAifSx7Il9fdHlwZW5hbWUiOiJOdW1lcm9EbkNoYW1wIiwibGFiZWwiOiJOdW3DqXJvIEROIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJOb20iLCJ2YWx1ZSI6Im1tIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJQcsOpbm9tKHMpIiwidmFsdWUiOiJtbSJ9LHsiX190eXBlbmFtZSI6IkRhdGVDaGFtcCIsImxhYmVsIjoiRGF0ZSBkZSBkw6lidXQgZGUgbGEgcXVhcmFudGFpbmUiLCJ2YWx1ZSI6IjIwMjAtMTAtMDFUMDA6MDA6MDAtMTA6MDAifSx7Il9fdHlwZW5hbWUiOiJEYXRlQ2hhbXAiLCJsYWJlbCI6IkRhdGUgZGUgZmluIGRlIGxhIHF1YXJhbnRhaW5lIiwidmFsdWUiOiIyMDIwLTEwLTEwVDAwOjAwOjAwLTEwOjAwIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwibGFiZWwiOiJRdW90aXTDqSBkZSB0cmF2YWlsIGR1IHNhbGFyacOpIGF1IG1vbWVudCBkZSBsYSBkZW1hbmRlICIsInZhbHVlIjoiMTAwIn1dfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkVuZ2FnZW1lbnQiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJWb3RyZSBub20iLCJ2YWx1ZSI6Imtva28ifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IlZvdHJlIHByw6lub20iLCJ2YWx1ZSI6Imtva28ifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IlZvdHJlIGZvbmN0aW9uIiwidmFsdWUiOiJrb2tvIn0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImxhYmVsIjoiQXR0ZXN0YXRpb24gZGUgbCdlbXBsb3lldXIiLCJ2YWx1ZSI6dHJ1ZX0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImxhYmVsIjoiRXhhY3RpdHVkZSBkZXMgcmVuc2VpZ25lbWVudHMiLCJ2YWx1ZSI6dHJ1ZX0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJsYWJlbCI6IkTDqWNsYXJhdGlvbiBtZW5zdWVsbGUgZGUgbWFpbi1kJ29ldXZyZSBDUFMgIiwiZmlsZSI6eyJjb250ZW50VHlwZSI6ImltYWdlL3BuZyIsImJ5dGVTaXplIjo1MjI5LCJmaWxlbmFtZSI6IkxvZ28tREFGLTEucG5nIiwidXJsIjoiaHR0cHM6Ly93d3cubWVzLWRlbWFyY2hlcy5nb3YucGYvcmFpbHMvYWN0aXZlX3N0b3JhZ2UvZGlzay9leUpmY21GcGJITWlPbnNpYldWemMyRm5aU0k2SWtKQmFEZERSRzlKWVRKV05WTlRTV2hPZW13eVRUSXhkMkZZU25Sak1qUXpUbTVHTlZwRVRqSlBSelI1WWpKamVrMHlXbTVPWjFrMlFtdFdWVTlvUW10aFdFNTNZak5PY0dSSGJIWmlhMnRwVWpKc2RXSkhiSFZhVkhObldtMXNjMXBYTldoaVYxVTVTV3Q0ZGxveU9IUlNSVVpIVEZSRmRXTkhOVzVKYW5ObldtMXNjMXBYTldoaVYxVnhVRlpXVlZKcE1EUktlV1JOWWpKa2RreFZVa0pTYVRCNFRHNUNkVnAzV1RkQ2JGRTJSVmRPZG1KdVVteGlibEptWkVoc2QxcFZhMmxFYld4MFdWZGtiRXd6UW5WYWQxazNRbXhSUFNJc0ltVjRjQ0k2SWpJd01qQXRNVEF0TURaVU1ERTZNVFU2TlRFdU1qQTRXaUlzSW5CMWNpSTZJbUpzYjJKZmEyVjVJbjE5LS1lODE3ZDcyMjY5MjVjNjhiY2QwMzIzZDkzNmQ4NDc1NTgyODMyYjA0L0xvZ28tREFGLTEucG5nP2NvbnRlbnRfdHlwZT1pbWFnZSUyRnBuZ1x1MDAyNmRpc3Bvc2l0aW9uPWlubGluZSUzQitmaWxlbmFtZSUzRCUyMkxvZ28tREFGLTEucG5nJTIyJTNCK2ZpbGVuYW1lJTJBJTNEVVRGLTglMjclMjdMb2dvLURBRi0xLnBuZyJ9LCJzdHJpbmdWYWx1ZSI6IiJ9XX19fQ==
+  recorded_at: Tue, 06 Oct 2020 00:15:51 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MesDemarches__Queries__Demarche($demarche: Int!) {\n  demarche(number:
+        $demarche) {\n    title\n    groupeInstructeurs {\n      instructeurs {\n        id\n        email\n      }\n    }\n  }\n}","variables":{"demarche":217},"operationName":"MesDemarches__Queries__Demarche"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Tue, 06 Oct 2020 00:15:51 GMT
+      Server:
+      - nginx/1.10.3
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=63072000; includeSubdomains; preload
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      Etag:
+      - W/"b25357c247077562ad0a8429c4439698"
+      X-Request-Id:
+      - 261072b9-d250-43f8-b438-6f8e4c24444b
+      X-Runtime:
+      - '0.113842'
+      Content-Length:
+      - '1255'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRlbWFyY2hlIjp7InRpdGxlIjoiRGVtYW5kZSBkZSBSZXZlbnUgRXhjZXB0aW9ubmVsIGRlIFNvbGlkYXJpdMOpIFtSRVNdICgrIGRlIDEwIHBlcnNvbm5lcykiLCJncm91cGVJbnN0cnVjdGV1cnMiOlt7Imluc3RydWN0ZXVycyI6W3siaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWc9PSIsImVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXROQT09IiwiZW1haWwiOiJ3aWxsaWFtLmpvc2VwaEBtb2Rlcm5pc2F0aW9uLmdvdi5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRRMSIsImVtYWlsIjoidmFpdGlhLmJ1Y2hpbkBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFE1IiwiZW1haWwiOiJoZWlsYW5pLmxpc3NhbnRAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRVMSIsImVtYWlsIjoicmF2YS5kb21pbmdvQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVTIiLCJlbWFpbCI6ImRhdmlkLmNoZW9uQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVTMiLCJlbWFpbCI6Im1pcmlhbWEuZmFpdnJlQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVTQiLCJlbWFpbCI6InBvZWl0aS5tYWxsZWdvbGxAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRRMCIsImVtYWlsIjoic3RlcGhhbmllLmJhcmljYXVsdEBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGN5IiwiZW1haWwiOiJ2YWxlcmllLmNob2xldEBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFV6IiwiZW1haWwiOiJsZW9uYXJkLnRhdmFlQGluZm9ybWF0aXF1ZS5nb3YucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UYzEiLCJlbWFpbCI6ImhpbmEuZ3JlcGluLWxvdWlzb25Ac2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRjMCIsImVtYWlsIjoiY2hyaXN0b3BoZS5taXNzZWxpc0BzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGsxIiwiZW1haWwiOiJzdGV2ZW4ud29uZ0BzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFF6IiwiZW1haWwiOiJ0ZXJpaS5wZWxsaXNzaWVyQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UazMiLCJlbWFpbCI6Im1hZWwuY29uZ2FyZEBpbmZvcm1hdGlxdWUuZ292LnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGsyIiwiZW1haWwiOiJoZWlyYW5pLmNhcm9uQHNlZmkucGYifV19XX19fQ==
+  recorded_at: Tue, 06 Oct 2020 00:15:51 GMT
+recorded_with: VCR 6.0.0

@@ -51,11 +51,11 @@ VCR.use_cassette('mes_demarches') do
         controle
       end
 
-      context 'with error messages', vcr: { cassette_name: 'periode_check_53978' } do
-        let(:dossier_nb) { 53_978 }
+      context 'with error messages', vcr: { cassette_name: 'periode_check_54045' } do
+        let(:dossier_nb) { 54_045 }
         let(:field) { "#{controle.params[:champ_debut]}..#{controle.params[:champ_fin]}"}
-        let(:value1) { "05/10/2020..25/10/2020=21 jours"}
-        let(:value2) { "01/10/2020..08/10/2020=8 jours"}
+        let(:value1) { "01/10/2020..08/10/2020=8 jours"}
+        let(:value2) { "01/10/2020..10/10/2020=10 jours"}
         let(:message1) { FactoryBot.build :message, field: field, value: value1, message: controle.params[:message] }
         let(:message2) { FactoryBot.build :message, field: field, value: value2, message: controle.params[:message] }
         it 'triggered' do
