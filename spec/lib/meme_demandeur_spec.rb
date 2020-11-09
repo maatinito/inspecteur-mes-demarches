@@ -25,6 +25,14 @@ VCR.use_cassette('mes_demarches') do
       end
     end
 
+    context 'everything is ok on renouvellement of deseti 2.0', vcr: { cassette_name: 'meme_demandeur_57670_ok' } do
+      let(:dossier_nb) { 57_670 }
+
+      it 'no error message' do
+        expect(subject.messages).to be_empty
+      end
+    end
+
     context 'Numero Tahiti is wrong', vcr: { cassette_name: 'meme_demandeur_bad_tahiti' } do
       let(:dossier_nb) { 40_050 }
       let(:libelle) { "#{controle.params[:message_mauvais_demandeur]}:378208" }

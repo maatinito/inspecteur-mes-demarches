@@ -1,0 +1,197 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number:
+        $dossier) {\n    id\n    number\n    state\n    datePassageEnConstruction\n    datePassageEnInstruction\n    dateTraitement\n    dateDerniereModification\n    usager
+        {\n      email\n    }\n    demandeur {\n      __typename\n      ... on PersonnePhysique
+        {\n        civilite\n        dateDeNaissance\n        nom\n        prenom\n      }\n      ...
+        on PersonneMorale {\n        adresse\n        libelleNaf\n        localite\n        naf\n        siret\n        association
+        {\n          titre\n        }\n        entreprise {\n          formeJuridique\n          nomCommercial\n          raisonSociale\n          siretSiegeSocial\n          prenom\n          nom\n        }\n      }\n    }\n    annotations
+        {\n      __typename\n      label\n      ... on TextChamp {\n        value\n      }\n    }\n    champs
+        {\n      __typename\n      label\n      ... on TextChamp {\n        value\n      }\n      ...
+        on CheckboxChamp {\n        value\n      }\n      ... on IntegerNumberChamp
+        {\n        value\n      }\n      ... on DecimalNumberChamp {\n        value\n      }\n      ...
+        on DateChamp {\n        value\n      }\n      ... on DossierLinkChamp {\n        stringValue\n      }\n      ...
+        on PieceJustificativeChamp {\n        file {\n          contentType\n          byteSize\n          filename\n          url\n        }\n        stringValue\n      }\n      ...
+        on NumeroDnChamp {\n        dateDeNaissance\n        numeroDn\n      }\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          label\n          ...
+        on TextChamp {\n            value\n          }\n          ... on IntegerNumberChamp
+        {\n            value\n          }\n          ... on DecimalNumberChamp {\n            value\n          }\n          ...
+        on DateChamp {\n            value\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":57670},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Mon, 09 Nov 2020 04:21:03 GMT
+      Server:
+      - nginx/1.10.3
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=63072000; includeSubdomains; preload
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      Etag:
+      - W/"21526e16d2cbf6d1dcbd81e39b04a647"
+      X-Request-Id:
+      - e5f4e73d-5ab6-4532-90b2-8edca1e75199
+      X-Runtime:
+      - '0.135321'
+      Content-Length:
+      - '793'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsiaWQiOiJSRzl6YzJsbGNpMDFOelkzTUE9PSIsIm51bWJlciI6NTc2NzAsInN0YXRlIjoiZW5faW5zdHJ1Y3Rpb24iLCJkYXRlUGFzc2FnZUVuQ29uc3RydWN0aW9uIjoiMjAyMC0xMS0wNFQwODozMjo1MC0xMDowMCIsImRhdGVQYXNzYWdlRW5JbnN0cnVjdGlvbiI6IjIwMjAtMTEtMDZUMDg6NDc6MTktMTA6MDAiLCJkYXRlVHJhaXRlbWVudCI6bnVsbCwiZGF0ZURlcm5pZXJlTW9kaWZpY2F0aW9uIjoiMjAyMC0xMS0wNlQwODo0NzoyNC0xMDowMCIsInVzYWdlciI6eyJlbWFpbCI6InBhc2NhbC5wZXRpdGplYW5AbWFpbC5wZiJ9LCJkZW1hbmRldXIiOnsiX190eXBlbmFtZSI6IlBlcnNvbm5lTW9yYWxlIiwiYWRyZXNzZSI6IkJQIDQzNzI3LCA5ODcxMyBQQVBFRVRFIEJQLFxuUm91dGUgbG90aXNzZW1lbnQgQXJldmFyZXZhLFxuRmFhYSIsImxpYmVsbGVOYWYiOiJDb25zZWlsIHBvdXIgbGVzIGFmZmFpcmVzIGV0IGF1dHJlcyBjb25zZWlscyBkZSBnZXN0aW9uIiwibG9jYWxpdGUiOiJGYWFhIiwibmFmIjoiNzAyMloiLCJzaXJldCI6IkI3ODM2NSIsImFzc29jaWF0aW9uIjpudWxsLCJlbnRyZXByaXNlIjpudWxsfSwiYW5ub3RhdGlvbnMiOltdLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJEb3NzaWVyTGlua0NoYW1wIiwibGFiZWwiOiJOdW3DqXJvIGRvc3NpZXIgREVTRVRJIiwic3RyaW5nVmFsdWUiOiI1MzMxNSJ9LHsiX190eXBlbmFtZSI6IkNoZWNrYm94Q2hhbXAiLCJsYWJlbCI6IlJlcHJpc2UgZCdhY3Rpdml0w6kiLCJ2YWx1ZSI6ZmFsc2V9XX19fQ==
+  recorded_at: Mon, 09 Nov 2020 04:21:04 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MesDemarches__Queries__Demarche($demarche: Int!) {\n  demarche(number:
+        $demarche) {\n    title\n    groupeInstructeurs {\n      instructeurs {\n        id\n        email\n      }\n    }\n  }\n}","variables":{"demarche":217},"operationName":"MesDemarches__Queries__Demarche"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Mon, 09 Nov 2020 04:21:03 GMT
+      Server:
+      - nginx/1.10.3
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=63072000; includeSubdomains; preload
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      Etag:
+      - W/"b25357c247077562ad0a8429c4439698"
+      X-Request-Id:
+      - 51e5afea-a2b3-4d48-ac20-d84a8a52d4a8
+      X-Runtime:
+      - '0.109527'
+      Content-Length:
+      - '1255'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRlbWFyY2hlIjp7InRpdGxlIjoiRGVtYW5kZSBkZSBSZXZlbnUgRXhjZXB0aW9ubmVsIGRlIFNvbGlkYXJpdMOpIFtSRVNdICgrIGRlIDEwIHBlcnNvbm5lcykiLCJncm91cGVJbnN0cnVjdGV1cnMiOlt7Imluc3RydWN0ZXVycyI6W3siaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TWc9PSIsImVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXROQT09IiwiZW1haWwiOiJ3aWxsaWFtLmpvc2VwaEBtb2Rlcm5pc2F0aW9uLmdvdi5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRRMSIsImVtYWlsIjoidmFpdGlhLmJ1Y2hpbkBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFE1IiwiZW1haWwiOiJoZWlsYW5pLmxpc3NhbnRAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRVMSIsImVtYWlsIjoicmF2YS5kb21pbmdvQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVTIiLCJlbWFpbCI6ImRhdmlkLmNoZW9uQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVTMiLCJlbWFpbCI6Im1pcmlhbWEuZmFpdnJlQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UVTQiLCJlbWFpbCI6InBvZWl0aS5tYWxsZWdvbGxAc2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRRMCIsImVtYWlsIjoic3RlcGhhbmllLmJhcmljYXVsdEBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGN5IiwiZW1haWwiOiJ2YWxlcmllLmNob2xldEBzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFV6IiwiZW1haWwiOiJsZW9uYXJkLnRhdmFlQGluZm9ybWF0aXF1ZS5nb3YucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UYzEiLCJlbWFpbCI6ImhpbmEuZ3JlcGluLWxvdWlzb25Ac2VmaS5wZiJ9LHsiaWQiOiJTVzV6ZEhKMVkzUmxkWEl0TVRjMCIsImVtYWlsIjoiY2hyaXN0b3BoZS5taXNzZWxpc0BzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGsxIiwiZW1haWwiOiJzdGV2ZW4ud29uZ0BzZWZpLnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVFF6IiwiZW1haWwiOiJ0ZXJpaS5wZWxsaXNzaWVyQHNlZmkucGYifSx7ImlkIjoiU1c1emRISjFZM1JsZFhJdE1UazMiLCJlbWFpbCI6Im1hZWwuY29uZ2FyZEBpbmZvcm1hdGlxdWUuZ292LnBmIn0seyJpZCI6IlNXNXpkSEoxWTNSbGRYSXRNVGsyIiwiZW1haWwiOiJoZWlyYW5pLmNhcm9uQHNlZmkucGYifV19XX19fQ==
+  recorded_at: Mon, 09 Nov 2020 04:21:05 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MemeDemandeur__Queries__Dossier($dossier: Int!) {\n  dossier(number:
+        $dossier) {\n    usager {\n      email\n    }\n    demandeur {\n      __typename\n      ...
+        on PersonneMorale {\n        siret\n      }\n      ... on PersonnePhysique
+        {\n        nom\n        prenom\n      }\n    }\n    champs {\n      __typename\n      label\n    }\n  }\n}","variables":{"dossier":53315},"operationName":"MemeDemandeur__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Mon, 09 Nov 2020 04:21:04 GMT
+      Server:
+      - nginx/1.10.3
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=63072000; includeSubdomains; preload
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      Etag:
+      - W/"e707c0af05e49bc76fbec326a91b794b"
+      X-Request-Id:
+      - 2a24707d-0d83-4df7-955d-dee729765d55
+      X-Runtime:
+      - '0.225638'
+      Content-Length:
+      - '1600'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsidXNhZ2VyIjp7ImVtYWlsIjoicGFzY2FsLnBldGl0amVhbkBtYWlsLnBmIn0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVNb3JhbGUiLCJzaXJldCI6IkI3ODM2NSJ9LCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkF0dGVudGlvbiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiVm90cmUgc2l0dWF0aW9uIn0seyJfX3R5cGVuYW1lIjoiRG9zc2llckxpbmtDaGFtcCIsImxhYmVsIjoiTnVtw6lybyBkb3NzaWVyIERFU0VUSSAtIETDqWNsYXJhdGlvbiBkZSBub24gcmVwcmlzZSBkJ2FjdGl2aXTDqSBNKzIifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IlZvdHJlIHNlY3RldXIgZCdhY3Rpdml0w6kifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IlJhaXNvbnMifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJsYWJlbCI6IlJldmVudSBtZW5zdWVsIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJWb3RyZSBpZGVudGl0w6kifSx7Il9fdHlwZW5hbWUiOiJOdW1lcm9EbkNoYW1wIiwibGFiZWwiOiJOdW3DqXJvIEROIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJOb20ifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IlByw6lub20ifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJsYWJlbCI6Ik51bcOpcm8gZW1wbG95ZXVyIENQUyJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiVm9zIGNvb3Jkb25uw6llcyJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiQ29tbXVuZSBnw6lvZ3JhcGhpcXVlIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJBZHJlc3NlIGfDqW9ncmFwaGlxdWUifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkNvZGUgcG9zdGFsIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwibGFiZWwiOiJCb2l0ZSBwb3N0YWxlIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJOdW3DqXJvIGRlIHTDqWzDqXBob25lIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJEb2N1bWVudHMgw6AgZm91cm5pciJ9LHsiX190eXBlbmFtZSI6IlJlcGV0aXRpb25DaGFtcCIsImxhYmVsIjoiSnVzdGlmaWNhdGlmKHMpIGQnYWJzZW5jZSB0b3RhbGUgZCdhY3Rpdml0w6kifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkVuZ2FnZW1lbnRzIn0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImxhYmVsIjoiQWJzZW5jZSB0b3RhbGUgZCdhY3Rpdml0w6kifSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwibGFiZWwiOiJOb24tY3VtdWwifSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwibGFiZWwiOiJJQ1JBIn0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImxhYmVsIjoiRXhhY3RpdHVkZSBkZXMgcmVuc2VpZ25lbWVudHMifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkF0dGVudGlvbiJ9XX19fQ==
+  recorded_at: Mon, 09 Nov 2020 04:21:05 GMT
+recorded_with: VCR 6.0.0
