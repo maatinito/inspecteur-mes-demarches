@@ -10,7 +10,7 @@ class MemeDemandeur < FieldChecker
   end
 
   def version
-    14
+    15
   end
 
   def required_fields
