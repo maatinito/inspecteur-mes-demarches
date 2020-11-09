@@ -100,8 +100,12 @@ class MemeDemandeur < FieldChecker
   end
 
   def check_target_field(dossier_number, target_dossier)
-    champ_cible = @params[:champ_cible]
-    return if champ_cible.blank? || field(target_dossier, champ_cible).present?
+    champ_cibles = @params[:champ_cible]
+
+    return if champ_cibles.blank?
+    [*champ_cibles].each do |champ_cible|
+      return if field(target_dossier, champ_cible).present?
+    end
 
     add_message(@params[:champ], dossier_number, @params[:message_mauvaise_demarche])
   end
