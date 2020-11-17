@@ -2,7 +2,7 @@
 
 class PeriodeCheck < FieldChecker
   def version
-    1
+    2
   end
 
   def initialize(params)
