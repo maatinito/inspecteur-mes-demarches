@@ -4,14 +4,14 @@ require 'tempfile'
 require 'open-uri'
 require 'roo'
 module Diese
-  class BaseExcelChack < FieldChecker
+  class BaseExcelCheck < FieldChecker
     def initialize(params)
       super(params)
       @cps = Cps::API.new
     end
 
     def version
-      1
+      super + 3
     end
 
     def required_fields
@@ -82,12 +82,11 @@ module Diese
       extension.nil? || (!extension.end_with?('.xlsx') && !extension.end_with?('.csv') && !extension.end_with?('.xls'))
     end
 
-    def check_xlsx(champ, file)
-    end
+    def check_xlsx(champ, file) end
 
     def check_sheet(champ, sheet, sheet_name, columns, checks)
       rows = sheet.parse(columns)
-      employees = rows.reject { |line| line[:prenoms].nil? || line[:prenoms] =~ /Prénom/ }
+      employees = rows.reject { |line| line[:prenoms].nil? || line[:prenoms].strip.blank? || line[:prenoms] =~ /Prénom/ }
       employees.each do |line|
         nom = line[:nom] || line[:nom_marital]
         prenoms = line[:prenoms]
@@ -102,26 +101,19 @@ module Diese
       end
     end
 
-    def check_format_dn(line, dn_column, ddn_column)
+    def check_format_dn(line)
       dn = line[:numero_dn]
       dn = dn.to_s if dn.is_a? Integer
       dn = dn.to_i.to_s if dn.is_a? Float
       return check_format_date_de_naissance(line) if dn.is_a?(String) && dn.gsub(/\s+/, '').match?(/^\d{6,7}$/)
 
-      @params[:message_format_dn] + ':' + dn
+      @params[:message_format_dn] + ':' + dn.to_s
     end
 
     DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/.freeze
 
     def check_format_date_de_naissance(line)
-      ddn = line[:date_de_naissance]
-      if ddn.is_a?(String) && (m = ddn.match(DATE))
-        year = m[:year].to_i
-        if year < 100
-          year += (year + 2000) <= Date.today.year ? 2000 : 1900
-        end
-        ddn = Date.parse("#{m[:day]}/#{m[:month]}/#{year}")
-      end
+      ddn = normalize_date_de_naissance(line)
 
       if ddn.is_a? Date
         good_range = (Date.iso8601('1920-01-01')..18.years.ago).cover?(ddn)
@@ -129,6 +121,23 @@ module Diese
       end
 
       @params[:message_format_date_de_naissance] + ':' + ddn.to_s
+    end
+
+    def normalize_date_de_naissance(line)
+      ddn = line[:date_de_naissance]
+      case ddn
+      when Integer, Float
+        ddn= Date.new(1899, 12, 30) + line[:date_de_naissance].days
+      when String
+        ddn.gsub!(%r{[-:./]}, '-')
+        if match = ddn.match(/(\d+)-(\d+)-(\d+)/)
+          day, month, year = match.captures.map(&:to_i)
+          year += 2000 if year < 100
+          year -= 100 if year > Date.today.year
+          ddn = Date.new(year, month, day)
+        end
+      end
+      line[:date_de_naissance] = ddn
     end
 
     def check_nom(line)
