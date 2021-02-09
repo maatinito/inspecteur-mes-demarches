@@ -11,7 +11,7 @@ module Diese
     end
 
     def version
-      super + 3
+      super + 4
     end
 
     def required_fields
@@ -114,20 +114,18 @@ module Diese
 
     def check_format_date_de_naissance(line)
       ddn = normalize_date_de_naissance(line)
-
-      if ddn.is_a? Date
-        good_range = (Date.iso8601('1920-01-01')..18.years.ago).cover?(ddn)
-        return check_cps(line) if good_range
-      end
+      return check_cps(line) if ddn.is_a? Date
 
       @params[:message_format_date_de_naissance] + ':' + ddn.to_s
     end
+
+    # good_range = (Date.iso8601('1920-01-01')..18.years.ago).cover?(ddn)
 
     def normalize_date_de_naissance(line)
       ddn = line[:date_de_naissance]
       case ddn
       when Integer, Float
-        ddn= Date.new(1899, 12, 30) + line[:date_de_naissance].days
+        ddn = Date.new(1899, 12, 30) + line[:date_de_naissance].days
       when String
         ddn.gsub!(%r{[-:./]}, '-')
         if match = ddn.match(/(\d+)-(\d+)-(\d+)/)
