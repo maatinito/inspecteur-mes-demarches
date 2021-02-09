@@ -66,7 +66,6 @@ class VerificationService
   def on_dossier(dossier_number)
     result = MesDemarches::Client.query(MesDemarches::Queries::Dossier,
                                         variables: { dossier: dossier_number })
-    pp result.to_h
     dossier = (data = result.data) ? data.dossier : nil
     yield dossier
     Rails.logger.error(result.errors.values.join(',')) unless data
