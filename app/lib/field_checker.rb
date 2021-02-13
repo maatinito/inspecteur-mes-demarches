@@ -3,9 +3,7 @@
 require 'set'
 
 class FieldChecker < InspectorTask
-  attr_reader :messages
-
-  attr_reader :accessed_fields
+  attr_reader :messages, :accessed_fields
 
   attr_writer :demarche
 

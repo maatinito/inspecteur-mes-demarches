@@ -8,9 +8,7 @@ module Deseti
   #   Mes-Demarches dismiss the mini deseti if user has resumed his activity
   #   Mes-Demarches put dossier under instruction if mini-deseti is correct & user has no activity
   class Instruction < InspectorTask
-    attr_reader :passer_en_instruction
-    attr_reader :classer_sans_suite
-    attr_reader :operation
+    attr_reader :passer_en_instruction, :classer_sans_suite, :operation
 
     def initialize(params)
       super

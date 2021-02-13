@@ -26,12 +26,12 @@ LM = [
 def new_message(field, value, message_type, correction)
   pp controle.params, message_type, 'impossible de trouver' if controle.params[message_type].nil?
   msg = controle.params[message_type]
-  msg += ': ' + correction.to_s if correction.present?
+  msg += ": #{correction}" if correction.present?
   FactoryBot.build :message, field: field, value: value, message: msg
 end
 
 def field_name(base, index)
-  index > 0 ? base + '+' + index.to_s : base
+  index > 0 ? "#{base}+#{index}" : base
 end
 
 VCR.use_cassette('diese_excel_check') do

@@ -56,7 +56,7 @@ module Diese
       (0..2).map { |i| check_sheet(champ, xlsx.sheet(i), xlsx.sheets[i]) }
     rescue Roo::HeaderRowNotFoundError => e
       columns = e.message.gsub(%r{[/\[\]]}, '')
-      add_message(champ.label, champ.file.filename, @params[:message_colonnes_manquantes] + ': ' + columns)
+      add_message(champ.label, champ.file.filename, "#{@params[:message_colonnes_manquantes]}: #{columns}")
       nil
     end
 
@@ -101,14 +101,14 @@ module Diese
           field = field(dossier, name)
           throw StandardError.new "Champ #{name} non trouvé sur le dossier #{dossier}" if field.blank?
           value = field&.first&.value&.to_i
-          add_message(name, value, @params[:message_different_value] + ': ' + excel_values[i].round.to_s) if value != excel_values[i].round
+          add_message(name, value, "#{@params[:message_different_value]}: #{excel_values[i].round}") if value != excel_values[i].round
         end
       end
     end
 
     def field_name(base, index)
       pos = index + @params[:offset]
-      pos.positive? ? base + '+' + pos.to_s : base
+      pos.positive? ? "#{base}+#{pos}" : base
     end
 
     def check_sheet(champ, sheet, sheet_name)
@@ -118,11 +118,11 @@ module Diese
         nom = line[:nom] || line[:nom_marital]
         prenoms = line[:prenoms]
         CHECKS.each do |name|
-          method = 'check_' + name.to_s.downcase
+          method = "check_#{name.to_s.downcase}"
           v = send(method, line)
           unless v == true
-            message = v.is_a?(String) ? v : @params[('message_' + name.to_s).to_sym]
-            add_message(champ.label + '/' + sheet_name, nom + ' ' + prenoms, message)
+            message = v.is_a?(String) ? v : @params["message_#{name}".to_sym]
+            add_message("#{champ.label}/#{sheet_name}", "#{nom} #{prenoms}", message)
           end
         end
       end
@@ -172,7 +172,7 @@ module Diese
       dn = dn.to_i.to_s if dn.is_a? Float
       return check_format_date_de_naissance(line) if dn.is_a?(String) && dn.gsub(/\s+/, '').match?(/^\d{6,7}$/)
 
-      @params[:message_format_dn] + ':' + dn
+      "#{@params[:message_format_dn]}:#{dn}"
     end
 
     DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/.freeze
@@ -192,7 +192,7 @@ module Diese
         return check_cps(line) if good_range
       end
 
-      @params[:message_format_date_de_naissance] + ':' + ddn.to_s
+      "#{@params[:message_format_date_de_naissance]}:#{ddn}"
     end
 
     def check_nom(line)
@@ -225,9 +225,9 @@ module Diese
       when 'true'
         true
       when 'false'
-        @params[:message_date_de_naissance] + ': ' + dn + ',' + ddn.to_s
+        "#{@params[:message_date_de_naissance]}: #{dn},#{ddn}"
       else
-        @params[:message_dn] + ': ' + dn + ',' + ddn.to_s
+        "#{@params[:message_dn]}: #{dn},#{ddn}"
       end
     end
   end

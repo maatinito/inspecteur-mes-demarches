@@ -47,14 +47,14 @@ module Diese
       check_sheet(champ, xlsx.sheet(0), xlsx.sheets[0], COLUMNS, CHECKS)
     rescue Roo::HeaderRowNotFoundError => e
       columns = e.message.gsub(%r{[/\[\]]}, '')
-      add_message(champ.label, champ.file.filename, @params[:message_colonnes_manquantes] + ': ' + columns)
+      add_message(champ.label, champ.file.filename, "#{@params[:message_colonnes_manquantes]}: #{columns}")
       nil
     end
 
     private
 
-    COTISATIONS = [6, 'J']
-    SECTEUR = [8, 'A']
+    COTISATIONS = [6, 'J'].freeze
+    SECTEUR = [8, 'A'].freeze
 
     def check_sheet(champ, sheet, sheet_name, columns, checks)
       super(champ, sheet, sheet_name, columns, checks)
@@ -64,21 +64,22 @@ module Diese
     def check_sector(champ, sheet, sheet_name)
       if sheet.cell(SECTEUR[0], SECTEUR[1])&.start_with?("Secteur d'activité")
         cotisations = sheet.cell(COTISATIONS[0], COTISATIONS[1])
-        if cotisations == "#N/A"
+        if cotisations == '#N/A'
           message = @params[:message_secteur_activite] ||
-            "Le secteur d'activité doit être renseigné à l'aide du menu déroulant. (Flèche en C8)"
-          add_message(champ.label + '/' + sheet_name, "Secteur d'activité en C8", message)
+                    "Le secteur d'activité doit être renseigné à l'aide du menu déroulant. (Flèche en C8)"
+          add_message("#{champ.label}/#{sheet_name}", "Secteur d'activité en C8", message)
         end
       end
     end
 
-    REQUIRED_COLUMNS = %i[heure_avant_convention brut_mensuel_moyen heures_a_realiser dmo]
+    REQUIRED_COLUMNS = %i[heure_avant_convention brut_mensuel_moyen heures_a_realiser dmo].freeze
 
     def check_empty_columns(line)
       missing_columns = REQUIRED_COLUMNS.filter_map do |column_name|
         value = line[column_name]
-        column_name unless value && value.to_s.length > 0 && value.to_f >= 0
+        column_name unless value && value.to_s.length.positive? && value.to_f >= 0
       end
+      puts line if missing_columns.present?
       missing_columns.empty? || @params[:message_colonnes_vides] + missing_columns.join(',')
     end
   end

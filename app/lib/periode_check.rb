@@ -24,9 +24,9 @@ class PeriodeCheck < FieldChecker
     periodes(dossier).map do |periode|
       debut, fin = periode
       if debut.blank?
-        add_message(@champ_debut, "", @params[:message])
+        add_message(@champ_debut, '', @params[:message])
       elsif fin.blank?
-        add_message(@champ_fin, "", @params[:message])
+        add_message(@champ_fin, '', @params[:message])
       else
         duration = (Date.parse(fin) - Date.parse(debut)).to_i + 1
         add_message("#{@champ_debut}..#{@champ_fin}", "#{f(debut)}..#{f(fin)}=#{duration} jours", @params[:message]) unless range.cover?(duration)
@@ -48,6 +48,7 @@ class PeriodeCheck < FieldChecker
 
   def range
     return @range if @range.present?
+
     match = @params[:periode].match(/(\d+)..(\d+)/)
     @range = (match[1].to_i..match[2].to_i)
   end

@@ -5,10 +5,6 @@ require 'open-uri'
 require 'roo'
 
 class MemeDemandeur < FieldChecker
-  def initialize(params)
-    super(params)
-  end
-
   def version
     15
   end
@@ -103,6 +99,7 @@ class MemeDemandeur < FieldChecker
     champ_cibles = @params[:champ_cible]
 
     return if champ_cibles.blank?
+
     [*champ_cibles].each do |champ_cible|
       return if field(target_dossier, champ_cible).present?
     end
@@ -112,6 +109,6 @@ class MemeDemandeur < FieldChecker
 
   def check_numero_tahiti(dossier_number, dossier_siret, target_dossier)
     field_siret = target_dossier&.demandeur&.siret
-    add_message(@params[:champ], dossier_number, @params[:message_mauvais_demandeur] + ':' + dossier_siret) if dossier_siret != field_siret
+    add_message(@params[:champ], dossier_number, "#{@params[:message_mauvais_demandeur]}:#{dossier_siret}") if dossier_siret != field_siret
   end
 end

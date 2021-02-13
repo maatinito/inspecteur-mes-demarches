@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 VCR.use_cassette('mes_demarches') do
@@ -13,7 +15,7 @@ VCR.use_cassette('mes_demarches') do
       end
 
       context 'periode bad value' do
-        let(:controle) { FactoryBot.build :periode_check, :for_deseti, periode: "7" }
+        let(:controle) { FactoryBot.build :periode_check, :for_deseti, periode: '7' }
         it 'must be invalid' do
           expect(controle.valid?).to be_falsey
         end
@@ -53,9 +55,9 @@ VCR.use_cassette('mes_demarches') do
 
       context 'with error messages', vcr: { cassette_name: 'periode_check_54045' } do
         let(:dossier_nb) { 54_045 }
-        let(:field) { "#{controle.params[:champ_debut]}..#{controle.params[:champ_fin]}"}
-        let(:value1) { "01/10/2020..08/10/2020=8 jours"}
-        let(:value2) { "01/10/2020..10/10/2020=10 jours"}
+        let(:field) { "#{controle.params[:champ_debut]}..#{controle.params[:champ_fin]}" }
+        let(:value1) { '01/10/2020..08/10/2020=8 jours' }
+        let(:value2) { '01/10/2020..10/10/2020=10 jours' }
         let(:message1) { FactoryBot.build :message, field: field, value: value1, message: controle.params[:message] }
         let(:message2) { FactoryBot.build :message, field: field, value: value2, message: controle.params[:message] }
         it 'triggered' do
