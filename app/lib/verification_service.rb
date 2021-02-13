@@ -10,6 +10,7 @@ class VerificationService
     # pp http
     # http = MesDemarches.http("https://www.mes-demarches.gov.pf")
     # pp http
+    puts 'demarrage'
     VerificationService.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
       @pieces_messages = get_pieces_messages(procedure_name, procedure)
       @instructeur_email = instructeur_email(procedure)
@@ -78,10 +79,15 @@ class VerificationService
   end
 
   def check_updated_dossiers(controls)
-    reset = controls.find { |control| Check.find_by_checker(control.class.name.underscore).nil? }.present?
     [*@procedure['demarches']].each do |demarche_number|
+      reset = reset?(demarche_number, controls)
       check_demarche(controls, demarche_number, reset, @procedure['name'])
     end
+  end
+
+  def reset?(demarche_number, controls)
+    counts = controls.map { |c| Check.where(demarche_id: demarche_number, checker: c.class.name.underscore).count }
+    reset = counts.uniq.size > 1
   end
 
   def check_demarche(controls, demarche_number, reset, configuration_name)
@@ -96,11 +102,11 @@ class VerificationService
   end
 
   def check_failed_dossiers(controls)
+    demarches = [*@procedure['demarches']]
     Check
-      .where(failed: true, demarche: [*@procedure['demarches']])
-      .includes(:demarche)
+      .where(failed: true, demarche: demarches)
       .select(:dossier, :demarche_id)
-      .distinct do |check|
+      .distinct.each do |check|
       on_dossier(check.dossier) do |md_dossier|
         process_dossier(check.demarche, md_dossier, controls)
       end
@@ -154,7 +160,7 @@ class VerificationService
         c.demarche = demarche
       end
       start_time = Time.zone.now
-      if check.checked_at < md_dossier.date_derniere_modification || check.version < control.version
+      if check.failed || check.checked_at < DateTime.parse(md_dossier.date_derniere_modification) || check.version < control.version
         control.demarche = demarche
         apply_control(control, md_dossier, check)
       end
