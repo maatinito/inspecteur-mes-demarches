@@ -4,7 +4,6 @@ class VerificationService
   attr_reader :messages
 
   @@config = nil
-
   def check
     # http = MesDemarches.http("https://www.mes-demarches.gov.pf")
     # pp http

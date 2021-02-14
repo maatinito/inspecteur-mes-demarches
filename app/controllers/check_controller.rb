@@ -2,8 +2,9 @@
 
 class CheckController < ApplicationController
   def verify
-    @verification_service = VerificationService.new
-    @verification_service.check
+    InspectJob.run
+    # @verification_service = VerificationService.new
+    # @verification_service.check
     redirect_to check_report_path
   end
 
@@ -17,6 +18,7 @@ class CheckController < ApplicationController
         end
       end
     end
+    @running = InspectJob.running?
   end
 
   def post_message

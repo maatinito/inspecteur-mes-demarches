@@ -7,7 +7,7 @@ class DemarcheActions
     result = MesDemarches::Client.query(MesDemarches::Queries::Demarche,
                                         variables: { demarche: demarche_number })
     throw StandardError.new result.errors.join(',') if result.errors.present?
-    throw StandardError.new "La démarche #{demarche_number} n'existe pas" if result.data.demarche.nil?
+    throw StandardError.new "La démarche #{demarche_number} n'existe pas" if result&.data&.demarche.nil?
 
     gql_demarche = result.data.demarche
     gql_instructeur = gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == instructeur_email }
