@@ -34,92 +34,88 @@ def field_name(base, index)
   index > 0 ? "#{base}+#{index}" : base
 end
 
-VCR.use_cassette('diese_excel_check') do
-  DemarcheActions.get_demarche(217, 'DESETI', 'clautier@idt.pf')
-
-  RSpec.describe Diese::ExcelCheck do
-    context 'Renouvellement' do
-      let(:controle) { FactoryBot.build :diese_excel_check, offset: 3 }
-      subject do
-        DossierActions.on_dossier(dossier_nb) do |dossier|
-          controle.check(dossier)
-        end
-        controle
+RSpec.describe Diese::ExcelCheck do
+  context 'Renouvellement' do
+    let(:controle) { FactoryBot.build :diese_excel_check, offset: 3 }
+    subject do
+      DossierActions.on_dossier(dossier_nb) do |dossier|
+        controle.check(dossier)
       end
+      controle
+    end
 
-      # commented because vcr didn't store the right requests
+    # commented because vcr didn't store the right requests
 
-      # context 'DNs, sum copies, user are wrong', vcr: { cassette_name: 'diese_excel_check_48289' } do
-      #   let(:dossier_nb) { 48_289 } # 46_761
-      #   let(:libelle) { "#{controle.params[:message_mauvais_demandeur]}:378208" }
-      #   let(:report_messages) do
-      #     (3..5).flat_map do |m|
-      #       FIELD_NAMES.each_with_index.map do |_name, i|
-      #         value = (6 + m) * (10**i) # 9, 90, 900, 9000 then 10, 100, 1000, 1000, ...
-      #         new_message(field_name(FIELD_NAMES[i], m), value, :message_different_value, SUMS[m - 3][i])
-      #       end
-      #     end
-      #   end
-      #   let(:field) { 'Etat nominatif des salariés/Mois M' }
-      #   let(:dn_messages) { (3..5).flat_map { |i| LM.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
-      #   let(:messages) { [*dn_messages, *report_messages] }
-      #
-      #   it 'have error messages' do
-      #     pp subject.messages
-      #     expect(subject.messages).to eq messages
-      #   end
-      # end
+    # context 'DNs, sum copies, user are wrong', vcr: { cassette_name: 'diese_excel_check_48289' } do
+    #   let(:dossier_nb) { 48_289 } # 46_761
+    #   let(:libelle) { "#{controle.params[:message_mauvais_demandeur]}:378208" }
+    #   let(:report_messages) do
+    #     (3..5).flat_map do |m|
+    #       FIELD_NAMES.each_with_index.map do |_name, i|
+    #         value = (6 + m) * (10**i) # 9, 90, 900, 9000 then 10, 100, 1000, 1000, ...
+    #         new_message(field_name(FIELD_NAMES[i], m), value, :message_different_value, SUMS[m - 3][i])
+    #       end
+    #     end
+    #   end
+    #   let(:field) { 'Etat nominatif des salariés/Mois M' }
+    #   let(:dn_messages) { (3..5).flat_map { |i| LM.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
+    #   let(:messages) { [*dn_messages, *report_messages] }
+    #
+    #   it 'have error messages' do
+    #     pp subject.messages
+    #     expect(subject.messages).to eq messages
+    #   end
+    # end
 
-      context 'Excel file has missing column', vcr: { cassette_name: 'diese_excel_check_49792' } do
-        let(:dossier_nb) { 49_772 }
-        let(:field) { 'Etat nominatif des salariés' }
-        let(:value) { 'Etat nominatif DiESE_teav-sept.xlsx' }
-        let(:messages) { [new_message(field, value, :message_colonnes_manquantes, 'Nom de famille, Nom marital, Date de naissance')] }
+    context 'Excel file has missing column', vcr: { cassette_name: 'diese_excel_check_49792' } do
+      let(:dossier_nb) { 49_772 }
+      let(:field) { 'Etat nominatif des salariés' }
+      let(:value) { 'Etat nominatif DiESE_teav-sept.xlsx' }
+      let(:messages) { [new_message(field, value, :message_colonnes_manquantes, 'Nom de famille, Nom marital, Date de naissance')] }
 
-        it 'have one error message' do
-          pp subject.messages
-          expect(subject.messages).to eq messages
-        end
-      end
-
-      context 'Excel file has empty "nom de famille"', vcr: { cassette_name: 'diese_excel_check_49594' } do
-        let(:dossier_nb) { 49_594 }
-        let(:messages) { [] }
-
-        it 'have one error message' do
-          pp subject.messages
-          expect(subject.messages).to eq messages
-        end
+      it 'have one error message' do
+        pp subject.messages
+        expect(subject.messages).to eq messages
       end
     end
 
-    context 'On Nouveau Secteurs procedure,' do
-      let(:controle) { FactoryBot.build :diese_excel_check, offset: 0 }
-      subject do
-        DossierActions.on_dossier(dossier_nb) do |dossier|
-          controle.check(dossier)
-        end
-        controle
-      end
+    context 'Excel file has empty "nom de famille"', vcr: { cassette_name: 'diese_excel_check_49594' } do
+      let(:dossier_nb) { 49_594 }
+      let(:messages) { [] }
 
-      context 'DNs, sum copies, user are wrong,', vcr: { cassette_name: 'diese_excel_check_52481' } do
-        let(:dossier_nb) { 52_481 }
-        let(:report_messages) do
-          (0..2).flat_map do |m|
-            FIELD_NAMES.each_with_index.map do |_name, i|
-              value = (2 + m) * (10**i) # 2,20,200,2000, 3,30,300,3000 ...
-              new_message(field_name(FIELD_NAMES[i], m), value, :message_different_value, SUMS[m - 3][i])
-            end
+      it 'have one error message' do
+        pp subject.messages
+        expect(subject.messages).to eq messages
+      end
+    end
+  end
+
+  context 'On Nouveau Secteurs procedure,' do
+    let(:controle) { FactoryBot.build :diese_excel_check, offset: 0 }
+    subject do
+      DossierActions.on_dossier(dossier_nb) do |dossier|
+        controle.check(dossier)
+      end
+      controle
+    end
+
+    context 'DNs, sum copies, user are wrong,', vcr: { cassette_name: 'diese_excel_check_52481' } do
+      let(:dossier_nb) { 52_481 }
+      let(:report_messages) do
+        (0..2).flat_map do |m|
+          FIELD_NAMES.each_with_index.map do |_name, i|
+            value = (2 + m) * (10 ** i) # 2,20,200,2000, 3,30,300,3000 ...
+            new_message(field_name(FIELD_NAMES[i], m), value, :message_different_value, SUMS[m - 3][i])
           end
         end
-        let(:field) { 'Etat nominatif des salariés/Mois M' }
-        let(:dn_messages) { (0..2).flat_map { |i| LM.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
-        let(:messages) { [*dn_messages, *report_messages] }
+      end
+      let(:field) { 'Etat nominatif des salariés/Mois M' }
+      let(:dn_messages) { (0..2).flat_map { |i| LM.map { |msg| new_message(field_name(field, i), msg[0], msg[1], msg[2]) } } }
+      let(:messages) { [*dn_messages, *report_messages] }
 
-        it 'should trigger error messages' do
-          pp subject.messages
-          expect(subject.messages).to eq messages
-        end
+      it 'should trigger error messages' do
+        pp subject.messages
+        expect(subject.messages).to eq messages
       end
     end
   end
