@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
 class DossierChangerEtat < InspectorTask
+  def initialize(params)
+    super
+    @conditions = @params[:conditions]
+  end
+
   def process(demarche, dossier_number)
     @dossier = nil
     @dossier_number = dossier_number
@@ -45,14 +50,5 @@ class DossierChangerEtat < InspectorTask
 
   def authorized_fields
     super + %i[conditions]
-  end
-
-  def required_fields
-    super
-  end
-
-  def initialize(params)
-    super
-    @conditions = @params[:conditions]
   end
 end

@@ -29,10 +29,6 @@ module Diese
       ]
     end
 
-    def authorized_fields
-      super
-    end
-
     def check(dossier)
       champs = field(dossier, @params[:champ])
       return if champs.blank?
@@ -91,11 +87,11 @@ module Diese
         nom = line[:nom] || line[:nom_marital]
         prenoms = line[:prenoms]
         checks.each do |name|
-          method = 'check_' + name.to_s.downcase
+          method = "check_#{name.to_s.downcase}"
           v = send(method, line)
           unless v == true
-            message = v.is_a?(String) ? v : @params[('message_' + name.to_s).to_sym]
-            add_message(champ.label + '/' + sheet_name, nom + ' ' + prenoms, message)
+            message = v.is_a?(String) ? v : @params["message_#{name}".to_sym]
+            add_message("#{champ.label}/#{sheet_name}", "#{nom} #{prenoms}", message)
           end
         end
       end
@@ -107,7 +103,7 @@ module Diese
       dn = dn.to_i.to_s if dn.is_a? Float
       return check_format_date_de_naissance(line) if dn.is_a?(String) && dn.gsub(/\s+/, '').match?(/^\d{6,7}$/)
 
-      @params[:message_format_dn] + ':' + dn.to_s
+      "#{@params[:message_format_dn]}:#{dn}"
     end
 
     DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/.freeze
@@ -116,7 +112,7 @@ module Diese
       ddn = normalize_date_de_naissance(line)
       return check_cps(line) if ddn.is_a? Date
 
-      @params[:message_format_date_de_naissance] + ':' + ddn.to_s
+      "#{@params[:message_format_date_de_naissance]}:#{ddn}"
     end
 
     # good_range = (Date.iso8601('1920-01-01')..18.years.ago).cover?(ddn)
@@ -163,9 +159,9 @@ module Diese
       when 'true'
         true
       when 'false'
-        @params[:message_date_de_naissance] + ': ' + dn + ',' + ddn.to_s
+        "#{@params[:message_date_de_naissance]}: #{dn},#{ddn}"
       else
-        @params[:message_dn] + ': ' + dn + ',' + ddn.to_s
+        "#{@params[:message_dn]}: #{dn},#{ddn}"
       end
     end
   end

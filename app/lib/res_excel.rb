@@ -54,18 +54,18 @@ class ResExcel < FieldChecker
       nom = line[:nom]
       prenoms = line[:prenoms]
       CHECKS.each do |name|
-        method = 'check_' + name.to_s.downcase
+        method = "check_#{name.to_s.downcase}"
         v = send(method, line)
         unless v == true
-          message = v.is_a?(String) ? v : @params[('message_' + name.to_s).to_sym]
-          add_message(champ.label, nom + ' ' + prenoms, message)
+          message = v.is_a?(String) ? v : @params["message_#{name}".to_sym]
+          add_message(champ.label, "#{nom} #{prenoms}", message)
         end
       end
     end
   rescue Roo::HeaderRowNotFoundError => e
     puts e.backtrace
     columns = e.message.gsub(%r{[/\[\]]}, '')
-    add_message(champ.label, champ.file.filename, @params[:message_colonnes_manquantes] + ':' + columns)
+    add_message(champ.label, champ.file.filename, "#{@params[:message_colonnes_manquantes]}:#{columns}")
   end
 
   def check_csv(champ, localfile)
@@ -129,7 +129,7 @@ class ResExcel < FieldChecker
     dn = dn.to_i.to_s if dn.is_a? Float
     return check_format_date_de_naissance(line) if dn.is_a?(String) && dn.gsub(/\s+/, '').match?(/^\d{6,7}$/)
 
-    @params[:message_format_dn] + ':' + dn
+    "#{@params[:message_format_dn]}:#{dn}"
   end
 
   DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/.freeze
@@ -149,7 +149,7 @@ class ResExcel < FieldChecker
       return check_cps(line) if good_range
     end
 
-    @params[:message_format_date_de_naissance] + ':' + ddn.to_s
+    "#{@params[:message_format_date_de_naissance]}:#{ddn}"
   end
 
   def check_nom(line)
@@ -177,9 +177,9 @@ class ResExcel < FieldChecker
     when 'true'
       true
     when 'false'
-      @params[:message_date_de_naissance] + ': ' + dn + ',' + ddn.to_s
+      "#{@params[:message_date_de_naissance]}: #{dn},#{ddn}"
     else
-      @params[:message_dn] + ': ' + dn + ',' + ddn.to_s
+      "#{@params[:message_dn]}: #{dn},#{ddn}"
     end
   end
 end

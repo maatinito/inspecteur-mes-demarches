@@ -7,21 +7,21 @@ module MesDemarches
   # Configure GraphQL endpoint using the basic HTTP network adapter.
   host = ENV.fetch('GRAPHQL_HOST', 'https://www.mes-demarches.gov.pf')
   puts "server=#{host}"
-  graphql_url = host + '/api/v2/graphql'
+  graphql_url = "#{host}/api/v2/graphql"
   # puts "url=#{graphql_url}"
   HTTP = GraphQL::Client::HTTP.new(graphql_url) do
     def headers(_context)
-      { "Authorization": 'Bearer ' + ENV['GRAPHQL_BEARER'] }
+      { "Authorization": "Bearer #{ENV['GRAPHQL_BEARER']}" }
     end
   end
   pp HTTP
 
   def self.http(host)
     Rails.cache.fetch("#{host} http client") do
-      graphql_url = host + '/api/v2/graphql'
+      graphql_url = "#{host}/api/v2/graphql"
       GraphQL::Client::HTTP.new(graphql_url) do
         lambda do # headers
-          { "Authorization": 'Bearer ' + ENV['GRAPHQL_BEARER'] }
+          { "Authorization": "Bearer #{ENV['GRAPHQL_BEARER']}" }
         end
       end
     end

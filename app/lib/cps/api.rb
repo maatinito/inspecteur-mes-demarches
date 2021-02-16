@@ -34,8 +34,7 @@ module Cps
     end
 
     def url(resource_name)
-      base_url = [API_CPS_URL, resource_name].join('/')
-      base_url
+      [API_CPS_URL, resource_name].join('/')
     end
 
     TWO_DIGIT_YEAR = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d\d?)\s*$/.freeze
@@ -56,7 +55,7 @@ module Cps
         if date.is_a? Date
           [dn, date.strftime('%d/%m/%Y')]
         else
-          raise ArgumentError 'Invalid date format ' + date
+          raise ArgumentError "Invalid date format #{date}"
         end
       end]
       {

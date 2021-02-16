@@ -1,5 +1,3 @@
-
-
 # frozen_string_literal: true
 
 FactoryBot.define do
@@ -13,8 +11,8 @@ FactoryBot.define do
     end
 
     trait :for_res do
-      champ_debut { "Liste des salariés.Date de début de la quarantaine" }
-      champ_fin { "Liste des salariés.Date de fin de la quarantaine" }
+      champ_debut { 'Liste des salariés.Date de début de la quarantaine' }
+      champ_fin { 'Liste des salariés.Date de fin de la quarantaine' }
     end
 
     initialize_with do

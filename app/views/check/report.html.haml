@@ -1,7 +1,10 @@
 .container-fluid
   .row
     .col.text-right
-      = link_to 'Vérifier', check_verify_path,class: "btn btn-success"
+      - if @running
+        = link_to 'Vérification en cours', '',class: "btn", enabled: false
+      - else
+        = link_to 'Vérifier', check_verify_path,class: "btn btn-success"
   .row
     .col
       = tabs do |c|

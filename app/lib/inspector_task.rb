@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 
 class InspectorTask
-  attr_reader :errors
+  attr_reader :errors, :params
 
-  attr_reader :params
-
-  def   initialize(params)
+  def initialize(params)
     @errors = []
     @params = params.symbolize_keys
     missing_fields = (required_fields - @params.keys)
