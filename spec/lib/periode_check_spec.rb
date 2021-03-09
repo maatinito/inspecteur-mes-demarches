@@ -23,7 +23,7 @@ RSpec.describe PeriodeCheck do
     let(:controle) { FactoryBot.build :periode_check, :for_deseti }
     subject do
       DossierActions.on_dossier(dossier_nb) do |dossier|
-        controle.check(dossier)
+        controle.control(dossier)
         # pp controle
         # pp dossier
       end
@@ -43,7 +43,7 @@ RSpec.describe PeriodeCheck do
     let(:controle) { FactoryBot.build :periode_check, :for_res }
     subject do
       DossierActions.on_dossier(dossier_nb) do |dossier|
-        controle.check(dossier)
+        controle.control(dossier)
         # pp controle
         # pp dossier
       end

@@ -18,7 +18,7 @@ RSpec.describe Diese::EtatReelCheck do
     let(:controle) { FactoryBot.build :etat_reel_check, offset: 3 }
     subject do
       DossierActions.on_dossier(dossier_nb) do |dossier|
-        controle.check(dossier)
+        controle.control(dossier)
       end
       controle
     end

@@ -39,7 +39,7 @@ RSpec.describe Diese::ExcelCheck do
     let(:controle) { FactoryBot.build :diese_excel_check, offset: 3 }
     subject do
       DossierActions.on_dossier(dossier_nb) do |dossier|
-        controle.check(dossier)
+        controle.control(dossier)
       end
       controle
     end
@@ -94,7 +94,7 @@ RSpec.describe Diese::ExcelCheck do
     let(:controle) { FactoryBot.build :diese_excel_check, offset: 0 }
     subject do
       DossierActions.on_dossier(dossier_nb) do |dossier|
-        controle.check(dossier)
+        controle.control(dossier)
       end
       controle
     end
