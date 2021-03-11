@@ -20,6 +20,9 @@ class VerificationService
       check_updated_dossiers(controls)
       check_failed_dossiers(controls)
       check_updated_controls(controls)
+    rescue => e
+      Rails.logger.error(e.message)
+      e.backtrace.each { |b| Rails.logger.debug(b)}
     end
   end
 
