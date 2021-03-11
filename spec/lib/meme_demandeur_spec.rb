@@ -7,7 +7,7 @@ RSpec.describe MemeDemandeur do
   let(:controle) { FactoryBot.build :meme_demandeur }
   subject do
     DossierActions.on_dossier(dossier_nb) do |dossier|
-      controle.check(dossier)
+      controle.control(dossier)
       # pp controle
       # pp dossier
     end
