@@ -52,7 +52,6 @@ module Cis
       pp "dossier=#{@dossier}"
       in_excel = sheet.cell(CIS_DEMANDES_CELL[0], CIS_DEMANDES_CELL[1])&.to_i
       in_dossier = field_value(CIS_DEMANDES_FIELD)&.value&.to_i
-      puts "in_dossier=#{in_dossier}, #{in_excel}"
       if in_dossier != in_excel
         message = @params[:message_cis_demandes] ||
           "Le nombre de cis demandes doit être égal au nombre de candidats dans le fichier Excel: "

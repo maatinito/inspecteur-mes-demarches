@@ -79,7 +79,6 @@ module Diese
         value = line[column_name]
         column_name unless value && value.to_s.length.positive? && value.to_f >= 0
       end
-      puts line if missing_columns.present?
       missing_columns.empty? || @params[:message_colonnes_vides] + missing_columns.join(',')
     end
   end
