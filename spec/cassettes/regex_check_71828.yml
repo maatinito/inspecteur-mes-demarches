@@ -1,0 +1,133 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number:
+        $dossier) {\n    id\n    number\n    state\n    datePassageEnConstruction\n    datePassageEnInstruction\n    dateTraitement\n    dateDerniereModification\n    usager
+        {\n      email\n    }\n    demandeur {\n      __typename\n      ... on PersonnePhysique
+        {\n        civilite\n        dateDeNaissance\n        nom\n        prenom\n      }\n      ...
+        on PersonneMorale {\n        adresse\n        libelleNaf\n        localite\n        naf\n        siret\n        association
+        {\n          titre\n        }\n        entreprise {\n          formeJuridique\n          nomCommercial\n          raisonSociale\n          siretSiegeSocial\n          prenom\n          nom\n        }\n      }\n    }\n    annotations
+        {\n      __typename\n      label\n      ... on TextChamp {\n        value\n      }\n    }\n    champs
+        {\n      __typename\n      label\n      ... on TextChamp {\n        value\n      }\n      ...
+        on CheckboxChamp {\n        value\n      }\n      ... on IntegerNumberChamp
+        {\n        value\n      }\n      ... on DecimalNumberChamp {\n        value\n      }\n      ...
+        on DateChamp {\n        value\n      }\n      ... on DossierLinkChamp {\n        stringValue\n      }\n      ...
+        on PieceJustificativeChamp {\n        file {\n          contentType\n          byteSize\n          filename\n          url\n        }\n        stringValue\n      }\n      ...
+        on NumeroDnChamp {\n        dateDeNaissance\n        numeroDn\n      }\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          label\n          ...
+        on TextChamp {\n            value\n          }\n          ... on IntegerNumberChamp
+        {\n            value\n          }\n          ... on DecimalNumberChamp {\n            value\n          }\n          ...
+        on DateChamp {\n            value\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":71828},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Mon, 15 Mar 2021 23:12:27 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      Etag:
+      - W/"6595aeb0253aa8c4bd1056a56f3fc8a0"
+      X-Request-Id:
+      - 31273fac-7d1d-4ee9-a407-8e02be817ecc
+      X-Runtime:
+      - '0.982855'
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      Content-Length:
+      - '4682'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsiaWQiOiJSRzl6YzJsbGNpMDNNVGd5T0E9PSIsIm51bWJlciI6NzE4MjgsInN0YXRlIjoiZW5fY29uc3RydWN0aW9uIiwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjEtMDMtMDlUMDk6MTU6MDQtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIxLTAzLTExVDA5OjM3OjQ1LTEwOjAwIiwidXNhZ2VyIjp7ImVtYWlsIjoibXVyaWVsbGUuaGFhcGEwMkBnbWFpbC5jb20ifSwiZGVtYW5kZXVyIjp7Il9fdHlwZW5hbWUiOiJQZXJzb25uZU1vcmFsZSIsImFkcmVzc2UiOiI5OTk5OSBOb24gZMOpY2xhcsOpLCBQSyAyOC4yLCBNYWlyaWUgY2VudHJhbGUsIFRpYXJlaSB8IDk5OTk5IE5vbiBkw6ljbGFyw6ksIFBLIDM3LCBIaXRpYWEgfCA5OTk5OSBOb24gZMOpY2xhcsOpLCBQSyAzMi4zLCBNYWhhZW5hIHwgOTk5OTkgTm9uIGTDqWNsYXLDqSwgUEsgMTcuNSwgUGFwZW5vbyIsImxpYmVsbGVOYWYiOiJBZG1pbmlzdHJhdGlvbiBwdWJsaXF1ZSBnw6luw6lyYWxlIiwibG9jYWxpdGUiOiJUaWFyZWkgfCBIaXRpYWEgfCBNYWhhZW5hIHwgUGFwZW5vbyIsIm5hZiI6Ijg0MTFaIiwic2lyZXQiOiIwMDcxMjAiLCJhc3NvY2lhdGlvbiI6bnVsbCwiZW50cmVwcmlzZSI6eyJmb3JtZUp1cmlkaXF1ZSI6IkFkbWluaXN0cmF0aW9ucyBDb21tdW5hbGVzIiwibm9tQ29tbWVyY2lhbCI6IkNPTU1VTkUgREUgVElBUkVJIHwgQ09NTVVORSBERSBISVRJQUEgfCBDT01NVU5FIERFIE1BSEFFTkEgfCBDT01NVU5FIERFIFBBUEVOT08iLCJyYWlzb25Tb2NpYWxlIjoiQ09NTVVORSBERSBISVRJQUEgTyBURSBSQSIsInNpcmV0U2llZ2VTb2NpYWwiOiIwMDcxMjAiLCJwcmVub20iOiIiLCJub20iOiIifX0sImFubm90YXRpb25zIjpbeyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJsYWJlbCI6IkNhbmRpZGF0cyBhZG1pcyJ9XSwiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJMJ29yZ2FuaXNtZSBkZW1hbmRldXIiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJOdW3DqXJvIFRhaGl0aSBJVEkiLCJ2YWx1ZSI6IjAwNzEyMCJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImxhYmVsIjoiTnVtw6lybyBlbXBsb3lldXIgQ1BTIiwidmFsdWUiOiI4MTgwIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJOb20gZHUgcmVwcsOpc2VudGFudCBsw6lnYWwiLCJ2YWx1ZSI6IkZMT0hSIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJQcsOpbm9tIGR1IHJlcHLDqXNlbnRhbnQgbMOpZ2FsIiwidmFsdWUiOiJIZW5yaSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiQ29tbXVuZSBnw6lvZ3JhcGhpcXVlIiwidmFsdWUiOiJQYXBlbm9vIC0gVGFoaXRpIC0gOTg3MDcifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IlJlbnNlaWduZW1lbnRzIGNvbmNlcm5hbnQgbGUgY2hhbnRpZXIgZCdpbnTDqXLDqnQgZ8OpbsOpcmFsIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiSW50aXR1bMOpIGR1IGNoYW50aWVyIiwidmFsdWUiOiJBZ2VudCBwb2x5dmFsZW50In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJDb21tdW5lIiwidmFsdWUiOiJQYXBlbm9vIC0gVGFoaXRpIC0gOTg3MDcifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkxvY2FsaXNhdGlvbiBnw6lvZ3JhcGhpcXVlIHByw6ljaXNlIiwidmFsdWUiOiJjb21tdW5lIGRlIFBBUEVOT08ifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkRlc2NyaXB0aWYgZGVzIGFjdGl2aXTDqXMiLCJ2YWx1ZSI6IkFpZGVyIGxlcyBhZ2VudHMgY29tbXVuYXV4IGRhbnMgbGV1cnMgdMOiY2hlcyJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiRXF1aXBlbWVudHMiLCJ2YWx1ZSI6IlNlbG9uIGxlIHRyYXZhaWwgZGVtYW5kw6kifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkVxdWlwZW1lbnRzIGRlIHByb3RlY3Rpb24gaW5kaXZpZHVlbGxlICIsInZhbHVlIjoiZ2FudHMsIGNoYXVzc3VyZXMgZGUgc8OpY3VyaXTDqSwgcHJvZHVpdHMgZGUgbmV0dG95YWdlICggY2hsb3JlLCBldGMgLi4uLikifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IkNvbnRhY3Qgc3VyIGxlIGNoYW50aWVyIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiTm9tIGR1IHR1dGV1ciAiLCJ2YWx1ZSI6IlJPWUVSIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJQcsOpbm9tIGR1IHR1dGV1ciIsInZhbHVlIjoiRG9yaXRhIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJOdW3DqXJvIGRlIHTDqWzDqXBob25lIGR1IHR1dGV1ciIsInZhbHVlIjoiODcgNzQgMTkgMDIifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IsOJdGF0IG5vbWluYXRpZiIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJQaWVjZUp1c3RpZmljYXRpdmVDaGFtcCIsImxhYmVsIjoiw4l0YXQgbm9taW5hdGlmIGRlcyBkZW1hbmRldXJzIiwiZmlsZSI6eyJjb250ZW50VHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybWF0cy1vZmZpY2Vkb2N1bWVudC5zcHJlYWRzaGVldG1sLnNoZWV0IiwiYnl0ZVNpemUiOjUzMTAwLCJmaWxlbmFtZSI6IkNJUyBFdGF0IFByw6l2aXNpb25uZWwueGxzeCIsInVybCI6Imh0dHBzOi8vd3d3Lm1lcy1kZW1hcmNoZXMuZ292LnBmL3JhaWxzL2FjdGl2ZV9zdG9yYWdlL2Rpc2svZXlKZmNtRnBiSE1pT25zaWJXVnpjMkZuWlNJNklrSkJhRGREUkc5SllUSldOVk5UU1doTldHOTRaRzFHYTJOSFZuWk5WelY2VGxjMWVFOUVaekphTW1jd1lWZFNOV0pIZEROaVFWazJRbXRXVlU5b1FtdGhXRTUzWWpOT2NHUkhiSFppYTJ0cFlrZEdNR1JIUm1waFJ6RnNZbTVSTjBsSFduQmlSMVoxV1ZjeGJGQlRTa1JUVmsxblVsaFNhR1JEUWxGamJWWXlZVmhPY0dJeU5YVmFWM2QxWlVkNGVtVkRTVGRKUjFwd1lrZFdkVmxYTVd4TGFqRldWa1ZaZEU5RFkyNVJNR3hVU2xSSmQxSllVbWhrUTFWNVRVWkNlVXBWVFhwS1ZVVTFaRzFzZW1GWE9YVmliVlp6VEc1b2MyTXpaMGRQZDFwVlQyaEdhbUl5TlRCYVZ6VXdXRE5TTldOSFZrcEphMXBvWTBoQ2MyRlhUbWhrUjJ4MlltazVNbUp0VVhWaU0wSnNZbTVvZEdKSFduWmpiVEZvWkVoTmRHSXlXbTFoVjA1c1drYzVhbVJYTVd4aWJsRjFZek5DZVZwWFJtdGpNbWhzV2xoU2RHSkROWHBoUjFac1pFRlpOMEpzVVQwaUxDSmxlSEFpT2lJeU1ESXhMVEF6TFRFMlZEQXdPakV5T2pJM0xqQTFObG9pTENKd2RYSWlPaUppYkc5aVgydGxlU0o5ZlE9PS0tNzhiYzYyODY3MDczMjE2MDA0NDdkMGZhN2E4YmE5ZGQ5ZTU5ZDhkYS9DSVMlMjBFdGF0JTIwUHIlQzMlQTl2aXNpb25uZWwueGxzeD9jb250ZW50X3R5cGU9YXBwbGljYXRpb24lMkZ2bmQub3BlbnhtbGZvcm1hdHMtb2ZmaWNlZG9jdW1lbnQuc3ByZWFkc2hlZXRtbC5zaGVldFx1MDAyNmRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM0IrZmlsZW5hbWUlM0QlMjJDSVMrRXRhdCtQcmV2aXNpb25uZWwueGxzeCUyMiUzQitmaWxlbmFtZSUyQSUzRFVURi04JTI3JTI3Q0lTJTI1MjBFdGF0JTI1MjBQciUyNUMzJTI1QTl2aXNpb25uZWwueGxzeCJ9LCJzdHJpbmdWYWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImxhYmVsIjoiTm9tYnJlIGRlIENJUyBkZW1hbmTDqXMiLCJ2YWx1ZSI6IjEzIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJBc3NvY2lhdGlvbnMiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJWb3VzIMOqdGVzIHVuZSBhc3NvY2lhdGlvbi4iLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJsYWJlbCI6IlN0YXR1dHMgw6Agam91ciIsImZpbGUiOm51bGwsInN0cmluZ1ZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJsYWJlbCI6IkRlcm5pw6hyZSBjb21wb3NpdGlvbiBkdSBidXJlYXUiLCJmaWxlIjpudWxsLCJzdHJpbmdWYWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiRW5nYWdlbWVudCIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJsYWJlbCI6IlZvdHJlIG5vbSIsInZhbHVlIjoiUEFJIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJWb3RyZSBwcsOpbm9tIiwidmFsdWUiOiJMYWhhaW5hIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwibGFiZWwiOiJWb3RyZSBmb25jdGlvbiIsInZhbHVlIjoiQWdlbnQgcG9seXZhbGVudCJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImxhYmVsIjoiVm90cmUgbnVtw6lybyBkZSB0w6lsw6lwaG9uZSIsInZhbHVlIjoiODkgNjYgMTkgNjcifSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwibGFiZWwiOiJFeGFjdGl0dWRlIGRlcyByZW5zZWlnbmVtZW50cyIsInZhbHVlIjp0cnVlfV19fX0=
+  recorded_at: Mon, 15 Mar 2021 23:12:26 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MesDemarches__Queries__Demarche($demarche: Int!) {\n  demarche(number:
+        $demarche) {\n    title\n    groupeInstructeurs {\n      instructeurs {\n        id\n        email\n      }\n    }\n  }\n}","variables":{"demarche":871},"operationName":"MesDemarches__Queries__Demarche"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Mon, 15 Mar 2021 23:12:34 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      Etag:
+      - W/"0050f906f58c5fd0cd37713e4d6276fd"
+      X-Request-Id:
+      - 677d979c-2449-4d12-af8d-2c0f1672cb87
+      X-Runtime:
+      - '0.859904'
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      Content-Length:
+      - '800'
+    body:
+      encoding: UTF-8
+      string: '{"data":{"demarche":{"title":"DiESE - Renouvellement 2.1","groupeInstructeurs":[{"instructeurs":[{"id":"SW5zdHJ1Y3RldXItNA==","email":"william.joseph@modernisation.gov.pf"},{"id":"SW5zdHJ1Y3RldXItMg==","email":"clautier@idt.pf"},{"id":"SW5zdHJ1Y3RldXItMTQ0","email":"stephanie.baricault@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTU4","email":"poeiti.mallegoll@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTY0","email":"vaihere.frogier@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTcw","email":"maima.paia@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTgy","email":"jules.cheffort@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTk2","email":"heirani.caron@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMjU1","email":"marau.brothers@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMzEy","email":"hina.grepin@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItNDQx","email":"oceane.brunet@sefi.pf"}]}]}}}'
+  recorded_at: Mon, 15 Mar 2021 23:12:33 GMT
+recorded_with: VCR 6.0.0

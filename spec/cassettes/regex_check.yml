@@ -1,0 +1,60 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"query MesDemarches__Queries__Demarche($demarche: Int!) {\n  demarche(number:
+        $demarche) {\n    title\n    groupeInstructeurs {\n      instructeurs {\n        id\n        email\n      }\n    }\n  }\n}","variables":{"demarche":871},"operationName":"MesDemarches__Queries__Demarche"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Mon, 15 Mar 2021 22:38:57 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Cache-Control:
+      - no-cache, no-store
+      Etag:
+      - W/"0050f906f58c5fd0cd37713e4d6276fd"
+      X-Request-Id:
+      - 78697f1d-ef89-49d4-92c2-f31472a1e935
+      X-Runtime:
+      - '0.853227'
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      Content-Length:
+      - '800'
+    body:
+      encoding: UTF-8
+      string: '{"data":{"demarche":{"title":"DiESE - Renouvellement 2.1","groupeInstructeurs":[{"instructeurs":[{"id":"SW5zdHJ1Y3RldXItNA==","email":"william.joseph@modernisation.gov.pf"},{"id":"SW5zdHJ1Y3RldXItMg==","email":"clautier@idt.pf"},{"id":"SW5zdHJ1Y3RldXItMTQ0","email":"stephanie.baricault@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTU4","email":"poeiti.mallegoll@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTY0","email":"vaihere.frogier@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTcw","email":"maima.paia@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTgy","email":"jules.cheffort@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTk2","email":"heirani.caron@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMjU1","email":"marau.brothers@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMzEy","email":"hina.grepin@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItNDQx","email":"oceane.brunet@sefi.pf"}]}]}}}'
+  recorded_at: Mon, 15 Mar 2021 22:38:56 GMT
+recorded_with: VCR 6.0.0
