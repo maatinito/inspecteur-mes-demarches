@@ -3,7 +3,7 @@
 module Cis
   class EtatPrevisionnelCheck < Diese::BaseExcelCheck
     def version
-      super + 9
+      super + 10
     end
 
     def required_fields

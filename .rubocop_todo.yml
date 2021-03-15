@@ -73,7 +73,7 @@ Style/GuardClause:
     - 'app/lib/date_de_naissance.rb'
     - 'app/lib/deseti/message_deseti.rb'
     - 'app/lib/numero_dn.rb'
-    - 'app/lib/regexp_checker.rb'
+    - 'app/lib/regex_check.rb'
     - 'app/lib/verification_service.rb'
 
 # Offense count: 1
