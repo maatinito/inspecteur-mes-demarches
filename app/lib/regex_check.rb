@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 class RegexCheck < FieldChecker
+  def version
+    super + 1
+  end
+
   def initialize(params)
     super(params)
     @errors << 'regex_aide et regex_message doivent être tous les deux définis' if params.key?(:regex_aide) ^ params.key?(:message_aide)
@@ -18,7 +22,7 @@ class RegexCheck < FieldChecker
     champs = field(dossier, @params[:champ])
     if champs.present?
       champs.map do |champ|
-        next if champ.value.match? /^#{@params[:regex]}$/
+        next if champ.value.strip.match? /^#{@params[:regex]}$/
 
         message = params[:message]
         if @params[:message_aide].present? && @params[:regex_aide].present?
