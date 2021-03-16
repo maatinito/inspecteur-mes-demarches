@@ -1,12 +1,9 @@
 # frozen_string_literal: true
 
-require 'tempfile'
-require 'open-uri'
-require 'roo'
-module Diese
+module Cse
   class EtatReelCheck < EtatPrevisionnelCheck
     def version
-      super + 10
+      super + 1
     end
 
     REQUIRED_COLUMNS = EtatPrevisionnelCheck::REQUIRED_COLUMNS + %i[dmo].freeze
