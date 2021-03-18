@@ -22,7 +22,7 @@ class RegexCheck < FieldChecker
     champs = field(dossier, @params[:champ])
     if champs.present?
       champs.map do |champ|
-        next if champ.value.strip.match? /^#{@params[:regex]}$/
+        next if champ.value.strip.match?(/^#{@params[:regex]}$/)
 
         message = params[:message]
         if @params[:message_aide].present? && @params[:regex_aide].present?

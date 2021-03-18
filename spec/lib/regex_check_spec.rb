@@ -24,7 +24,7 @@ RSpec.describe RegexCheck do
   end
 
   context 'Tahiti Iti number too short', vcr: { cassette_name: 'regex_check_71828' } do
-    let(:controle) { FactoryBot.build :regex_check, :for_no_tahiti_iti  }
+    let(:controle) { FactoryBot.build :regex_check, :for_no_tahiti_iti }
     let(:dossier_nb) { 71_828 }
     let(:field) { 'Numéro Tahiti ITI' }
     let(:value) { '007120' }
@@ -36,7 +36,7 @@ RSpec.describe RegexCheck do
   end
 
   context 'Tahiti Iti number with -', vcr: { cassette_name: 'regex_check_71334' } do
-    let(:controle) { FactoryBot.build :regex_check, :for_no_tahiti_iti  }
+    let(:controle) { FactoryBot.build :regex_check, :for_no_tahiti_iti }
     let(:dossier_nb) { 71_334 }
     let(:field) { 'Numéro Tahiti ITI' }
     let(:value) { 'C28723-001' }

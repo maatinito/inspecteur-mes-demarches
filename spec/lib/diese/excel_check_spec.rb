@@ -104,7 +104,7 @@ RSpec.describe Diese::ExcelCheck do
       let(:report_messages) do
         (0..2).flat_map do |m|
           FIELD_NAMES.each_with_index.map do |_name, i|
-            value = (2 + m) * (10 ** i) # 2,20,200,2000, 3,30,300,3000 ...
+            value = (2 + m) * (10**i) # 2,20,200,2000, 3,30,300,3000 ...
             new_message(field_name(FIELD_NAMES[i], m), value, :message_different_value, SUMS[m - 3][i])
           end
         end

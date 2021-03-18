@@ -32,17 +32,17 @@ class ExcelCheck < FieldChecker
 
   def required_fields
     super + %i[
-        champ
-        message_champ_non_renseigne
-        message_type_de_fichier
-        message_colonnes_manquantes
-        message_date_de_naissance
-        message_dn
-        message_format_date_de_naissance
-        message_format_dn
-        message_nom_invalide
-        message_prenom_invalide
-      ]
+      champ
+      message_champ_non_renseigne
+      message_type_de_fichier
+      message_colonnes_manquantes
+      message_date_de_naissance
+      message_dn
+      message_format_date_de_naissance
+      message_format_dn
+      message_nom_invalide
+      message_prenom_invalide
+    ]
   end
 
   def check(dossier)
@@ -193,6 +193,6 @@ class ExcelCheck < FieldChecker
       value = line[column_name]
       column_name unless value && value.to_s.length.positive? && value.to_f >= 0
     end
-    missing_columns.empty? || @params[:message_colonnes_vides] + ": " + missing_columns.join(',')
+    missing_columns.empty? || @params[:message_colonnes_vides] + ': ' + missing_columns.join(',')
   end
 end

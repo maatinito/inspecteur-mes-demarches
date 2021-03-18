@@ -5,7 +5,7 @@ class InspectJob < CronJob
 
   MANUAL_SYNC = 'ManualSync'
 
-  def perform()
+  def perform
     Sync.find_or_create_by(job: MANUAL_SYNC)
     Sync.find_or_create_by(job: self.class.name) do
       VerificationService.new.check
