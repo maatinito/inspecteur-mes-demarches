@@ -1,0 +1,26 @@
+.container-fluid
+  .row
+    .col
+      %h2 Enregistrement
+      = form_for(resource, as: resource_name, url: registration_path(resource_name)) do |f|
+        = render "devise/shared/error_messages", resource: resource
+        .field
+          = f.label :email
+          %br/
+          = f.email_field :email, autofocus: true, autocomplete: "email"
+        .field
+          = f.label :password
+          - if @minimum_password_length
+            %em
+              (#{@minimum_password_length} caractères au minimum)
+          %br/
+          = f.password_field :password, autocomplete: 'Nouveau mot de passe'
+        .field
+          = f.label :password_confirmation
+          %br/
+          = f.password_field :password_confirmation, autocomplete: 'Nouveau mot de passe'
+        .actions
+          = f.submit "S'enregistrer", class: 'btn btn-primary'
+  .row
+    .col
+      = render "devise/shared/links"

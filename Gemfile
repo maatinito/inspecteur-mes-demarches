@@ -43,6 +43,8 @@ gem 'bootstrap', '~> 4.5.0'
 gem 'delayed_cron_job' # Cron jobs
 gem 'delayed_job_active_record'
 gem 'delayed_job_web'
+gem 'devise', '~> 4.7'
+gem 'devise-i18n'
 gem 'fugit'
 gem 'haml-rails'
 gem 'jquery-rails'
