@@ -47,7 +47,7 @@ module Cis
       if in_dossier != in_excel
         message = @params[:message_cis_demandes] ||
                   'Le nombre de cis demandes doit être égal au nombre de candidats dans le fichier Excel: '
-        add_message(CIS_DEMANDES_FIELD, in_dossier, message + ': ' + in_excel.to_s)
+        add_message(CIS_DEMANDES_FIELD, in_dossier, "#{message}: #{in_excel}")
       end
     end
 
