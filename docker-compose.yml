@@ -36,6 +36,7 @@ services:
       - API_CPS_PASSWORD
       - API_CPS_USERNAME
       - CAPYBARA_DRIVER
+      - CONTACT_EMAIL
       - DB_DATABASE
       - DB_HOST
       - DB_PASSWORD
@@ -43,6 +44,8 @@ services:
       - DB_USERNAME
       - GRAPHQL_BEARER
       - GRAPHQL_HOST
+      - MAILJET_API_KEY
+      - MAILJET_SECRET_KEY
       - RAILS_ENV=${ENV:-production}
     volumes:
       - imd-data-files:/imd/storage
@@ -62,6 +65,7 @@ services:
       - API_CPS_PASSWORD
       - API_CPS_USERNAME
       - CAPYBARA_DRIVER
+      - CONTACT_EMAIL
       - DB_DATABASE
       - DB_HOST
       - DB_PASSWORD
@@ -69,6 +73,8 @@ services:
       - DB_USERNAME
       - GRAPHQL_BEARER
       - GRAPHQL_HOST
+      - MAILJET_API_KEY
+      - MAILJET_SECRET_KEY
       - RAILS_ENV=${ENV:-production}
     volumes:
       - imd-data-files:/imd/storage

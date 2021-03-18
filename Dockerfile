@@ -49,6 +49,7 @@ ENV \
     API_CPS_PASSWORD=""\
     API_CPS_USERNAME=""\
     CAPYBARA_DRIVER="wsl"\
+    CONTACT_EMAIL="mandalorian@lucasfilm.com"\
     DB_DATABASE="rosso_development"\
     DB_HOST="db"\
     DB_PASSWORD="rosso"\
@@ -56,6 +57,8 @@ ENV \
     DB_USERNAME="rosso"\
     GRAPHQL_BEARER=""\
     GRAPHQL_HOST=https://www.mes-demarches.gov.pf\
+    MAILJET_API_KEY=""\
+    MAILJET_SECRET_KEY=""\
     PORT=3000\
     RAILS_SERVE_STATIC_FILES="true"\
     SECRET_KEY_BASE="bcab70b0157b199a918f0a7f1177e5995d085a919dfb0cc6b2a92dc30877f99dbad5144fe5f64e2a22da70161e6c9a39ede54b54a21a4fc4b78fdf3de55088b1"
