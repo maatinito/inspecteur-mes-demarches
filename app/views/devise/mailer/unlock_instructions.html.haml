@@ -1,7 +1,4 @@
-%p
-  Hello #{@resource.email}!
-%p Votre compate a été bloqué suite à de nombreuse tentatives de connexion infructueuses.
-%p Cliquez sur le lien suivant pour débloquer votre compte:
-%p= link_to 'Débloquer mon compte', unlock_url(@resource, unlock_token: @token)
-%p Si vous ne vous souvenez plus de votre mot de passe et que vous souhaitez le changer, cliquez sur ce lien
-%p= link_to 'changer mon mot de passe', new_user_password_url(@resource)
+%p= t('.greeting', recipient: @resource.email)
+%p= t('.message')
+%p= t('.instruction')
+%p= link_to t('.action'), unlock_url(@resource, unlock_token: @token)

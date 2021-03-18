@@ -1,12 +1,5 @@
-%p
-  Bonjour #{@email}!
+%p= t('.greeting', recipient: @email)
 - if @resource.try(:unconfirmed_email?)
-  %p
-    = 'Nous vous contactons pour vous indiquer que votre email est changé pour:'
-    = @resource.unconfirmed_email
-    \.
+  %p= t('.message', email: @resource.unconfirmed_email)
 - else
-  %p
-    = "Nous vous contactons pour vous indiquer que votre email a été changé pour:"
-    = @resource.email
-    \.
+  %p= t('.message', email: @resource.email)
