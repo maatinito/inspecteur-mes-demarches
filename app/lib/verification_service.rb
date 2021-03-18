@@ -21,10 +21,6 @@ class VerificationService
     end
   end
 
-  def update_instructeurs(_demarche)
-    MesDemarches::Client.query(MesDemarches::Queries::Demarche)
-  end
-
   def post_message(dossier_number)
     graphql = MesDemarches::Client.query(MesDemarches::Queries::DossierId,
                                          variables: { number: dossier_number })

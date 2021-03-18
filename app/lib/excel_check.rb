@@ -61,8 +61,8 @@ class ExcelCheck < FieldChecker
       end
       check_file(champ, extension, url)
     else
-      throw StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
-      # add_message(champ.label, '', @params[:message_champ_non_renseigne])
+      # throw StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
+      add_message(champ.label, '', @params[:message_champ_non_renseigne])
     end
   end
 
@@ -193,6 +193,6 @@ class ExcelCheck < FieldChecker
       value = line[column_name]
       column_name unless value && value.to_s.length.positive? && value.to_f >= 0
     end
-    missing_columns.empty? || @params[:message_colonnes_vides] + ': ' + missing_columns.join(',')
+    missing_columns.empty? || "#{@params[:message_colonnes_vides]}: #{missing_columns.join(',')}"
   end
 end
