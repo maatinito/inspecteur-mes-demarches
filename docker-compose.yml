@@ -34,6 +34,7 @@ services:
       - API_CPS_CLIENT_SECRET
       - API_CPS_PASSWORD
       - API_CPS_USERNAME
+      - APP_HOST
       - CAPYBARA_DRIVER
       - CONTACT_EMAIL
       - DB_DATABASE
@@ -46,6 +47,7 @@ services:
       - MAILJET_API_KEY
       - MAILJET_SECRET_KEY
       - RAILS_ENV=${ENV:-production}
+      - RAILS_RELATIVE_URL_ROOT
     volumes:
       - imd-data-files:/imd/storage
       - imd-uploads:/imd/public/uploads
@@ -63,6 +65,7 @@ services:
       - API_CPS_CLIENT_SECRET
       - API_CPS_PASSWORD
       - API_CPS_USERNAME
+      - APP_HOST
       - CAPYBARA_DRIVER
       - CONTACT_EMAIL
       - DB_DATABASE
