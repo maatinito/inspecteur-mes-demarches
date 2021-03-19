@@ -79,7 +79,7 @@ Rails.application.configure do
   # Configure default root URL for generating URLs to routes
   config.action_mailer.default_url_options = {
     protocol: :http,
-    port: ENV['PORT'],
+    # port: ENV['PORT'],
     host: ENV['APP_HOST']
   }
   config.action_mailer.asset_host = "http://#{ENV['APP_HOST']}:ENV['PORT']"
