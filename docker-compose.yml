@@ -26,7 +26,6 @@ version: '3.3'
 services:
   app:
     image: ${IMAGE}:${TAG:-latest}
-    container_name: app-${ENV:-dev}
     restart: always
     ports:
       - ${PORT}:3000
