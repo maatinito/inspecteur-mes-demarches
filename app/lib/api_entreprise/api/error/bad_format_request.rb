@@ -2,7 +2,7 @@
 
 module APIEntreprise
   module API
-    module Error
+    class Error
       class BadFormatRequest < APIEntreprise::API::Error
       end
     end
