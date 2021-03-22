@@ -26,10 +26,10 @@ module Cps
         puts "#{json_dn} ==> #{result}"
         result
       elsif response.code&.between?(401, 499)
-        raise APIEntreprise::API::Error::ResourceNotFound.new(response)
+        raise APIEntreprise::API::Error::ResourceNotFound, response
       else
         Rails.logger.error("Unable to contact CPS API: response code #{response.code} url=#{url} called with #{json_dn}")
-        raise APIEntreprise::API::Error::RequestFailed.new(response)
+        raise APIEntreprise::API::Error::RequestFailed, response
       end
     end
 

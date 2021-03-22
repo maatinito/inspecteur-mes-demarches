@@ -1,6 +1,16 @@
-.container-fluid
-  .row
-    .col
-      %h2
-        = image_tag "searchtool.svg", style: "width: 60px"
-        = SITE_NAME
+%nav.navbar
+  %a.navbar-brand{ href: root_path }
+    = image_tag "searchtool.svg", style: "width: 60px"
+    = SITE_NAME
+  %ul.nav.text-right
+    - if user_signed_in?
+      %li.nav-item
+        = link_to 'se déconnecter', destroy_user_session_path, method: :delete, class: "navlink", style: 'margin-right: 15px'
+      %li.nav-item
+        = link_to 'mon profil', edit_user_registration_path,class: "navlink"
+    - else
+      %li.nav-item
+        = link_to 'connexion', new_user_session_path, class: "navlink", style: 'margin-right: 15px'
+      %li.nav-item
+        = link_to 'créer un compte', new_user_registration_path, class: "navlink"
+

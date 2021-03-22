@@ -1,0 +1,13 @@
+.container-fluid
+  .row
+    .col
+      %h2 Mot de passe oublié ?
+      = form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post }) do |f|
+        = render "devise/shared/error_messages", resource: resource
+        .field
+          = f.label :email
+          %br/
+          = f.email_field :email, autofocus: true, autocomplete: "email"
+        .actions
+          = f.submit "Envoyer les instructions pour réinitialiser mon mot de passe", class: 'btn btn-primary'
+      = render "devise/shared/links"

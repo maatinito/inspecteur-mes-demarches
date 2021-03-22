@@ -3,9 +3,12 @@
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  config.relative_url_root = ENV.fetch('RAILS_RELATIVE_URL_ROOT','/')
+
   # In the development environment your application's code is reloaded on
   # every request. This slows down response time but is perfect for development
   # since you don't have to restart the web server when you make code changes.
+
   config.cache_classes = false
 
   # Do not eager load code on boot.
@@ -37,6 +40,28 @@ Rails.application.configure do
   config.action_mailer.raise_delivery_errors = false
 
   config.action_mailer.perform_caching = false
+
+  config.action_mailer.delivery_method = if ENV.fetch('MAILJET_API_KEY', '').present?
+                                           :mailjet_api
+                                         else
+                                           :letter_opener_web
+                                         end
+  # config.action_mailer.delivery_method = :smtp
+  # config.action_mailer.smtp_settings = {
+  #   # user_name: ENV['SMTP_LOGIN'],
+  #   # password: ENV['SMTP_PASSWORD'],
+  #   address: ENV['SMTP_HOST'],
+  #   port: 25,
+  #   # authentication: :login
+  # }
+  # Configure default root URL for generating URLs to routes
+  config.action_mailer.default_url_options = {
+    protocol: :http,
+    port: ENV.fetch('PORT', 3003),
+    host: 'localhost'
+  }
+
+  config.action_mailer.asset_host = 'http://localhost:3003'
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

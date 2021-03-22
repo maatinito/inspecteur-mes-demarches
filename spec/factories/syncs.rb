@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # == Schema Information
 #
 # Table name: syncs
@@ -9,6 +11,6 @@
 #
 FactoryBot.define do
   factory :sync do
-    job { "MyString" }
+    job { 'MyString' }
   end
 end

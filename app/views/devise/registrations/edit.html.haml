@@ -1,0 +1,41 @@
+.container-fluid
+  .row
+    .col
+      %h2 Edition du compte
+      = form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f|
+        = render "devise/shared/error_messages", resource: resource
+        .field
+          = f.label :email
+          %br/
+          = f.email_field :email, autofocus: true, autocomplete: "email"
+        - if devise_mapping.confirmable? && resource.pending_reconfirmation?
+          %div
+            Currently waiting confirmation for: #{resource.unconfirmed_email}
+        .field
+          = f.label :password
+          %i= '(Laisser vide si vous ne voulez pas le changer)'
+          %br/
+          = f.password_field :password, autocomplete: "Nouveau mot de passe"
+          - if @minimum_password_length
+            %br/
+            %em
+              = @minimum_password_length
+              caractères au minimum
+        .field
+          = f.label :password_confirmation
+          %br/
+          = f.password_field :password_confirmation, autocomplete: "Nouveau mot de passe"
+        .field
+          = f.label :current_password
+          %i= 'Nous avons besoin de votre mot de passe actuel pour confirmer les changements'
+          %br/
+          = f.password_field :current_password, autocomplete: "mot de passe actuel"
+        .actions
+          = f.submit 'Mettre à jour', class: 'btn btn-primary'
+  .row
+    .col
+      %h3= 'Annuler mon compte'
+      %p
+        = 'Plus interessé ?'
+        = button_to 'Annuler mon compte', registration_path(resource_name), data: { confirm: 'Etes-vous sûr ?' }, method: :delete, class: 'btn btn-secondary'
+      = link_to 'Retour', :back

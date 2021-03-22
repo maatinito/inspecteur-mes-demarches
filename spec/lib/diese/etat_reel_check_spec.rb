@@ -40,10 +40,12 @@ RSpec.describe Diese::EtatReelCheck do
       let(:field) { 'Etat nominatif actualisé/Etat' }
       let(:ddn_value) { 'DN (Nom) Julien' }
       let(:secteur_value) { "Secteur d'activité en C8" }
-      let(:messages) { [
-        new_message(field, ddn_value, :message_date_de_naissance, '4504780,1965-05-24'),
-        new_message(field, secteur_value, :message_secteur_activite, ''),
-      ] }
+      let(:messages) do
+        [
+          new_message(field, ddn_value, :message_date_de_naissance, '4504780,1965-05-24'),
+          new_message(field, secteur_value, :message_secteur_activite, '')
+        ]
+      end
 
       it 'have one error message' do
         pp subject.messages

@@ -46,17 +46,17 @@ module Cis
       in_dossier = field_value(CIS_DEMANDES_FIELD)&.value&.to_i
       if in_dossier != in_excel
         message = @params[:message_cis_demandes] ||
-          "Le nombre de cis demandes doit être égal au nombre de candidats dans le fichier Excel: "
-        add_message(CIS_DEMANDES_FIELD, in_dossier, message + ": " + in_excel.to_s)
+                  'Le nombre de cis demandes doit être égal au nombre de candidats dans le fichier Excel: '
+        add_message(CIS_DEMANDES_FIELD, in_dossier, "#{message}: #{in_excel}")
       end
     end
 
     def check_format_dn_conjoint(line)
       line[:numero_dn_conjoint].blank? ||
         check_format_dn({
-                    numero_dn: line[:numero_dn_conjoint],
-                    date_de_naissance: line[:date_de_naissance_conjoint]
-                  })
+                          numero_dn: line[:numero_dn_conjoint],
+                          date_de_naissance: line[:date_de_naissance_conjoint]
+                        })
     end
   end
 end

@@ -22,12 +22,12 @@ class RegexCheck < FieldChecker
     champs = field(dossier, @params[:champ])
     if champs.present?
       champs.map do |champ|
-        next if champ.value.strip.match? /^#{@params[:regex]}$/
+        next if champ.value.strip.match?(/^#{@params[:regex]}$/)
 
         message = params[:message]
         if @params[:message_aide].present? && @params[:regex_aide].present?
           aides = champ.value.scan(/#{@params[:regex_aide]}/)
-          message = message + @params[:message_aide] + ': ' + aides.join(',') if aides.present?
+          message = "#{message}#{@params[:message_aide]}: #{aides.join(',')}" if aides.present?
         end
         add_message(champ.label, champ.value, message)
       end

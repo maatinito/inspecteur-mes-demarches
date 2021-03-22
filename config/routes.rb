@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
-  root 'check#report'
+  root "check#report"
+  devise_for :users
 
   get 'check/verify'
   get 'check/report'
@@ -9,4 +10,10 @@ Rails.application.routes.draw do
 
   # view jobs
   match '/delayed_job' => DelayedJobWeb, :anchor => false, :via => %i[get post]
+
+  #
+  # Letter Opener
+  #
+
+  mount LetterOpenerWeb::Engine, at: '/letter_opener' if Rails.env.development?
 end

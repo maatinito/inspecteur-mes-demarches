@@ -5,11 +5,6 @@ class VerificationService
 
   @@config = nil
   def check
-    # http = MesDemarches.http("https://www.mes-demarches.gov.pf")
-    # pp http
-    # http = MesDemarches.http("https://www.mes-demarches.gov.pf")
-    # pp http
-    puts 'demarrage'
     VerificationService.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
       @pieces_messages = get_pieces_messages(procedure_name, procedure)
       @instructeur_email = instructeur_email(procedure)
@@ -20,9 +15,9 @@ class VerificationService
       check_updated_dossiers(controls)
       check_failed_dossiers(controls)
       check_updated_controls(controls)
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error(e.message)
-      e.backtrace.each { |b| Rails.logger.debug(b)}
+      e.backtrace.each { |b| Rails.logger.debug(b) }
     end
   end
 

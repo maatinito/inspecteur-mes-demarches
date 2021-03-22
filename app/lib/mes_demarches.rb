@@ -44,6 +44,7 @@ module MesDemarches
   Queries = Client.parse <<-'GRAPHQL'
     query Demarche($demarche: Int!) {
       demarche(number: $demarche) {
+        number
         title
         groupeInstructeurs {
           instructeurs {
