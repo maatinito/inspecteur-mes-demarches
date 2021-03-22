@@ -3,7 +3,7 @@
 module Diese
   class EtatPrevisionnelCheck < ExcelCheck
     def version
-      super + 2
+      super + 3
     end
 
     def required_fields
@@ -20,7 +20,7 @@ module Diese
       prenoms: /Prénom/,
       date_de_naissance: /Date de naissance/,
       numero_dn: /DN/,
-      heure_avant_convention: /Heures avant convention/,
+      heure_avant_convention: /Heures avant /,
       brut_mensuel_moyen: /Brut mensuel moyen/,
       heures_a_realiser: /Heures à réaliser/,
       dmo: /DMO/,
