@@ -3,7 +3,7 @@
 module Diese
   class EtatPrevisionnelCheck < ExcelCheck
     def version
-      super + 3
+      super + 4
     end
 
     def required_fields
@@ -24,13 +24,13 @@ module Diese
       brut_mensuel_moyen: /Brut mensuel moyen/,
       heures_a_realiser: /Heures à réaliser/,
       dmo: /DMO/,
-      jours_non_remuneres: /Jours non rémunérés/,
+      jours_non_remuneres: /Jours non rémunérés|Jours d'absence/,
       jours_indemnites_journalieres: /Jours d'indemnités journalières/,
       taux: /Taux RTT/,
       aide: /Aide/,
       cotisations: /Cotisations/,
       p_temps_present: /% temps présent/,
-      p_realise: /% réalisé convention/,
+      p_realise: /% réalisé convention|% convention effectuée/,
       p_perte_salaire: /% perte salaire/,
       p_aide: /% aide/,
       plafond: /plafond/,
