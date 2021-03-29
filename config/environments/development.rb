@@ -3,7 +3,7 @@
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
-  config.relative_url_root = ENV.fetch('RAILS_RELATIVE_URL_ROOT','/')
+  config.relative_url_root = ENV.fetch('RAILS_RELATIVE_URL_ROOT', '/')
 
   # In the development environment your application's code is reloaded on
   # every request. This slows down response time but is perfect for development

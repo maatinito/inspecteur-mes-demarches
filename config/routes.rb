@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
-  root "check#report"
+  root 'check#report'
   devise_for :users
 
   get 'check/verify'
