@@ -4,6 +4,6 @@
 
 require_relative 'config/environment'
 
-map ActionController::Base.config.relative_url_root || "/" do
+map ActionController::Base.config.relative_url_root || '/' do
   run Rails.application
 end
