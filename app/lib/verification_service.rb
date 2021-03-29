@@ -152,23 +152,37 @@ class VerificationService
     controls.each do |control|
       next unless control.valid?
 
-      check = Check.find_or_create_by(dossier: md_dossier.number, checker: control.class.name.underscore) do |c|
-        c.checked_at = EPOCH
-        c.demarche = demarche
-      end
-      start_time = Time.zone.now
-      if check.failed || check.checked_at < DateTime.parse(md_dossier.date_derniere_modification) || check.version < control.version
-        control.demarche = demarche
-        apply_control(control, md_dossier, check)
-      end
-      check.checked_at = start_time
-      check.save
+      check = check_control(control, demarche, md_dossier)
       checks << check
       failed_checks ||= check.failed
     end
     unless failed_checks
       send_message(md_dossier, checks) if @dossier_has_different_messages && @send_messages
       when_ok(demarche, md_dossier.number, checks) if @procedure['when_ok']
+    end
+  end
+
+  def check_control(control, demarche, md_dossier)
+    check = find_or_create_check(control, demarche, md_dossier)
+    start_time = Time.zone.now
+    if check_obsolete?(check, control, md_dossier)
+      control.demarche = demarche
+      apply_control(control, md_dossier, check)
+    end
+    check.checked_at = start_time
+    check.save
+    check
+  end
+
+  def check_obsolete?(check, control, md_dossier)
+    check.failed || check.checked_at < DateTime.parse(md_dossier.date_derniere_modification) || check.version < control.version
+  end
+
+  def find_or_create_check(control, demarche, md_dossier)
+    Check.find_or_create_by(dossier: md_dossier.number, checker: control.class.name.underscore) do |c|
+      c.checked_at = EPOCH
+      c.demarche = demarche
+      @dossier_has_different_messages = true # new check implies a message must be sent even if no error msg is triggered
     end
   end
 
@@ -244,14 +258,15 @@ class VerificationService
 
   def liste_anomalies(checks)
     anomalies = checks.flat_map(&:messages)
-    entete_anomalies = "<p>#{@pieces_messages[case anomalies.size
-                                              when 0
-                                                :tout_va_bien
-                                              when 1
-                                                :entete_anomalie
-                                              else
-                                                :entete_anomalies
-                                              end]}</p>"
+    msg_key = case anomalies.size
+              when 0
+                :tout_va_bien
+              when 1
+                :entete_anomalie
+              else
+                :entete_anomalies
+              end
+    entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
     anomalie_table = '<table class="table table-striped">' + anomalies.map do |a|
       '<tr>' \
@@ -265,7 +280,6 @@ class VerificationService
   end
 
   def send_message_to_md(dossier_id, instructeur_id, body)
-    puts "Dossier #{dossier_id}: instruit par #{instructeur_id} #{body}"
     MesDemarches::Client.query(MesDemarches::Mutation::EnvoyerMessage,
                                variables: {
                                  dossierId: dossier_id,
