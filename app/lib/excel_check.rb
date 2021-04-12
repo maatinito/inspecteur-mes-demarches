@@ -159,13 +159,13 @@ class ExcelCheck < FieldChecker
 
   def check_nom(line)
     value = line[:nom] || line[:nom_marital]
-    invalides = value&.scan(%r{[^[:alpha:] \-/'()]+})
+    invalides = value&.scan(%r{[^[:alpha:] \-/'’()]+})
     invalides.present? ? @params[:message_nom_invalide] + invalides.join(' ') : true
   end
 
   def check_prenoms(line)
     value = line[:prenoms]
-    invalides = value.scan(%r{[^[:alpha:] \-,/'()]+})
+    invalides = value.scan(%r{[^[:alpha:] \-,/'’()]+})
     invalides.present? ? @params[:message_prenom_invalide] + invalides.join(' ') : true
   end
 
