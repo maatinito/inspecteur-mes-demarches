@@ -1,0 +1,2 @@
+class MandatoryFieldCheck
+end
