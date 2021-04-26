@@ -111,7 +111,4 @@ RSpec.configure do |config|
       end
     end
   end
-  VCR.use_cassette('mes_demarches') do
-    DemarcheActions.get_demarche(217, 'DESETI', 'clautier@idt.pf')
-  end
 end

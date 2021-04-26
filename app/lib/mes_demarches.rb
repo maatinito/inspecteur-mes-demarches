@@ -44,8 +44,8 @@ module MesDemarches
   Queries = Client.parse <<-'GRAPHQL'
     query Demarche($demarche: Int!) {
       demarche(number: $demarche) {
-        number
         title
+        number
         groupeInstructeurs {
           instructeurs {
             id
@@ -61,6 +61,115 @@ module MesDemarches
       } 
     }
 
+    fragment ChampInfo on Champ {
+      label
+      ... on TextChamp {
+          value
+      }
+      ... on CheckboxChamp {
+          value
+      }
+      ... on IntegerNumberChamp {
+          value
+      }
+      ... on DecimalNumberChamp  {
+          value
+      }
+      ... on DateChamp  {
+          value
+      }
+      ... on LinkedDropDownListChamp {
+          primaryValue
+          secondaryValue
+      }
+      ... on PieceJustificativeChamp  {
+          file {
+              contentType
+              byteSize
+              filename
+              url
+          }
+          stringValue
+      }
+      ... on NumeroDnChamp  {
+          dateDeNaissance
+          numeroDn
+      }
+      ... on SiretChamp {
+          stringValue
+      }
+      ... on CiviliteChamp {
+          value
+      }
+      ... on MultipleDropDownListChamp {
+          values
+      }
+    }
+
+    fragment DossierInfo on Dossier {
+      id
+      number
+      archived
+
+      state
+      datePassageEnConstruction
+      datePassageEnInstruction
+      dateTraitement
+      dateDerniereModification
+      motivation
+      usager {
+          email
+      }
+      demandeur {
+          ... on PersonnePhysique {
+              civilite
+              dateDeNaissance
+              nom
+              prenom
+          }
+          ... on PersonneMorale {
+              siret
+              naf
+              libelleNaf
+              adresse
+              numeroVoie
+              typeVoie
+              nomVoie
+              complementAdresse
+              codePostal
+              localite
+              entreprise {
+                siren
+                capitalSocial
+                numeroTvaIntracommunautaire
+                formeJuridique
+                formeJuridiqueCode
+                nomCommercial
+                raisonSociale
+                siretSiegeSocial
+                codeEffectifEntreprise
+                dateCreation
+                nom
+                prenom
+              }
+              association {
+                rna
+                titre
+                objet
+                dateCreation
+                dateDeclaration
+                dateDeclaration
+              }
+          }
+      }
+      groupeInstructeur {
+        instructeurs {
+          id
+          email
+        }
+      }
+    }
+
     query DossiersModifies($demarche: Int!, $since: ISO8601DateTime!, $cursor: String) {
       demarche(number: $demarche) {
         dossiers(updatedSince: $since, after: $cursor) {
@@ -69,194 +178,56 @@ module MesDemarches
               hasNextPage
           }
           nodes {
-              id
-              number
-              state
-              datePassageEnConstruction
-              datePassageEnInstruction
-              dateTraitement
-              dateDerniereModification
-              usager {
-                  email
-              }
-              demandeur {
-                  ... on PersonnePhysique {
-                      civilite
-                      dateDeNaissance
-                      nom
-                      prenom
-                  }
-                  ... on PersonneMorale {
-                      adresse
-                      libelleNaf
-                      localite
-                      naf
-                      siret
-                      association {
-                          titre
-                      }
-                      entreprise {
-                          formeJuridique
-                          nomCommercial
-                          raisonSociale
-                          siretSiegeSocial
-                          prenom
-                          nom
-                      }
+            ...DossierInfo
+            annotations {
+              ...ChampInfo
+            }
+            champs {
+              ...ChampInfo
+              ... on RepetitionChamp {
+                  champs {
+                      ...ChampInfo
                   }
               }
-              annotations {
-                  label
-                  ... on TextChamp {
-                      value
+              ... on DossierLinkChamp {
+                stringValue
+                dossier {
+                  ...DossierInfo
+                  annotations {
+                      ...ChampInfo
                   }
-              }
-              champs {
-                  label
-                  ... on TextChamp {
-                      value
-                  }
-                  ... on CheckboxChamp {
-                      value
-                  }
-                  ... on IntegerNumberChamp {
-                      value
-                  }
-                  ... on DecimalNumberChamp  {
-                      value
-                  }
-                  ... on DateChamp  {
-                      value
-                  }
-                  ... on DossierLinkChamp {
-                    stringValue
-                  }
-                  ... on PieceJustificativeChamp  {
-                      file {
-                          contentType
-                          byteSize
-                          filename
-                          url
-                      }
-                      stringValue
-                  }
-                  ... on NumeroDnChamp  {
-                      dateDeNaissance
-                      numeroDn
-                  }
-                  ... on RepetitionChamp {
-                      champs {
-                          label
-                          ... on TextChamp {
-                              value
-                          }
-                          ... on IntegerNumberChamp {
-                              value
-                          }
-                          ... on DecimalNumberChamp  {
-                              value
-                          }
-                          ... on DateChamp  {
-                              value
+                  champs {
+                      ...ChampInfo
+                      ... on RepetitionChamp {
+                          champs {
+                              ...ChampInfo
                           }
                       }
                   }
+                }
               }
+            }
           }
         }
       }
     }
     query Dossier($dossier: Int!) {
       dossier(number: $dossier) {
-          id
-          number
-          state
-          datePassageEnConstruction
-          datePassageEnInstruction
-          dateTraitement
-          dateDerniereModification
-          usager {
-            email
-          }
-          demandeur {
-            ... on PersonnePhysique {
-              civilite
-              dateDeNaissance
-              nom
-              prenom
-            }
-                   ... on PersonneMorale {
-              adresse
-              libelleNaf
-              localite
-              naf
-              siret
-              association {
-                titre
-              }
-              entreprise {
-                formeJuridique
-                nomCommercial
-                raisonSociale
-                siretSiegeSocial
-                prenom
-                nom
-              }
-            }
-          }
+          ...DossierInfo
           annotations {
-            label
-            ... on TextChamp {
-              value
-            }
+            ...ChampInfo
           }
           champs {
-            label
-            ... on TextChamp {
-              value
-            }
-            ... on CheckboxChamp {
-                value
-            }
-            ... on IntegerNumberChamp {
-              value
-            }
-            ... on DecimalNumberChamp {
-              value
-            }
-            ... on DateChamp {
-              value
-            }
+            ...ChampInfo
             ... on DossierLinkChamp {
               stringValue
-            }
-            ... on PieceJustificativeChamp {
-              file {
-                contentType
-                byteSize
-                filename
-                url
-              }
-              stringValue
-            }
-            ... on NumeroDnChamp {
-              dateDeNaissance
-              numeroDn
-            }
-            ... on RepetitionChamp {
-              champs {
-                label
-                ... on TextChamp {
-                  value
+              dossier {
+                ...DossierInfo
+                annotations {
+                    ...ChampInfo
                 }
-                ... on IntegerNumberChamp {
-                  value
-                }
-                ... on DecimalNumberChamp {
-                  value
-                }
-                ... on DateChamp {
-                  value
+                champs {
+                    ...ChampInfo
                 }
               }
             }
