@@ -23,7 +23,9 @@ RUN bundle config specific_platform x86_64-linux \
   && bundle config --local build.sassc --disable-march-tune-native
 
 RUN bundle config --global frozen 1 &&\
-    bundle install --deployment --without development test&&\
+    bundle config set deployment 'true' &&\
+    bundle config set without 'development test' &&\
+    bundle install &&\
     yarn install --production
 
 #----------- final tps
