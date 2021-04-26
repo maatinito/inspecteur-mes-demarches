@@ -13,6 +13,7 @@ class DemarcheActions
   def self.get_graphql_demarche(demarche_number)
     result = MesDemarches::Client.query(MesDemarches::Queries::Demarche,
                                         variables: { demarche: demarche_number })
+
     throw StandardError.new result.errors.join(',') if result.errors.present?
     throw StandardError.new "La démarche #{demarche_number} n'existe pas" if result&.data&.demarche.nil?
 

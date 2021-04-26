@@ -1,17 +1,34 @@
-require 'rspec'
+# frozen_string_literal: true
 
-describe 'ConditionalField' do
-  before do
-    # Do nothing
+require 'rails_helper'
+require 'inspector_task'
+
+RSpec.describe ConditionalField do
+  let(:controle) { FactoryBot.build :protocole_sanitaire }
+  subject do
+    DossierActions.on_dossier(dossier_nb) do |dossier|
+      controle.control(dossier)
+      pp controle
+      pp dossier
+    end
+    controle
   end
 
-  after do
-    # Do nothing
+  context 'everything is ok', vcr: { cassette_name: 'meme_demandeur_ok' } do
+    let(:dossier_nb) { 40_045 }
+
+    it 'no error message' do
+      expect(subject.messages).to be_empty
+    end
   end
 
-  context 'when condition' do
-    it 'succeeds' do
-      pending 'Not implemented'
+  context 'immunise without attached document', vcr: { cassette_name: 'condition_field_77456' } do
+    let(:dossier_nb) { 77_456 }
+    let(:message) { FactoryBot.build :message, field: controle.params[:valeurs]["Immunisé"][0]["mandatory_field_check"]["message"], value: 'vide', message: 'm1' }
+
+    it "have one error on Schema d'immunisation" do
+      expect(subject.messages.size).to be 1
+      expect(subject.messages.first).to eq message
     end
   end
 end
