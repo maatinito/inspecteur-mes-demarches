@@ -11,7 +11,6 @@ class MandatoryFieldCheck < FieldChecker
     mandotory_fields = @params[:champs]
     if mandotory_fields
       mandotory_fields.each do |field_name|
-        puts field_name
         fields = field_values(field_name)
         empty = fields.empty? || fields.any? do |field|
           case field.__typename
