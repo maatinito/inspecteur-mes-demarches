@@ -219,6 +219,11 @@ module MesDemarches
           }
           champs {
             ...ChampInfo
+            ... on RepetitionChamp {
+                champs {
+                    ...ChampInfo
+                }
+            }
             ... on DossierLinkChamp {
               stringValue
               dossier {
@@ -228,6 +233,11 @@ module MesDemarches
                 }
                 champs {
                     ...ChampInfo
+                    ... on RepetitionChamp {
+                        champs {
+                            ...ChampInfo
+                        }
+                    }
                 }
               }
             }
