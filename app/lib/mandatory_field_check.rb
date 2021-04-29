@@ -4,7 +4,7 @@ class MandatoryFieldCheck < FieldChecker
   end
 
   def version
-    super + 2
+    super + 3
   end
 
   def check(dossier)
