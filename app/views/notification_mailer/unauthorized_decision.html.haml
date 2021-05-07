@@ -1,0 +1,19 @@
+.col
+  %p
+  Bonjour,
+  %br/
+  L'instructeur
+  = @instructeur
+  a
+  %b
+    = @action
+  le dossier
+  %a{ href: @dossier_url }
+    = @dossier
+  %br/
+  Vous pouvez vérifier la validité de la décision en cliquant sur le numéro du dossier.
+  %br/
+  %b
+    Ce mail est un test.
+  %p
+    #{SITE_NAME}

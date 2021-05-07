@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class MandatoryFieldCheck < FieldChecker
   def required_fields
     super + %i[champs message]
@@ -7,27 +9,23 @@ class MandatoryFieldCheck < FieldChecker
     super + 3
   end
 
-  def check(dossier)
+  def check(_dossier)
     mandotory_fields = @params[:champs]
-    if mandotory_fields
-      mandotory_fields.each do |field_name|
-        fields = field_values(field_name)
-        empty = fields.empty? || fields.any? do |field|
-          case field.__typename
-          when 'PieceJustificativeChamp'
-            field.file
-          when 'DossierLinkChamp'
-            field.string_value
-          when 'RepetitionChamp'
-            field.champs
-          else
-            field.value
-          end.blank?
-        end
-        if empty
-          add_message(field_name, "vide", @params[:message])
-        end
+    mandotory_fields&.each do |field_name|
+      fields = field_values(field_name)
+      empty = fields.empty? || fields.any? do |field|
+        case field.__typename
+        when 'PieceJustificativeChamp'
+          field.file
+        when 'DossierLinkChamp'
+          field.string_value
+        when 'RepetitionChamp'
+          field.champs
+        else
+          field.value
+        end.blank?
       end
+      add_message(field_name, 'vide', @params[:message]) if empty
     end
   end
 end

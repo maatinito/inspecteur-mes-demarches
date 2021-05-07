@@ -120,6 +120,12 @@ module MesDemarches
       usager {
           email
       }
+      traitements {
+        instructeurEmail
+			  processedAt
+        state
+        motivation
+      }
       demandeur {
           ... on PersonnePhysique {
               civilite

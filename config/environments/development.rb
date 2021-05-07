@@ -57,11 +57,11 @@ Rails.application.configure do
   # Configure default root URL for generating URLs to routes
   config.action_mailer.default_url_options = {
     protocol: :http,
-    port: ENV.fetch('PORT', 3003),
+    port: ENV.fetch('PORT', 3001),
     host: 'localhost'
   }
 
-  config.action_mailer.asset_host = 'http://localhost:3003'
+  config.action_mailer.asset_host = 'http://localhost:3001'
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

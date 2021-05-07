@@ -4,6 +4,7 @@ class VerificationService
   attr_reader :messages
 
   @@config = nil
+
   def check
     VerificationService.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
       @pieces_messages = get_pieces_messages(procedure_name, procedure)
@@ -92,7 +93,7 @@ class VerificationService
     start_time = Time.zone.now
     since = reset ? EPOCH : demarche.checked_at
     DossierActions.on_dossiers(demarche.id, since) do |dossier|
-      process_dossier(demarche, dossier, controls)
+      check_dossier(demarche, dossier, controls)
     end
     demarche.checked_at = start_time
     demarche.save
@@ -105,7 +106,7 @@ class VerificationService
       .select(:dossier, :demarche_id)
       .distinct.each do |check|
       on_dossier(check.dossier) do |md_dossier|
-        process_dossier(check.demarche, md_dossier, controls)
+        check_dossier(check.demarche, md_dossier, controls)
       end
     end
   end
@@ -123,7 +124,7 @@ class VerificationService
       .each do |check|
       on_dossier(check.dossier) do |dossier|
         if dossier.present?
-          process_dossier(check.demarche, dossier, controls)
+          check_dossier(check.demarche, dossier, controls)
         else
           Check.where(dossier: check.dossier).destroy_all
         end
@@ -131,47 +132,47 @@ class VerificationService
     end
   end
 
-  def process_dossier(demarche, md_dossier, controls)
-    if md_dossier.state == 'en_construction'
-      check_dossier(demarche, md_dossier, controls)
-    else
-      remove_checks(md_dossier.number)
-    end
-  end
-
-  def remove_checks(dossier_nb)
-    Check.find_by_dossier(dossier_nb)&.destroy!
+  def remove_check(control, dossier_nb)
+    Check.find_by(dossier: dossier_nb, checker: control.class.name.underscore)&.destroy!
   end
 
   def check_dossier(demarche, md_dossier, controls)
-    checks = []
-    @dossier_has_different_messages = false
-    @second_time = false
-    failed_checks = false
+    Rails.logger.tagged(md_dossier.number) do
+      checks = []
+      @dossier_has_different_messages = false
+      @second_time = false
+      failed_checks = false
 
-    controls.each do |control|
-      next unless control.valid?
+      controls.each do |control|
+        next unless control.valid?
 
-      check = check_control(control, demarche, md_dossier)
-      checks << check
-      failed_checks ||= check.failed
-    end
-    unless failed_checks
-      send_message(md_dossier, checks) if @dossier_has_different_messages && @send_messages
-      when_ok(demarche, md_dossier.number, checks) if @procedure['when_ok']
+        if control.must_check?(md_dossier)
+          check = check_control(control, demarche, md_dossier)
+          checks << check
+          failed_checks ||= check.failed
+        else
+          remove_check(control, md_dossier.number)
+        end
+      end
+      unless failed_checks
+        send_message(md_dossier, checks) if @dossier_has_different_messages && @send_messages
+        when_ok(demarche, md_dossier.number, checks) if @procedure['when_ok']
+      end
     end
   end
 
   def check_control(control, demarche, md_dossier)
-    check = find_or_create_check(control, demarche, md_dossier)
-    start_time = Time.zone.now
-    if check_obsolete?(check, control, md_dossier)
-      control.demarche = demarche
-      apply_control(control, md_dossier, check)
+    Rails.logger.tagged(control.class.name) do
+      check = find_or_create_check(control, demarche, md_dossier)
+      start_time = Time.zone.now
+      if check_obsolete?(check, control, md_dossier)
+        control.demarche = demarche
+        apply_control(control, md_dossier, check)
+      end
+      check.checked_at = start_time
+      check.save
+      check
     end
-    check.checked_at = start_time
-    check.save
-    check
   end
 
   def check_obsolete?(check, control, md_dossier)
@@ -193,7 +194,8 @@ class VerificationService
         @ok_tasks = @procedure['when_ok'].map do |task|
           if task.is_a?(String)
             Object.const_get(task.camelize).new({})
-          else # hash
+          else
+            # hash
             task.map { |taskname, params| Object.const_get(taskname.camelize).new(params) }
           end
         end.flatten

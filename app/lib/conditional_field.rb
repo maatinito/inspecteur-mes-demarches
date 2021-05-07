@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ConditionalField < FieldChecker
   def version
     super + @controls.values.flatten.reduce(2) { |s, c| s + c.version }
@@ -21,7 +23,7 @@ class ConditionalField < FieldChecker
         @messages.push(*task.messages)
       end
     end
-    # todo erreur si valeur inconnu
+    # TODO: erreur si valeur inconnu
   end
 
   private
