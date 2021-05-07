@@ -13,6 +13,10 @@ class FieldChecker < InspectorTask
     check(dossier)
   end
 
+  def must_check?(md_dossier)
+    md_dossier&.state == 'en_construction'
+  end
+
   def check(_dossier)
     raise "Should be implemented by class #{self}"
   end
