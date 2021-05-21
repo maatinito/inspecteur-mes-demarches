@@ -75,7 +75,7 @@ class VerificationService
     procedure['controles'].flatten.map.with_index do |description, i|
       description.map do |taskname, params|
         control = Object.const_get(taskname.camelize).new(params)
-        control.name = "#{taskname}:#{i}"
+        control.name = "#{i}:#{taskname}"
         control
       end
     end.flatten
