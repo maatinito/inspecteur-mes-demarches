@@ -2,6 +2,7 @@
 
 class InspectorTask
   attr_reader :errors, :params
+  attr_accessor :name
 
   def initialize(params)
     @errors = []

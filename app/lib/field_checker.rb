@@ -58,6 +58,6 @@ class FieldChecker < InspectorTask
   end
 
   def version
-    1.0
+    1.0 + @params.hash
   end
 end

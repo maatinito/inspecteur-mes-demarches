@@ -26,7 +26,7 @@ class FieldValueCheck < FieldChecker
 
   private
 
-  def normalize(v)
-    v&.to_s&.parameterize&.delete('-')
+  def normalize(value)
+    value&.to_s&.parameterize&.delete('-')
   end
 end

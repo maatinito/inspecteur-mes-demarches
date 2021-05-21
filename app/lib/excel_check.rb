@@ -147,7 +147,7 @@ class ExcelCheck < FieldChecker
       ddn = Date.new(1899, 12, 30) + line[:date_de_naissance].days
     when String
       ddn.gsub!(%r{[-:./]}, '-')
-      if match = ddn.match(/(\d+)-(\d+)-(\d+)/)
+      if (match = ddn.match(/(\d+)-(\d+)-(\d+)/))
         day, month, year = match.captures.map(&:to_i)
         year += 2000 if year < 100
         year -= 100 if year > Date.today.year

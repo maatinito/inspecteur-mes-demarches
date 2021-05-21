@@ -6,12 +6,10 @@ require 'graphql/client/http'
 module MesDemarches
   # Configure GraphQL endpoint using the basic HTTP network adapter.
   host = ENV.fetch('GRAPHQL_HOST', 'https://www.mes-demarches.gov.pf')
-  puts "server=#{host}"
   graphql_url = "#{host}/api/v2/graphql"
-  # puts "url=#{graphql_url}"
   HTTP = GraphQL::Client::HTTP.new(graphql_url) do
     def headers(_context)
-      { "Authorization": "Bearer #{ENV['GRAPHQL_BEARER']}" }
+      { Authorization: "Bearer #{ENV['GRAPHQL_BEARER']}" }
     end
   end
   pp HTTP
@@ -21,7 +19,7 @@ module MesDemarches
       graphql_url = "#{host}/api/v2/graphql"
       GraphQL::Client::HTTP.new(graphql_url) do
         lambda do # headers
-          { "Authorization": "Bearer #{ENV['GRAPHQL_BEARER']}" }
+          { Authorization: "Bearer #{ENV['GRAPHQL_BEARER']}" }
         end
       end
     end
@@ -55,13 +53,14 @@ module MesDemarches
       }
     }
 
-    query DossierId($number: Int!) { 
-      dossier(number: $number) { 
-        id 
-      } 
+    query DossierId($number: Int!) {
+      dossier(number: $number) {
+        id
+      }
     }
 
     fragment ChampInfo on Champ {
+      id
       label
       ... on TextChamp {
           value
@@ -253,13 +252,13 @@ module MesDemarches
   GRAPHQL
 
   Mutation = Client.parse <<-'GRAPHQL'
-    mutation EnvoyerMessage($dossierId: ID!, $instructeurId: ID!, $body: String!, $clientMutationId: String) {
+    mutation EnvoyerMessage($dossierId: ID!, $instructeurId: ID!, $body: String!, $clientMutationId: String!) {
         dossierEnvoyerMessage(
             input: {
                 dossierId: $dossierId,
                 instructeurId: $instructeurId,
-                body: $body
-                clientMutationId: $clientMutationId,
+                body: $body,
+                clientMutationId: $clientMutationId
             }) {
             clientMutationId
             errors {
@@ -267,5 +266,6 @@ module MesDemarches
             }
         }
     }
+
   GRAPHQL
 end
