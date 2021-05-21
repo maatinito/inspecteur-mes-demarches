@@ -38,17 +38,17 @@ module Instruction
 
     def check(dossier)
       traitements = dossier&.traitements
-      if traitements.present?
-        last_decision = traitements.max_by(&:processed_at)
-        unless @authorized_instructors.include? last_decision.instructeur_email
-          NotificationMailer.with(demarche: @demarche.id,
-                                  dossier: dossier.number,
-                                  instructeur: last_decision.instructeur_email,
-                                  state: last_decision.state,
-                                  recipients: @alert_emails)
-                            .unauthorized_decision.deliver_later
-        end
-      end
+      return if traitements.blank?
+
+      last_decision = traitements.max_by(&:processed_at)
+      return if @authorized_instructors.include? last_decision.instructeur_email
+
+      NotificationMailer.with(demarche: @demarche.id,
+                              dossier: dossier.number,
+                              instructeur: last_decision.instructeur_email,
+                              state: last_decision.state,
+                              recipients: @alert_emails)
+                        .unauthorized_decision.deliver_later
     end
   end
 end
