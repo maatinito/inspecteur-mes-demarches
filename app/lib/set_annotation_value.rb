@@ -4,7 +4,7 @@ class SetAnnotationValue
   def self.set_value(md_dossier, instructeur_id, annotation_name, value)
     annotation = get_annotation(md_dossier, annotation_name)
     if annotation.present?
-      old_value = annotation.__typename == 'DateChamp' ? Date.iso8601(annotation.value) : annotation.value
+      old_value = annotation.__typename == 'DateChamp' && annotation.value.present? ? Date.iso8601(annotation.value) : annotation.value
       different_value = old_value != value
       raw_set_value(md_dossier.id, instructeur_id, annotation.id, value) if different_value
       different_value
