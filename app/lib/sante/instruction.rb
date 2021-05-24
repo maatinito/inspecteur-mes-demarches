@@ -6,7 +6,8 @@ module Sante
       @dossier = dossier
       @demarche = demarche
       if dossier.state == 'en_construction'
-        modified = set_address || set_arrival_date || set_departure_date || set_flight_number
+        # single pipe to execute all instructions
+        modified = set_address | set_arrival_date | set_departure_date | set_flight_number
         Check.where(dossier: dossier.number).update_all(checked_at: Time.zone.now) if modified
       end
     end
