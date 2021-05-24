@@ -26,4 +26,8 @@ class InspectorTask
   def authorized_fields
     []
   end
+
+  def old_name
+    name.gsub(/^[0-9]+:/,'')
+  end
 end

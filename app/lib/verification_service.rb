@@ -179,11 +179,22 @@ class VerificationService
   end
 
   def find_or_create_check(control, demarche, md_dossier)
-    Check.find_or_create_by(dossier: md_dossier.number, checker: control.name) do |c|
-      c.checked_at = EPOCH
-      c.demarche = demarche
-      @dossier_has_different_messages = true # new check implies a message must be sent even if no error msg is triggered
+    # tmp code to ensure migration of old checker names
+    check = Check.find_by(dossier: md_dossier.number, checker: control.name)
+    old_check = Check.find_by(dossier: md_dossier.number, checker: control.old_name)
+    if old_check.present?
+      if check.present?
+        old_check.destroy
+      else
+        old_check.update(checker: control.name) if old_check.present? && check.blank?
+      end
     end
+    check ||
+      Check.find_or_create_by(dossier: md_dossier.number, checker: control.name) do |c|
+        c.checked_at = EPOCH
+        c.demarche = demarche
+        @dossier_has_different_messages = true # new check implies a message must be sent even if no error msg is triggered
+      end
   end
 
   def when_ok(demarche, md_dossier, checks)
@@ -274,13 +285,13 @@ class VerificationService
 
   def liste_anomalies(md_dossier, anomalies)
     msg_key = case anomalies.size
-              when 0
-                :tout_va_bien
-              when 1
-                :entete_anomalie
-              else
-                :entete_anomalies
-              end
+    when 0
+      :tout_va_bien
+    when 1
+      :entete_anomalie
+    else
+      :entete_anomalies
+    end
     entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
     anomalie_table = '<table class="table table-striped">' + anomalies.map do |a|
