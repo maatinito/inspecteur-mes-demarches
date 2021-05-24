@@ -204,7 +204,6 @@ class VerificationService
         task.map { |taskname, params| Object.const_get(taskname.camelize).new(params) }
       end
     end.flatten
-    @ok_tasks.reject(&:valid?).each { |task| puts "#{task.class.name}: #{task.errors.join(',')}" }
   end
 
   def apply_control(control, md_dossier, check)
