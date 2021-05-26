@@ -24,7 +24,7 @@ module Sante
                 when 'en hôtel agréé'
                   get_field("Nom de l'hôtel")&.value
                 when 'en site pour étudiant'
-                  'site dédié étudiant'
+                  'en site pour étudiant'
                 end
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, 'Adresse de la quarantaine retenue', adresse) if adresse
     end
