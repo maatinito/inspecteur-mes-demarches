@@ -34,7 +34,6 @@ class ExcelCheck < FieldChecker
     super + %i[
       champ
       message_champ_non_renseigne
-      message_type_de_fichier
       message_colonnes_manquantes
       message_date_de_naissance
       message_dn
@@ -42,6 +41,7 @@ class ExcelCheck < FieldChecker
       message_format_dn
       message_nom_invalide
       message_prenom_invalide
+      message_type_de_fichier
     ]
   end
 
@@ -96,11 +96,19 @@ class ExcelCheck < FieldChecker
 
   def check_xlsx(champ, file)
     xlsx = Roo::Spreadsheet.open(file)
-    check_sheet(champ, xlsx.sheet(0), xlsx.sheets[0], self.class::COLUMNS, self.class::CHECKS)
-  rescue Roo::HeaderRowNotFoundError => e
-    columns = e.message.gsub(%r{[/\[\]]}, '')
-    add_message(champ.label, champ.file.filename, "#{@params[:message_colonnes_manquantes]}: #{columns}")
-    nil
+    sheets_to_control.each do |sheet_name|
+      check_sheet(champ, xlsx.sheet(sheet_name), sheet_name, self.class::COLUMNS, self.class::CHECKS)
+    rescue Roo::HeaderRowNotFoundError => e
+      columns = e.message.gsub(%r{[/\[\]]}, '')
+      add_message(champ.label, champ.file.filename, "#{@params[:message_colonnes_manquantes]}: #{columns}")
+      nil
+    rescue RangeError => e
+      add_message(champ.label, champ.file.filename, "Impossible de trouver la feuille #{sheet_name}. Avez vous utilisé le bon modèle de fichier Excel ?")
+    end
+  end
+
+  def sheets_to_control
+    []
   end
 
   def check_sheet(champ, sheet, sheet_name, columns, checks)

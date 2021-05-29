@@ -14,7 +14,7 @@ class DossierActions
                                             })
 
       unless (data = response.data)
-        throw StandardError.new "La démarche #{demarche_number} est introuvable #{ENV['GRAPHQL_HOST']}: #{response.errors.values.join(',')}"
+        throw StandardError.new "La démarche #{demarche_id} est introuvable #{ENV['GRAPHQL_HOST']}: #{response.errors.values.join(',')}"
       end
 
       dossiers = data.demarche.dossiers

@@ -95,6 +95,7 @@ class VerificationService
 
   def check_demarche(controls, demarche_number, reset, configuration_name)
     demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
+    set_demarche(controls, demarche_number)
     start_time = Time.zone.now
     since = reset ? EPOCH : demarche.checked_at
     DossierActions.on_dossiers(demarche.id, since) do |dossier|
@@ -104,34 +105,42 @@ class VerificationService
     demarche.save
   end
 
+  def set_demarche(controls, demarche_number)
+    controls.each { |c| c.demarche_number = demarche_number }
+  end
+
   def check_failed_dossiers(controls)
-    demarches = [*@procedure['demarches']]
-    Check
-      .where(failed: true, demarche: demarches)
-      .select(:dossier, :demarche_id)
-      .distinct.each do |check|
-      on_dossier(check.dossier) do |md_dossier|
-        check_dossier(check.demarche, md_dossier, controls)
+    Rails.logger.tagged('failed') do
+      demarches = [*@procedure['demarches']]
+      Check
+        .where(failed: true, demarche: demarches)
+        .select(:dossier, :demarche_id)
+        .distinct.each do |check|
+        on_dossier(check.dossier) do |md_dossier|
+          check_dossier(check.demarche, md_dossier, controls)
+        end
       end
     end
   end
 
   def check_updated_controls(controls)
-    conditions = controls.map do |control|
-      Check
-        .where.not(version: control.version)
-        .where(checker: control.name)
-    end
-    conditions
-      .reduce { |c1, c2| c1.or(c2) }
-      .where(demarche: [*@procedure['demarches']])
-      .includes(:demarche)
-      .each do |check|
-      on_dossier(check.dossier) do |dossier|
-        if dossier.present?
-          check_dossier(check.demarche, dossier, controls)
-        else
-          Check.where(dossier: check.dossier).destroy_all
+    Rails.logger.tagged('updated control') do
+      conditions = controls.map do |control|
+        Check
+          .where.not(version: control.version)
+          .where(checker: control.name)
+      end
+      conditions
+        .reduce { |c1, c2| c1.or(c2) }
+        .where(demarche: [*@procedure['demarches']])
+        .includes(:demarche)
+        .each do |check|
+        on_dossier(check.dossier) do |dossier|
+          if dossier.present?
+            check_dossier(check.demarche, dossier, controls)
+          else
+            Check.where(dossier: check.dossier).destroy_all
+          end
         end
       end
     end
@@ -142,15 +151,13 @@ class VerificationService
   end
 
   def check_dossier(demarche, md_dossier, controls)
-    Rails.logger.tagged(md_dossier.number) do
+    Rails.logger.tagged("#{demarche.id},#{md_dossier.number}") do
       checks = []
       @dossier_has_different_messages = false
       @second_time = false
       failed_checks = false
 
       controls.each do |control|
-        next unless control.valid?
-
         check = check_control(control, demarche, md_dossier)
         checks << check
         failed_checks ||= check.failed
@@ -163,11 +170,13 @@ class VerificationService
   end
 
   def check_control(control, demarche, md_dossier)
-    Rails.logger.tagged(control.class.name) do
+    Rails.logger.tagged(control.name) do
       check = find_or_create_check(control, demarche, md_dossier)
       start_time = Time.zone.now
-      apply_control(control, md_dossier, check) if control.must_check?(md_dossier) && check_obsolete?(check, control, md_dossier)
-      check.update(checked_at: start_time, version: control.version)
+      if check_obsolete?(check, control, md_dossier)
+        apply_control(control, md_dossier, check) if control.must_check?(md_dossier)
+        check.update(checked_at: start_time, version: control.version)
+      end
       check
     end
   end
@@ -185,8 +194,8 @@ class VerificationService
     if old_check.present?
       if check.present?
         old_check.destroy
-      else
-        old_check.update(checker: control.name) if old_check.present? && check.blank?
+      elsif old_check.present? && check.blank?
+        old_check.update(checker: control.name)
       end
     end
     check ||
@@ -218,10 +227,12 @@ class VerificationService
   end
 
   def apply_control(control, md_dossier, check)
-    control.control(md_dossier)
-    update_check_messages(check, control)
-    @second_time ||= check.checked_at > EPOCH
-    check.failed = false
+    check.failed = !control.valid?
+    if control.valid?
+      control.control(md_dossier)
+      update_check_messages(check, control)
+      @second_time ||= check.checked_at > EPOCH
+    end
   rescue StandardError => e
     check.failed = true
     Rails.logger.error(e)

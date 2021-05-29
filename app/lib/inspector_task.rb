@@ -2,7 +2,7 @@
 
 class InspectorTask
   attr_reader :errors, :params
-  attr_accessor :name
+  attr_accessor :name, :demarche_number
 
   def initialize(params)
     @errors = []
@@ -13,6 +13,9 @@ class InspectorTask
     @errors << "#{unknown_fields.join(',')} n'existe(nt) pas sur #{self.class.name.underscore}" if unknown_fields.present?
     @messages = []
     @accessed_fields = Set[]
+    unless valid?
+      puts @errors
+    end
   end
 
   def valid?
@@ -28,6 +31,6 @@ class InspectorTask
   end
 
   def old_name
-    name.gsub(/^[0-9]+:/,'')
+    name.gsub(/^[0-9]+:/, '')
   end
 end

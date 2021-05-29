@@ -54,7 +54,7 @@ class MemeDemandeur < FieldChecker
   end
 
   def load_instructeurs
-    response = MesDemarches::Client.query(Queries::Instructeurs, variables: { demarche: @demarche.id })
+    response = MesDemarches::Client.query(Queries::Instructeurs, variables: { demarche: @demarche_number })
     return Set[] unless (data = response.data)
 
     data.demarche.groupe_instructeurs.map do |group|
