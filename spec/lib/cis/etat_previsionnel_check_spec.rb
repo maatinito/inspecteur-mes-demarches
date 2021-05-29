@@ -15,7 +15,7 @@ end
 
 RSpec.describe Cis::EtatPrevisionnelCheck do
   context 'depot' do
-    let(:controle) { FactoryBot.build :cis_etat_previsionnel_check, offset: 3 }
+    let(:controle) { FactoryBot.build :cis_etat_previsionnel_check }
     subject do
       DossierActions.on_dossier(dossier_nb) do |dossier|
         controle.control(dossier)
