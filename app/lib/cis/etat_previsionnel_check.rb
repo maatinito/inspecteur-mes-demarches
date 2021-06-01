@@ -31,6 +31,10 @@ module Cis
 
     REQUIRED_COLUMNS = %i[nom prenoms civilite niveau_etudes activite].freeze
 
+    def sheets_to_control
+      ['Stagiaires']
+    end
+
     def check_sheet(champ, sheet, sheet_name, columns, checks)
       super(champ, sheet, sheet_name, columns, checks)
       check_cis_demandes(sheet)
