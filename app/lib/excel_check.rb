@@ -103,7 +103,8 @@ class ExcelCheck < FieldChecker
       add_message(champ.label, champ.file.filename, "#{@params[:message_colonnes_manquantes]}: #{columns}")
       nil
     rescue RangeError => e
-      add_message(champ.label, champ.file.filename, "Impossible de trouver la feuille #{sheet_name}. Avez vous utilisé le bon modèle de fichier Excel ?")
+      add_message(champ.label, champ.file.filename,
+                  "Impossible de trouver la feuille #{sheet_name}. Avez vous utilisé le bon modèle de fichier Excel ?")
     end
   end
 

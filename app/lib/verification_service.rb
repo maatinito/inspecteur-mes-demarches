@@ -314,13 +314,13 @@ class VerificationService
 
   def liste_anomalies(md_dossier, anomalies)
     msg_key = case anomalies.size
-    when 0
-      :tout_va_bien
-    when 1
-      :entete_anomalie
-    else
-      :entete_anomalies
-    end
+              when 0
+                :tout_va_bien
+              when 1
+                :entete_anomalie
+              else
+                :entete_anomalies
+              end
     entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
     anomalie_table = '<table class="table table-striped">' + anomalies.map do |a|

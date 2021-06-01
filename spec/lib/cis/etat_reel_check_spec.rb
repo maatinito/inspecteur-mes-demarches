@@ -30,7 +30,7 @@ RSpec.describe Cis::EtatReelCheck do
         [
           new_message(field, 'Erreur DN', :message_dn, '1234567,1979-12-11'),
           new_message(field, 'Erreur DDN', :message_date_de_naissance, '2464292,1979-12-12'),
-          new_message(field, 'Erreur Colonne vide', :message_colonnes_vides, 'absences'),
+          new_message(field, 'Erreur Colonne vide', :message_colonnes_vides, 'absences')
         ]
       end
 

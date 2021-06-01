@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Cis
   class EtatReelCheck < ExcelCheck
     def version

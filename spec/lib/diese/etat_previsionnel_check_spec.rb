@@ -29,7 +29,6 @@ def field_name(base, index)
 end
 
 RSpec.describe Diese::EtatPrevisionnelCheck do
-
   context 'DNs, sum copies are wrong' do
     let(:controle) { FactoryBot.build :diese_etat_previsionnel_check }
     let(:report_messages) do

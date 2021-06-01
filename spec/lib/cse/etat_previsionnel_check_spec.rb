@@ -15,7 +15,7 @@ SUMS = [
 ].freeze
 
 LM = [
-  ['DN (Nom) Julien', :message_date_de_naissance, '4504780,1965-05-24'],
+  ['DN (Nom) Julien', :message_date_de_naissance, '4504780,1965-05-24']
 ].freeze
 
 def new_message(field, value, message_type, correction)
@@ -30,7 +30,6 @@ def field_name(base, index)
 end
 
 RSpec.describe Cse::EtatPrevisionnelCheck do
-
   context 'DNs, sum copies are wrong' do
     let(:controle) { FactoryBot.build :cse_etat_previsionnel_check }
     let(:field) { 'Etat nominatif prévisionnel des salariés/Mois ' }
@@ -59,12 +58,11 @@ RSpec.describe Cse::EtatPrevisionnelCheck do
     end
 
     context 'Cse', vcr: { cassette_name: 'cse_2.1_69001' } do
-      let(:dossier_nb) { 69001 }
+      let(:dossier_nb) { 69_001 }
 
       it 'should trigger error messages' do
         expect(subject.messages).to eq messages
       end
     end
-
   end
 end
