@@ -30,7 +30,6 @@ def field_name(base, index)
 end
 
 RSpec.describe Diese::EtatReelCheck do
-
   let(:controle) { FactoryBot.build :diese_etat_reel_check }
 
   subject do

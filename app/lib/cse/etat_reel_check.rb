@@ -25,7 +25,7 @@ module Cse
       return if cotisations != '#N/A'
 
       message = @params[:message_secteur_activite] ||
-        "Le secteur d'activité doit être renseigné à l'aide du menu déroulant. (Flèche en C8)"
+                "Le secteur d'activité doit être renseigné à l'aide du menu déroulant. (Flèche en C8)"
       add_message("#{champ.label}/#{sheet_name}", "Secteur d'activité en C8", message)
     end
   end

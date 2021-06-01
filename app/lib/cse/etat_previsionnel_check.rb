@@ -15,8 +15,7 @@ module Cse
 
     private
 
-
-     def sheets_to_control
+    def sheets_to_control
       ['Mois 1', 'Mois 2', 'Mois 3', 'Mois 4', 'Mois 5', 'Mois 6']
     end
 
