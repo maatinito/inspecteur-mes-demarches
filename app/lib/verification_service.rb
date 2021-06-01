@@ -111,11 +111,7 @@ class VerificationService
 
   def check_failed_dossiers(controls)
     Rails.logger.tagged('failed') do
-      demarches = [*@procedure['demarches']]
-      Check
-        .where(failed: true, demarche: demarches)
-        .select(:dossier, :demarche_id)
-        .distinct.each do |check|
+      failed_checks.each do |check|
         on_dossier(check.dossier) do |md_dossier|
           check_dossier(check.demarche, md_dossier, controls)
         end
@@ -123,18 +119,16 @@ class VerificationService
     end
   end
 
+  def failed_checks
+    Check
+      .where(failed: true, demarche: [*@procedure['demarches']])
+      .select(:dossier, :demarche_id)
+      .distinct
+  end
+
   def check_updated_controls(controls)
     Rails.logger.tagged('updated control') do
-      conditions = controls.map do |control|
-        Check
-          .where.not(version: control.version)
-          .where(checker: control.name)
-      end
-      conditions
-        .reduce { |c1, c2| c1.or(c2) }
-        .where(demarche: [*@procedure['demarches']])
-        .includes(:demarche)
-        .each do |check|
+      obsolete_checks(controls).each do |check|
         on_dossier(check.dossier) do |dossier|
           if dossier.present?
             check_dossier(check.demarche, dossier, controls)
@@ -144,6 +138,26 @@ class VerificationService
         end
       end
     end
+  end
+
+  def obsolete_checks(controls)
+    # controls.each do |control|
+    #   Check
+    #     .where.not(version: control.version)
+    #     .where(checker: control.name)
+    #     .where(demarche: [*@procedure['demarches']]).each do |check|
+    #     puts "#{check.demarche_id}\t#{check.dossier}\t#{check.checker}\t#{check.version}\t#{control.version}"
+    #   end
+    # end
+    conditions = controls.map do |control|
+      Check
+        .where.not(version: control.version)
+        .where(checker: control.name)
+    end
+    conditions
+      .reduce { |c1, c2| c1.or(c2) }
+      .where(demarche: [*@procedure['demarches']])
+      .includes(:demarche)
   end
 
   def remove_check(control, dossier_nb)
@@ -156,13 +170,15 @@ class VerificationService
       @dossier_has_different_messages = false
       @second_time = false
       failed_checks = false
+      affected = false
 
       controls.each do |control|
+        affected ||= control.must_check?(md_dossier)
         check = check_control(control, demarche, md_dossier)
         checks << check
         failed_checks ||= check.failed
       end
-      unless failed_checks
+      unless failed_checks || !affected
         inform(md_dossier, checks)
         when_ok(demarche, md_dossier, checks) if @procedure['when_ok']
       end
@@ -232,6 +248,8 @@ class VerificationService
       control.control(md_dossier)
       update_check_messages(check, control)
       @second_time ||= check.checked_at > EPOCH
+    else
+      puts "Task invalid #{control.name}"
     end
   rescue StandardError => e
     check.failed = true
