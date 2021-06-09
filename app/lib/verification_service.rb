@@ -271,8 +271,8 @@ class VerificationService
   end
 
   def update_check_messages(check, task)
-    old_messages = Set[check.messages.map(&:hashkey)]
-    new_messages = Set[task.messages.map(&:hashkey)]
+    old_messages = Set.new(check.messages.map(&:hashkey))
+    new_messages = Set.new(task.messages.map(&:hashkey))
     return if old_messages == new_messages
 
     check.messages.destroy(check.messages.reject { |m| new_messages.include?(m.hashkey) })

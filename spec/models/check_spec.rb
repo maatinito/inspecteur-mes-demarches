@@ -10,7 +10,7 @@
 #  dossier     :integer
 #  failed      :boolean
 #  posted      :boolean          default(FALSE)
-#  version     :float            default(1.0)
+#  version     :bigint           default(1)
 #  created_at  :datetime         not null
 #  updated_at  :datetime         not null
 #  demarche_id :integer
