@@ -2,7 +2,7 @@
 
 class DateDeNaissance < FieldChecker
   def version
-    1.5
+    5
   end
 
   def initialize(params)
