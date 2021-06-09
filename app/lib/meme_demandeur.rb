@@ -6,7 +6,7 @@ require 'roo'
 
 class MemeDemandeur < FieldChecker
   def version
-    16
+    super + 16
   end
 
   def required_fields

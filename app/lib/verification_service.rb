@@ -141,14 +141,14 @@ class VerificationService
   end
 
   def obsolete_checks(controls)
-    # controls.each do |control|
-    #   Check
-    #     .where.not(version: control.version)
-    #     .where(checker: control.name)
-    #     .where(demarche: [*@procedure['demarches']]).each do |check|
-    #     puts "#{check.demarche_id}\t#{check.dossier}\t#{check.checker}\t#{check.version}\t#{control.version}"
-    #   end
-    # end
+    controls.each do |control|
+      Check
+        .where.not(version: control.version)
+        .where(checker: control.name)
+        .where(demarche: [*@procedure['demarches']]).each do |check|
+        puts "#{check.demarche_id}\t#{check.dossier}\t#{check.checker}\t#{check.version}\t#{control.version}"
+      end
+    end
     conditions = controls.map do |control|
       Check
         .where.not(version: control.version)
