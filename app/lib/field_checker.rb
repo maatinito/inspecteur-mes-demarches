@@ -58,7 +58,7 @@ class FieldChecker < InspectorTask
   end
 
   def version
-    @params_version ||= @params.values.reduce(Digest::SHA1.new) { |d, s| d << s }.hexdigest.to_i(16) % (2 << 31)
+    @params_version ||= @params.values.reduce(Digest::SHA1.new) { |d, s| d << s.to_s }.hexdigest.to_i(16) % (2 << 31)
     1 + @params_version
   end
 end
