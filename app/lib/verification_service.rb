@@ -200,7 +200,7 @@ class VerificationService
   def check_obsolete?(check, control, md_dossier)
     check.failed ||
       check.checked_at < DateTime.parse(md_dossier.date_derniere_modification) ||
-      check.version != control.version.to_f
+      check.version != control.version
   end
 
   def find_or_create_check(control, demarche, md_dossier)
