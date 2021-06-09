@@ -5,7 +5,7 @@ FactoryBot.define do
     association :demarche
     dossier { 1 }
     checker { 'checker' }
-    version { 1.0 }
+    version { 1 }
     failed { false }
     posted { false }
 
