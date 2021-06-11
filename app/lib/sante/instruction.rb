@@ -1,32 +1,27 @@
 # frozen_string_literal: true
 
 module Sante
-  class Instruction < InspectorTask
-    def process(demarche, dossier)
-      @dossier = dossier
-      @demarche = demarche
-      if dossier.state == 'en_construction'
-        # single pipe to execute all instructions
-        modified = set_address | set_arrival_date | set_departure_date | set_flight_number
-        Check.where(dossier: dossier.number).update_all(checked_at: Time.zone.now) if modified
-      end
+  class Instruction < FieldChecker
+    def version
+      super + 1
+    end
+
+    def check(_dossier)
+      check_children_date_of_birth
+      check_parental_authorization
+      modified = set_address | set_arrival_date | set_flight_number
+      Check.where(dossier: dossier.number).update_all(checked_at: Time.zone.now) if modified
     end
 
     private
 
-    def set_address
-      lieu_de_quarantaine = get_field('Lieu de quarantaine')&.value
-      return unless lieu_de_quarantaine
+    ADDRESS = 'Adresse retenue'
 
-      adresse = case lieu_de_quarantaine
-                when 'dans votre logement'
-                  "#{get_field('Adresse géographique')&.value} - #{get_field('Commune')&.value}"
-                when 'en hôtel agréé'
-                  get_field("Nom de l'hôtel")&.value
-                when 'en site pour étudiant'
-                  'en site pour étudiant'
-                end
-      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, 'Adresse de la quarantaine retenue', adresse) if adresse
+    def set_address
+      return unless get_annotation(ADDRESS)
+
+      address = "#{get_field('Adresse de quarantaine')&.value} - #{get_field('Commune')&.value}"
+      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, ADDRESS, address)
     end
 
     FLIGHT = 'Numéro de vol retenu'
@@ -38,22 +33,15 @@ module Sante
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, FLIGHT, flight_number.value) if flight_number&.value
     end
 
-    ARRIVAL = "Date d'arrivée retenue"
+    KEPT_ARRIVAL_DATE = "Date d'arrivée retenue"
+
+    ARRIVAL_DATE = "Date d'arrivée"
 
     def set_arrival_date
-      return unless get_annotation(ARRIVAL)
+      return unless get_annotation(KEPT_ARRIVAL_DATE)
 
-      date = get_field("Date d'arrivée")
-      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, ARRIVAL, Date.iso8601(date.value)) if date&.value
-    end
-
-    DEPARTURE = 'Date de départ retenue'
-
-    def set_departure_date
-      return unless get_annotation(DEPARTURE)
-
-      date = get_field('Date de départ')
-      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, DEPARTURE, Date.iso8601(date.value)) if date&.value
+      date = get_field(ARRIVAL_DATE)
+      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, KEPT_ARRIVAL_DATE, Date.iso8601(date.value)) if date&.value
     end
 
     def get_field(field_name)
@@ -62,6 +50,64 @@ module Sante
 
     def get_annotation(field_name)
       @dossier.annotations.find { |c| c.label == field_name }
+    end
+
+    TOO_OLD_MESSAGE = "L'enfant est majeur au moment de l'arrivée en Polynésie. Un dossier séparé doit être rempli.<br>" +
+      'The child is above 18 at arrival date: a separate application must be filled out for him.'
+    FIRST_NAME = "Prénom de l'enfant"
+    DATE_OF_BIRTH = "Date de naissance de l'enfant"
+    CHILDREN = 'Liste des mineurs'
+    CIVILITY = "Civilité de l'enfant"
+
+    def check_child(arrival_date, child)
+      date_of_birth = child[DATE_OF_BIRTH]
+      return if date_of_birth.blank?
+
+      date_of_birth = Date.iso8601(child[DATE_OF_BIRTH])
+      return if (arrival_date - 18.years..arrival_date).include?(date_of_birth)
+
+      add_message(CHILDREN, child[FIRST_NAME], @params[:too_old_child_message] || TOO_OLD_MESSAGE)
+    end
+
+    def check_children_date_of_birth
+      arrival_date = get_arrival_date
+      return if arrival_date.blank?
+
+      children_fields = field_value(CHILDREN)&.champs
+      child = {}
+      children_fields&.each do |field|
+        if field.label == CIVILITY
+          check_child(arrival_date, child) if child.present?
+          child = {}
+        end
+        child[field.label] = field.value
+      end
+      check_child(arrival_date, child) if child.present?
+    end
+
+    def get_arrival_date
+      arrival_date = get_annotation(KEPT_ARRIVAL_DATE)&.value
+      arrival_date = field_value(ARRIVAL_DATE)&.value if arrival_date.blank?
+      arrival_date = Date.iso8601(arrival_date) if arrival_date.present?
+      arrival_date
+    end
+
+    AUTH = "Autorisation de prélèvement"
+    AUTH_MESSAGE = "L'autorisation doit être donnée pour pouvoir effectuer des prélèvements sur les enfants.<BR>" +
+      "The authorisation must be given to be able to perform all required COVID testing for all children."
+
+    def check_parental_authorization
+      children_fields = field_value(CHILDREN)&.champs
+      return if children_fields.blank?
+
+      parental_authorisation = field_value(AUTH)&.value
+      return if parental_authorisation == 'Oui - Yes'
+
+      add_message(AUTH, parental_authorisation, @params[:autorisation_message] || AUTH_MESSAGE)
+    end
+
+    public def authorized_fields
+      super + %i[autorisation_message too_old_child_message]
     end
   end
 end

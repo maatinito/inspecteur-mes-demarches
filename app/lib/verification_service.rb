@@ -73,12 +73,16 @@ class VerificationService
 
   def create_controls(procedure)
     procedure['controles'].flatten.map.with_index do |description, i|
-      description.map do |taskname, params|
-        control = Object.const_get(taskname.camelize).new(params)
-        control.name = "#{i}:#{taskname}"
-        control
-      end
+      create_control(description, i)
     end.flatten
+  end
+
+  def create_control(description, i)
+    if description.is_a?(String)
+      Object.const_get(description.camelize).new({}).set_name("#{i}:#{description}")
+    else # hash
+      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).set_name("#{i}:#{taskname}") }
+    end
   end
 
   def check_updated_dossiers(controls)
@@ -95,7 +99,7 @@ class VerificationService
 
   def check_demarche(controls, demarche_number, reset, configuration_name)
     demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
-    set_demarche(controls, demarche_number)
+    set_demarche(controls, demarche)
     start_time = Time.zone.now
     since = reset ? EPOCH : demarche.checked_at
     DossierActions.on_dossiers(demarche.id, since) do |dossier|
@@ -105,8 +109,8 @@ class VerificationService
     demarche.save
   end
 
-  def set_demarche(controls, demarche_number)
-    controls.each { |c| c.demarche_number = demarche_number }
+  def set_demarche(controls, demarche)
+    controls.each { |c| c.demarche = demarche }
   end
 
   def check_failed_dossiers(controls)
@@ -182,6 +186,7 @@ class VerificationService
         inform(md_dossier, checks)
         when_ok(demarche, md_dossier, checks) if @procedure['when_ok']
       end
+      # TODO: unless affected ==> remove checks
     end
   end
 
@@ -232,13 +237,8 @@ class VerificationService
   end
 
   def ok_tasks
-    @ok_tasks ||= @procedure['when_ok'].map do |task|
-      if task.is_a?(String)
-        Object.const_get(task.camelize).new({})
-      else
-        # hash
-        task.map { |taskname, params| Object.const_get(taskname.camelize).new(params) }
-      end
+    @ok_tasks ||= @procedure['when_ok'].map.with_index do |description, i|
+      create_control(description, i)
     end.flatten
   end
 

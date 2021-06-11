@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 class InspectorTask
-  attr_reader :errors, :params
-  attr_accessor :name, :demarche_number
+  attr_reader :errors, :params, :name
+  attr_accessor :demarche
 
   def initialize(params)
     @errors = []
@@ -32,5 +32,10 @@ class InspectorTask
 
   def old_name
     name.gsub(/^[0-9]+:/, '')
+  end
+
+  def set_name(name)
+    @name = name
+    self
   end
 end

@@ -43,7 +43,7 @@ module Instruction
       last_decision = traitements.max_by(&:processed_at)
       return if @authorized_instructors.include? last_decision.instructeur_email
 
-      NotificationMailer.with(demarche: @demarche_number,
+      NotificationMailer.with(demarche: @demarche.id,
                               dossier: dossier.number,
                               instructeur: last_decision.instructeur_email,
                               state: last_decision.state,
