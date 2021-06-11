@@ -8,6 +8,7 @@ module Sante
 
     def check(_dossier)
       check_children_date_of_birth
+      check_parental_authorization
       modified = set_address | set_arrival_date | set_flight_number
       Check.where(dossier: dossier.number).update_all(checked_at: Time.zone.now) if modified
     end
@@ -51,8 +52,8 @@ module Sante
       @dossier.annotations.find { |c| c.label == field_name }
     end
 
-    MESSAGE_FR = "L'enfant est majeur au moment de l'arrivée en Polynésie. Un dossier séparé doit être rempli.<br>"
-    MESSAGE_EN = 'The child is above 18 at arrival date: a separate application must be filled out for him.'
+    TOO_OLD_MESSAGE = "L'enfant est majeur au moment de l'arrivée en Polynésie. Un dossier séparé doit être rempli.<br>" +
+      'The child is above 18 at arrival date: a separate application must be filled out for him.'
     FIRST_NAME = "Prénom de l'enfant"
     DATE_OF_BIRTH = "Date de naissance de l'enfant"
     CHILDREN = 'Liste des mineurs'
@@ -65,7 +66,7 @@ module Sante
       date_of_birth = Date.iso8601(child[DATE_OF_BIRTH])
       return if (arrival_date - 18.years..arrival_date).include?(date_of_birth)
 
-      add_message(CHILDREN, child[FIRST_NAME], MESSAGE_FR + MESSAGE_EN)
+      add_message(CHILDREN, child[FIRST_NAME], @params[:too_old_child_message] || TOO_OLD_MESSAGE)
     end
 
     def check_children_date_of_birth
@@ -89,6 +90,24 @@ module Sante
       arrival_date = field_value(ARRIVAL_DATE)&.value if arrival_date.blank?
       arrival_date = Date.iso8601(arrival_date) if arrival_date.present?
       arrival_date
+    end
+
+    AUTH = "Autorisation de prélèvement"
+    AUTH_MESSAGE = "L'autorisation doit être donnée pour pouvoir effectuer des prélèvements sur les enfants.<BR>" +
+      "The authorisation must be given to be able to perform all required COVID testing for all children."
+
+    def check_parental_authorization
+      children_fields = field_value(CHILDREN)&.champs
+      return if children_fields.blank?
+
+      parental_authorisation = field_value(AUTH)&.value
+      return if parental_authorisation == 'Oui - Yes'
+
+      add_message(AUTH, parental_authorisation, @params[:autorisation_message] || AUTH_MESSAGE)
+    end
+
+    public def authorized_fields
+      super + %i[autorisation_message too_old_child_message]
     end
   end
 end
