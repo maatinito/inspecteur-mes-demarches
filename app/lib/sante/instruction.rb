@@ -19,8 +19,10 @@ module Sante
 
     def set_address
       return unless get_annotation(ADDRESS)
+      address = get_field('Adresse de quarantaine')&.value.to_s
+      commune = get_field('Commune')&.value.to_s
+      address += " - " + commune unless address.downcase.include?(commune.downcase)
 
-      address = "#{get_field('Adresse de quarantaine')&.value} - #{get_field('Commune')&.value}"
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, ADDRESS, address)
     end
 
