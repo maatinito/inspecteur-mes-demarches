@@ -38,11 +38,11 @@ class ConditionalField < FieldChecker
 
   def create_control(description, i)
     control = if control.is_a?(String)
-      Object.const_get(control.camelize).new({})
-    else
-      # hash
-      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params) }
-    end
+                Object.const_get(control.camelize).new({})
+              else
+                # hash
+                description.map { |taskname, params| Object.const_get(taskname.camelize).new(params) }
+              end
     control.name = "#{i}:#{taskname}"
     control
   end
