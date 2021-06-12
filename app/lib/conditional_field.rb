@@ -30,7 +30,9 @@ class ConditionalField < FieldChecker
 
   def init_controls
     @controls = @params[:valeurs].transform_values do |config|
-      controls = config.map(&method(:create_control)).flatten
+      controls = config.map.with_index do |description, i|
+        create_control(description, i)
+      end.flatten
       controls.reject(&:valid?).each { |task| puts "#{task.class.name}: #{task.errors.join(',')}" }
       controls.filter(&:valid?)
     end
