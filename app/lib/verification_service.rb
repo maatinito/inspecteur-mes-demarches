@@ -80,7 +80,8 @@ class VerificationService
   def create_control(description, i)
     if description.is_a?(String)
       Object.const_get(description.camelize).new({}).set_name("#{i}:#{description}")
-    else # hash
+    else
+      # hash
       description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).set_name("#{i}:#{taskname}") }
     end
   end
@@ -183,7 +184,7 @@ class VerificationService
         failed_checks ||= check.failed
       end
       unless failed_checks || !affected
-        inform(md_dossier, checks)
+        inform(md_dossier, checks, send_message: @send_messages) if @dossier_has_different_messages
         when_ok(demarche, md_dossier, checks) if @procedure['when_ok']
       end
       # TODO: unless affected ==> remove checks
@@ -281,15 +282,13 @@ class VerificationService
     @dossier_has_different_messages = true
   end
 
-  def inform(md_dossier, checks)
-    if @dossier_has_different_messages
-      instructeur_id = checks.first.demarche.instructeur
-      messages = checks.flat_map(&:messages)
-      inform_instructeur(md_dossier, instructeur_id, messages) if @inform_annotation.present?
-      if @send_messages
-        inform_user(md_dossier, instructeur_id, messages)
-        checks.each { |check| check.update(posted: true) }
-      end
+  def inform(md_dossier, checks, send_message: true)
+    instructeur_id = checks.first.demarche.instructeur
+    messages = checks.flat_map(&:messages)
+    inform_instructeur(md_dossier, instructeur_id, messages) if @inform_annotation.present?
+    if send_message
+      inform_user(md_dossier, instructeur_id, messages)
+      checks.each { |check| check.update(posted: true) }
     end
   end
 
