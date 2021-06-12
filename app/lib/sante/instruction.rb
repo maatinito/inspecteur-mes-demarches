@@ -19,9 +19,10 @@ module Sante
 
     def set_address
       return unless get_annotation(ADDRESS)
+
       address = get_field('Adresse de quarantaine')&.value.to_s
       commune = get_field('Commune')&.value.to_s
-      address += " - " + commune unless address.downcase.include?(commune.downcase)
+      address += " - #{commune}" unless address.downcase.include?(commune.downcase)
 
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, ADDRESS, address)
     end
@@ -54,8 +55,8 @@ module Sante
       @dossier.annotations.find { |c| c.label == field_name }
     end
 
-    TOO_OLD_MESSAGE = "L'enfant est majeur au moment de l'arrivée en Polynésie. Un dossier séparé doit être rempli.<br>" +
-      'The child is above 18 at arrival date: a separate application must be filled out for him.'
+    TOO_OLD_MESSAGE = "L'enfant est majeur au moment de l'arrivée en Polynésie. Un dossier séparé doit être rempli.<br>" \
+                      'The child is above 18 at arrival date: a separate application must be filled out for him.'
     FIRST_NAME = "Prénom de l'enfant"
     DATE_OF_BIRTH = "Date de naissance de l'enfant"
     CHILDREN = 'Liste des mineurs'
@@ -94,9 +95,9 @@ module Sante
       arrival_date
     end
 
-    AUTH = "Autorisation de prélèvement"
-    AUTH_MESSAGE = "L'autorisation doit être donnée pour pouvoir effectuer des prélèvements sur les enfants.<BR>" +
-      "The authorisation must be given to be able to perform all required COVID testing for all children."
+    AUTH = 'Autorisation de prélèvement'
+    AUTH_MESSAGE = "L'autorisation doit être donnée pour pouvoir effectuer des prélèvements sur les enfants.<BR>" \
+                   'The authorisation must be given to be able to perform all required COVID testing for all children.'
 
     def check_parental_authorization
       children_fields = field_value(CHILDREN)&.champs
