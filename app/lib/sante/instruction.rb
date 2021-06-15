@@ -3,23 +3,42 @@
 module Sante
   class Instruction < FieldChecker
     def version
-      super + 4
+      super + 6
     end
 
-    def check(_dossier)
-      check_children_date_of_birth
-      check_arrival_date
+    def must_check?(md_dossier)
+      super || annotations_not_updated(md_dossier)
+    end
 
+    def annotations_not_updated(md_dossier)
+      @dossier = md_dossier
+      update_needed(ADDRESS) || update_needed(FLIGHT) || update_needed(KEPT_ARRIVAL_DATE)
+    end
+
+    def update_needed(field_name)
+      field = get_annotation(field_name)
+      return field.present? && (field.value.blank? || en_construction)
+    end
+
+    def check(dossier)
+      if en_construction
+        check_children_date_of_birth
+        check_arrival_date
+      end
       modified = set_address | set_arrival_date | set_flight_number
       Check.where(dossier: dossier.number).update_all(checked_at: Time.zone.now) if modified
     end
 
     private
 
+    def en_construction
+      dossier.state == 'en_construction'
+    end
+
     ADDRESS = 'Adresse retenue'
 
     def set_address
-      return unless get_annotation(ADDRESS)
+      return unless update_needed(ADDRESS)
 
       address = get_field('Adresse de quarantaine')&.value.to_s
       commune = get_field('Commune')&.value.to_s
@@ -31,7 +50,7 @@ module Sante
     FLIGHT = 'Numéro de vol retenu'
 
     def set_flight_number
-      return unless get_annotation(FLIGHT)
+      return unless update_needed(FLIGHT)
 
       flight_number = get_field('Numéro du vol')
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, FLIGHT, flight_number.value) if flight_number&.value
@@ -44,7 +63,7 @@ module Sante
       "The given arrival date must be within the next 12 months."
 
     def set_arrival_date
-      return unless get_annotation(KEPT_ARRIVAL_DATE)
+      return unless update_needed(KEPT_ARRIVAL_DATE)
 
       date = get_field(ARRIVAL_DATE)
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, KEPT_ARRIVAL_DATE, Date.iso8601(date.value)) if date&.value
