@@ -56,7 +56,13 @@ module MesDemarches
     query DossierId($number: Int!) {
       dossier(number: $number) {
         id
-        number
+      }
+    }
+
+    query DossierState($number: Int!) {
+      dossier(number: $number) {
+        id
+        state
       }
     }
 
