@@ -121,11 +121,16 @@ class VerificationService
           if md_dossier.present?
             check_dossier(check.demarche, md_dossier, controls)
           else
-            Check.where(dossier: check.dossier).destroy_all
+            remove_checks(check.dossier)
           end
         end
       end
     end
+  end
+
+  def remove_checks(dossier)
+    Rails.logger.info("Dossier non concerné par les contrôles")
+    Check.where(dossier: dossier).destroy_all
   end
 
   def failed_checks
@@ -142,7 +147,7 @@ class VerificationService
           if dossier.present?
             check_dossier(check.demarche, dossier, controls)
           else
-            Check.where(dossier: check.dossier).destroy_all
+            remove_checks(check.dossier)
           end
         end
       end
@@ -175,23 +180,29 @@ class VerificationService
 
   def check_dossier(demarche, md_dossier, controls)
     Rails.logger.tagged("#{demarche.id},#{md_dossier.number}") do
-      checks = []
-      @dossier_has_different_messages = false
-      @second_time = false
-      failed_checks = false
-      affected = false
+      affected = controls.find { |c| c.must_check?(md_dossier) }
+      if affected
+        apply_controls(controls, demarche, md_dossier)
+      else
+        remove_checks(md_dossier.number)
+      end
+    end
+  end
 
-      controls.each do |control|
-        affected ||= control.must_check?(md_dossier)
-        check = check_control(control, demarche, md_dossier)
-        checks << check
-        failed_checks ||= check.failed
-      end
-      unless failed_checks || !affected
-        inform(md_dossier, checks, send_message: @send_messages) if @dossier_has_different_messages
-        when_ok(demarche, md_dossier, checks) if @procedure['when_ok']
-      end
-      # TODO: unless affected ==> remove checks
+  def apply_controls(controls, demarche, md_dossier)
+    checks = []
+    @dossier_has_different_messages = false
+    @second_time = false
+    failed_checks = false
+
+    controls.each do |control|
+      check = check_control(control, demarche, md_dossier)
+      checks << check
+      failed_checks ||= check.failed
+    end
+    unless failed_checks
+      inform(md_dossier, checks, send_message: @send_messages) if @dossier_has_different_messages
+      when_ok(demarche, md_dossier, checks) if @procedure['when_ok']
     end
   end
 
@@ -317,13 +328,13 @@ class VerificationService
 
   def liste_anomalies(md_dossier, anomalies)
     msg_key = case anomalies.size
-              when 0
-                :tout_va_bien
-              when 1
-                :entete_anomalie
-              else
-                :entete_anomalies
-              end
+    when 0
+      :tout_va_bien
+    when 1
+      :entete_anomalie
+    else
+      :entete_anomalies
+    end
     entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
     anomalie_table = '<table class="table table-striped">' + anomalies.map do |a|
