@@ -3,7 +3,7 @@
 module Sante
   class Instruction < FieldChecker
     def version
-      super + 7
+      super + 8
     end
 
     def must_check?(md_dossier)
@@ -11,6 +11,8 @@ module Sante
     end
 
     def annotations_not_updated(md_dossier)
+      return false if dossier.archived
+
       @dossier = md_dossier
       update_needed(ADDRESS) || update_needed(FLIGHT) || update_needed(ARRIVAL[:dst_field]) || update_needed(DEPARTURE[:dst_field])
     end
