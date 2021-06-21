@@ -3,7 +3,7 @@
 module Sante
   class Instruction < FieldChecker
     def version
-      super + 6
+      super + 7
     end
 
     def must_check?(md_dossier)
@@ -12,20 +12,21 @@ module Sante
 
     def annotations_not_updated(md_dossier)
       @dossier = md_dossier
-      update_needed(ADDRESS) || update_needed(FLIGHT) || update_needed(KEPT_ARRIVAL_DATE)
+      update_needed(ADDRESS) || update_needed(FLIGHT) || update_needed(ARRIVAL[:dst_field]) || update_needed(DEPARTURE[:dst_field])
     end
 
     def update_needed(field_name)
       field = get_annotation(field_name)
-      return field.present? && (field.value.blank? || en_construction)
+      field.present? && (field.value.blank? || en_construction)
     end
 
     def check(dossier)
       if en_construction
         check_children_date_of_birth
-        check_arrival_date
+        check_date(ARRIVAL)
+        check_date(DEPARTURE)
       end
-      modified = set_address | set_arrival_date | set_flight_number
+      modified = set_address | set_date(ARRIVAL) | set_date(DEPARTURE) | set_flight_number
       Check.where(dossier: dossier.number).update_all(checked_at: Time.zone.now) if modified
     end
 
@@ -56,19 +57,6 @@ module Sante
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, FLIGHT, flight_number.value) if flight_number&.value
     end
 
-    KEPT_ARRIVAL_DATE = "Date d'arrivée retenue"
-
-    ARRIVAL_DATE = "Date d'arrivée"
-    ARRIVAL_DATE_MESSAGE = "La date d'arrivée donnée doit être dans les 12 prochains mois. <br> " +
-      "The given arrival date must be within the next 12 months."
-
-    def set_arrival_date
-      return unless update_needed(KEPT_ARRIVAL_DATE)
-
-      date = get_field(ARRIVAL_DATE)
-      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, KEPT_ARRIVAL_DATE, Date.iso8601(date.value)) if date&.value
-    end
-
     def get_field(field_name)
       @dossier.champs.find { |c| c.label == field_name }
     end
@@ -82,7 +70,7 @@ module Sante
                    "You must give authorization to perform all required COVID testing for all children above 6 by checking 'Oui - Yes'."
 
     MINOR_MESSAGE = "La date de naissance de l'enfant doit désigner un enfant de moins de 18 ans au moment de l'arrivée en Polynésie. Un dossier séparé doit être rempli pour les enfants majeurs.<br>" \
-                      'The date of birth must designate a child under 18 at arrival in French Polynesia. A separate application must be filled out for child above 17.'
+                      'The date of birth must designate a child under 18 at departure from French Polynesia. A separate application must be filled out for child above 17.'
     FIRST_NAME = "Prénom de l'enfant"
     DATE_OF_BIRTH = "Date de naissance de l'enfant"
     CHILDREN = 'Liste des mineurs'
@@ -119,7 +107,7 @@ module Sante
     end
 
     def check_children_date_of_birth
-      arrival_date = get_arrival_date
+      arrival_date = get_date(ARRIVAL)
       return if arrival_date.blank?
 
       @parental_authorisation_given = field_value(AUTH)&.value == 'Oui - Yes'
@@ -137,17 +125,38 @@ module Sante
       check_child(arrival_date, child) if child.present?
     end
 
-    def get_arrival_date
-      arrival_date = field_value(ARRIVAL_DATE)&.value
-      arrival_date = Date.iso8601(arrival_date) if arrival_date.present?
-      arrival_date
+    ARRIVAL = {
+      dst_field: "Date d'arrivée retenue",
+      src_field: "Date d'arrivée",
+      message: "La date d'arrivée donnée doit être dans les 12 prochains mois. <br> " \
+               'The given arrival date must be within the next 12 months.'
+    }.freeze
+
+    DEPARTURE = {
+      dst_field: 'Date de départ retenue',
+      src_field: 'Date de départ du vol ',
+      message: 'La date de départ donnée doit être dans les 12 prochains mois. <br> ' \
+               'The given departure date must be within the next 12 months.'
+    }.freeze
+
+    def set_date(config)
+      return unless update_needed(config[:dst_field])
+
+      date = get_field(config[:src_field])
+      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, config[:dst_field], Date.iso8601(date.value)) if date&.value
     end
 
-    def check_arrival_date
-      arrival_date = get_arrival_date
-      return if (Time.zone.now..Time.zone.now + 1.year).include?(arrival_date)
+    def get_date(config)
+      date = field_value(config[:src_field])&.value
+      date = Date.iso8601(date) if date.present?
+      date
+    end
 
-      add_message(ARRIVAL_DATE, arrival_date, @params[:arriaval_date_message] || ARRIVAL_DATE_MESSAGE)
+    def check_date(config)
+      date = get_date(config)
+      return if date.nil? || (Time.zone.now..Time.zone.now + 1.year).cover?(date)
+
+      add_message(config[:src_field], date, @params[:date_message] || config[:message])
     end
 
     public def authorized_fields

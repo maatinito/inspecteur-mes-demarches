@@ -7,9 +7,7 @@ module Utils
     objects = [*dossier]
     field.split(/\./).each do |name|
       objects = objects.flat_map { |object| object.champs.select { |champ| champ.label == name } }
-      if warn_if_empty && objects.blank?
-        Rails.logger.warn("Sur le dossier #{dossier.number}, le champ #{field} est vide.")
-      end
+      Rails.logger.warn("Sur le dossier #{dossier.number}, le champ #{field} est vide.") if warn_if_empty && objects.blank?
     end
     objects&.first
   end
@@ -27,9 +25,9 @@ module Utils
     end
     if start_month.nil?
       # Avenant
-      mois_2 = dossier_field_value(dossier, 'Nombre de salariés DiESE au mois 2', warn_if_empty: false)
-      if mois_2.present?
-        start_month = mois_2.value.blank? ? 11 : 12
+      mois2 = dossier_field_value(dossier, 'Nombre de salariés DiESE au mois 2', warn_if_empty: false)
+      if mois2.present?
+        start_month = mois2.value.blank? ? 11 : 12
       end
     end
     if start_month.nil?
@@ -61,9 +59,7 @@ module Utils
   def initial_dossier
     if @initial_dossier.nil?
       initial_dossier_field = param_value(:champ_dossier)
-      if initial_dossier_field.nil?
-        throw "Impossible de trouver le dossier prévisionnel via le champ #{params[:champ_dossier]}"
-      end
+      throw "Impossible de trouver le dossier prévisionnel via le champ #{params[:champ_dossier]}" if initial_dossier_field.nil?
 
       @initial_dossier = initial_dossier_field.dossier
       if @initial_dossier.nil?

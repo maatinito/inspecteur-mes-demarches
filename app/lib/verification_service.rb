@@ -77,12 +77,12 @@ class VerificationService
     end.flatten
   end
 
-  def create_control(description, i)
+  def create_control(description, position)
     if description.is_a?(String)
-      Object.const_get(description.camelize).new({}).set_name("#{i}:#{description}")
+      Object.const_get(description.camelize).new({}).set_name("#{position}:#{description}")
     else
       # hash
-      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).set_name("#{i}:#{taskname}") }
+      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).set_name("#{position}:#{taskname}") }
     end
   end
 
@@ -118,7 +118,11 @@ class VerificationService
     Rails.logger.tagged('failed') do
       failed_checks.each do |check|
         on_dossier(check.dossier) do |md_dossier|
-          check_dossier(check.demarche, md_dossier, controls)
+          if md_dossier.present?
+            check_dossier(check.demarche, md_dossier, controls)
+          else
+            Check.where(dossier: check.dossier).destroy_all
+          end
         end
       end
     end
