@@ -11,7 +11,7 @@ module Sante
     end
 
     def annotations_not_updated(md_dossier)
-      return false if dossier.archived
+      return false if md_dossier.archived
 
       @dossier = md_dossier
       update_needed(ADDRESS) || update_needed(FLIGHT) || update_needed(ARRIVAL[:dst_field]) || update_needed(DEPARTURE[:dst_field])
