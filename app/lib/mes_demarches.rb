@@ -56,6 +56,7 @@ module MesDemarches
     query DossierId($number: Int!) {
       dossier(number: $number) {
         id
+        number
       }
     }
 
