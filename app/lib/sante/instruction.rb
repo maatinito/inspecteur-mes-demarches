@@ -3,7 +3,7 @@
 module Sante
   class Instruction < FieldChecker
     def version
-      super + 8
+      super + 10
     end
 
     def must_check?(md_dossier)
@@ -73,6 +73,8 @@ module Sante
 
     MINOR_MESSAGE = "La date de naissance de l'enfant doit désigner un enfant de moins de 18 ans au moment de l'arrivée en Polynésie. Un dossier séparé doit être rempli pour les enfants majeurs.<br>" \
                       'The date of birth must designate a child under 18 at departure from French Polynesia. A separate application must be filled out for child above 17.'
+    DECLARE_CHILDREN = "Puisque vous autorisez les tests sur vos enfants, les enfants voyageant avec vous doivent être déclarés dans le dossier.<br>" +
+      'As you authorize to perform required testing on children, the application must declare children coming with you.'
     FIRST_NAME = "Prénom de l'enfant"
     DATE_OF_BIRTH = "Date de naissance de l'enfant"
     CHILDREN = 'Liste des mineurs'
@@ -125,6 +127,10 @@ module Sante
         child[field.label] = field.value
       end
       check_child(arrival_date, child) if child.present?
+
+      if @parental_authorisation_given && children_fields.blank?
+        add_message(AUTH, 'Oui - Yes', DECLARE_CHILDREN)
+      end
     end
 
     ARRIVAL = {
