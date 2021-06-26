@@ -16,6 +16,7 @@ class CheckController < ApplicationController
                              .joins(demarche: :instructeurs).where(demarches_users: { user_id: current_user })
                              .includes(:messages)
                              .includes(:demarche)
+                             .where(id: Message.select(:check_id))
                              .each_with_object({}) do |c, h|
       h.update(c.demarche => { c.dossier => [c] }) do |_, h1, h2|
         h1.update(h2) do |_, l1, l2|
