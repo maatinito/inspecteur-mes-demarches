@@ -3,7 +3,7 @@
 module Sante
   class Instruction < FieldChecker
     def version
-      super + 10
+      super + 11
     end
 
     def must_check?(md_dossier)
@@ -86,7 +86,7 @@ module Sante
 
       date_of_birth = Date.iso8601(child[DATE_OF_BIRTH])
 
-      if is_minor(arrival_date, date_of_birth)
+      if is_minor?(arrival_date, date_of_birth)
         check_parental_authorization(arrival_date, date_of_birth)
       else
         add_message(CHILDREN, child[FIRST_NAME], @params[:too_old_child_message] || MINOR_MESSAGE)
@@ -96,17 +96,17 @@ module Sante
     def check_parental_authorization(arrival_date, date_of_birth)
       return if @parental_authorisation_given || @parental_message_triggered
 
-      if between_6_and_21_years_old(arrival_date, date_of_birth)
+      if between_6_and_18_years_old?(arrival_date, date_of_birth)
         add_message(AUTH, field_value(AUTH)&.value, @params[:autorisation_message] || AUTH_MESSAGE)
         @parental_message_triggered = true
       end
     end
 
-    def is_minor(arrival_date, date_of_birth)
+    def is_minor?(arrival_date, date_of_birth)
       (arrival_date - 18.years..arrival_date).cover?(date_of_birth)
     end
 
-    def between_6_and_21_years_old(arrival_date, date_of_birth)
+    def between_6_and_18_years_old?(arrival_date, date_of_birth)
       (arrival_date - 18.years..arrival_date - 6.years).cover?(date_of_birth)
     end
 
@@ -129,7 +129,11 @@ module Sante
       check_child(arrival_date, child) if child.present?
 
       if @parental_authorisation_given && children_fields.blank?
-        add_message(AUTH, 'Oui - Yes', DECLARE_CHILDREN)
+        date_of_birth = field_value('Date de naissance')&.value
+
+        unless date_of_birth.blank? || is_minor?(arrival_date, Date.iso8601(date_of_birth))
+          add_message(AUTH, 'Oui - Yes', DECLARE_CHILDREN)
+        end
       end
     end
 
