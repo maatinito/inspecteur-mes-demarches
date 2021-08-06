@@ -12,7 +12,6 @@ module MesDemarches
       { Authorization: "Bearer #{ENV['GRAPHQL_BEARER']}" }
     end
   end
-  pp HTTP
 
   def self.http(host)
     Rails.cache.fetch("#{host} http client") do
@@ -117,8 +116,6 @@ module MesDemarches
       id
       number
       archived
-
-      state
       datePassageEnConstruction
       datePassageEnInstruction
       dateTraitement
@@ -131,7 +128,6 @@ module MesDemarches
         instructeurEmail
 			  processedAt
         state
-        motivation
       }
       demandeur {
           ... on PersonnePhysique {
@@ -175,12 +171,6 @@ module MesDemarches
               }
           }
       }
-      groupeInstructeur {
-        instructeurs {
-          id
-          email
-        }
-      }
     }
 
     query DossiersModifies($demarche: Int!, $since: ISO8601DateTime!, $cursor: String) {
@@ -191,6 +181,7 @@ module MesDemarches
               hasNextPage
           }
           nodes {
+            state
             ...DossierInfo
             annotations {
               ...ChampInfo
@@ -226,6 +217,7 @@ module MesDemarches
     }
     query Dossier($dossier: Int!) {
       dossier(number: $dossier) {
+          state
           ...DossierInfo
           annotations {
             ...ChampInfo
