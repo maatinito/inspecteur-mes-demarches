@@ -259,11 +259,14 @@ class VerificationService
   end
 
   def apply_control(control, md_dossier, check)
+    previous_failed = check.failed
     check.failed = !control.valid?
     if control.valid?
       control.control(md_dossier)
       update_check_messages(check, control)
       @second_time ||= check.checked_at > EPOCH
+      # send message if previous check failed and new one is Ok
+      @dossier_has_different_messages ||= !check.failed && previous_failed
     else
       puts "Task invalid #{control.name}"
     end
