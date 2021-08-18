@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'tempfile'
-require 'open-uri'
-require 'roo'
 module Diese
   class EtatReelCheck < BaseExcelCheck
     def version
