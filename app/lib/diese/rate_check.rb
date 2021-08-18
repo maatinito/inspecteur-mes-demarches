@@ -20,20 +20,20 @@ module Diese
     CHECKS = (EtatPrevisionnelCheck::CHECKS + %i[max_rate]).freeze
 
     RATES = {
-      "Tourisme" => {
-        "Hébergement touristique terrestre" => 40,
-        "Hébergement touristique flottant" => 60,
-        "Prestataires touristiques et culturels" => 60,
+      'Tourisme' => {
+        'Hébergement touristique terrestre' => 40,
+        'Hébergement touristique flottant' => 60,
+        'Prestataires touristiques et culturels' => 60
       },
       "Autres secteurs d'activité éligibles" => {
-        "Transport aérien" => 40,
-        "Commerces et activités présents dans les hôtels" => 40,
+        'Transport aérien' => 40,
+        'Commerces et activités présents dans les hôtels' => 40,
         "Commerces et activités présents sur la plateforme aéroportuaire de Tahiti-Faa'a et dans les aérodromes des îles" => 50,
         "Bijouterie, artisanat d'art" => 80,
-        "Boutiques de souvenirs et curios" => 80,
-        "Perliculture" => 90,
-        "Discothèques et assimilées" => 90,
-        "Prestataires dans le domaine de l'évènementiel (foires, expositions, évènements sportifs, etc.)" => 90,
+        'Boutiques de souvenirs et curios' => 80,
+        'Perliculture' => 90,
+        'Discothèques et assimilées' => 90,
+        "Prestataires dans le domaine de l'évènementiel (foires, expositions, évènements sportifs, etc.)" => 90
       }
     }.freeze
 

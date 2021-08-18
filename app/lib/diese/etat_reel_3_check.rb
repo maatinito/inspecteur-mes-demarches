@@ -17,7 +17,7 @@ module Diese
     end
 
     ACTIVITY_FIELD_NAME = "Votre secteur d'activité"
-    INITIAL_DOSSIER_FIELD_NAME = "Numéro dossier DiESE"
+    INITIAL_DOSSIER_FIELD_NAME = 'Numéro dossier DiESE'
 
     def activity_field
       field(initial_dossier, ACTIVITY_FIELD_NAME)&.first
@@ -25,9 +25,7 @@ module Diese
 
     def initial_dossier
       initial_dossier_field = field_value(INITIAL_DOSSIER_FIELD_NAME)
-      if initial_dossier_field.nil?
-        throw "Impossible de trouver le dossier prévisionnel via le champ #{INITIAL_DOSSIER_FIELD_NAME}"
-      end
+      throw "Impossible de trouver le dossier prévisionnel via le champ #{INITIAL_DOSSIER_FIELD_NAME}" if initial_dossier_field.nil?
 
       dossier_number = initial_dossier_field.string_value
       result = nil

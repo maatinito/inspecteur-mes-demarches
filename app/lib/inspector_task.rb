@@ -14,6 +14,7 @@ class InspectorTask
     @messages = []
     @accessed_fields = Set[]
     unless valid?
+      puts "Erreur à l'initialisation d'une tache"
       puts @errors
     end
   end

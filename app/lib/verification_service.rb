@@ -129,7 +129,7 @@ class VerificationService
   end
 
   def remove_checks(dossier)
-    Rails.logger.info("Dossier non concerné par les contrôles")
+    Rails.logger.info('Dossier non concerné par les contrôles')
     Check.where(dossier: dossier).destroy_all
   end
 
@@ -331,21 +331,21 @@ class VerificationService
 
   def liste_anomalies(md_dossier, anomalies)
     msg_key = case anomalies.size
-    when 0
-      :tout_va_bien
-    when 1
-      :entete_anomalie
-    else
-      :entete_anomalies
-    end
+              when 0
+                :tout_va_bien
+              when 1
+                :entete_anomalie
+              else
+                :entete_anomalies
+              end
     entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
     anomalie_table = '<table class="table table-striped">' + anomalies.map do |a|
       '<tr>' \
-        '<td>' + a.field + '</td>' \
-        '<td>' + a.value + '</td>' \
-        '<td>' + a.message + '</td>' \
-        '</tr>'
+      '<td>' + a.field + '</td>' \
+                         '<td>' + a.value + '</td>' \
+                                            '<td>' + a.message + '</td>' \
+                                                                 '</tr>'
     end.join("\n") + '</table>'
     fin_anomalie = anomalies.empty? ? '' : @pieces_messages[:fin_anomalie].gsub(/--dossier--/, modifier_url(md_dossier))
     entete_anomalies + anomalie_table + fin_anomalie

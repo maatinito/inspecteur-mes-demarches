@@ -6,8 +6,8 @@ namespace :dossiers do
     include Utils
     since = 10.days.ago
     demarche_id = 1054 # 1155 # 1054,
-    close_date = Date.new(2021, 07, 5)
-    start_date = Date.new(2021, 06, 29)
+    close_date = Date.new(2021, 7, 5)
+    start_date = Date.new(2021, 6, 29)
     demarche = DemarcheActions.get_demarche(demarche_id, 'cloture de dossier', 'clautier@idt.pf')
     count = 0
     count_all = 0
@@ -38,67 +38,67 @@ namespace :dossiers do
   #   86910, 86944, 86986, 87005, 87007, 87057, 87083, 87106, 87202, 87253, 87347, 87362, 87482, 87581, 87806, 87886, 87952,
   #   87980, 88099, 88104, 88427, 89011, 89278, 89325, 89602, 89683, 89912, 89972, 90256, 90523, ]
   DOUBLONS = Set[
-    82533, 82825, 83103, 83246, 84163, 84272, 84343, 85369, 85843, 86237, 86400, 87065, 88279, 88407, 90043, 79802,
-    80862, 82007, 82768, 83708, 84437, 84463, 84504, 84566, 84840, 84962, 84973, 85056, 86257, 79092, 80067, 82569,
-    82572, 83718, 83933, 84133, 84293, 84527, 84639, 84673, 85047, 85098, 85650, 86186, 86629, 86806, 86846, 86870,
-    86907, 86910, 87581, 87952, 90523, 80664, 83431, 83680, 84203, 84711, 86780, 86787, 86835, 87362, 87806, 88099,
-    88104, 82001, 83764, 84047, 84411, 84570, 84980, 85169, 85951, 86177, 86188, 86750, 86986, 87005, 87007, 87980,
-    89278, 83671, 84171, 84177, 84282, 87202, 89602, 83267, 84623, 86828, 89683, 81486, 81921, 82179, 82689, 84275,
-    85031, 85714, 86207, 87106, 84545, 86906, 87253, 87482, 85625, 85872, 86338, 86812, 86944, 88427, 89011, 89325,
-    89912, 83227, 83776, 89972, 85385, 86673, 86688, 85275, 78884, 83380, 79798, 82387, 87886, 87347, 79272, 90256,
-    83831, 85910, 86176, 83321, 85585, 81619, 83002, 85672, 81594, 86155, 83836, 87083, 86167, 86597, 81321, 80630,
-    85643, 84301, 87057
+    82_533, 82_825, 83_103, 83_246, 84_163, 84_272, 84_343, 85_369, 85_843, 86_237, 86_400, 87_065, 88_279, 88_407, 90_043, 79_802,
+    80_862, 82_007, 82_768, 83_708, 84_437, 84_463, 84_504, 84_566, 84_840, 84_962, 84_973, 85_056, 86_257, 79_092, 80_067, 82_569,
+    82_572, 83_718, 83_933, 84_133, 84_293, 84_527, 84_639, 84_673, 85_047, 85_098, 85_650, 86_186, 86_629, 86_806, 86_846, 86_870,
+    86_907, 86_910, 87_581, 87_952, 90_523, 80_664, 83_431, 83_680, 84_203, 84_711, 86_780, 86_787, 86_835, 87_362, 87_806, 88_099,
+    88_104, 82_001, 83_764, 84_047, 84_411, 84_570, 84_980, 85_169, 85_951, 86_177, 86_188, 86_750, 86_986, 87_005, 87_007, 87_980,
+    89_278, 83_671, 84_171, 84_177, 84_282, 87_202, 89_602, 83_267, 84_623, 86_828, 89_683, 81_486, 81_921, 82_179, 82_689, 84_275,
+    85_031, 85_714, 86_207, 87_106, 84_545, 86_906, 87_253, 87_482, 85_625, 85_872, 86_338, 86_812, 86_944, 88_427, 89_011, 89_325,
+    89_912, 83_227, 83_776, 89_972, 85_385, 86_673, 86_688, 85_275, 78_884, 83_380, 79_798, 82_387, 87_886, 87_347, 79_272, 90_256,
+    83_831, 85_910, 86_176, 83_321, 85_585, 81_619, 83_002, 85_672, 81_594, 86_155, 83_836, 87_083, 86_167, 86_597, 81_321, 80_630,
+    85_643, 84_301, 87_057
   ]
 
   CLOSE_MESSAGE_DOUBLON = <<~EOS
-      Cher voyageur,
-
-      Pour votre venue en Polynésie française, vous avez complété un nouveau dossier sanitaire suite au changement de réglementation.
-      
-      Cet ancien dossier va être clôturé par nos équipes. Vous n'avez rien à faire.
-      Vous pouvez ignorez les messages à venir concernant ce dossier.
-      
-      Bon voyage 
-      La plateforme Manava
-      
-      ---
-      Dear traveler
-      
-      For your coming trip to french Polynesia you have completed a new health request following regulatory changes.
-      
-      This former application will now be closed by our teams. You have nothing to do.
-      Please disregard coming notifications on it.
-      
-      Have a safe trip,
-      The Manava team
+            Cher voyageur,
+    #{'    '}
+            Pour votre venue en Polynésie française, vous avez complété un nouveau dossier sanitaire suite au changement de réglementation.
+        #{'    '}
+            Cet ancien dossier va être clôturé par nos équipes. Vous n'avez rien à faire.
+            Vous pouvez ignorez les messages à venir concernant ce dossier.
+        #{'    '}
+            Bon voyage#{' '}
+            La plateforme Manava
+        #{'    '}
+            ---
+            Dear traveler
+        #{'    '}
+            For your coming trip to french Polynesia you have completed a new health request following regulatory changes.
+        #{'    '}
+            This former application will now be closed by our teams. You have nothing to do.
+            Please disregard coming notifications on it.
+        #{'    '}
+            Have a safe trip,
+            The Manava team
   EOS
 
   CLOSE_MESSAGE = <<~EOS
     Cher voyageur,
 
     Les conditions d'entrée en Polynésie française ont changé depuis le 9 juin (décret N°525 CM du 13 mai 2020 modifié).
-    Vous devez effectuer de nouveau les formalités au plus tard 6 jours avant le départ sur www.etis.pf 
+    Vous devez effectuer de nouveau les formalités au plus tard 6 jours avant le départ sur www.etis.pf#{' '}
 
-    Vous aurez deux demandes à effectuer : 
-    <ul><li>1.	une demande sanitaire ou demande motif impérieux (selon votre cas)</li> 
+    Vous aurez deux demandes à effectuer :#{' '}
+    <ul><li>1.	une demande sanitaire ou demande motif impérieux (selon votre cas)</li>#{' '}
     <li>une demande Etis.</li></ul>
 
     Nota :
-    <ul><li>Dans la demande Etis, si le site vous indique que votre numéro de passeport est déjà utilisé, effacez votre précédente demande Etis via le lien 'Gérer mon dossier' dans le bandeau bleu.</li>      
-    <li>>Cette ancienne demande sera classée sans suite dans les prochains jours par nos équipes.Merci d'ignorer les notifications à venir sur cette demande.</li></ul> 
+    <ul><li>Dans la demande Etis, si le site vous indique que votre numéro de passeport est déjà utilisé, effacez votre précédente demande Etis via le lien 'Gérer mon dossier' dans le bandeau bleu.</li>#{'      '}
+    <li>>Cette ancienne demande sera classée sans suite dans les prochains jours par nos équipes.Merci d'ignorer les notifications à venir sur cette demande.</li></ul>#{' '}
 
     La plateforme Manava
 
     --------------------------------------------------------------------
 
-    Dear Traveler, 
+    Dear Traveler,#{' '}
 
     The conditions for entry into French Polynesia have changed since June 9 (decree N°525 CM of May 13, 2020 modified).
     Please go to www.etis.pf to fill-out new applications.
 
     You will have two applications to fill-out:
-    <ul><li>Would the ETIS application says your passeport number is already used, you will have to delete the old application using ‘Manage my file’ link in the blue banner.</li>      
-    <li>>This former health application will be cancelled ("classe sans suite") in the coming days by our team. Please disregard the coming notifications on it.</li></ul> 
+    <ul><li>Would the ETIS application says your passeport number is already used, you will have to delete the old application using ‘Manage my file’ link in the blue banner.</li>#{'      '}
+    <li>>This former health application will be cancelled ("classe sans suite") in the coming days by our team. Please disregard the coming notifications on it.</li></ul>#{' '}
 
     Regards
     The Manava platform
@@ -114,9 +114,7 @@ namespace :dossiers do
                                           body: message,
                                           clientMutationId: 'dededed'
                                         })
-    if result.errors&.present?
-      puts(result.errors.map(&:message).join(','))
-    end
+    puts(result.errors.map(&:message).join(',')) if result.errors&.present?
   end
 
   def dossier_state(dossier)
@@ -127,7 +125,8 @@ namespace :dossiers do
     msg_sent = dossier.messages.find { |m| m.body.include?('Please disregard') }
     send_close_message(demarche, dossier) unless msg_sent
     DossierRepasserEnInstruction.new({}).change_state(demarche, dossier)
-    DossierClasserSansSuite.new({ motivation: "Annulation ancien dossier suite à l'évolution des conditions sanitaires - canceling old application because of new sanitary measures" }).change_state(demarche, dossier)
-
+    DossierClasserSansSuite.new({ motivation: "Annulation ancien dossier suite à l'évolution des conditions sanitaires - canceling old application because of new sanitary measures" }).change_state(
+      demarche, dossier
+    )
   end
 end
