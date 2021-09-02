@@ -27,7 +27,7 @@ class ExcelCheck < FieldChecker
   end
 
   def version
-    super + 4
+    super + 5
   end
 
   def required_fields
@@ -91,6 +91,7 @@ class ExcelCheck < FieldChecker
   end
 
   def bad_extension(extension)
+    extension = extension&.downcase
     extension.nil? || (!extension.end_with?('.xlsx') && !extension.end_with?('.csv') && !extension.end_with?('.xls'))
   end
 
