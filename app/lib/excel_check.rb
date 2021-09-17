@@ -122,7 +122,7 @@ class ExcelCheck < FieldChecker
       checks.each do |name|
         method = "check_#{name.to_s.downcase}"
         v = send(method, line)
-        unless v == true
+        unless v == true || v == nil
           message = v.is_a?(String) ? v : @params["message_#{name}".to_sym]
           add_message("#{champ.label}/#{sheet_name}", "#{nom} #{prenoms}", message)
         end

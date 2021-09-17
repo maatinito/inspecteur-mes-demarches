@@ -2,12 +2,14 @@
 
 module Cis
   class EtatReelCheck < ExcelCheck
+    include Shared
+
     def version
-      super + 1
+      super + 2
     end
 
     def required_fields
-      super + %i[message_colonnes_vides]
+      super + %i[message_colonnes_vides message_age]
     end
 
     COLUMNS = {
@@ -19,7 +21,7 @@ module Cis
       aide: /Aide/
     }.freeze
 
-    CHECKS = %i[format_dn nom prenoms empty_columns].freeze
+    CHECKS = %i[format_dn nom prenoms empty_columns employee_age].freeze
 
     REQUIRED_COLUMNS = %i[numero_dn absences].freeze
 
