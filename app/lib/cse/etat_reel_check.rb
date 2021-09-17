@@ -22,7 +22,7 @@ module Cse
       return unless sheet.cell(SECTEUR[0], SECTEUR[1])&.start_with?("Secteur d'activité")
 
       cotisations = sheet.cell(COTISATIONS[0], COTISATIONS[1])
-      return if cotisations != '#N/A'
+      return true if cotisations != '#N/A'
 
       message = @params[:message_secteur_activite] ||
                 "Le secteur d'activité doit être renseigné à l'aide du menu déroulant. (Flèche en C8)"

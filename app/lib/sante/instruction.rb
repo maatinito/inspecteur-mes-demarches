@@ -82,7 +82,7 @@ module Sante
 
     def check_child(arrival_date, child)
       date_of_birth = child[DATE_OF_BIRTH]
-      return if date_of_birth.blank?
+      return true if date_of_birth.blank?
 
       date_of_birth = Date.iso8601(child[DATE_OF_BIRTH])
 
@@ -94,7 +94,7 @@ module Sante
     end
 
     def check_parental_authorization(arrival_date, date_of_birth)
-      return if @parental_authorisation_given || @parental_message_triggered
+      return true if @parental_authorisation_given || @parental_message_triggered
 
       if between_6_and_18_years_old?(arrival_date, date_of_birth)
         add_message(AUTH, field_value(AUTH)&.value, @params[:autorisation_message] || AUTH_MESSAGE)
@@ -164,7 +164,7 @@ module Sante
 
     def check_date(config)
       date = get_date(config)
-      return if date.nil? || (Time.zone.now..Time.zone.now + 1.year).cover?(date)
+      return true if date.nil? || (Time.zone.now..Time.zone.now + 1.year).cover?(date)
 
       add_message(config[:src_field], date, @params[:date_message] || config[:message])
     end

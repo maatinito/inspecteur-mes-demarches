@@ -14,6 +14,7 @@ FactoryBot.define do
     message_dn { 'message_dn' }
     message_colonnes_vides { 'message_colonnes_vides' }
     message_cis_demandes { 'message_cis_demandes' }
+    message_age { 'message_age' }
     initialize_with { Cis::EtatPrevisionnelCheck.new(attributes) }
   end
 end
