@@ -30,10 +30,8 @@ module Diese
       self.class::FIELD_NAMES.each do |base_name, column, line|
         in_excel = sheet.cell(line, column)&.to_i
         field_name = base_name + sheet_name[-1]
-        in_dossier = field_value(field_name)&.value&.to_i
-        return if in_dossier == in_excel
-
-        add_message(field_name, in_dossier, "#{@params[:message_different_value]}: #{in_excel}")
+        in_dossier = field(field_name)&.value&.to_i
+        add_message(field_name, in_dossier, "#{@params[:message_different_value]}: #{in_excel}") unless in_dossier == in_excel
       end
     end
   end

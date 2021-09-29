@@ -73,7 +73,7 @@ class ResExcel < FieldChecker
   end
 
   def check(dossier)
-    champs = field(dossier, @params[:champ])
+    champs = dossier_fields(dossier, @params[:champ])
     return if champs.blank?
 
     champs.each do |champ|
@@ -100,9 +100,7 @@ class ResExcel < FieldChecker
   def check_file(champ, extension, url)
     download(url, extension) do |file|
       case extension
-      when '.xls'
-        check_xlsx(champ, file)
-      when '.xlsx'
+      when '.xls', '.xlsx'
         check_xlsx(champ, file)
       when '.csv'
         check_csv(champ, file)

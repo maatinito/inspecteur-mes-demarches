@@ -29,7 +29,7 @@ RSpec.describe ConditionalField do
     end
 
     it "have one error on Schema d'immunisation" do
-      expect(subject.messages.size).to be 1
+      expect(subject.messages.size).to eq 1
       expect(subject.messages.first).to eq message
     end
   end

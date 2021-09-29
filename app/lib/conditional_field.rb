@@ -15,15 +15,13 @@ class ConditionalField < FieldChecker
   end
 
   def check(dossier)
-    field = param_value(:champ)
+    field = param_field(:champ)
     controls = @controls[field&.value]
-    if controls.is_a? Array
-      controls.each do |task|
-        task.control(dossier)
-        @messages.push(*task.messages)
-      end
+    throw "No list for value '#{field&.value}'" unless controls.is_a? Array
+    controls.each do |task|
+      task.control(dossier)
+      @messages.push(*task.messages)
     end
-    # TODO: erreur si valeur inconnu
   end
 
   private
@@ -38,12 +36,12 @@ class ConditionalField < FieldChecker
     end
   end
 
-  def create_control(description, i)
+  def create_control(description, index)
     if description.is_a?(String)
-      Object.const_get(description.camelize).new({}).set_name("#{i}:#{description}")
+      Object.const_get(description.camelize).new({}).tap_name("#{index}:#{description}")
     else
       # hash
-      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).set_name("#{i}:#{taskname}") }
+      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).tap_name("#{index}:#{taskname}") }
     end
   end
 end

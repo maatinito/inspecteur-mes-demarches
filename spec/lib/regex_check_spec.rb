@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-def new_message(field, value, correction)
+def re_new_message(field, value, correction)
   msg = controle.params[:message]
   msg += controle.params[:message_aide] + ": #{correction}" if correction.present?
   FactoryBot.build :message, field: field, value: value, message: msg
@@ -30,7 +30,7 @@ RSpec.describe RegexCheck do
     let(:dossier_nb) { 71_828 }
     let(:field) { 'Numéro Tahiti ITI' }
     let(:value) { '007120' }
-    let(:messages) { [new_message(field, value, nil)] }
+    let(:messages) { [re_new_message(field, value, nil)] }
 
     it 'has one error message' do
       expect(subject.messages).to eq messages
@@ -42,7 +42,7 @@ RSpec.describe RegexCheck do
     let(:dossier_nb) { 71_334 }
     let(:field) { 'Numéro Tahiti ITI' }
     let(:value) { 'C28723-001' }
-    let(:messages) { [new_message(field, value, '-')] }
+    let(:messages) { [re_new_message(field, value, '-')] }
 
     it 'has one error message' do
       expect(subject.messages).to eq messages

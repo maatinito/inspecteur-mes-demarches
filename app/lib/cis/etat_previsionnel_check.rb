@@ -49,7 +49,7 @@ module Cis
 
     def check_cis_demandes(sheet)
       in_excel = sheet.cell(CIS_DEMANDES_CELL[0], CIS_DEMANDES_CELL[1])&.to_i
-      in_dossier = field_value(CIS_DEMANDES_FIELD)&.value&.to_i
+      in_dossier = field(CIS_DEMANDES_FIELD)&.value&.to_i
       return true if in_dossier == in_excel
 
       message = @params[:message_cis_demandes] ||

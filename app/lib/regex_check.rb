@@ -19,7 +19,7 @@ class RegexCheck < FieldChecker
   end
 
   def check(dossier)
-    champs = field(dossier, @params[:champ])
+    champs = dossier_fields(dossier, @params[:champ])
     if champs.present?
       champs.map do |champ|
         next if champ.value.blank? || champ.value.strip.match?(/^(#{@params[:regex]})$/)

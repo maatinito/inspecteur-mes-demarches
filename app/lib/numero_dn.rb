@@ -16,7 +16,7 @@ class NumeroDn < FieldChecker
 
   def check(dossier)
     puts "Dossier #{dossier.number}"
-    champs = field(dossier, @params[:champ])
+    champs = dossier_fields(dossier, @params[:champ])
     puts "#{dossier.number} #{champs}"
     if champs.present?
       champs.map do |champ|

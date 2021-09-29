@@ -79,10 +79,10 @@ class VerificationService
 
   def create_control(description, position)
     if description.is_a?(String)
-      Object.const_get(description.camelize).new({}).set_name("#{position}:#{description}")
+      Object.const_get(description.camelize).new({}).tap_name("#{position}:#{description}")
     else
       # hash
-      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).set_name("#{position}:#{taskname}") }
+      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).tap_name("#{position}:#{taskname}") }
     end
   end
 
@@ -340,13 +340,14 @@ class VerificationService
               end
     entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
-    anomalie_table = '<table class="table table-striped">' + anomalies.map do |a|
+    rows = anomalies.map do |a|
       '<tr>' \
       '<td>' + a.field + '</td>' \
                          '<td>' + a.value + '</td>' \
                                             '<td>' + a.message + '</td>' \
                                                                  '</tr>'
-    end.join("\n") + '</table>'
+    end.join("\n")
+    anomalie_table = "<table class=\"table table-striped\">#{rows}</table>"
     fin_anomalie = anomalies.empty? ? '' : @pieces_messages[:fin_anomalie].gsub(/--dossier--/, modifier_url(md_dossier))
     entete_anomalies + anomalie_table + fin_anomalie
   end

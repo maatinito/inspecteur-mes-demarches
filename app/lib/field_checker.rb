@@ -21,36 +21,65 @@ class FieldChecker < InspectorTask
     raise "Should be implemented by class #{self}"
   end
 
-  def field(dossier, field)
-    @accessed_fields.add(field)
+  def fields(name, warn_if_empty: true)
+    dossier_fields(@dossier, name, warn_if_empty: warn_if_empty)
+  end
+
+  def field(name, warn_if_empty: true)
+    fields(name, warn_if_empty: warn_if_empty)&.first
+  end
+
+  def annotations(name, warn_if_empty: true)
+    dossier_annotations(@dossier, name, warn_if_empty: warn_if_empty)
+  end
+
+  def annotation(name, warn_if_empty: true)
+    annotations(name, warn_if_empty: warn_if_empty)&.first
+  end
+
+  def param_fields(param_name, warn_if_empty: true)
+    fields(@params[param_name], warn_if_empty: warn_if_empty)
+  end
+
+  def param_field(param_name, warn_if_empty: true)
+    param_fields(param_name, warn_if_empty: warn_if_empty)&.first
+  end
+
+  def param_annotations(param_name, warn_if_empty: true)
+    annotations(@params[param_name], warn_if_empty: warn_if_empty)
+  end
+
+  def param_annotation(param_name, warn_if_empty: true)
+    param_annotations(param_name, warn_if_empty: warn_if_empty)&.first
+  end
+
+  def dossier_field(dossier, name, warn_if_empty: true)
+    dossier_fields(dossier, name, warn_if_empty: warn_if_empty)&.first
+  end
+
+  def dossier_fields(dossier, path, warn_if_empty: true)
+    return nil if dossier.nil? || path.blank?
+
     objects = [*dossier]
-    field.split(/\./).each do |name|
+    path.split(/\./).each do |name|
       objects = objects.flat_map { |object| object.champs.select { |champ| champ.label == name } }
+      Rails.logger.warn("Sur le dossier #{dossier.number}, le champ #{name} est vide.") if warn_if_empty && objects.blank?
     end
     objects
   end
 
-  def field_values(field)
-    return nil if @dossier.nil? || field.blank?
+  def dossier_annotations(dossier, path, warn_if_empty: true)
+    return nil if dossier.nil? || path.blank?
 
-    objects = [*@dossier]
-    field.split(/\./).each do |name|
-      objects = objects.flat_map { |object| object.champs.select { |champ| champ.label == name } }
-      Rails.logger.warn("Sur le dossier #{@dossier.number}, le champ #{field} est vide.") if objects.blank?
+    names = path.split(/\./)
+    objects = [*dossier]
+    method = :annotations
+    names.each do |name|
+      objects = objects.flat_map { |object| object.send(method).select { |champ| champ.label == name } }
+      Rails.logger.warn("Sur le dossier #{dossier.number}, l'annotation #{name} est vide.") if warn_if_empty && objects.blank?
+      method = :champs
     end
     objects
-  end
-
-  def field_value(field_name)
-    field_values(field_name)&.first
-  end
-
-  def param_values(param_name)
-    field_values(@params[param_name])
-  end
-
-  def param_value(param_name)
-    param_values(param_name)&.first
   end
 
   def add_message(champ, valeur, message)

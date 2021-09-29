@@ -46,7 +46,7 @@ class ExcelCheck < FieldChecker
   end
 
   def check(dossier)
-    champs = field(dossier, @params[:champ])
+    champs = dossier_fields(dossier, @params[:champ])
     return if champs.blank?
 
     champ = champs.first
@@ -71,9 +71,7 @@ class ExcelCheck < FieldChecker
   def check_file(champ, extension, url)
     download(url, extension) do |file|
       case extension
-      when '.xls'
-        check_xlsx(champ, file)
-      when '.xlsx'
+      when '.xls', '.xlsx'
         check_xlsx(champ, file)
       when '.csv'
         check_csv(champ, file)
@@ -84,7 +82,7 @@ class ExcelCheck < FieldChecker
   def download(url, extension)
     Tempfile.create(['res', extension]) do |f|
       f.binmode
-      f.write URI.open(url).read
+      IO.copy_stream(URI.parse(url).open, f)
       f.rewind
       yield f
     end
@@ -103,7 +101,7 @@ class ExcelCheck < FieldChecker
       columns = e.message.gsub(%r{[/\[\]]}, '')
       add_message(champ.label, champ.file.filename, "#{@params[:message_colonnes_manquantes]}: #{columns}")
       nil
-    rescue RangeError => e
+    rescue RangeError
       add_message(champ.label, champ.file.filename,
                   "Impossible de trouver la feuille #{sheet_name}. Avez vous utilisé le bon modèle de fichier Excel ?")
     end
@@ -115,14 +113,14 @@ class ExcelCheck < FieldChecker
 
   def check_sheet(champ, sheet, sheet_name, columns, checks)
     rows = sheet.parse(columns)
-    employees = rows.reject { |line| line[:prenoms].nil? || line[:prenoms].strip.blank? || line[:prenoms] =~ /Prénom/ }
+    employees = rows.reject { |line| line[:prenoms].nil? || line[:prenoms].to_s.strip.blank? || line[:prenoms] =~ /Prénom/ }
     employees.each do |line|
       nom = line[:nom] || line[:nom_marital]
       prenoms = line[:prenoms]
       checks.each do |name|
         method = "check_#{name.to_s.downcase}"
         v = send(method, line)
-        unless v == true || v == nil
+        unless [true, nil].include?(v)
           message = v.is_a?(String) ? v : @params["message_#{name}".to_sym]
           add_message("#{champ.label}/#{sheet_name}", "#{nom} #{prenoms}", message)
         end

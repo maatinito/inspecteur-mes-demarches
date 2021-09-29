@@ -34,7 +34,7 @@ RSpec.describe Diese::EtatPrevisionnelCheck do
     let(:report_messages) do
       (0..SUMS.length - 1).flat_map do |m|
         FIELD_NAMES.each_with_index.map do |_name, i|
-          value = 10 * (1 + m) + i # 10,11,  20, 21
+          value = (10 * (1 + m)) + i # 10,11,  20, 21
           new_message(field_name(FIELD_NAMES[i], m), value, :message_different_value, SUMS[m][i])
         end
       end

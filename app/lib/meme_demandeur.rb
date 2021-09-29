@@ -63,7 +63,7 @@ class MemeDemandeur < FieldChecker
   end
 
   def check(dossier)
-    champs = field(dossier, @params[:champ])
+    champs = dossier_fields(dossier, @params[:champ])
     puts "Le champ #{@params[:champ]} n'existe pas sur le dossier #{dossier.number}" if champs.blank?
     throw StandardError.new "Le champ #{@params[:champ]} n'existe pas sur le dossier #{dossier.number}" if champs.blank?
 
@@ -100,7 +100,7 @@ class MemeDemandeur < FieldChecker
 
     return if champ_cibles.blank?
 
-    return if [*champ_cibles].any? { |champ_cible| field(target_dossier, champ_cible).present? }
+    return if [*champ_cibles].any? { |champ_cible| dossier_field(target_dossier, champ_cible).present? }
 
     add_message(@params[:champ], dossier_number, @params[:message_mauvaise_demarche])
   end
