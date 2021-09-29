@@ -8,8 +8,8 @@ FIELD_NAMES = [
 ].freeze
 
 SUMS = [
-  [4, 405867],
-  [1, 147456]
+  [4, 405_867],
+  [1, 147_456]
 ].freeze
 
 LM = [
@@ -37,7 +37,7 @@ RSpec.describe Diese::EtatPrevisionnel3Check do
       (0..SUMS.length - 1).flat_map do |m|
         [FactoryBot.build(:message, field: field_name(field, m), value: 'Mauvais Taux', message: "message_taux_depasse#{RATES[m]}%")] +
           FIELD_NAMES.each_with_index.map do |_name, i|
-            value = 10 * (1 + m) + i # 10,11,  20, 21
+            value = (10 * (1 + m)) + i # 10,11,  20, 21
             new_message(field_name(FIELD_NAMES[i], m), value, :message_different_value, SUMS[m][i])
           end
       end
