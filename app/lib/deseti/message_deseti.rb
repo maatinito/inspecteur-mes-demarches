@@ -9,9 +9,7 @@ module Deseti
     end
 
     def check(dossier)
-      if dossier.state == 'accepte' && dossier.datePassageEnConstruction + @jours_ecoules.days > Time.zone.now
-        add_message('dossier', dossier.number, @message)
-      end
+      add_message('dossier', dossier.number, @message) if dossier.state == 'accepte' && dossier.datePassageEnConstruction + @jours_ecoules.days > Time.zone.now
     end
 
     def required_fields

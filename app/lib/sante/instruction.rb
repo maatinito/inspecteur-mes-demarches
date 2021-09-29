@@ -6,6 +6,10 @@ module Sante
       super + 11
     end
 
+    def authorized_fields
+      super + %i[autorisation_message too_old_child_message]
+    end
+
     def must_check?(md_dossier)
       super || annotations_not_updated(md_dossier)
     end
@@ -28,7 +32,7 @@ module Sante
         check_date(ARRIVAL)
         check_date(DEPARTURE)
       end
-      modified = set_address | set_date(ARRIVAL) | set_date(DEPARTURE) | set_flight_number
+      modified = update_address | update_date(ARRIVAL) | update_date(DEPARTURE) | update_flight_number
       Check.where(dossier: dossier.number).update_all(checked_at: Time.zone.now) if modified
     end
 
@@ -40,7 +44,7 @@ module Sante
 
     ADDRESS = 'Adresse retenue'
 
-    def set_address
+    def update_address
       return unless update_needed(ADDRESS)
 
       address = get_field('Adresse de quarantaine')&.value.to_s
@@ -52,7 +56,7 @@ module Sante
 
     FLIGHT = 'Numéro de vol retenu'
 
-    def set_flight_number
+    def update_flight_number
       return unless update_needed(FLIGHT)
 
       flight_number = get_field('Numéro du vol')
@@ -68,13 +72,20 @@ module Sante
     end
 
     AUTH = 'Autorisation de prélèvement'
-    AUTH_MESSAGE = "Vous devez donner l'autorisation d'effectuer les prélèvements sur les enfants agés de plus de 6 ans en cochant la case 'Oui - Yes'.<BR>" \
-                   "You must give authorization to perform all required COVID testing for all children above 6 by checking 'Oui - Yes'."
+    AUTH_MESSAGE = "Vous devez donner l'autorisation d'effectuer les prélèvements sur les enfants " \
+                   "agés de plus de 6 ans en cochant la case 'Oui - Yes'.<BR>" \
+                   'You must give authorization to perform all required COVID testing for all children ' \
+                   "above 6 by checking 'Oui - Yes'."
 
-    MINOR_MESSAGE = "La date de naissance de l'enfant doit désigner un enfant de moins de 18 ans au moment de l'arrivée en Polynésie. Un dossier séparé doit être rempli pour les enfants majeurs.<br>" \
-                    'The date of birth must designate a child under 18 at departure from French Polynesia. A separate application must be filled out for child above 17.'
-    DECLARE_CHILDREN = 'Puisque vous autorisez les tests sur vos enfants, les enfants voyageant avec vous doivent être déclarés dans le dossier.<br>' +
-                       'As you authorize to perform required testing on children, the application must declare children coming with you.'
+    MINOR_MESSAGE = "La date de naissance de l'enfant doit désigner un enfant de moins de 18 ans " \
+                    "au moment de l'arrivée en Polynésie. " \
+                    'Un dossier séparé doit être rempli pour les enfants majeurs.<br>' \
+                    'The date of birth must designate a child under 18 at departure from French Polynesia. ' \
+                    'A separate application must be filled out for child above 17.'
+    DECLARE_CHILDREN = 'Puisque vous autorisez les tests sur vos enfants, les enfants voyageant avec vous ' \
+                       'doivent être déclarés dans le dossier.<br>' \
+                       'As you authorize to perform required testing on children, the application must declare ' \
+                       'children coming with you.'
     FIRST_NAME = "Prénom de l'enfant"
     DATE_OF_BIRTH = "Date de naissance de l'enfant"
     CHILDREN = 'Liste des mineurs'
@@ -86,7 +97,7 @@ module Sante
 
       date_of_birth = Date.iso8601(child[DATE_OF_BIRTH])
 
-      if is_minor?(arrival_date, date_of_birth)
+      if minor?(arrival_date, date_of_birth)
         check_parental_authorization(arrival_date, date_of_birth)
       else
         add_message(CHILDREN, child[FIRST_NAME], @params[:too_old_child_message] || MINOR_MESSAGE)
@@ -96,13 +107,13 @@ module Sante
     def check_parental_authorization(arrival_date, date_of_birth)
       return true if @parental_authorisation_given || @parental_message_triggered
 
-      if between_6_and_18_years_old?(arrival_date, date_of_birth)
-        add_message(AUTH, field_value(AUTH)&.value, @params[:autorisation_message] || AUTH_MESSAGE)
-        @parental_message_triggered = true
-      end
+      return true unless between_6_and_18_years_old?(arrival_date, date_of_birth)
+
+      add_message(AUTH, field(AUTH)&.value, @params[:autorisation_message] || AUTH_MESSAGE)
+      @parental_message_triggered = true
     end
 
-    def is_minor?(arrival_date, date_of_birth)
+    def minor?(arrival_date, date_of_birth)
       (arrival_date - 18.years..arrival_date).cover?(date_of_birth)
     end
 
@@ -114,10 +125,10 @@ module Sante
       arrival_date = get_date(ARRIVAL)
       return if arrival_date.blank?
 
-      @parental_authorisation_given = field_value(AUTH)&.value == 'Oui - Yes'
+      @parental_authorisation_given = field(AUTH)&.value == 'Oui - Yes'
       @parental_message_triggered = false
 
-      children_fields = field_value(CHILDREN)&.champs
+      children_fields = field(CHILDREN)&.champs
       child = {}
       children_fields&.each do |field|
         if field.label == CIVILITY
@@ -128,11 +139,10 @@ module Sante
       end
       check_child(arrival_date, child) if child.present?
 
-      if @parental_authorisation_given && children_fields.blank?
-        date_of_birth = field_value('Date de naissance')&.value
+      return unless @parental_authorisation_given && children_fields.blank?
 
-        add_message(AUTH, 'Oui - Yes', DECLARE_CHILDREN) unless date_of_birth.blank? || is_minor?(arrival_date, Date.iso8601(date_of_birth))
-      end
+      date_of_birth = field('Date de naissance')&.value
+      add_message(AUTH, 'Oui - Yes', DECLARE_CHILDREN) unless date_of_birth.blank? || minor?(arrival_date, Date.iso8601(date_of_birth))
     end
 
     ARRIVAL = {
@@ -149,7 +159,7 @@ module Sante
                'The given departure date must be within the next 12 months.'
     }.freeze
 
-    def set_date(config)
+    def update_date(config)
       return unless update_needed(config[:dst_field])
 
       date = get_field(config[:src_field])
@@ -157,7 +167,7 @@ module Sante
     end
 
     def get_date(config)
-      date = field_value(config[:src_field])&.value
+      date = field(config[:src_field])&.value
       date = Date.iso8601(date) if date.present?
       date
     end
@@ -167,10 +177,6 @@ module Sante
       return true if date.nil? || (Time.zone.now..Time.zone.now + 1.year).cover?(date)
 
       add_message(config[:src_field], date, @params[:date_message] || config[:message])
-    end
-
-    public def authorized_fields
-      super + %i[autorisation_message too_old_child_message]
     end
   end
 end

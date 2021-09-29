@@ -41,8 +41,8 @@ class PeriodeCheck < FieldChecker
   end
 
   def periodes(dossier)
-    debuts = field(dossier, @champ_debut).map(&:value)
-    fins = field(dossier, @champ_fin).map(&:value)
+    debuts = dossier_fields(dossier, @champ_debut).map(&:value)
+    fins = dossier_fields(dossier, @champ_fin).map(&:value)
     debuts.zip(fins)
   end
 

@@ -12,7 +12,7 @@ class MandatoryFieldCheck < FieldChecker
   def check(_dossier)
     mandotory_fields = @params[:champs]
     mandotory_fields&.each do |field_name|
-      fields = field_values(field_name)
+      fields = fields(field_name)
       empty = fields.empty? || fields.any? do |field|
         case field.__typename
         when 'PieceJustificativeChamp'

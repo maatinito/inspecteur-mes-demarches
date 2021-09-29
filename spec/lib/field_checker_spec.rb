@@ -3,18 +3,18 @@
 require 'rails_helper'
 # require 'app/lib/inspector_task'
 
-RSpec.describe FieldChecker do
-  class TestFieldChecker < FieldChecker
-    def check(dossier)
-      pp dossier
-      add_message('field', 'value', 'message') if @params[:fail]
-    end
-
-    def required_fields
-      super + %i[fail]
-    end
+class TestFieldChecker < FieldChecker
+  def check(dossier)
+    pp dossier
+    add_message('field', 'value', 'message') if @params[:fail]
   end
 
+  def required_fields
+    super + %i[fail]
+  end
+end
+
+RSpec.describe FieldChecker do
   let(:dossier) { FactoryBot.build(:dossier) }
 
   subject { TestFieldChecker.new({ fail: failed }) }

@@ -13,10 +13,10 @@ class InspectorTask
     @errors << "#{unknown_fields.join(',')} n'existe(nt) pas sur #{self.class.name.underscore}" if unknown_fields.present?
     @messages = []
     @accessed_fields = Set[]
-    unless valid?
-      puts "Erreur à l'initialisation d'une tache"
-      puts @errors
-    end
+    return if valid?
+
+    puts "Erreur à l'initialisation d'une tache"
+    puts @errors
   end
 
   def valid?
@@ -35,7 +35,7 @@ class InspectorTask
     name.gsub(/^[0-9]+:/, '')
   end
 
-  def set_name(name)
+  def tap_name(name)
     @name = name
     self
   end

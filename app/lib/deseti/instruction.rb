@@ -42,7 +42,7 @@ module Deseti
     def process(demarche, dossier_number)
       puts "-- dossier #{dossier_number} ok ==> automatic instruction --"
       dossier = pull_dossier(dossier_number)
-      deseti_number = field(dossier, @champ)&.string_value
+      deseti_number = dossier_field(dossier, @champ)&.string_value
       throw StandardError.new "Impossible de trouver le champ #{@champ} dans la démarche #{demarche.id}" unless deseti_number
       instruction(demarche, deseti_number, dossier, dossier_number) if deseti_number.present?
     end
@@ -71,7 +71,7 @@ module Deseti
     end
 
     def instruction_on_activity(demarche, dossier, dossier_number)
-      resumed = field(dossier, @champ_reprise)
+      resumed = dossier_field(dossier, @champ_reprise)
       throw StandardError.new "Le champ #{@champ_reprise} n'existe pas sur la démarche #{demarche.id}" unless resumed
 
       if resumed.value
@@ -113,12 +113,6 @@ module Deseti
         objects = objects.flat_map { |object| object.champs.select { |champ| champ.label == name } }
       end
       objects
-    end
-
-    def field(dossier, field)
-      value = fields(dossier, field)
-      value = value[0] if value.is_a? Array
-      value
     end
 
     def get_dossier(dossier_number, query)

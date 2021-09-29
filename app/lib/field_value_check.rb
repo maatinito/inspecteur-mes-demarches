@@ -15,7 +15,7 @@ class FieldValueCheck < FieldChecker
   end
 
   def check(_dossier)
-    fields = param_values(:champ)
+    fields = param_fields(:champ)
     fields.each do |field|
       case field.__typename
       when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp'

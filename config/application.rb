@@ -19,6 +19,7 @@ require 'rails'
 ].each do |railtie|
   require railtie
 rescue LoadError
+  puts ''
 end
 
 # Require the gems listed in Gemfile, including any gems
