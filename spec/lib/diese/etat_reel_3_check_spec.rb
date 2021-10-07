@@ -38,7 +38,7 @@ RSpec.describe Diese::EtatReel3Check do
     controle
   end
 
-  context 'Excel file has missing column', vcr: { cassette_name: 'diese_3_1_196370' } do
+  context 'Hotel', vcr: { cassette_name: 'diese_3_1_196370' } do
     let(:dossier_nb) { 196_370 }
     let(:value) { 'DiESE 3.1 Etat Reel Septembre Test Royal Tahitien.xlsx' }
     let(:field) { 'Etat nominatif actualisé/Etat' }
@@ -51,6 +51,26 @@ RSpec.describe Diese::EtatReel3Check do
 
     it 'should trigger error messages' do
       expect(subject.messages).to eq messages
+    end
+  end
+
+  context 'Bijouterie', vcr: { cassette_name: 'diese_3_1_197073' } do
+    let(:dossier_nb) { 197_073 }
+    let(:field) { 'Etat nominatif actualisé/Etat' }
+    let(:rate_message) do
+      FactoryBot.build :message, field: field, value: 'VANBASTAOLER REIRI', message: 'message_taux_depasse80%'
+    end
+
+    it 'should trigger error messages' do
+      expect(subject.messages).to eq [rate_message]
+    end
+  end
+
+  context 'Perliculture', vcr: { cassette_name: 'diese_3_1_197521' } do
+    let(:dossier_nb) { 197_521 }
+
+    it 'should trigger error messages' do
+      expect(subject.messages).to eq []
     end
   end
 end
