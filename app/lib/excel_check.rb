@@ -134,7 +134,7 @@ class ExcelCheck < FieldChecker
     dn = dn.to_i.to_s if dn.is_a? Float
     return check_format_date_de_naissance(line) if dn.is_a?(String) && dn.gsub(/\s+/, '').match?(/^\d{6,7}$/)
 
-    "#{@params[:message_format_dn]}:#{dn}"
+    "#{@params[:message_format_dn]}: #{dn}"
   end
 
   DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/.freeze
@@ -199,7 +199,7 @@ class ExcelCheck < FieldChecker
   def check_empty_columns(line)
     missing_columns = self.class::REQUIRED_COLUMNS.filter_map do |column_name|
       value = line[column_name]
-      column_name unless value && value.to_s.length.positive? && value.to_f >= 0
+      column_name unless value && value.to_s.length.positive?
     end
     missing_columns.empty? || "#{@params[:message_colonnes_vides]}: #{missing_columns.join(',')}"
   end

@@ -23,7 +23,7 @@ module Cps
 
       if response.success?
         result = JSON.parse(response.body)['datas']
-        puts "#{json_dn} ==> #{result}"
+        # puts "#{json_dn} ==> #{result}"
         result
       elsif response.code&.between?(401, 499)
         raise APIEntreprise::API::Error::ResourceNotFound, response

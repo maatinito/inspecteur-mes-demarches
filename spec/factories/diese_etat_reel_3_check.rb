@@ -13,7 +13,6 @@ FactoryBot.define do
     message_nom_invalide { 'message_nom_invalide' }
     message_prenom_invalide { 'message_prenom_invalide' }
     message_champ_non_renseigne { 'message_champ_non_renseigne' }
-    message_different_value { 'message_different_value' }
     message_taux_depasse { 'message_taux_depasse' }
 
     initialize_with { Diese::EtatReel3Check.new(attributes) }
