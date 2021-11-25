@@ -30,8 +30,8 @@ RSpec.describe Sante::OblivaccSheetCheck do
         [
           new_message(field, 'Manutea GAY', :message_date_de_naissance, '2208097,1981-04-13'),
           new_message(field, 'Arthur Conan', :message_dn, '1234567,1958-05-15'),
-          new_message(field, 'Incomplet Incomplet', :message_format_dn,''),
-          new_message(field, 'Incomplet Incomplet', :message_colonnes_vides, 'date_de_naissance,activite'),
+          new_message(field, 'Incomplet Incomplet', :message_format_dn, ''),
+          new_message(field, 'Incomplet Incomplet', :message_colonnes_vides, 'date_de_naissance,activite')
         ]
       end
 
