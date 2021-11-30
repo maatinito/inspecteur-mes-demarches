@@ -448,7 +448,7 @@ DEPENDENCIES
   mry
   pg (>= 0.18, < 2.0)
   puma (>= 3.12.6)
-  rails (~> 6.0)
+  rails (~> 6.1.4.1)
   rails-bootstrap-tabs (~> 0.2.2)
   roo-xls
   rspec-rails (~> 5)
