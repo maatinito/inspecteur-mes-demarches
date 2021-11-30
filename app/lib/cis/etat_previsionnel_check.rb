@@ -31,7 +31,7 @@ module Cis
 
     CHECKS = %i[format_dn format_dn_conjoint nom prenoms empty_columns employee_age].freeze
 
-    REQUIRED_COLUMNS = %i[nom prenoms civilite niveau_etudes activite].freeze
+    REQUIRED_COLUMNS = %i[nom prenoms numero_dn civilite niveau_etudes activite].freeze
 
     def sheets_to_control
       ['Stagiaires']

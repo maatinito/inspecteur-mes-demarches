@@ -35,6 +35,6 @@ module Diese
 
     CHECKS = %i[format_dn nom prenoms empty_columns].freeze
 
-    REQUIRED_COLUMNS = %i[heure_avant_convention brut_mensuel_moyen heures_a_realiser].freeze
+    REQUIRED_COLUMNS = %i[heure_avant_convention brut_mensuel_moyen heures_a_realiser numero_dn].freeze
   end
 end
