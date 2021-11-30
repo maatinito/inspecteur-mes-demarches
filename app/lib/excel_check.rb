@@ -27,7 +27,7 @@ class ExcelCheck < FieldChecker
   end
 
   def version
-    super + 5
+    super + 6
   end
 
   def required_fields
@@ -130,11 +130,11 @@ class ExcelCheck < FieldChecker
 
   def check_format_dn(line)
     dn = line[:numero_dn]
-    dn = dn.to_s if dn.is_a? Integer
     dn = dn.to_i.to_s if dn.is_a? Float
-    return check_format_date_de_naissance(line) if dn.is_a?(String) && dn.gsub(/\s+/, '').match?(/^\d{6,7}$/)
+    dn = dn.to_s.gsub(/\s+/, '')
+    return check_format_date_de_naissance(line) if dn.match?(/^\d{6,7}$/)
 
-    "#{@params[:message_format_dn]}: #{dn}"
+    "#{@params[:message_format_dn]}: #{dn}" if dn.present?
   end
 
   DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/.freeze

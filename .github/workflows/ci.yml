@@ -43,8 +43,6 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: [linters]
-    env:
-      repo: "matau/rosso"
     steps:
     -
       name: Checkout
@@ -64,7 +62,7 @@ jobs:
       uses: docker/metadata-action@v3
       with:
         # list of Docker images to use as base name for tags
-        images: ${{ env.repo }}
+        images: ${{ github.repository }}
         # generate Docker tags based on the following events/attributes
         tags: |
           type=schedule
@@ -83,9 +81,11 @@ jobs:
         platforms: linux/amd64
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
     - name: Update repo description
       uses: peter-evans/dockerhub-description@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
-        repository: "${{ env.repo }}"
+        repository: "${{ github.repository }}"
