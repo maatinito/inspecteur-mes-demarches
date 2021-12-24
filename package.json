@@ -2,12 +2,12 @@
   "name": "rosso",
   "private": true,
   "dependencies": {
-    "@rails/webpacker": "5.1.1",
+    "@rails/webpacker": "5.4.3",
     "elliptic": "^6.5.3",
     "lodash": "^4.17.19",
     "websocket-extensions": "^0.1.4"
   },
   "devDependencies": {
-    "webpack-dev-server": "^3.10.3"
+    "webpack-dev-server": "^4.6.0"
   }
 }
