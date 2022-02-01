@@ -40,7 +40,7 @@ module Cps
     TWO_DIGIT_YEAR = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d\d?)\s*$/.freeze
 
     def json_dn(dn_pairs)
-      dn_pairs = dn_pairs.map do |dn, date|
+      dn_pairs = dn_pairs.to_h do |dn, date|
         if date.is_a? String
           begin
             if (m = date.match(TWO_DIGIT_YEAR))
@@ -57,7 +57,7 @@ module Cps
         else
           raise ArgumentError "Invalid date format #{date}"
         end
-      end.to_h
+      end
       {
         datas: dn_pairs
       }.to_json
