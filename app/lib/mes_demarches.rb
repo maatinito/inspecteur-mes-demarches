@@ -91,7 +91,7 @@ module MesDemarches
       ... on PieceJustificativeChamp  {
           file {
               contentType
-              byteSize
+              checksum
               filename
               url
           }
