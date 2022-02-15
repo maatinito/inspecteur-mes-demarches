@@ -446,6 +446,7 @@ DEPENDENCIES
   letter_opener_web
   listen (>= 3.0.5, < 3.2)
   mailjet
+  mime-types
   mry
   pg (>= 0.18, < 2.0)
   puma (>= 3.12.6)
