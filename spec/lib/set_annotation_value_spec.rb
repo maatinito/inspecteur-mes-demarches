@@ -20,7 +20,7 @@ RSpec.describe SetAnnotationValue do
   end
 
   context 'when parameters are good' do
-    let(:dossier) { 286690 }
+    let(:dossier) { 286_690 }
     let(:demarche) { DemarcheActions.get_demarche(1488, 'test') }
 
     context 'champ texte', vcr: { cassette_name: 'set_annotation_text' } do

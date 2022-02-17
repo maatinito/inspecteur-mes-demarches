@@ -13,14 +13,14 @@ class SetAnnotationValue
     end
   end
 
-  def self.set_piece_justificative(md_dossier, instructeur_id, annotation_name, input_path)
+  def self.set_piece_justificative(md_dossier, instructeur_id, annotation_name, path, filename = File.basename(path))
     annotation = get_annotation(md_dossier, annotation_name)
     if annotation.present?
       old_checksum = annotation.file&.checksum
-      new_checksum = checksum(input_path)
+      new_checksum = checksum(path)
       different_file = old_checksum != new_checksum
       if different_file
-        attachment = upload_file(md_dossier.id, input_path, new_checksum)
+        attachment = upload_file(md_dossier.id, new_checksum, path, filename)
         raw_set_piece_justificative(md_dossier.id, instructeur_id, annotation.id, attachment)
       end
     else
@@ -37,7 +37,7 @@ class SetAnnotationValue
         value: value,
         client_mutation_id: 'set_value'
       })
-    errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first["errors"]
+    errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
     throw errors.join(';') if errors.present?
   end
 
@@ -140,10 +140,8 @@ class SetAnnotationValue
     }
   GRAPHQL
 
-  private
-
   def self.typed_query(value)
-    query = case value
+    case value
     when String
       Queries::SetText
     when Date
@@ -157,25 +155,25 @@ class SetAnnotationValue
     end
   end
 
-  def self.upload_file(dossier_id, path, checksum)
-    slot = upload_slot(dossier_id, checksum, path)
+  def self.upload_file(dossier_id, checksum, path, filename)
+    slot = upload_slot(dossier_id, checksum, path, filename)
     params = slot.direct_upload
     response = Typhoeus.put(params.url, headers: JSON.parse(params.headers), body: File.read(path, mode: 'rb'))
     throw response.response_body if response.code != 200
     params.signed_blob_id
   end
 
-  def self.upload_slot(dossier_id, checksum, path)
+  def self.upload_slot(dossier_id, checksum, path, filename)
     result = MesDemarches::Client.query(Queries::CreateDirectUpload, variables:
       {
         dossier_id: dossier_id,
-        filename: File.basename(path),
+        filename: filename,
         byteSize: File.size(path),
         checksum: checksum,
         contentType: (MIME::Types.type_for(path).presence || MIME::Types['text/plain']).first.to_s,
         client_mutation_id: 'upload'
       })
-    errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first["errors"]
+    errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
     throw errors.join(';') if errors.present?
 
     result.data&.create_direct_upload
@@ -190,7 +188,7 @@ class SetAnnotationValue
         attachment_id: attachment_id,
         client_mutation_id: 'set_value'
       })
-    errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first["errors"]
+    errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
     throw errors.join(';') if errors.present?
     result.data
   end
@@ -199,4 +197,3 @@ class SetAnnotationValue
     Digest::MD5.base64digest(File.read(file_path))
   end
 end
-
