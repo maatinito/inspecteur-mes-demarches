@@ -196,6 +196,7 @@ module MesDemarches
               ... on DossierLinkChamp {
                 stringValue
                 dossier {
+                  demarche { number }
                   ...DossierInfo
                   annotations {
                       ...ChampInfo
@@ -232,6 +233,7 @@ module MesDemarches
             ... on DossierLinkChamp {
               stringValue
               dossier {
+                demarche { number }
                 ...DossierInfo
                 annotations {
                     ...ChampInfo
