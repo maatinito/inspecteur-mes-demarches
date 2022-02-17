@@ -23,4 +23,13 @@ module Utils
     end
     @initial_dossier
   end
+
+  def download(url, extension)
+    Tempfile.create(['res', extension]) do |f|
+      f.binmode
+      IO.copy_stream(URI.parse(url).open, f)
+      f.rewind
+      yield f
+    end
+  end
 end

@@ -22,10 +22,10 @@ class DemarcheActions
 
   def self.update_or_create_demarche(gql_demarche, configuration_name, instructeur_email)
     gql_instructeur = if instructeur_email
-      gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == instructeur_email }
-    else
-      gql_demarche.groupe_instructeurs.first.instructeurs.first
-    end
+                        gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == instructeur_email }
+                      else
+                        gql_demarche.groupe_instructeurs.first.instructeurs.first
+                      end
     throw StandardError.new "Aucun instructeur #{instructeur_email} sur la demarche #{gql_demarche.number}" if gql_instructeur.nil?
 
     demarche = Demarche.find_or_create_by({ id: gql_demarche.number }) do |d|

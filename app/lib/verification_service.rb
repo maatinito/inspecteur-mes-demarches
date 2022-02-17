@@ -213,8 +213,19 @@ class VerificationService
       if check_obsolete?(check, control, md_dossier)
         apply_control(control, md_dossier, check) if control.must_check?(md_dossier)
         check.update(checked_at: start_time, version: control.version)
+        avoid_useless_checks(control)
       end
       check
+    end
+  end
+
+  def avoid_useless_checks(control)
+    control.modified_dossiers.each do |dossier|
+      checked_at = Check.arel_table[:checked_at]
+      checkers = Check.where(dossier: dossier.number)
+                      .where(checked_at.gt(dossier.date_derniere_modification))
+      Rails.logger.debug("Checkers : #{checkers.map(&:checker).join(',')}")
+      checkers.update_all(checked_at: Time.zone.now)
     end
   end
 
