@@ -3,7 +3,7 @@
 class DemarcheActions
   EPOCH = Time.zone.parse('2000-01-01 00:00')
 
-  def self.get_demarche(demarche_number, configuration_name, instructeur_email)
+  def self.get_demarche(demarche_number, configuration_name, instructeur_email = nil)
     gql_demarche = get_graphql_demarche(demarche_number)
     demarche = update_or_create_demarche(gql_demarche, configuration_name, instructeur_email)
     update_instructeurs(demarche, gql_demarche)
@@ -21,7 +21,11 @@ class DemarcheActions
   end
 
   def self.update_or_create_demarche(gql_demarche, configuration_name, instructeur_email)
-    gql_instructeur = gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == instructeur_email }
+    gql_instructeur = if instructeur_email
+                        gql_demarche.groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == instructeur_email }
+                      else
+                        gql_demarche.groupe_instructeurs.first.instructeurs.first
+                      end
     throw StandardError.new "Aucun instructeur #{instructeur_email} sur la demarche #{gql_demarche.number}" if gql_instructeur.nil?
 
     demarche = Demarche.find_or_create_by({ id: gql_demarche.number }) do |d|

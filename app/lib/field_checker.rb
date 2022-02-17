@@ -3,12 +3,13 @@
 require 'set'
 
 class FieldChecker < InspectorTask
-  attr_reader :messages, :accessed_fields, :dossier
+  attr_reader :messages, :accessed_fields, :dossier, :modified_dossiers
 
   attr_writer :demarche
 
   def control(dossier)
     @messages = []
+    @modified_dossiers = []
     @dossier = dossier
     check(dossier)
   end
@@ -89,5 +90,9 @@ class FieldChecker < InspectorTask
   def version
     @params_version ||= @params.values.reduce(Digest::SHA1.new) { |d, s| d << s.to_s }.hexdigest.to_i(16) % (2 << 31)
     1 + @params_version
+  end
+
+  def annotation_updated_on(dossier)
+    @modified_dossiers << dossier unless @modified_dossiers.any? { |d| d.number == dossier.number }
   end
 end

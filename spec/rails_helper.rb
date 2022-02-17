@@ -66,6 +66,6 @@ RSpec.configure do |config|
   # config.filter_gems_from_backtrace("gem name")
 
   VCR.use_cassette('mes_demarches') do
-    DemarcheActions.get_demarche(217, 'DESETI', 'clautier@idt.pf')
+    DemarcheActions.get_demarche(217, 'DESETI')
   end
 end

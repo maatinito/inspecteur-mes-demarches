@@ -33,7 +33,8 @@ class DossierActions
     result = MesDemarches::Client.query(MesDemarches::Queries::Dossier,
                                         variables: { dossier: dossier_number })
     dossier = result.data&.dossier
-    yield dossier if dossier.present?
+    r = yield dossier if dossier.present?
     Rails.logger.error(result.errors.values.join(',')) unless dossier
+    r
   end
 end

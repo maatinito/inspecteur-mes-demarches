@@ -6,7 +6,7 @@ require 'roo'
 
 class MemeDemandeur < FieldChecker
   def version
-    super + 16
+    super + 17
   end
 
   def required_fields
@@ -30,6 +30,7 @@ class MemeDemandeur < FieldChecker
 
     query Dossier($dossier: Int!) {
       dossier(number: $dossier) {
+          number
           usager {
             email
           }
@@ -100,7 +101,7 @@ class MemeDemandeur < FieldChecker
 
     return if champ_cibles.blank?
 
-    return if [*champ_cibles].any? { |champ_cible| dossier_field(target_dossier, champ_cible).present? }
+    return if [*champ_cibles].any? { |champ_cible| dossier_field(target_dossier, champ_cible, warn_if_empty: false).present? }
 
     add_message(@params[:champ], dossier_number, @params[:message_mauvaise_demarche])
   end

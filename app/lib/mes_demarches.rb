@@ -91,7 +91,7 @@ module MesDemarches
       ... on PieceJustificativeChamp  {
           file {
               contentType
-              byteSize
+              checksum
               filename
               url
           }
@@ -196,6 +196,7 @@ module MesDemarches
               ... on DossierLinkChamp {
                 stringValue
                 dossier {
+                  demarche { number }
                   ...DossierInfo
                   annotations {
                       ...ChampInfo
@@ -232,6 +233,7 @@ module MesDemarches
             ... on DossierLinkChamp {
               stringValue
               dossier {
+                demarche { number }
                 ...DossierInfo
                 annotations {
                     ...ChampInfo

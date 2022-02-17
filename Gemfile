@@ -40,6 +40,7 @@ gem 'jbuilder', '~> 2.5'
 # Reduces boot times through caching; required in config/boot.rb
 gem 'bootsnap', '>= 1.1.0', require: false
 gem 'bootstrap', '~> 4.5.0'
+gem 'caxlsx'
 gem 'delayed_cron_job' # Cron jobs
 gem 'delayed_job_active_record'
 gem 'delayed_job_web'
@@ -49,6 +50,7 @@ gem 'fugit'
 gem 'haml-rails'
 gem 'jquery-rails'
 gem 'mailjet'
+gem 'mime-types'
 gem 'rails-bootstrap-tabs', '~> 0.2.2'
 gem 'roo-xls'
 gem 'typhoeus'
