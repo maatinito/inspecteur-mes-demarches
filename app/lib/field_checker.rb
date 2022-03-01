@@ -83,6 +83,33 @@ class FieldChecker < InspectorTask
     objects
   end
 
+  def select_champ(champs, name)
+    champs.select { |champ| champ.label == name }
+  end
+
+  def attributes(object, name)
+    values = Array(object.send(name))
+    return values unless name.match?(/date/i)
+
+    values.map { |v| v.is_a?(String) ? Date.iso8601(v) : v }
+  end
+
+  def object_field_values(source, field, log_empty)
+    objects = [*source]
+    field.split(/\./).each do |name|
+      objects = objects.flat_map do |object|
+        object = object.dossier if object.respond_to?(:dossier)
+        r = []
+        r += select_champ(object.champs, name) if object.respond_to?(:champs)
+        r += select_champ(object.annotations, name) if object.respond_to?(:annotations)
+        r += attributes(object, name) if object.respond_to?(name)
+        r
+      end
+      Rails.logger.warn("Sur le dossier #{@dossier.number}, le champ #{field} est vide.") if log_empty && objects.blank?
+    end
+    objects
+  end
+
   def add_message(champ, valeur, message)
     @messages << Message.new(field: champ, value: valeur, message: message)
   end
