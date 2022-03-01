@@ -142,7 +142,7 @@ class VerificationService
 
   def check_updated_controls(controls)
     Rails.logger.tagged('updated control') do
-      obsolete_checks(controls).each do |check|
+      obsolete_checks(controls + ok_tasks).each do |check|
         on_dossier(check.dossier) do |dossier|
           if dossier.present?
             check_dossier(check.demarche, dossier, controls)
@@ -221,6 +221,8 @@ class VerificationService
 
   def avoid_useless_checks(control)
     control.modified_dossiers.each do |dossier|
+      next unless dossier.present?
+
       checked_at = Check.arel_table[:checked_at]
       checkers = Check.where(dossier: dossier.number)
                       .where(checked_at.gt(dossier.date_derniere_modification))
@@ -258,13 +260,27 @@ class VerificationService
     message_nb = checks.flat_map(&:messages).size
     if message_nb.zero?
       ok_tasks.each do |task|
-        task.process(demarche, md_dossier) if task.valid?
+        Rails.logger.tagged(task.name) do
+          check = Check.find_or_create_by(demarche: demarche, dossier: md_dossier.number, checker: task.name)
+          start_time = Time.zone.now
+          apply_task(demarche, task, md_dossier, check)
+          check.update(checked_at: start_time, version: task.version)
+        end
       end
     end
   end
 
+  def apply_task(demarche, task, md_dossier, check)
+    check.failed = !task.valid?
+    task.process(demarche, md_dossier) if task.valid?
+  rescue StandardError => e
+    check.failed = true
+    Rails.logger.error(e)
+    Rails.logger.debug(e.backtrace)
+  end
+
   def ok_tasks
-    @ok_tasks ||= @procedure['when_ok'].map.with_index do |description, i|
+    @ok_tasks ||= Array[*@procedure['when_ok']].map.with_index do |description, i|
       create_control(description, i)
     end.flatten
   end
@@ -333,7 +349,7 @@ class VerificationService
     anomalies = liste_anomalies(md_dossier, messages)
     fin_mail = "<p>#{@pieces_messages[:fin_mail]}</p>"
     body = debut_mail + anomalies + fin_mail
-    md_send_message(md_dossier.id, instructeur_id, body)
+    SendMessage.send(md_dossier.id, instructeur_id, body)
   end
 
   def get_annotation(md_dossier, name)
@@ -342,13 +358,13 @@ class VerificationService
 
   def liste_anomalies(md_dossier, anomalies)
     msg_key = case anomalies.size
-              when 0
-                :tout_va_bien
-              when 1
-                :entete_anomalie
-              else
-                :entete_anomalies
-              end
+    when 0
+      :tout_va_bien
+    when 1
+      :entete_anomalie
+    else
+      :entete_anomalies
+    end
     entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
     rows = anomalies.map do |a|
@@ -365,16 +381,5 @@ class VerificationService
 
   def modifier_url(md_dossier)
     ENV['GRAPHQL_HOST'] + "/dossiers/#{md_dossier.number}/modifier"
-  end
-
-  def md_send_message(dossier_id, instructeur_id, body)
-    result = MesDemarches::Client.query(MesDemarches::Mutation::EnvoyerMessage,
-                                        variables: {
-                                          dossierId: dossier_id,
-                                          instructeurId: instructeur_id,
-                                          body: body,
-                                          clientMutationId: 'dededed'
-                                        })
-    Rails.logger.error(result.errors.map(&:message).join(',')) if result.errors&.present?
   end
 end
