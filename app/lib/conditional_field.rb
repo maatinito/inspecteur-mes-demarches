@@ -2,7 +2,7 @@
 
 class ConditionalField < FieldChecker
   def version
-    super + @controls.values.flatten.reduce(2) { |s, c| s + c.version } + 1
+    super + @controls.values.flatten.reduce(2) { |s, c| s + c.version } + 3
   end
 
   def required_fields
@@ -15,12 +15,15 @@ class ConditionalField < FieldChecker
   end
 
   def check(dossier)
-    field = param_field(:champ)
-    controls = @controls[field&.value]
-    throw "No list for value '#{field&.value}'" unless controls.is_a? Array
-    controls.each do |task|
-      task.control(dossier)
-      @messages.push(*task.messages)
+    values = object_field_values(dossier, @params[:champ], false)
+    values.each do |value|
+      controls = @controls[value]
+      controls = @controls['par défaut'] if controls.nil?
+      throw "No list for value '#{field&.value}'" if controls.nil?
+      controls.each do |task|
+        task.control(dossier)
+        @messages.push(*task.messages)
+      end
     end
   end
 
@@ -28,6 +31,8 @@ class ConditionalField < FieldChecker
 
   def init_controls
     @controls = @params[:valeurs].transform_values do |config|
+      next [] if config.blank? || !config.is_a?(Array)
+
       controls = config.map.with_index do |description, i|
         create_control(description, i)
       end.flatten
