@@ -53,6 +53,7 @@ gem 'mailjet'
 gem 'mime-types'
 gem 'rails-bootstrap-tabs', '~> 0.2.2'
 gem 'roo-xls'
+gem 'sablon'
 gem 'typhoeus'
 
 group :development, :test do

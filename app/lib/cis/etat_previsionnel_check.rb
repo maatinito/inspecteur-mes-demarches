@@ -39,23 +39,14 @@ module Cis
 
     def check_sheet(champ, sheet, sheet_name, columns, checks)
       super(champ, sheet, sheet_name, columns, checks)
-      check_cis_demandes(sheet)
+      check_cis_demandes(cis_count(sheet))
+    end
+
+    def cis_count(sheet)
+      sheet.cell(8, 'C')&.to_i
     end
 
     private
-
-    CIS_DEMANDES_CELL = [8, 'C'].freeze
-    CIS_DEMANDES_FIELD = 'Nombre de CIS demandés'
-
-    def check_cis_demandes(sheet)
-      in_excel = sheet.cell(CIS_DEMANDES_CELL[0], CIS_DEMANDES_CELL[1])&.to_i
-      in_dossier = field(CIS_DEMANDES_FIELD)&.value&.to_i
-      return true if in_dossier == in_excel
-
-      message = @params[:message_cis_demandes] ||
-                'Le nombre de cis demandes doit être égal au nombre de candidats dans le fichier Excel: '
-      add_message(CIS_DEMANDES_FIELD, in_dossier, "#{message}: #{in_excel}")
-    end
 
     def check_format_dn_conjoint(line)
       line[:numero_dn_conjoint].blank? ||
