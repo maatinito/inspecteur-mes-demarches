@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Cis
-  class Instruction < FieldChecker
+  class Consolidation < FieldChecker
     include Utils
 
     def version
@@ -36,7 +36,7 @@ module Cis
       oa_only = candidats.filter { |_dn, c| c[PRESENCE] == 'OA' }.map(&method(:display_person)).sort.join("\n")
       de_only = candidats.filter { |_dn, c| c[PRESENCE] == 'DE' }.map(&method(:display_person)).sort.join("\n")
       oa_de = candidats.filter { |_dn, c| c[PRESENCE] == 'OA+DE' }.map(&method(:display_person)).sort.join("\n")
-      synthese = ''
+      synthese = ''.dup
       synthese << "Candidats sans dossier individuel\n" << oa_only << "\n\n" if oa_only.present?
       synthese << "Candidats non déclarés par l'organisme\n" << de_only << "\n\n" if de_only.present?
       synthese << "Candidats déclarés\n" << oa_de if oa_de.present?
@@ -83,7 +83,7 @@ module Cis
         return rows.to_h { |row| [row['Numéro DN'], row] }
       rescue Roo::HeaderRowNotFoundError => e
         columns = e.message.gsub(%r{[/\[\]]}, '')
-        throw "Colonne(s) manquante(s) dans les données d'instruction: #{columns}"
+        throw "Colonne(s) manquante(s) dans les données d'Consolidation: #{columns}"
       end
     end
 

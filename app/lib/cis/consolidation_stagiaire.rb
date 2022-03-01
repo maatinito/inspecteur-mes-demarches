@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 module Cis
-  class InstructionStagiaire < Instruction
+  class ConsolidationStagiaire < Consolidation
     def version
-      super + 20
+      super + 21
     end
 
     def required_fields
@@ -31,12 +31,8 @@ module Cis
     def dossier_oa
       champ = dossier_field(dossier, @params[:champ_oa])
       throw StandardError.new "Le champ #{@params[:champ_oa]} n'existe pas sur le dossier #{dossier.number}" if champ.blank?
+      return unless champ.dossier.present? && @demarches_oa.include?(champ.dossier.demarche.number)
 
-      unless champ.dossier.present? && @demarches_oa.include?(champ.dossier.demarche.number)
-        add_message(@params[:champ_oa], dossier_number, "Le dossier #{dossier_number} n'est pas un dossier CIS pour organisme d'accueil. "\
-                                                        "Renseignez le numéro du dossier déposé par votre organisme d'accueil")
-        return
-      end
       champ.dossier
     end
 

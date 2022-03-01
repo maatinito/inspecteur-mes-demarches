@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Cis
-  class InstructionOrganisme < Instruction
+  class ConsolidationOrganisme < Consolidation
     def version
       super + 8
     end
@@ -71,7 +71,7 @@ module Cis
         end
       rescue Roo::HeaderRowNotFoundError => e
         columns = e.message.gsub(%r{[/\[\]]}, '')
-        throw "Colonne(s) manquante(s) dans les données d'instruction: #{columns}"
+        throw "Colonne(s) manquante(s) dans les données d'Consolidation: #{columns}"
       end
     end
 
