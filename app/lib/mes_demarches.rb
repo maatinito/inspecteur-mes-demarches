@@ -252,22 +252,4 @@ module MesDemarches
         }
       }
   GRAPHQL
-
-  Mutation = Client.parse <<-'GRAPHQL'
-    mutation EnvoyerMessage($dossierId: ID!, $instructeurId: ID!, $body: String!, $clientMutationId: String!) {
-        dossierEnvoyerMessage(
-            input: {
-                dossierId: $dossierId,
-                instructeurId: $instructeurId,
-                body: $body,
-                clientMutationId: $clientMutationId
-            }) {
-            clientMutationId
-            errors {
-                message
-            }
-        }
-    }
-
-  GRAPHQL
 end
