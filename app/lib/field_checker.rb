@@ -114,11 +114,6 @@ class FieldChecker < InspectorTask
     @messages << Message.new(field: champ, value: valeur, message: message)
   end
 
-  def version
-    @params_version ||= @params.values.reduce(Digest::SHA1.new) { |d, s| d << s.to_s }.hexdigest.to_i(16) % (2 << 31)
-    1 + @params_version
-  end
-
   def annotation_updated_on(dossier)
     @modified_dossiers << dossier unless @modified_dossiers.any? { |d| d.number == dossier.number }
   end

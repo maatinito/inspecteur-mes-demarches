@@ -12,11 +12,12 @@ class VerificationService
       @send_messages = procedure['messages_automatiques']
       @inform_annotation = procedure['annotation_information']
       procedure['name'] = procedure_name
-      controls = create_controls(procedure)
       @procedure = procedure
-      check_updated_dossiers(controls)
-      check_failed_dossiers(controls)
-      check_updated_controls(controls)
+      create_controls
+      create_when_ok_tasks
+      check_updated_dossiers(@controls)
+      check_failed_dossiers(@controls)
+      check_updated_controls(@controls)
     rescue StandardError => e
       Rails.logger.error(e.message)
       e.backtrace.each { |b| Rails.logger.debug(b) }
@@ -71,8 +72,14 @@ class VerificationService
     Rails.logger.error(result.errors.values.join(',')) unless data
   end
 
-  def create_controls(procedure)
-    procedure['controles'].flatten.map.with_index do |description, i|
+  def create_controls
+    @controls = instanciate(@procedure['controles'])
+  end
+
+  def instanciate(elements)
+    return [] if elements.blank?
+
+    elements.flatten.map.with_index do |description, i|
       create_control(description, i)
     end.flatten
   end
@@ -142,7 +149,7 @@ class VerificationService
 
   def check_updated_controls(controls)
     Rails.logger.tagged('updated control') do
-      obsolete_checks(controls + ok_tasks).each do |check|
+      obsolete_checks(controls + @ok_tasks).each do |check|
         on_dossier(check.dossier) do |dossier|
           if dossier.present?
             check_dossier(check.demarche, dossier, controls)
@@ -202,7 +209,7 @@ class VerificationService
     end
     unless failed_checks
       inform(md_dossier, checks, send_message: @send_messages) if @dossier_has_different_messages
-      when_ok(demarche, md_dossier, checks) if @procedure['when_ok']
+      when_ok(demarche, md_dossier, checks) if @ok_tasks.present?
     end
   end
 
@@ -257,9 +264,9 @@ class VerificationService
   end
 
   def when_ok(demarche, md_dossier, checks)
-    message_nb = checks.flat_map(&:messages).size
-    if message_nb.zero?
-      ok_tasks.each do |task|
+    message_present = checks.any? { |c| c.messages.present? }
+    unless message_present
+      @ok_tasks.each do |task|
         Rails.logger.tagged(task.name) do
           check = Check.find_or_create_by(demarche: demarche, dossier: md_dossier.number, checker: task.name)
           start_time = Time.zone.now
@@ -270,6 +277,10 @@ class VerificationService
     end
   end
 
+  def create_when_ok_tasks
+    @ok_tasks = instanciate(@procedure['when_ok'])
+  end
+
   def apply_task(demarche, task, md_dossier, check)
     check.failed = !task.valid?
     task.process(demarche, md_dossier) if task.valid?
@@ -277,12 +288,6 @@ class VerificationService
     check.failed = true
     Rails.logger.error(e)
     Rails.logger.debug(e.backtrace)
-  end
-
-  def ok_tasks
-    @ok_tasks ||= Array[*@procedure['when_ok']].map.with_index do |description, i|
-      create_control(description, i)
-    end.flatten
   end
 
   def apply_control(control, md_dossier, check)
@@ -358,13 +363,13 @@ class VerificationService
 
   def liste_anomalies(md_dossier, anomalies)
     msg_key = case anomalies.size
-    when 0
-      :tout_va_bien
-    when 1
-      :entete_anomalie
-    else
-      :entete_anomalies
-    end
+              when 0
+                :tout_va_bien
+              when 1
+                :entete_anomalie
+              else
+                :entete_anomalies
+              end
     entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
     rows = anomalies.map do |a|
