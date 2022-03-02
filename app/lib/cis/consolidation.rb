@@ -5,7 +5,7 @@ module Cis
     include Utils
 
     def version
-      super + 11
+      super + 12
     end
 
     def required_fields
@@ -52,12 +52,17 @@ module Cis
 
     DEMANDEUR = %w[Civilité Nom Prénom].freeze
     CHAMPS_DE = ["Niveau d'études", "Nombre d'enfants", 'Commune géographique', 'Numéro de téléphone', 'IBAN'].freeze
-    CHAMPS_OA = ['Activité'].freeze
+    ROME = 'Code ROME'
+    ACTIVITE = 'Activité'
+    CHAMPS_OA = [ACTIVITE, ROME].freeze
     PRESENCE = 'Présence'
     DOSSIER = 'Dossier'
+
     COLUMN_REGEXPS = (
       [DOSSIER, PRESENCE] + DEMANDEUR + dn_fields('') + CHAMPS_OA + CHAMPS_DE + dn_fields(' du conjoint')
     ).to_h { |v| [v, Regexp.new(Regexp.quote(v), 'i')] }.freeze
+
+    OLD_COLUMN_REGEXPS = COLUMN_REGEXPS.except(ROME)
 
     def bad_extension(extension)
       extension = extension&.downcase
@@ -72,25 +77,31 @@ module Cis
       file = champ.file
       return {} unless file.present?
 
-      filename = file.filename
-      url = file.url
-      extension = File.extname(filename)
-      return {} if bad_extension(extension)
+      return {} if bad_extension(File.extname(file.filename))
 
-      download(url, extension) do |xlsx_file|
-        xlsx = Roo::Spreadsheet.open(xlsx_file)
-        rows = xlsx.sheet(0).parse(COLUMN_REGEXPS)
-        return rows.to_h { |row| [row['Numéro DN'], row] }
+      PieceJustificativeCache.get(file) do |xlsx_file|
+        return candidats_from_xlsx(xlsx_file)
       rescue Roo::HeaderRowNotFoundError => e
         columns = e.message.gsub(%r{[/\[\]]}, '')
         throw "Colonne(s) manquante(s) dans les données d'Consolidation: #{columns}"
       end
     end
 
+    def candidats_from_xlsx(xlsx_file)
+      xlsx = Roo::Spreadsheet.open(xlsx_file)
+      begin
+        rows = xlsx.sheet(0).parse(COLUMN_REGEXPS)
+      rescue Roo::HeaderRowNotFoundError
+        rows = xlsx.sheet(0).parse(OLD_COLUMN_REGEXPS)
+      end
+      rows.to_h { |row| [row['Numéro DN'], row] }
+    end
+
     def set_candidats_attribute(dossier, field, candidats)
       save_excel(candidats) do |f|
         SetAnnotationValue.set_piece_justificative(dossier, @demarche.instructeur, field, f.path, "#{field}.xlsx")
         annotation_updated_on(@dossier_oa)
+        PieceJustificativeCache.put(f.path)
       end
     end
   end

@@ -3,7 +3,7 @@
 module Cis
   class ConsolidationOrganisme < Consolidation
     def version
-      super + 8
+      super + 9
     end
 
     def required_fields
@@ -47,9 +47,35 @@ module Cis
     end
 
     def save_candidat(candidats, bloc)
+      bloc[ROME] = code_rome(bloc[ACTIVITE])
       dn = bloc['Numéro DN']
       candidats[dn] = candidats[dn]&.merge(bloc) || bloc
       add_presence(candidats[dn])
+    end
+
+    CODES_ROMES = {
+      'Accueil et d’information' => 'M1601',
+      'Aide agricole et horticole' => 'A1402',
+      'Aide-livreur' => 'N4105',
+      'Animation culturelles et sportives' => 'G1202',
+      'Assistance auprès de personnes' => 'K1302',
+      'Assistant de vie scolaire' => 'K2104',
+      'Autres' => '',
+      'Bâtiments (Maintenance)' => 'I1203',
+      'Cuisine' => 'G1602',
+      'Enquêteur' => 'M1401',
+      'Espaces verts et jardins' => 'A1203',
+      'Habillement (confection)' => 'B1803',
+      'Menuisier' => 'H2206',
+      'Mécanicien' => 'I1604',
+      'Médiation et proximité' => 'K1204',
+      'Propreté des locaux' => 'K2204',
+      'Propreté urbaine' => 'K2303',
+      'Secrétariat et administration' => 'M1602'
+    }.freeze
+
+    def code_rome(activity)
+      CODES_ROMES[activity] || 'Inconnu'
     end
 
     HEADER_REGEXPS = ['Civilité', 'Nom', 'Prénom', 'Numéro DN', 'Date de naissance', 'Activité']
@@ -59,12 +85,9 @@ module Cis
       file = champ_etat.file
       return {} unless file.present?
 
-      filename = file.filename
-      url = file.url
-      extension = File.extname(filename)
-      return {} if bad_extension(extension)
+      return {} if bad_extension(File.extname(file.filename))
 
-      download(url, extension) do |xlsx_file|
+      PieceJustificativeCache.get(file) do |xlsx_file|
         xlsx = Roo::Spreadsheet.open(xlsx_file)
         xlsx.sheet(0).each(HEADER_REGEXPS) do |row|
           save_candidat(candidats, row) if row['Civilité'] != 'Civilité'
