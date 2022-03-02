@@ -9,11 +9,11 @@ module Cis
     end
 
     COLUMNS = ['Civilité', 'Nom', 'Prénom(s)', 'Numéro DN', 'Date de naissance', 'Activité']
-      .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
+              .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
 
     CHECKS = %i[format_dn nom prenoms empty_columns employee_age].freeze
 
-    REQUIRED_COLUMNS = %w[Nom Prénom(s) Numéro\ DN Civilité Activité].freeze
+    REQUIRED_COLUMNS = ['Nom', 'Prénom(s)', 'Numéro DN', 'Civilité', 'Activité'].freeze
 
     def sheets_to_control
       ['Stagiaires']
@@ -42,9 +42,9 @@ module Cis
       rows.size
     end
 
-    def repetition_rows(champ)
+    def repetition_rows(root_champ)
       rows = []
-      champs = champ.champs
+      champs = root_champ.champs
       bloc = {}
       champs.each do |champ|
         if bloc[champ.label].present?

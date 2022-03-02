@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class FileUpload
   def self.upload_file(dossier_id, path, filename, checksum = checksum(path))
     slot = upload_slot(dossier_id, checksum, path, filename)
@@ -46,5 +48,4 @@ class FileUpload
       }
     }
   GRAPHQL
-
 end

@@ -21,7 +21,7 @@ module Cis
       return true if in_dossier == cis_nb
 
       message = @params[:message_cis_demandes] ||
-        'Le nombre de cis demandes doit être égal au nombre de candidats dans le fichier Excel: '
+                'Le nombre de cis demandes doit être égal au nombre de candidats dans le fichier Excel: '
       add_message(CIS_DEMANDES_FIELD, in_dossier, "#{message}: #{cis_nb}")
     end
   end

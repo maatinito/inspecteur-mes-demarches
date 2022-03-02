@@ -55,5 +55,4 @@ RSpec.describe Cis::EtatPrevisionnelV2Check do
       expect(subject.messages).to eq messages
     end
   end
-
 end

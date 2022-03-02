@@ -28,8 +28,6 @@ class SetAnnotationValue
     end
   end
 
-  private
-
   def self.raw_set_value(dossier_id, instructeur_id, annotation_id, value)
     result = MesDemarches::Client.query(typed_query(value), variables:
       {
@@ -152,5 +150,4 @@ class SetAnnotationValue
     throw errors.join(';') if errors.present?
     result.data
   end
-
 end
