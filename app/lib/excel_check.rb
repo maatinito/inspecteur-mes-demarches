@@ -27,7 +27,7 @@ class ExcelCheck < FieldChecker
   end
 
   def version
-    super + 6
+    super + 7
   end
 
   def required_fields
@@ -52,14 +52,11 @@ class ExcelCheck < FieldChecker
     champ = champs.first
     file = champ.file
     if file.present?
-      filename = file.filename
-      url = file.url
-      extension = File.extname(filename)
-      if bad_extension(extension)
+      if bad_extension(File.extname(file.filename))
         add_message(champ.label, file.filename, @params[:message_type_de_fichier])
         return
       end
-      check_file(champ, extension, url)
+      check_file(champ)
     else
       # throw StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
       add_message(champ.label, '', @params[:message_champ_non_renseigne])
@@ -68,9 +65,9 @@ class ExcelCheck < FieldChecker
 
   private
 
-  def check_file(champ, extension, url)
-    download(url, extension) do |file|
-      case extension
+  def check_file(champ)
+    PieceJustificativeCache.get(champ.file) do |file|
+      case File.extname(file)
       when '.xls', '.xlsx'
         check_xlsx(champ, file)
       when '.csv'
