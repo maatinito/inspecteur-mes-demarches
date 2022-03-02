@@ -115,6 +115,7 @@ module MesDemarches
     fragment DossierInfo on Dossier {
       id
       number
+      state
       archived
       datePassageEnConstruction
       datePassageEnInstruction
@@ -181,7 +182,6 @@ module MesDemarches
               hasNextPage
           }
           nodes {
-            state
             ...DossierInfo
             annotations {
               ...ChampInfo
