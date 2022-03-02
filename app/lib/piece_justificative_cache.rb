@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class PieceJustificativeCache
   DIR = 'storage/pjs'
   SIZE = 50 * 1024 * 1024
@@ -23,7 +25,7 @@ class PieceJustificativeCache
     end
 
     def maintenance
-      files = Dir.glob(DIR + '/*').select { |f| File.file?(f) }.sort_by { |f| File.mtime(f) }
+      files = Dir.glob("#{DIR}/*").select { |f| File.file?(f) }.sort_by { |f| File.mtime(f) }
       size = files.map { |f| File.size(f) }.reduce(&:+)
       while size > SIZE && files.size > 2 # always keep at least last file
         file = files.first
@@ -36,9 +38,9 @@ class PieceJustificativeCache
     private
 
     def pathname(src, checksum)
-      checksum = checksum.gsub(/[\/\\]/, '_')
+      checksum = checksum.gsub(%r{[/\\]}, '_')
       filename = checksum + File.extname(src)
-      dst = Pathname.new(DIR) / filename
+      Pathname.new(DIR) / filename
     end
   end
 end

@@ -3,14 +3,18 @@
 require 'set'
 
 class Publipostage < FieldChecker
-  DIR = "tmp/publipost"
+  DIR = 'tmp/publipost'
+
+  def version
+    super + 15 + @calculs.map(&:version).reduce(0, &:+)
+  end
 
   def initialize(params)
     super
     @calculs = create_tasks
     @modele = @params[:modele]
-    throw "Modèle introuvable" unless File.exists?(@modele)
-    throw "OFFICE_PATH not defined in .env file" if ENV.fetch("OFFICE_PATH").blank?
+    throw 'Modèle introuvable' unless File.exist?(@modele)
+    throw 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
     FileUtils.mkdir_p(DIR)
   end
 
@@ -19,34 +23,41 @@ class Publipostage < FieldChecker
   end
 
   def authorized_fields
-    super + %i[calculs]
+    super + %i[calculs filename]
   end
 
-  def process(_demarche, dossier)
+  def process(demarche, dossier)
     @dossier = dossier
+    @demarche = demarche
+    filename = build_filename
+    # return if SendMessage.file_already_posted(dossier.number, filename)
+
     compute_dynamic_fields
     fields = get_fields(params[:champs])
     doc_path = generate_doc(fields)
-    # SetAnnotationValue.set_piece_justificative(dossier, instructeur_id, annotation, doc_path, 'convention.pdf')
 
+    SendMessage.send_with_file(dossier.id, demarche.instructeur, @params[:message], doc_path, filename)
   end
 
   def check(dossier)
     process(nil, dossier)
   end
 
-  def version
-    super + 5
-  end
-
   private
 
+  def build_filename
+    definition = @params[:filename]
+    return 'document.pdf' if definition.blank?
+
+    definition.gsub(/{[^{}]+}/) { |variable| get_values_of(variable[1..-2], '')&.first }
+  end
+
   def generate_doc(line)
-    context = line.to_h { |k, v| [k.gsub(/\s/, '_'), v] }
+    context = line.transform_keys { |k| k.gsub(/\s/, '_') }
     template = Sablon.template(File.expand_path(@modele))
     docx = "#{DIR}/#{dossier.number}.docx"
     template.render_to_file docx, context
-    stdout_str, stderr_str, status = Open3.capture3(*[ENV['OFFICE_PATH'], '--headless', '--convert-to', 'pdf', '--outdir', DIR, docx])
+    stdout_str, stderr_str, status = Open3.capture3(ENV['OFFICE_PATH'], '--headless', '--convert-to', 'pdf', '--outdir', DIR, docx)
     throw "Unable to convert #{docx} to pdf\n#{stdout_str}#{stderr_str}" if status != 0
     "#{DIR}/#{dossier.number}.pdf"
   end
@@ -112,21 +123,18 @@ class Publipostage < FieldChecker
 
   def set_field(hash, param)
     name, field, par_defaut = definition(param)
-    hash[name] = get_value_of(field, par_defaut)&.first
+    hash[name] = [*get_values_of(field, par_defaut)].join(',')
     hash
   end
 
-  def get_value_of(field, par_defaut)
+  def get_values_of(field, par_defaut)
     return par_defaut unless field
 
     value = @computed[field] if @computed.is_a? Hash
     return value if value.present?
 
     champs = field_values(@dossier, field, log_empty: false)
-    return champs_to_values(champs) || []
-
-    # add_message(Message::WARN, "Impossible de trouver le champ #{field}")
-    par_defaut
+    champs_to_values(champs) || [par_defaut]
   end
 
   def definition(param)
@@ -143,7 +151,7 @@ class Publipostage < FieldChecker
   end
 
   def last_name(field)
-    field[(field.rindex('.') || -1) + 1..-1]
+    field[(field.rindex('.') || -1) + 1..]
   end
 
   def champs_to_values(champs)
@@ -197,7 +205,6 @@ class Publipostage < FieldChecker
     if champ.value.present?
       Date.iso8601(champ.value).strftime(format)
     else
-      add_message(Message::WARN, "champ #{champ.label} vide")
       ''
     end
   end
@@ -207,19 +214,18 @@ class Publipostage < FieldChecker
   end
 
   def compute_cells
-    @calculs.map { |task| task.process_dossier(@dossier) }.reduce(&:merge)
+    @calculs.map { |task| task.process(@demarche, @dossier) }.reduce(&:merge)
   end
 
   def create_tasks
     taches = params[:calculs]
     return [] if taches.nil?
 
-    taches.flatten.map do |task|
-      case task
-      when String
-        Object.const_get(task.camelize).new(job, {})
-      when Hash
-        task.map { |name, params| Object.const_get(name.camelize).new(@job, params || {}) }
+    taches.flatten.map.with_index do |description, position|
+      if description.is_a?(String)
+        Object.const_get(description.camelize).new({}).tap_name("#{position}:#{description}")
+      else # hash
+        description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).tap_name("#{position}:#{taskname}") }
       end
     end.flatten
   end
@@ -271,5 +277,4 @@ class Publipostage < FieldChecker
   def field_value(field_name)
     field_values(field_name)&.first
   end
-
 end
