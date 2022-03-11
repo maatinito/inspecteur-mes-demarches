@@ -20,7 +20,7 @@ class VerificationService
       check_updated_controls(@controls)
     rescue StandardError => e
       Rails.logger.error(e.message)
-      e.backtrace.each { |b| Rails.logger.debug(b) }
+      e.backtrace.select { |b| b.include?('/app/') }.first(10).each { |b| Rails.logger.debug(b) }
     end
   end
 
@@ -221,13 +221,14 @@ class VerificationService
         apply_control(control, md_dossier, check) if control.must_check?(md_dossier)
         check.update(checked_at: start_time, version: control.version)
         avoid_useless_checks(control)
+        recheck_dependent_dossiers(control)
       end
       check
     end
   end
 
   def avoid_useless_checks(control)
-    control.modified_dossiers.each do |dossier|
+    control.dossiers_to_ignore.each do |dossier|
       next unless dossier.present?
 
       checked_at = Check.arel_table[:checked_at]
@@ -236,6 +237,11 @@ class VerificationService
       Rails.logger.debug("Checkers : #{checkers.map(&:checker).join(',')}")
       checkers.update_all(checked_at: Time.zone.now)
     end
+  end
+
+  def recheck_dependent_dossiers(control)
+    # tags associated checks to trigger recheck
+    Check.where(dossier: control.dossiers_to_recheck).update_all(version: 0)
   end
 
   def check_obsolete?(check, control, md_dossier)
@@ -287,7 +293,7 @@ class VerificationService
   rescue StandardError => e
     check.failed = true
     Rails.logger.error(e)
-    Rails.logger.debug(e.backtrace)
+    e.backtrace.select { |b| b.include?('/app/') }.first(10).each { |b| Rails.logger.debug(b) }
   end
 
   def apply_control(control, md_dossier, check)
@@ -305,7 +311,7 @@ class VerificationService
   rescue StandardError => e
     check.failed = true
     Rails.logger.error(e)
-    Rails.logger.debug(e.backtrace)
+    e.backtrace.select { |b| b.include?('/app/') }.first(10).each { |b| Rails.logger.debug(b) }
   end
 
   NOMS_PIECES_MESSAGES = %i[debut_premier_mail debut_second_mail entete_anomalies entete_anomalie tout_va_bien fin_mail].freeze
@@ -343,7 +349,14 @@ class VerificationService
   end
 
   def inform_instructeur(md_dossier, instructeur_id, messages)
-    if SetAnnotationValue.set_value(md_dossier, instructeur_id, @inform_annotation, messages.present?)
+    annotation = md_dossier.annotations.find { |champ| champ.label == @inform_annotation }
+    throw "Unable to find information annotation named '#{@inform_annotation}'" if annotation.nil?
+    value = if annotation.__typename == 'CheckboxChamp'
+      messages.present?
+    else
+      messages.present? ? 'En erreur' : 'OK'
+    end
+    if SetAnnotationValue.set_value(md_dossier, instructeur_id, @inform_annotation, value)
       # modified dossier ==> prevent next checking to consider the document is updated
       Check.where(dossier: md_dossier.number).update_all(checked_at: Time.zone.now)
     end
@@ -363,13 +376,13 @@ class VerificationService
 
   def liste_anomalies(md_dossier, anomalies)
     msg_key = case anomalies.size
-              when 0
-                :tout_va_bien
-              when 1
-                :entete_anomalie
-              else
-                :entete_anomalies
-              end
+    when 0
+      :tout_va_bien
+    when 1
+      :entete_anomalie
+    else
+      :entete_anomalies
+    end
     entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
     rows = anomalies.map do |a|

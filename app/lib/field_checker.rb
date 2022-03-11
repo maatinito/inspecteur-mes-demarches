@@ -3,13 +3,14 @@
 require 'set'
 
 class FieldChecker < InspectorTask
-  attr_reader :messages, :accessed_fields, :dossier, :modified_dossiers
+  attr_reader :messages, :accessed_fields, :dossier, :dossiers_to_ignore, :dossiers_to_recheck
 
   attr_writer :demarche
 
   def control(dossier)
     @messages = []
-    @modified_dossiers = []
+    @dossiers_to_ignore = Set.new
+    @dossiers_to_recheck = Set.new
     @dossier = dossier
     check(dossier)
   end
@@ -115,6 +116,10 @@ class FieldChecker < InspectorTask
   end
 
   def annotation_updated_on(dossier)
-    @modified_dossiers << dossier unless @modified_dossiers.any? { |d| d.number == dossier.number }
+    @dossiers_to_ignore << dossier
+  end
+
+  def recheck(dossier)
+    dossiers_to_recheck << dossier if dossier.present?
   end
 end
