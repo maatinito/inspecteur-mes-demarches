@@ -41,6 +41,7 @@ gem 'jbuilder', '~> 2.5'
 gem 'bootsnap', '>= 1.1.0', require: false
 gem 'bootstrap', '~> 4.5.0'
 gem 'caxlsx'
+gem 'combine_pdf'
 gem 'delayed_cron_job' # Cron jobs
 gem 'delayed_job_active_record'
 gem 'delayed_job_web'
