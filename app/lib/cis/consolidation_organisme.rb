@@ -14,27 +14,12 @@ module Cis
       candidats = candidats(dossier)
       previous_candidats = candidats.deep_dup
       update_candidats(candidats, dossier)
-      if previous_candidats != candidats
-        set_candidats_attribute(dossier, params[:champ_candidats], candidats.values)
-        # set_text_attribute(dossier, params[:champ_synthese], synthese(candidats))
-      end
-      # update_conventions(candidats)
+      return unless previous_candidats != candidats
+
+      set_candidats_attribute(dossier, params[:champ_candidats], candidats.values)
     end
 
     private
-
-    # def update_conventions(candidats)
-    #   generate_convention = param_annotation(:champ_conventions)
-    #   throw "Unable to find annotation #{@params[:champ_conventions]}" if generate_convention.nil?
-    #   return unless generate_convention.value
-    #
-    #   # ask for recheck of dependent files to generate conventions
-    #   candidats.values.each { |candidat| recheck(candidat['Dossier']) }
-    #
-    #   # reset field champ_convention
-    #   SetAnnotationValue.set_value(dossier, @demarche.instructeur, @params[:champ_conventions], false)
-    #   annotation_updated_on(@dossier)
-    # end
 
     DN = 'Numéro DN'
     # MAPPING = { 'Téléphone du stagiaire' => 'Téléphone' }.freeze
@@ -64,12 +49,12 @@ module Cis
         end
       when 'TextChamp'
         bloc[champ.label] = if champ.value.nil?
-          ''
-        elsif /^[-+]?[0-9]+$/.match?(champ.value)
-          champ.value.to_i
-        else
-          champ.value
-        end
+                              ''
+                            elsif /^[-+]?[0-9]+$/.match?(champ.value)
+                              champ.value.to_i
+                            else
+                              champ.value
+                            end
       when 'CiviliteChamp', 'CheckbowChamp'
         bloc[champ.label] = champ.value
       when 'IntegerNumberChamp'
@@ -111,7 +96,7 @@ module Cis
     end
 
     HEADER_REGEXPS = ['Civilité', 'Nom', 'Prénom', 'Numéro DN', 'Date de naissance', 'Activité']
-      .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
+                     .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
 
     def update_candidats_excel(candidats, champ_etat)
       file = champ_etat.file

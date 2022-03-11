@@ -41,12 +41,12 @@ class Publipostage < FieldChecker
       fields = get_fields(row, params[:champs])
       generate_doc(fields) unless same_document(fields)
     end
-    if pdf_paths.present?
-      combine(pdf_paths) do |pdf_path|
-        body = instanciate(@params[:message], @dossier)
-        SendMessage.send_with_file(target.id, demarche.instructeur, body, pdf_path, build_filename)
-        annotation_updated_on(@dossier) # to prevent infinite check
-      end
+    return unless pdf_paths.present?
+
+    combine(pdf_paths) do |pdf_path|
+      body = instanciate(@params[:message], @dossier)
+      SendMessage.send_with_file(target.id, demarche.instructeur, body, pdf_path, build_filename)
+      annotation_updated_on(@dossier) # to prevent infinite check
     end
   end
 
@@ -66,6 +66,7 @@ class Publipostage < FieldChecker
   def excel_to_rows(champ_source)
     PieceJustificativeCache.get(champ_source.file) do |file|
       next if File.extname(file) != '.xlsx'
+
       xlsx = Roo::Spreadsheet.open(file)
       sheet = xlsx.sheet(0)
       header_line = header_line(sheet)
@@ -78,20 +79,18 @@ class Publipostage < FieldChecker
   def sheet_rows(header_line, sheet)
     rows = []
     sheet.each_row_streaming do |row|
-      if row[1].coordinate[0] > header_line && row[1].value.present?
-        rows << headers.map.with_index { |v, i| [v, row[i].value] }.to_h
-      end
+      rows << headers.map.with_index { |v, i| [v, row[i].value] }.to_h if row[1].coordinate[0] > header_line && row[1].value.present?
     end
     rows
   end
 
   def header_line(sheet)
-    header_line = 0;
-    max = 0;
+    header_line = 0
+    max = 0
     sheet.each_row_streaming do |row|
       cell = row.find { |c| c.value.nil? }
       if (count = cell.coordinate[1]) > max
-        max = count;
+        max = count
         header_line = cell.coordinate[0]
       end
     end
@@ -118,9 +117,10 @@ class Publipostage < FieldChecker
 
     champs_source = field_values(@dossier, champ_source_name)
     champs_source.map do |champ_source|
-      if champ_source.__typename == 'PieceJustificativeChamp'
+      case champ_source.__typename
+      when 'PieceJustificativeChamp'
         excel_to_rows(champ_source)
-      elsif champ_source.__typename == 'RepetitionChamp'
+      when 'RepetitionChamp'
         bloc_to_rows(champ_source)
       else
         []
@@ -130,6 +130,7 @@ class Publipostage < FieldChecker
 
   def dossiers_have_right_state?(dossier, target)
     return false unless @states.include?(dossier.state)
+
     (target == dossier || @states.include?(target.state))
   end
 
@@ -166,14 +167,14 @@ class Publipostage < FieldChecker
 
   def generate_doc(row)
     basename = "#{OUTPUT_DIR}/#{instanciate(@params[:nom_fichier], row)}"
-    docx = basename + '.docx'
+    docx = "#{basename}.docx"
 
-    context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[\(\)]/,'') }
+    context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[()]/, '') }
     template = Sablon.template(File.expand_path(@modele))
     template.render_to_file docx, context
     stdout_str, stderr_str, status = Open3.capture3(ENV['OFFICE_PATH'], '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, docx)
     throw "Unable to convert #{docx} to pdf\n#{stdout_str}#{stderr_str}" if status != 0
-    basename + '.pdf'
+    "#{basename}.pdf"
   end
 
   MD_FIELDS =

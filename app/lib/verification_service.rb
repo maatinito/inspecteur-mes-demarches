@@ -352,10 +352,10 @@ class VerificationService
     annotation = md_dossier.annotations.find { |champ| champ.label == @inform_annotation }
     throw "Unable to find information annotation named '#{@inform_annotation}'" if annotation.nil?
     value = if annotation.__typename == 'CheckboxChamp'
-      messages.present?
-    else
-      messages.present? ? 'En erreur' : 'OK'
-    end
+              messages.present?
+            else
+              messages.present? ? 'En erreur' : 'OK'
+            end
     if SetAnnotationValue.set_value(md_dossier, instructeur_id, @inform_annotation, value)
       # modified dossier ==> prevent next checking to consider the document is updated
       Check.where(dossier: md_dossier.number).update_all(checked_at: Time.zone.now)
@@ -376,13 +376,13 @@ class VerificationService
 
   def liste_anomalies(md_dossier, anomalies)
     msg_key = case anomalies.size
-    when 0
-      :tout_va_bien
-    when 1
-      :entete_anomalie
-    else
-      :entete_anomalies
-    end
+              when 0
+                :tout_va_bien
+              when 1
+                :entete_anomalie
+              else
+                :entete_anomalies
+              end
     entete_anomalies = "<p>#{@pieces_messages[msg_key]}</p>"
 
     rows = anomalies.map do |a|

@@ -9,7 +9,7 @@ module Cis
     end
 
     COLUMNS = ['Civilité', 'Nom', 'Prénom(s)', 'Numéro DN', 'Date de naissance', 'Activité']
-      .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
+              .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
 
     CHECKS = %i[format_dn nom prenoms empty_columns employee_age].freeze
 
@@ -57,7 +57,7 @@ module Cis
             bloc[champ.label] = champ.numero_dn.to_i
             bloc[champ.label.gsub(/Num[eé]ro DN/i, 'Date de naissance')] = Date.iso8601(champ.date_de_naissance)
           end
-        when 'TextChamp', 'CiviliteChamp', 'IntegerNumberChamp', 'DecimalNumberChamp', 'CheckbowChamp'
+        when 'TextChamp', 'CiviliteChamp', 'DecimalNumberChamp', 'CheckbowChamp'
           bloc[champ.label] = champ.value unless champ.value.nil?
         when 'IntegerNumberChamp'
           bloc[champ.label] = champ.value.to_i unless champ.value.nil?
