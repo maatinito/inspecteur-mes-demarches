@@ -5,11 +5,11 @@ module Cis
     include Shared
 
     def version
-      super + 1
+      super + 2
     end
 
     COLUMNS = ['Civilité', 'Nom', 'Prénom(s)', 'Numéro DN', 'Date de naissance', 'Activité']
-              .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
+      .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
 
     CHECKS = %i[format_dn nom prenoms empty_columns employee_age].freeze
 
@@ -51,14 +51,16 @@ module Cis
           rows << bloc
           bloc = {} # starts a new block
         end
-        case champ.label
-        when 'Numéro DN'
-          bloc['Numéro DN'] = champ.numero_dn.to_i
-          bloc['Date de naissance'] = Date.iso8601(champ.date_de_naissance)
-        when 'Suite'
-          nil
-        else
-          bloc[champ.label] = champ.value
+        case champ.__typename
+        when 'NumeroDnChamp'
+          if champ.numero_dn.present?
+            bloc[champ.label] = champ.numero_dn.to_i
+            bloc[champ.label.gsub(/Num[eé]ro DN/i, 'Date de naissance')] = Date.iso8601(champ.date_de_naissance)
+          end
+        when 'TextChamp', 'CiviliteChamp', 'IntegerNumberChamp', 'DecimalNumberChamp', 'CheckbowChamp'
+          bloc[champ.label] = champ.value unless champ.value.nil?
+        when 'IntegerNumberChamp'
+          bloc[champ.label] = champ.value.to_i unless champ.value.nil?
         end
       end
       rows << bloc
