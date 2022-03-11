@@ -180,7 +180,7 @@ class ExcelCheck < FieldChecker
   end
 
   def check_prenoms(line)
-    value = line[:prenoms] || line['Prénom(s)']
+    value = line[:prenoms] || line['Prénom(s)'] || line['Prénom'] || line[:prenom] || ''
     invalides = value.scan(%r{[^[:alpha:] \-,/'’()]+})
     invalides.present? ? @params[:message_prenom_invalide] + invalides.join(' ') : true
   end
