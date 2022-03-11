@@ -5,7 +5,7 @@ module Cis
     include Utils
 
     def version
-      super + 12
+      super + 13
     end
 
     def required_fields
@@ -14,6 +14,10 @@ module Cis
 
     def self.dn_fields(extension)
       ["Numéro DN#{extension}", "Date de naissance#{extension}"]
+    end
+
+    def must_check?(md_dossier)
+      md_dossier&.state == 'en_construction' || md_dossier&.state == 'en_instruction'
     end
 
     private
@@ -32,34 +36,33 @@ module Cis
       end
     end
 
-    def synthese(candidats)
-      oa_only = candidats.filter { |_dn, c| c[PRESENCE] == 'OA' }.map(&method(:display_person)).sort.join("\n")
-      de_only = candidats.filter { |_dn, c| c[PRESENCE] == 'DE' }.map(&method(:display_person)).sort.join("\n")
-      oa_de = candidats.filter { |_dn, c| c[PRESENCE] == 'OA+DE' }.map(&method(:display_person)).sort.join("\n")
-      synthese = ''.dup
-      synthese << "Candidats sans dossier individuel\n" << oa_only << "\n\n" if oa_only.present?
-      synthese << "Candidats non déclarés par l'organisme\n" << de_only << "\n\n" if de_only.present?
-      synthese << "Candidats déclarés\n" << oa_de if oa_de.present?
-      synthese
-    end
+    # def synthese(candidats)
+    #   oa_only = candidats.filter { |_dn, c| c[PRESENCE] == 'OA' }.map(&method(:display_person)).sort.join("\n")
+    #   de_only = candidats.filter { |_dn, c| c[PRESENCE] == 'DE' }.map(&method(:display_person)).sort.join("\n")
+    #   oa_de = candidats.filter { |_dn, c| c[PRESENCE] == 'OA+DE' }.map(&method(:display_person)).sort.join("\n")
+    #   synthese = ''.dup
+    #   synthese << "Candidats sans dossier individuel\n" << oa_only << "\n\n" if oa_only.present?
+    #   synthese << "Candidats non déclarés par l'organisme\n" << de_only << "\n\n" if de_only.present?
+    #   synthese << "Candidats déclarés\n" << oa_de if oa_de.present?
+    #   synthese
+    # end
+    #
+    # def display_person(_dn, person)
+    #   display = ['Prénom', 'Nom', 'Numéro DN'].map { |f| person[f] }.join(' ')
+    #   dossier = person['Dossier']
+    #   display << ", dossier: #{dossier}" if dossier.present?
+    #   display
+    # end
 
-    def display_person(_dn, person)
-      display = ['Prénom', 'Nom', 'Numéro DN'].map { |f| person[f] }.join(' ')
-      dossier = person['Dossier']
-      display << ", dossier: #{dossier}" if dossier.present?
-      display
-    end
-
-    DEMANDEUR = %w[Civilité Nom Prénom].freeze
-    CHAMPS_DE = ["Niveau d'études", "Nombre d'enfants", 'Commune géographique', 'Numéro de téléphone', 'IBAN'].freeze
+    DEMANDEUR = ['Civilité', 'Nom', 'Prénom(s)'].freeze
+    CHAMPS_DE = ["Niveau d'études", "Nombre d'enfants", 'Commune géographique', 'Téléphone', 'IBAN'].freeze
     ROME = 'Code ROME'
     ACTIVITE = 'Activité'
     CHAMPS_OA = [ACTIVITE, ROME].freeze
-    PRESENCE = 'Présence'
     DOSSIER = 'Dossier'
 
     COLUMN_REGEXPS = (
-      [DOSSIER, PRESENCE] + DEMANDEUR + dn_fields('') + CHAMPS_OA + CHAMPS_DE + dn_fields(' du conjoint')
+      [DOSSIER] + DEMANDEUR + dn_fields('') + CHAMPS_OA + CHAMPS_DE + dn_fields(' du conjoint')
     ).to_h { |v| [v, Regexp.new(Regexp.quote(v), 'i')] }.freeze
 
     OLD_COLUMN_REGEXPS = COLUMN_REGEXPS.except(ROME)
@@ -83,7 +86,8 @@ module Cis
         return candidats_from_xlsx(xlsx_file)
       rescue Roo::HeaderRowNotFoundError => e
         columns = e.message.gsub(%r{[/\[\]]}, '')
-        throw "Colonne(s) manquante(s) dans les données d'Consolidation: #{columns}"
+        Rails.logger.error("Colonne(s) manquante(s) dans les données: #{columns} dossier #{dossier.number} ==> ignoring input")
+        {}
       end
     end
 
