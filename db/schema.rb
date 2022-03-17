@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20_210_608_214_632) do
+ActiveRecord::Schema.define(version: 20_220_312_005_129) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -69,6 +69,17 @@ ActiveRecord::Schema.define(version: 20_210_608_214_632) do
     t.string 'field'
     t.string 'value'
     t.index ['check_id'], name: 'index_messages_on_check_id'
+  end
+
+  create_table 'scheduled_tasks', force: :cascade do |t|
+    t.integer 'dossier'
+    t.string 'task'
+    t.text 'parameters'
+    t.date 'run_at'
+    t.datetime 'created_at', precision: 6, null: false
+    t.datetime 'updated_at', precision: 6, null: false
+    t.index %w[dossier task run_at], name: 'st_unicity', unique: true
+    t.index ['run_at'], name: 'by_date'
   end
 
   create_table 'syncs', force: :cascade do |t|

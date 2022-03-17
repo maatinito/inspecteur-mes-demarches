@@ -219,6 +219,7 @@ module MesDemarches
     query Dossier($dossier: Int!) {
       dossier(number: $dossier) {
           state
+          demarche { number }
           ...DossierInfo
           annotations {
             ...ChampInfo

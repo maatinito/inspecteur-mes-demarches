@@ -7,11 +7,20 @@ class FieldChecker < InspectorTask
 
   attr_writer :demarche
 
+  def process(demarche, dossier)
+    @messages = []
+    @dossiers_to_ignore = Set.new
+    @dossiers_to_recheck = Set.new
+    @dossier = dossier
+    @demarche = demarche
+  end
+
   def control(dossier)
     @messages = []
     @dossiers_to_ignore = Set.new
     @dossiers_to_recheck = Set.new
     @dossier = dossier
+    @demarche = demarche
     check(dossier)
   end
 
@@ -95,7 +104,9 @@ class FieldChecker < InspectorTask
     values.map { |v| v.is_a?(String) ? Date.iso8601(v) : v }
   end
 
-  def object_field_values(source, field, log_empty)
+  def object_field_values(source, field, log_empty: true)
+    return [] if source.blank? || field.blank?
+
     objects = [*source]
     field.split(/\./).each do |name|
       objects = objects.flat_map do |object|
@@ -109,6 +120,49 @@ class FieldChecker < InspectorTask
       Rails.logger.warn("Sur le dossier #{@dossier.number}, le champ #{field} est vide.") if log_empty && objects.blank?
     end
     objects
+  end
+
+  def champs_to_values(champs)
+    champs.map(&method(:champ_value)).compact.select(&:present?)
+  end
+
+  def champ_value(champ)
+    return nil unless champ
+
+    return champ.strftime('%d/%m/%Y') if champ.is_a?(Date)
+
+    return champ unless champ.respond_to?(:__typename) # direct value
+
+    case champ.__typename
+    when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp', 'CiviliteChamp'
+      champ.value || ''
+    when 'MultipleDropDownListChamp'
+      champ.values
+    when 'LinkedDropDownListChamp'
+      "#{champ.primary_value}/#{champ.secondary_value}"
+    when 'DateTimeChamp'
+      date_value(champ, '%d/%m/%Y %H:%M')
+    when 'DateChamp'
+      date_value(champ, '%d/%m/%Y')
+    when 'CheckboxChamp'
+      champ.value
+    when 'NumeroDnChamp'
+      "#{champ.numero_dn}|#{champ.date_de_naissance}"
+    when 'DossierLinkChamp', 'SiretChamp'
+      champ.string_value
+    when 'PieceJustificativeChamp'
+      champ&.file&.filename
+    else
+      throw "Unknown field type #{champ.label}:#{champ.__typename}"
+    end
+  end
+
+  def date_value(value, format)
+    if value.present?
+      Date.iso8601(champ.value).strftime(format)
+    else
+      ''
+    end
   end
 
   def add_message(champ, valeur, message)

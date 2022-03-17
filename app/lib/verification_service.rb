@@ -20,7 +20,7 @@ class VerificationService
       check_updated_controls(@controls)
     rescue StandardError => e
       Rails.logger.error(e.message)
-      e.backtrace.select { |b| b.include?('/app/') }.first(10).each { |b| Rails.logger.debug(b) }
+      e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
     end
   end
 
@@ -73,24 +73,7 @@ class VerificationService
   end
 
   def create_controls
-    @controls = instanciate(@procedure['controles'])
-  end
-
-  def instanciate(elements)
-    return [] if elements.blank?
-
-    elements.flatten.map.with_index do |description, i|
-      create_control(description, i)
-    end.flatten
-  end
-
-  def create_control(description, position)
-    if description.is_a?(String)
-      Object.const_get(description.camelize).new({}).tap_name("#{position}:#{description}")
-    else
-      # hash
-      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).tap_name("#{position}:#{taskname}") }
-    end
+    @controls = InspectorTask.create_tasks(@procedure['controles'])
   end
 
   def check_updated_dossiers(controls)
@@ -284,7 +267,7 @@ class VerificationService
   end
 
   def create_when_ok_tasks
-    @ok_tasks = instanciate(@procedure['when_ok'])
+    @ok_tasks = InspectorTask.create_tasks(@procedure['when_ok'])
   end
 
   def apply_task(demarche, task, md_dossier, check)
@@ -293,7 +276,7 @@ class VerificationService
   rescue StandardError => e
     check.failed = true
     Rails.logger.error(e)
-    e.backtrace.select { |b| b.include?('/app/') }.first(10).each { |b| Rails.logger.debug(b) }
+    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
   end
 
   def apply_control(control, md_dossier, check)
@@ -311,7 +294,7 @@ class VerificationService
   rescue StandardError => e
     check.failed = true
     Rails.logger.error(e)
-    e.backtrace.select { |b| b.include?('/app/') }.first(10).each { |b| Rails.logger.debug(b) }
+    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
   end
 
   NOMS_PIECES_MESSAGES = %i[debut_premier_mail debut_second_mail entete_anomalies entete_anomalie tout_va_bien fin_mail].freeze

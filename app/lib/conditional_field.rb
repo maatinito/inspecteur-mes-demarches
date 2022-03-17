@@ -15,7 +15,7 @@ class ConditionalField < FieldChecker
   end
 
   def check(dossier)
-    values = object_field_values(dossier, @params[:champ], false)
+    values = object_field_values(dossier, @params[:champ], log_empty: false)
     values.each do |value|
       controls = @controls[value]
       controls = @controls['par défaut'] if controls.nil?
