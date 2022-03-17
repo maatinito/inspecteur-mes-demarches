@@ -9,7 +9,7 @@ module Cis
     end
 
     def required_fields
-      super + %i[champ_synthese champ_candidats]
+      super + %i[champ_candidats]
     end
 
     def self.dn_fields(extension)
@@ -36,33 +36,15 @@ module Cis
       end
     end
 
-    # def synthese(candidats)
-    #   oa_only = candidats.filter { |_dn, c| c[PRESENCE] == 'OA' }.map(&method(:display_person)).sort.join("\n")
-    #   de_only = candidats.filter { |_dn, c| c[PRESENCE] == 'DE' }.map(&method(:display_person)).sort.join("\n")
-    #   oa_de = candidats.filter { |_dn, c| c[PRESENCE] == 'OA+DE' }.map(&method(:display_person)).sort.join("\n")
-    #   synthese = ''.dup
-    #   synthese << "Candidats sans dossier individuel\n" << oa_only << "\n\n" if oa_only.present?
-    #   synthese << "Candidats non déclarés par l'organisme\n" << de_only << "\n\n" if de_only.present?
-    #   synthese << "Candidats déclarés\n" << oa_de if oa_de.present?
-    #   synthese
-    # end
-    #
-    # def display_person(_dn, person)
-    #   display = ['Prénom', 'Nom', 'Numéro DN'].map { |f| person[f] }.join(' ')
-    #   dossier = person['Dossier']
-    #   display << ", dossier: #{dossier}" if dossier.present?
-    #   display
-    # end
-
     DEMANDEUR = ['Civilité', 'Nom', 'Prénom(s)'].freeze
-    CHAMPS_DE = ["Niveau d'études", "Nombre d'enfants", 'Commune géographique', 'Téléphone', 'IBAN'].freeze
+    CHAMPS_DE = ["Niveau d'études", "Nombre d'enfants", 'Téléphone', 'IBAN'].freeze
     ROME = 'Code ROME'
     ACTIVITE = 'Activité'
-    CHAMPS_OA = [ACTIVITE, ROME].freeze
-    DOSSIER = 'Dossier'
+    AIDE = 'Aide'
+    CHAMPS_OA = [ACTIVITE, ROME, AIDE].freeze
 
     COLUMN_REGEXPS = (
-      [DOSSIER] + DEMANDEUR + dn_fields('') + CHAMPS_OA + CHAMPS_DE + dn_fields(' du conjoint')
+      DEMANDEUR + dn_fields('') + CHAMPS_OA + CHAMPS_DE + dn_fields(' du conjoint')
     ).to_h { |v| [v, Regexp.new(Regexp.quote(v), 'i')] }.freeze
 
     OLD_COLUMN_REGEXPS = COLUMN_REGEXPS.except(ROME)

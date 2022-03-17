@@ -24,5 +24,34 @@ module Cis
                 'Le nombre de cis demandes doit être égal au nombre de candidats dans le fichier Excel: '
       add_message(CIS_DEMANDES_FIELD, in_dossier, "#{message}: #{cis_nb}")
     end
+
+    def get_values_of(source, key, field, par_defaut = nil)
+      return par_defaut unless field
+
+      # from computed values
+      value = @computed[key] if @computed.is_a? Hash
+      return [*value] if value.present?
+
+      # from excel source
+      value = source[key] if source.is_a? Hash
+      return [*value] if value.present?
+
+      # from dossier champs
+      champs = object_field_values(@dossier, field, log_empty: false)
+      champs_to_values(champs).presence || [par_defaut]
+    end
+
+    def instanciate(template, source = nil)
+      template.gsub(/{[^{}]+}/) do |matched|
+        variable = matched[1..-2]
+        get_values_of(source, variable, variable, '').first
+      end
+    end
+
+    def build_filename(template, source = nil)
+      return 'document.pdf' if template.blank?
+
+      instanciate(template, source).gsub(/[^- 0-9a-z\u00C0-\u017F.]/i, '_')
+    end
   end
 end

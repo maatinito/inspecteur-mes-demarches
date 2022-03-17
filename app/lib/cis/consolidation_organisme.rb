@@ -66,6 +66,7 @@ module Cis
 
     def save_candidat(candidats, bloc)
       bloc[ROME] = code_rome(bloc[ACTIVITE])
+      bloc[AIDE] = 50_000
       dn = bloc['Numéro DN']
       candidats[dn] = candidats[dn]&.merge(bloc) || bloc
     end
@@ -95,8 +96,7 @@ module Cis
       CODES_ROMES[activity] || 'Inconnu'
     end
 
-    HEADER_REGEXPS = ['Civilité', 'Nom', 'Prénom', 'Numéro DN', 'Date de naissance', 'Activité']
-                     .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
+    HEADER_REGEXPS = COLUMN_REGEXPS.except(ROME, AIDE)
 
     def update_candidats_excel(candidats, champ_etat)
       file = champ_etat.file
@@ -111,7 +111,7 @@ module Cis
         end
       rescue Roo::HeaderRowNotFoundError => e
         columns = e.message.gsub(%r{[/\[\]]}, '')
-        throw "Colonne(s) manquante(s) dans les données d'Consolidation: #{columns}"
+        throw "Colonne(s) manquante(s) dans #{champ_etat.label} sur dossier #{@dossier.number}: #{columns}"
       end
     end
 
