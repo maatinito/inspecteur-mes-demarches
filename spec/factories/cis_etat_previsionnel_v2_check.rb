@@ -15,6 +15,8 @@ FactoryBot.define do
     message_colonnes_vides { 'message_colonnes_vides' }
     message_cis_demandes { 'message_cis_demandes' }
     message_age { 'message_age' }
+    message_iban { 'message_iban' }
+    message_telephone { 'message_telephone' }
     initialize_with { Cis::EtatPrevisionnelV2Check.new(attributes) }
   end
 end

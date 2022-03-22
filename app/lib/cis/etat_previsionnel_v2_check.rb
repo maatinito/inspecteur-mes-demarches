@@ -5,19 +5,20 @@ module Cis
     include Shared
 
     def version
-      super + 2
+      super + 4
     end
 
-    COLUMNS = ['Civilité', 'Nom', 'Prénom(s)', 'Numéro DN', 'Date de naissance', 'Activité']
+    def required_fields
+      super + %i[message_iban message_telephone]
+    end
+
+    COLUMNS = ['Civilité', 'Nom', 'Prénom(s)', 'Numéro DN', 'Date de naissance', 'Téléphone', 'IBAN', "Niveau d'études",
+               'Date de naissance du conjoint', 'Numéro DN du conjoint', "Nombre d'enfants", 'Activité']
               .to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
 
-    CHECKS = %i[format_dn nom prenoms empty_columns employee_age].freeze
+    CHECKS = %i[format_dn nom prenoms empty_columns employee_age iban telephone format_dn_conjoint].freeze
 
-    REQUIRED_COLUMNS = ['Nom', 'Prénom(s)', 'Numéro DN', 'Civilité', 'Activité'].freeze
-
-    def sheets_to_control
-      ['Stagiaires']
-    end
+    REQUIRED_COLUMNS = ['Nom', 'Prénom(s)', 'Numéro DN', 'Civilité', 'IBAN', 'Activité'].freeze
 
     def check(dossier)
       champ_etat = dossier_field(dossier, @params[:champ])
@@ -64,6 +65,15 @@ module Cis
         end
       end
       rows << bloc
+    end
+
+    def check_iban(line)
+      IBANTools::IBAN.valid?(line['IBAN'])
+    end
+
+    def check_telephone(line)
+      phone = line['Téléphone']
+      phone.blank? || Phonelib.valid_for_country?(phone, :PF)
     end
   end
 end

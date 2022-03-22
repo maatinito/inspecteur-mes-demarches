@@ -182,7 +182,7 @@ class ExcelCheck < FieldChecker
   def check_prenoms(line)
     value = line[:prenoms] || line['Prénom(s)'] || line['Prénom'] || line[:prenom] || ''
     invalides = value.scan(%r{[^[:alpha:] \-,/'’()]+})
-    invalides.present? ? @params[:message_prenom_invalide] + invalides.join(' ') : true
+    invalides.present? ? "#{@params[:message_prenom_invalide]}: #{invalides.join(' ')}" : true
   end
 
   def check_cps(line)
