@@ -159,7 +159,7 @@ class ResExcel < FieldChecker
   def check_prenoms(line)
     value = line[:prenoms]
     invalides = value.scan(%r{[^[:alpha:] \-,/'()]+})
-    invalides.present? ? @params[:message_prenom_invalide] + ': ' + invalides.join(' ') : true
+    invalides.present? ? "#{@params[:message_prenom_invalide]}: #{invalides.join(' ')}" : true
   end
 
   def check_cps(line)

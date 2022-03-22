@@ -71,7 +71,7 @@ class Publipostage < FieldChecker
       file_size = File.size(path)
       if size + file_size > BATCH_SIZE
         batch += 1
-        combine_batch(pdf_batch) { |path| yield path, batch }
+        combine_batch(pdf_batch) { |combined_pdf| yield combined_pdf, batch }
         pdf_batch = []
         size = 0
       end
