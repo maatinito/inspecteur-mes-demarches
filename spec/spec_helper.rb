@@ -112,3 +112,15 @@ RSpec.configure do |config|
     end
   end
 end
+
+def new_message(field, value, message_type, correction = nil)
+  pp controle.params, message_type, 'impossible de trouver' if controle.params[message_type].nil?
+  msg = controle.params[message_type]
+  msg += ": #{correction}" if correction.present?
+  FactoryBot.build :message, field: field, value: value, message: msg
+end
+
+VCR.use_cassette('mes_demarches') do
+  DemarcheActions.get_demarche(217, 'DESETI')
+end
+

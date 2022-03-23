@@ -2,13 +2,6 @@
 
 require 'rails_helper'
 
-def new_message(field, value, message_type, correction = nil)
-  pp controle.params, message_type, 'impossible de trouver' if controle.params[message_type].nil?
-  msg = controle.params[message_type]
-  msg += ": #{correction}" if correction.present?
-  FactoryBot.build :message, field: field, value: value, message: msg
-end
-
 RSpec.describe Cis::EtatPrevisionnelV2Check do
   let(:controle) { FactoryBot.build :cis_etat_previsionnel_v2_check }
   subject do
