@@ -19,7 +19,7 @@ module Cis
       "Nb d'enfants" => '',
       'Activité' => '',
       'Code ROME' => '',
-      "Jours d'absences non justifiés" => '',
+      "Jours d'absences non justifiées" => '',
       'Aide' => '=IF(OR(ISBLANK(INDIRECT("C"&ROW())),ISBLANK(INDIRECT("N"&ROW()))),"",ROUND(50000*(30-INDIRECT("N"&ROW()))/30,5))'
     }.freeze
 
