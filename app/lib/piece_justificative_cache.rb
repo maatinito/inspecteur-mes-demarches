@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class PieceJustificativeCache
-  DIR = 'storage/pjs'
+  DIR = FileUtils.mkpath(Rails.env.test? ? 'tmp/pjs' : 'storage/pjs').first
   SIZE = 50 * 1024 * 1024
 
   class << self
@@ -33,6 +33,10 @@ class PieceJustificativeCache
         File.delete(file)
         files.shift
       end
+    end
+
+    def clean
+      Dir.glob("#{DIR}/*").select { |f| File.file?(f) }.each { |f| File.delete(f) }
     end
 
     private

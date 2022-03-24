@@ -11,8 +11,8 @@ RSpec.describe Cis::EtatPrevisionnelV2Check do
     controle
   end
 
-  context 'Excel file has errors', vcr: { cassette_name: 'cis_etat_previsionnel_check_294864' } do
-    let(:dossier_nb) { 294_864 }
+  context 'Excel file has errors', vcr: { cassette_name: 'cis_etat_previsionnel_check_295705' } do
+    let(:dossier_nb) { 295_705 }
     let(:field) { 'État nominatif des demandeurs/Stagiaires' }
     let(:messages) do
       [
@@ -33,8 +33,8 @@ RSpec.describe Cis::EtatPrevisionnelV2Check do
     end
   end
 
-  context 'Online file has errors', vcr: { cassette_name: 'cis_etat_previsionnel_check_291591' } do
-    let(:dossier_nb) { 291_591 }
+  context 'Online file has errors', vcr: { cassette_name: 'cis_etat_previsionnel_check_295697' } do
+    let(:dossier_nb) { 295_697 }
     let(:field) { 'État nominatif des demandeurs' }
     let(:messages) do
       [

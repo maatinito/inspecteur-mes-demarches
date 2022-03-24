@@ -12,9 +12,9 @@ RSpec.describe Cis::EtatReelCheck do
       controle
     end
 
-    context 'Excel file has multiple errors"', vcr: { cassette_name: 'etat_reel_check_84903' } do
-      let(:dossier_nb) { 84_903 }
-      let(:field) { 'État nominatif/Stagiaires' }
+    context 'Excel file has multiple errors"', vcr: { cassette_name: 'cis_etat_reel_check_295682' } do
+      let(:dossier_nb) { 295_682 }
+      let(:field) { 'État nominatif des demandeurs/Stagiaires' }
       let(:messages) do
         [
           new_message(field, 'Erreur DN', :message_dn, '1234567,1979-12-11'),

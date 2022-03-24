@@ -17,7 +17,7 @@ module Cis
       prenoms: /Prénom/,
       date_de_naissance: /Date de naissance/,
       numero_dn: /DN/,
-      absences: /Jours d'absences non justifiées/,
+      absences: /Jours d'absences non justifié/,
       aide: /Aide/
     }.freeze
 

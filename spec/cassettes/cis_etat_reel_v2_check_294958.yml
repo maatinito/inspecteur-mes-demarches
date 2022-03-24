@@ -1,0 +1,1015 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"fragment MesDemarches__Queries__ChampInfo on Champ {\n  __typename\n  id\n  label\n  ...
+        on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
+        on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
+        on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
+        {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
+        MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  motivation\n  usager
+        {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
+        {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
+        on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
+        {\n        siren\n        capitalSocial\n        numeroTvaIntracommunautaire\n        formeJuridique\n        formeJuridiqueCode\n        nomCommercial\n        raisonSociale\n        siretSiegeSocial\n        codeEffectifEntreprise\n        dateCreation\n        nom\n        prenom\n      }\n      association
+        {\n        rna\n        titre\n        objet\n        dateCreation\n        dateDeclaration\n        dateDeclaration\n      }\n    }\n  }\n}\n\nquery
+        MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
+        {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n    }\n    champs
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
+        {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
+        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":294958},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 23 Mar 2022 22:00:36 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"91cb37c6e90f59d3a1d3fa12c4e485a4"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      X-Request-Id:
+      - 36ea0583-bdc5-47a7-8296-b62df4989537
+      X-Runtime:
+      - '0.375661'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '2643'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE1NTl9LCJpZCI6IlJHOXpjMmxsY2kweU9UUTVOVGc9IiwibnVtYmVyIjoyOTQ5NTgsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDMtMjNUMTA6MzA6MTQtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTAzLTIzVDEwOjMwOjE2LTEwOjAwIiwibW90aXZhdGlvbiI6bnVsbCwidXNhZ2VyIjp7ImVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIn0sInRyYWl0ZW1lbnRzIjpbeyJpbnN0cnVjdGV1ckVtYWlsIjpudWxsLCJwcm9jZXNzZWRBdCI6IjIwMjItMDMtMjNUMTA6MzA6MTQtMTA6MDAiLCJzdGF0ZSI6ImVuX2NvbnN0cnVjdGlvbiJ9XSwiZGVtYW5kZXVyIjp7Il9fdHlwZW5hbWUiOiJQZXJzb25uZU1vcmFsZSIsInNpcmV0IjoiOTY2NzA1IiwibmFmIjoiOTQ5OVoiLCJsaWJlbGxlTmFmIjoiQXV0cmVzIG9yZ2FuaXNhdGlvbnMgZm9uY3Rpb25uYW50IHBhciBhZGjDqXNpb24gdm9sb250YWlyZSIsImFkcmVzc2UiOiJCUCAxMjAxNjUsIDk4NzEyIFBBUEFSQSwgUEsgMzQsIFBhcGFyYSIsIm51bWVyb1ZvaWUiOiIiLCJ0eXBlVm9pZSI6bnVsbCwibm9tVm9pZSI6IiIsImNvbXBsZW1lbnRBZHJlc3NlIjpudWxsLCJjb2RlUG9zdGFsIjoiOTg3MTIiLCJsb2NhbGl0ZSI6IlBhcGFyYSIsImVudHJlcHJpc2UiOnsic2lyZW4iOiI5NjY3MDUiLCJjYXBpdGFsU29jaWFsIjoiLTEiLCJudW1lcm9UdmFJbnRyYWNvbW11bmF1dGFpcmUiOiIiLCJmb3JtZUp1cmlkaXF1ZSI6IkFzc29jaWF0aW9uIGRlIGxvaSAxOTAxIG91IGFzc2ltaWzDqSIsImZvcm1lSnVyaWRpcXVlQ29kZSI6IjkyMCIsIm5vbUNvbW1lcmNpYWwiOiIiLCJyYWlzb25Tb2NpYWxlIjoiQVNTQ0lBVElPTiBWQUlQQUhVLVRFTUFUQVUgTk8gUEFQQVJBIiwic2lyZXRTaWVnZVNvY2lhbCI6Ijk2NjcwNSIsImNvZGVFZmZlY3RpZkVudHJlcHJpc2UiOiIxIiwiZGF0ZUNyZWF0aW9uIjoiMjAxMC0xMi0wNiIsIm5vbSI6IiIsInByZW5vbSI6IiJ9LCJhc3NvY2lhdGlvbiI6bnVsbH0sImFubm90YXRpb25zIjpbXSwiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TWpjMU56Zz0iLCJsYWJlbCI6IlJlbGV2w6kgZGVzIGFic2VuY2VzIiwiZmlsZSI6eyJjb250ZW50VHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybWF0cy1vZmZpY2Vkb2N1bWVudC5zcHJlYWRzaGVldG1sLnNoZWV0IiwiY2hlY2tzdW0iOiJaazJ5MXBLK0RyZkZ2WG95enM2aFpBPT0iLCJmaWxlbmFtZSI6IlJlbGV2w6kgZGVzIGFic2VuY2VzIE1haSAyMDIyIG5ldHRveWFnZSBkZXMgcGxhZ2VzIFRvbWJlYXUgZHUgcm9pXyB2YWlwb29wb28gZXQgbGFmYXlldHRlLnhsc3giLCJ1cmwiOiJodHRwczovL29zdS5jbG91ZGdvdXYtZXUtd2VzdC0xLm91dHNjYWxlLmNvbS9tZXMtZGVtYXJjaGVzLXByb2QvZTN6MDgzN2RkbG8yM3Rza282c3hxODNkcTFlYz9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM0IlMjBmaWxlbmFtZSUzRCUyMlJlbGV2ZSUyMGRlcyUyMGFic2VuY2VzJTIwTWFpJTIwMjAyMiUyMG5ldHRveWFnZSUyMGRlcyUyMHBsYWdlcyUyMFRvbWJlYXUlMjBkdSUyMHJvaV8lMjB2YWlwb29wb28lMjBldCUyMGxhZmF5ZXR0ZS54bHN4JTIyJTNCJTIwZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyN1JlbGV2JTI1QzMlMjVBOSUyNTIwZGVzJTI1MjBhYnNlbmNlcyUyNTIwTWFpJTI1MjAyMDIyJTI1MjBuZXR0b3lhZ2UlMjUyMGRlcyUyNTIwcGxhZ2VzJTI1MjBUb21iZWF1JTI1MjBkdSUyNTIwcm9pXyUyNTIwdmFpcG9vcG9vJTI1MjBldCUyNTIwbGFmYXlldHRlLnhsc3hcdTAwMjZyZXNwb25zZS1jb250ZW50LXR5cGU9YXBwbGljYXRpb24lMkZ2bmQub3BlbnhtbGZvcm1hdHMtb2ZmaWNlZG9jdW1lbnQuc3ByZWFkc2hlZXRtbC5zaGVldFx1MDAyNlgtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2XHUwMDI2WC1BbXotQ3JlZGVudGlhbD1JRzFKWVA3NFFHV0dJWTc3SUdPNyUyRjIwMjIwMzIzJTJGY2xvdWRnb3V2LWV1LXdlc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0XHUwMDI2WC1BbXotRGF0ZT0yMDIyMDMyM1QyMjAwMzZaXHUwMDI2WC1BbXotRXhwaXJlcz0zNjAwXHUwMDI2WC1BbXotU2lnbmVkSGVhZGVycz1ob3N0XHUwMDI2WC1BbXotU2lnbmF0dXJlPWZkZWUzY2Y2ZDUyMmFiOGRmN2UxZmYwYmRiMDA1ODUxMTJjZDdhZTNhYTE1MzkwMjFkMmFjYjAzZTMyNTBlYjcifSwic3RyaW5nVmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJMaW5rZWREcm9wRG93bkxpc3RDaGFtcCIsImlkIjoiUTJoaGJYQXROVGswT0RVPSIsImxhYmVsIjoiQW5uw6llIiwicHJpbWFyeVZhbHVlIjoiMjAyMiIsInNlY29uZGFyeVZhbHVlIjoiQXZyaWwifSx7Il9fdHlwZW5hbWUiOiJSZXBldGl0aW9uQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpnMk1EQT0iLCJsYWJlbCI6Ikp1c3RpZmljYXRpZnMgZCdhcnLDqnQgZGUgdHJhdmFpbC9tYWxhZGllIiwiY2hhbXBzIjpbXX1dfX19
+  recorded_at: Wed, 23 Mar 2022 22:00:35 GMT
+- request:
+    method: get
+    uri: https://osu.cloudgouv-eu-west-1.outscale.com/mes-demarches-prod/e3z0837ddlo23tsko6sxq83dq1ec?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=IG1JYP74QGWGIY77IGO7/20220323/cloudgouv-eu-west-1/s3/aws4_request&X-Amz-Date=20220323T220036Z&X-Amz-Expires=3600&X-Amz-Signature=fdee3cf6d522ab8df7e1ff0bdb00585112cd7ae3aa1539021d2acb03e3250eb7&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename=%22Releve%20des%20absences%20Mai%202022%20nettoyage%20des%20plages%20Tombeau%20du%20roi_%20vaipoopoo%20et%20lafayette.xlsx%22%3B%20filename*=UTF-8%27%27Relev%25C3%25A9%2520des%2520absences%2520Mai%25202022%2520nettoyage%2520des%2520plages%2520Tombeau%2520du%2520roi_%2520vaipoopoo%2520et%2520lafayette.xlsx&response-content-type=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:37 GMT
+      Content-Type:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      Content-Length:
+      - '12399'
+      Connection:
+      - close
+      Accept-Ranges:
+      - bytes
+      Content-Disposition:
+      - attachment; filename="Releve des absences Mai 2022 nettoyage des plages Tombeau
+        du roi_ vaipoopoo et lafayette.xlsx"; filename*=UTF-8''Relev%C3%A9%20des%20absences%20Mai%202022%20nettoyage%20des%20plages%20Tombeau%20du%20roi_%20vaipoopoo%20et%20lafayette.xlsx
+      Etag:
+      - '"664db2d692be0eb7c5bd7a32cecea164"'
+      Last-Modified:
+      - Wed, 23 Mar 2022 20:29:57 GMT
+      X-Amz-Id-2:
+      - 14f0cfcd5b48bc8e45ab
+      X-Amz-Request-Id:
+      - 14f0cfcd5b48bc8e45ab
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      Content-Security-Policy:
+      - 'default-src https:'
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - same-origin
+      X-Frame-Options:
+      - '"SAMEORIGIN"'
+      Set-Cookie:
+      - SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        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
+  recorded_at: Wed, 23 Mar 2022 22:00:36 GMT
+- request:
+    method: post
+    uri: https://connect.cps.pf/auth/realms/TatouAssures/protocol/openid-connect/token
+    body:
+      encoding: UTF-8
+      string: client_id=mes-demarches&client_secret=f3a8e868-83e0-4098-ad5f-74391d1e5eef&grant_type=password&password=helloworld1&scope=openid&username=sipf-ext
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:37 GMT
+      Content-Type:
+      - application/json
+      Content-Length:
+      - '3063'
+      Connection:
+      - keep-alive
+      Cache-Control:
+      - no-store
+      Set-Cookie:
+      - KC_RESTART=; Version=1; Expires=Thu, 01-Jan-1970 00:00:10 GMT; Max-Age=0;
+        Path=/auth/realms/TatouAssures/; Secure; HttpOnly
+      - KEYCLOAK_LOCALE=; Version=1; Comment=Expiring cookie; Expires=Thu, 01-Jan-1970
+        00:00:10 GMT; Max-Age=0; Path=/auth/realms/TatouAssures/; Secure; HttpOnly
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Pragma:
+      - no-cache
+      X-Frame-Options:
+      - ALLOW-FROM https://www.google.com
+      Referrer-Policy:
+      - no-referrer
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=31536000; includeSubDomains
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+    body:
+      encoding: ASCII-8BIT
+      string: '{"access_token":"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJXWTBzN1ZmYUl3ZW1OeVBPT1d3WUtyZ3pIR3RjbVdYMXgxSmlHZENsVllFIn0.eyJleHAiOjE2NDgwNzM0MzcsImlhdCI6MTY0ODA3MjgzNywianRpIjoiMWJjZjZmZTgtZDE1Mi00MWIzLTk2NWUtNGI2ODJiMjFlMzVmIiwiaXNzIjoiaHR0cHM6Ly9jb25uZWN0LmNwcy5wZi9hdXRoL3JlYWxtcy9UYXRvdUFzc3VyZXMiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiN2M5YmMzNWYtNzcwYy00MzY3LWFjM2UtNDM2YTBhNzM0YTU2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibWVzLWRlbWFyY2hlcyIsInNlc3Npb25fc3RhdGUiOiIxZDZiMGI2Yi01NjdiLTQ2ODEtYTFhNi0xOTU1ODlmMzYxMWQiLCJhY3IiOiIxIiwiYWxsb3dlZC1vcmlnaW5zIjpbIiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInByZWZlcnJlZF91c2VybmFtZSI6InNpcGYtZXh0In0.GqhJzNmX9vr0chvGpm37UgnanKfYM5Qzvv1tS9t5ClXCCBb9OyTDcQ6rDYEndD9LCYsjH4TgShpoHNSbUNxBLCkmutTofMFe-f-8B0X5uotgi8BNCz-pktG6C961-hnpDJ8gJNN4fb1__Q7fgfJ9H03OEKRPLgU5Vn4uiJRFdu_duWrFYWMLeJsQB_tSJq87PnWfw9l4o8SWWaHcE0_h7ISLTgLDtOMdXt4t7x2to2xDsxyT8flJycwBKLPUWXlYdICfj7VoZS3fzI2LkyRzyaxdgP3PP3rumvNjNKN9fmMPi9B4GCs24KUAeWh0HmHChPgx34yO1vfXW4vxN604Rg","expires_in":600,"refresh_expires_in":1800,"refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJiNjlkZjkxNC1kZDQ4LTQ3ZGItYWVmOS1jNWE5MTVlZDcxYjYifQ.eyJleHAiOjE2NDgwNzQ2MzcsImlhdCI6MTY0ODA3MjgzNywianRpIjoiZDk5N2Y5NTMtZTBjNi00NmNhLWEyMTktNjA1Yzg5ZjEyN2JmIiwiaXNzIjoiaHR0cHM6Ly9jb25uZWN0LmNwcy5wZi9hdXRoL3JlYWxtcy9UYXRvdUFzc3VyZXMiLCJhdWQiOiJodHRwczovL2Nvbm5lY3QuY3BzLnBmL2F1dGgvcmVhbG1zL1RhdG91QXNzdXJlcyIsInN1YiI6IjdjOWJjMzVmLTc3MGMtNDM2Ny1hYzNlLTQzNmEwYTczNGE1NiIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJtZXMtZGVtYXJjaGVzIiwic2Vzc2lvbl9zdGF0ZSI6IjFkNmIwYjZiLTU2N2ItNDY4MS1hMWE2LTE5NTU4OWYzNjExZCIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwifQ.It5X7eJCC50rnaYNPxsvofSF5Pcm8lhFTOBaXGZF5Yo","token_type":"Bearer","id_token":"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJXWTBzN1ZmYUl3ZW1OeVBPT1d3WUtyZ3pIR3RjbVdYMXgxSmlHZENsVllFIn0.eyJleHAiOjE2NDgwNzM0MzcsImlhdCI6MTY0ODA3MjgzNywiYXV0aF90aW1lIjowLCJqdGkiOiI3ZmEyN2QwMi0yMTVhLTQ1NDctYmUzYi1mNDdlZDhiOGFjYmQiLCJpc3MiOiJodHRwczovL2Nvbm5lY3QuY3BzLnBmL2F1dGgvcmVhbG1zL1RhdG91QXNzdXJlcyIsImF1ZCI6Im1lcy1kZW1hcmNoZXMiLCJzdWIiOiI3YzliYzM1Zi03NzBjLTQzNjctYWMzZS00MzZhMGE3MzRhNTYiLCJ0eXAiOiJJRCIsImF6cCI6Im1lcy1kZW1hcmNoZXMiLCJzZXNzaW9uX3N0YXRlIjoiMWQ2YjBiNmItNTY3Yi00NjgxLWExYTYtMTk1NTg5ZjM2MTFkIiwiYXRfaGFzaCI6IlZjY3NGVnY5Rk5NRHRHTU9KR0ppOGciLCJhY3IiOiIxIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJzaXBmLWV4dCJ9.p-HhZYbz2dDTZkYK889v9HLd7mcn2mSfNkqZhIkPCo4IKx0nttevR3l0k3QV63Xf-Wf8KX3S9Ex5hy6sPIRqjWGyPIcYAB3e6420F91L68NwzyzpE0E8tJ60RggBpYTSw2dJ3FtnN6asAwHsEh8qelWISPMFhaOVgcCUtN4OYMkFOH15TAh2gzuA6LiO2VNvuOE8kquod4LcNL9iK-kXUkQarfdq2wJ0fYejn-hD3qwwvOvaAGeSWfYi36TL2OP4nOjm-7xUfvxMrs2mqPMjwrk4Kcw08XWsICs9UuAiWoozksJteBQf5eFsrxtBl0qaTvj_dYzSCqkSV3J6Na50zA","not-before-policy":0,"session_state":"1d6b0b6b-567b-4681-a1a6-195589f3611d","scope":"openid
+        profile email"}'
+  recorded_at: Wed, 23 Mar 2022 22:00:37 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"2530988":"04/06/1980"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:37 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=EAD5CA396787BE719886FC35A4279311; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"2530988":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:37 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"3264201":"07/05/1994"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:37 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=48A0CB090BC6DAC46E4140B41A8260FB; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"3264201":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:37 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"3112811":"23/10/1992"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:37 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=63C533168A0DA755B958CFBB6688F72A; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"3112811":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:37 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"2499674":"21/08/1980"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:37 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=EEDC9F6C6CD50D3BA755E9E1188717F7; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"2499674":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:37 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"4516688":"18/03/1998"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:38 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=F155687AA7AFC31205B76E0A6F34C749; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"4516688":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:37 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"3221668":"24/12/1993"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:44 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=E83F41FF18E0FBD823A65CD0A169313A; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"3221668":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:43 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"2441398":"25/01/1986"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:44 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=C4FF68B22E1AE186BEED8F2CC1C1F5B1; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"2441398":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:43 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"2424932":"08/10/1980"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:44 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=E40DBE1A3CA143DFFC293205D50DFCAA; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"2424932":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:44 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"2386340":"21/06/1979"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:44 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=95B676B592C7A6BA6D4EB0B46ED69C4F; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"2386340":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:44 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"3050209":"18/07/1990"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:44 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=FDA35E63C921FECE12C832B89B7EAE6B; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"3050209":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:44 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"2037931":"16/09/1972"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:44 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=6BCCC7D7D5E70BF82DE68206E258DDB6; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"2037931":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:44 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"2108935":"24/08/1989"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:44 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=E4EBCBF138D86A8703721E05AA81C009; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"2108935":"true"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:44 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"4567897":"28/06/1973"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:44 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=2E90F174CDD87F19528863DB98294572; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"4567897":"unknown dn"}}'
+  recorded_at: Wed, 23 Mar 2022 22:00:44 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"fragment MesDemarches__Queries__ChampInfo on Champ {\n  __typename\n  id\n  label\n  ...
+        on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
+        on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
+        on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
+        {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
+        MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  motivation\n  usager
+        {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
+        {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
+        on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
+        {\n        siren\n        capitalSocial\n        numeroTvaIntracommunautaire\n        formeJuridique\n        formeJuridiqueCode\n        nomCommercial\n        raisonSociale\n        siretSiegeSocial\n        codeEffectifEntreprise\n        dateCreation\n        nom\n        prenom\n      }\n      association
+        {\n        rna\n        titre\n        objet\n        dateCreation\n        dateDeclaration\n        dateDeclaration\n      }\n    }\n  }\n}\n\nquery
+        MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
+        {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n    }\n    champs
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
+        {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
+        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":294960},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 23 Mar 2022 22:00:52 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"2f4dc8da176cdb7a7a112e99254f25fd"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      X-Request-Id:
+      - 9d21e2f4-3d20-4ea4-a2de-cd285ef98260
+      X-Runtime:
+      - '0.997020'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '8954'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE0ODN9LCJpZCI6IlJHOXpjMmxsY2kweU9UUTVOakE9IiwibnVtYmVyIjoyOTQ5NjAsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDMtMTdUMDg6MjY6MjgtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTAzLTIxVDE1OjI4OjE0LTEwOjAwIiwibW90aXZhdGlvbiI6bnVsbCwidXNhZ2VyIjp7ImVtYWlsIjoiaGVpcm90aS50Y2hlbkBzZWZpLnBmIn0sInRyYWl0ZW1lbnRzIjpbeyJpbnN0cnVjdGV1ckVtYWlsIjpudWxsLCJwcm9jZXNzZWRBdCI6IjIwMjItMDMtMTdUMDg6MjY6MjgtMTA6MDAiLCJzdGF0ZSI6ImVuX2NvbnN0cnVjdGlvbiJ9XSwiZGVtYW5kZXVyIjp7Il9fdHlwZW5hbWUiOiJQZXJzb25uZU1vcmFsZSIsInNpcmV0IjoiOTY2NzA1IiwibmFmIjoiOTQ5OVoiLCJsaWJlbGxlTmFmIjoiQXV0cmVzIG9yZ2FuaXNhdGlvbnMgZm9uY3Rpb25uYW50IHBhciBhZGjDqXNpb24gdm9sb250YWlyZSIsImFkcmVzc2UiOiJCUCAxMjAxNjUsIDk4NzEyIFBBUEFSQSwgUEsgMzQsIFBhcGFyYSIsIm51bWVyb1ZvaWUiOiIiLCJ0eXBlVm9pZSI6bnVsbCwibm9tVm9pZSI6IiIsImNvbXBsZW1lbnRBZHJlc3NlIjpudWxsLCJjb2RlUG9zdGFsIjoiOTg3MTIiLCJsb2NhbGl0ZSI6IlBhcGFyYSIsImVudHJlcHJpc2UiOnsic2lyZW4iOiI5NjY3MDUiLCJjYXBpdGFsU29jaWFsIjoiLTEiLCJudW1lcm9UdmFJbnRyYWNvbW11bmF1dGFpcmUiOiIiLCJmb3JtZUp1cmlkaXF1ZSI6IkFzc29jaWF0aW9uIGRlIGxvaSAxOTAxIG91IGFzc2ltaWzDqSIsImZvcm1lSnVyaWRpcXVlQ29kZSI6IjkyMCIsIm5vbUNvbW1lcmNpYWwiOiIiLCJyYWlzb25Tb2NpYWxlIjoiQVNTQ0lBVElPTiBWQUlQQUhVLVRFTUFUQVUgTk8gUEFQQVJBIiwic2lyZXRTaWVnZVNvY2lhbCI6Ijk2NjcwNSIsImNvZGVFZmZlY3RpZkVudHJlcHJpc2UiOiIxIiwiZGF0ZUNyZWF0aW9uIjoiMjAxMC0xMi0wNiIsIm5vbSI6IiIsInByZW5vbSI6IiJ9LCJhc3NvY2lhdGlvbiI6bnVsbH0sImFubm90YXRpb25zIjpbeyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVeE9EZz0iLCJsYWJlbCI6IkNhbmRpZGF0cyBhZG1pcyIsImZpbGUiOnsiY29udGVudFR5cGUiOiJhcHBsaWNhdGlvbi92bmQubXMtZXhjZWwiLCJjaGVja3N1bSI6Ill2cjFVMnRpaWlGbEtGcVRNSG85dmc9PSIsImZpbGVuYW1lIjoiQ0lTIEV4Y2VsIExpc3RlIGRlcyBhZG1pcy5jc3YiLCJ1cmwiOiJodHRwczovL29zdS5jbG91ZGdvdXYtZXUtd2VzdC0xLm91dHNjYWxlLmNvbS9tZXMtZGVtYXJjaGVzLXByb2Qvb29zNHo0MGcyMW4zaHI2Z2MyNWYyMjlqOWhhZz9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM0IlMjBmaWxlbmFtZSUzRCUyMkNJUyUyMEV4Y2VsJTIwTGlzdGUlMjBkZXMlMjBhZG1pcy5jc3YlMjIlM0IlMjBmaWxlbmFtZSUyQSUzRFVURi04JTI3JTI3Q0lTJTI1MjBFeGNlbCUyNTIwTGlzdGUlMjUyMGRlcyUyNTIwYWRtaXMuY3N2XHUwMDI2cmVzcG9uc2UtY29udGVudC10eXBlPWFwcGxpY2F0aW9uJTJGdm5kLm1zLWV4Y2VsXHUwMDI2WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTZcdTAwMjZYLUFtei1DcmVkZW50aWFsPUlHMUpZUDc0UUdXR0lZNzdJR083JTJGMjAyMjAzMjMlMkZjbG91ZGdvdXYtZXUtd2VzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3RcdTAwMjZYLUFtei1EYXRlPTIwMjIwMzIzVDIyMDA1MlpcdTAwMjZYLUFtei1FeHBpcmVzPTM2MDBcdTAwMjZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3RcdTAwMjZYLUFtei1TaWduYXR1cmU9MWQxODM0Mjc4Njk1ZTY2NTlkNmMyYjM4NTRlZDQ4ZmVjNDA2OTY5ZjI3MzIyMGRmYjM3MGFiNzZiN2U2YmQ1NiJ9LCJzdHJpbmdWYWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IkNoZWNrYm94Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjM09UST0iLCJsYWJlbCI6IkfDqW7DqXJlciBsZXMgY29udmVudGlvbnMiLCJ2YWx1ZSI6dHJ1ZX0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVNVGc9IiwibGFiZWwiOiJDaGFtcHMgYXV0b21hdGlxdWVzIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVFk1TVRjPSIsImxhYmVsIjoiU3ludGjDqHNlIGRlcyBpbnNjcmlwdGlvbnMiLCJ2YWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVNVFk9IiwibGFiZWwiOiJDYW5kaWRhdHMiLCJmaWxlIjp7ImNvbnRlbnRUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9wZW54bWxmb3JtYXRzLW9mZmljZWRvY3VtZW50LnNwcmVhZHNoZWV0bWwuc2hlZXQiLCJjaGVja3N1bSI6ImROdElVVjNkdFMvNTR6T0tXeENmcVE9PSIsImZpbGVuYW1lIjoiQ2FuZGlkYXRzLnhsc3giLCJ1cmwiOiJodHRwczovL29zdS5jbG91ZGdvdXYtZXUtd2VzdC0xLm91dHNjYWxlLmNvbS9tZXMtZGVtYXJjaGVzLXByb2QvNGZhM2k4ZXZ3N2pva3RkcmR1bHl2cDB5Nmo5bD9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM0IlMjBmaWxlbmFtZSUzRCUyMkNhbmRpZGF0cy54bHN4JTIyJTNCJTIwZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyN0NhbmRpZGF0cy54bHN4XHUwMDI2cmVzcG9uc2UtY29udGVudC10eXBlPWFwcGxpY2F0aW9uJTJGdm5kLm9wZW54bWxmb3JtYXRzLW9mZmljZWRvY3VtZW50LnNwcmVhZHNoZWV0bWwuc2hlZXRcdTAwMjZYLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1Nlx1MDAyNlgtQW16LUNyZWRlbnRpYWw9SUcxSllQNzRRR1dHSVk3N0lHTzclMkYyMDIyMDMyMyUyRmNsb3VkZ291di1ldS13ZXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdFx1MDAyNlgtQW16LURhdGU9MjAyMjAzMjNUMjIwMDUyWlx1MDAyNlgtQW16LUV4cGlyZXM9MzYwMFx1MDAyNlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdFx1MDAyNlgtQW16LVNpZ25hdHVyZT01ZmUyMWE3M2U2MTliMWUyYmYwZGFlOWJkYzQ4ZWZiODlkYmM3NmNmYzA5YWYzYjM5ZDQwMTljMWRmYTM4MmIzIn0sInN0cmluZ1ZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVNVFU9IiwibGFiZWwiOiJJbnNwZWN0ZXVyIiwidmFsdWUiOiJPSyJ9XSwiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UQTFNUT09IiwibGFiZWwiOiJMJ29yZ2FuaXNtZSBkZW1hbmRldXIiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5USTROQT09IiwibGFiZWwiOiJOdW3DqXJvIFRhaGl0aSBJVEkiLCJ2YWx1ZSI6Ijk2NjcwNTAwMSJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXROVEF6T0E9PSIsImxhYmVsIjoiTnVtw6lybyBlbXBsb3lldXIgQ1BTIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVFF4T1E9PSIsImxhYmVsIjoiTm9tIGR1IHJlcHLDqXNlbnRhbnQgbMOpZ2FsIiwidmFsdWUiOiJBVElVIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UUXlNQT09IiwibGFiZWwiOiJQcsOpbm9tIGR1IHJlcHLDqXNlbnRhbnQgbMOpZ2FsIiwidmFsdWUiOiJMYWV0aXRpYSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVEEwTXc9PSIsImxhYmVsIjoiQ29tbXVuZSBkZSBsJ29yZ2FuaXNtZSIsInZhbHVlIjoiQXJ1ZSAtIFRhaGl0aSAtIDk4NzAxIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UQTNOQT09IiwibGFiZWwiOiJSZW5zZWlnbmVtZW50cyBjb25jZXJuYW50IGxlIGNoYW50aWVyIGQnaW50w6lyw6p0IGfDqW7DqXJhbCIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpRNE9UYz0iLCJsYWJlbCI6IkludGl0dWzDqSBkdSBjaGFudGllciIsInZhbHVlIjoibmV0dG95YWdlIGRlcyBwbGFnZXMgVG9tYmVhdSBkdSByb2ksIHZhaXBvb3BvbyBldCBsYWZheWV0dGUifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09EYz0iLCJsYWJlbCI6IkNvbW11bmUiLCJ2YWx1ZSI6IkFmYWFoaXRpIC0gVGFoaXRpIC0gOTg3MTkifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09EWT0iLCJsYWJlbCI6IkxvY2FsaXNhdGlvbiBnw6lvZ3JhcGhpcXVlIHByw6ljaXNlIiwidmFsdWUiOiJBcnVlIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXdPRGc9IiwibGFiZWwiOiJEZXNjcmlwdGlmIGRlcyBhY3Rpdml0w6lzIiwidmFsdWUiOiJBcmNoaXZlciJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV3T1RJPSIsImxhYmVsIjoiRXF1aXBlbWVudHMiLCJ2YWx1ZSI6IkJhbGFpIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXdPVE09IiwibGFiZWwiOiJFcXVpcGVtZW50cyBkZSBwcm90ZWN0aW9uIGluZGl2aWR1ZWxsZSIsInZhbHVlIjoiTWFzcXVlIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXlOREU9IiwibGFiZWwiOiJDb250YWN0IHN1ciBsZSBjaGFudGllciIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09Eaz0iLCJsYWJlbCI6Ik5vbSBkdSB0dXRldXIiLCJ2YWx1ZSI6IlBhbG1pZXIifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09UQT0iLCJsYWJlbCI6IlByw6lub20gZHUgdHV0ZXVyIiwidmFsdWUiOiJEYXR0aWVyIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXdPVEU9IiwibGFiZWwiOiJUw6lsw6lwaG9uZSBkdSB0dXRldXIiLCJ2YWx1ZSI6IjQwNDYxMjEyIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXlOREE9IiwibGFiZWwiOiLDiXRhdCBub21pbmF0aWYiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVeE5qRT0iLCJsYWJlbCI6IsOJdGF0IG5vbWluYXRpZiBkZXMgZGVtYW5kZXVycyIsImZpbGUiOnsiY29udGVudFR5cGUiOiJhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtb2ZmaWNlZG9jdW1lbnQuc3ByZWFkc2hlZXRtbC5zaGVldCIsImNoZWNrc3VtIjoibDhEUHRpVlRNU2FndmltalhHU3dTdz09IiwiZmlsZW5hbWUiOiJDSVMgRXhjZWwgRXRhdCBwcsOpdmlzaW9ubmVsLnhsc3giLCJ1cmwiOiJodHRwczovL29zdS5jbG91ZGdvdXYtZXUtd2VzdC0xLm91dHNjYWxlLmNvbS9tZXMtZGVtYXJjaGVzLXByb2QvaHl4Mm5zbjh4dXdvM2wwdmltanZhbm1qYmlwMD9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM0IlMjBmaWxlbmFtZSUzRCUyMkNJUyUyMEV4Y2VsJTIwRXRhdCUyMHByZXZpc2lvbm5lbC54bHN4JTIyJTNCJTIwZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyN0NJUyUyNTIwRXhjZWwlMjUyMEV0YXQlMjUyMHByJTI1QzMlMjVBOXZpc2lvbm5lbC54bHN4XHUwMDI2cmVzcG9uc2UtY29udGVudC10eXBlPWFwcGxpY2F0aW9uJTJGdm5kLm9wZW54bWxmb3JtYXRzLW9mZmljZWRvY3VtZW50LnNwcmVhZHNoZWV0bWwuc2hlZXRcdTAwMjZYLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1Nlx1MDAyNlgtQW16LUNyZWRlbnRpYWw9SUcxSllQNzRRR1dHSVk3N0lHTzclMkYyMDIyMDMyMyUyRmNsb3VkZ291di1ldS13ZXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdFx1MDAyNlgtQW16LURhdGU9MjAyMjAzMjNUMjIwMDUyWlx1MDAyNlgtQW16LUV4cGlyZXM9MzYwMFx1MDAyNlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdFx1MDAyNlgtQW16LVNpZ25hdHVyZT1hNDViNTU5NDllNjUxMmJkYzJjZmRmMmQ0NTZiZjYyOGYwZmNjOGQ4MTk5NmY1YzI2ZmQ3NzU3YzdkODk5YmZlIn0sInN0cmluZ1ZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXhOamc9IiwibGFiZWwiOiJOb21icmUgZGUgQ0lTIGRlbWFuZMOpcyIsInZhbHVlIjoiMTUifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVeE5qVT0iLCJsYWJlbCI6IkFzc29jaWF0aW9ucyIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVeU5EST0iLCJsYWJlbCI6IlZvdXMgw6p0ZXMgdW5lIGFzc29jaWF0aW9uLiIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJQaWVjZUp1c3RpZmljYXRpdmVDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV4TmpZPSIsImxhYmVsIjoiU3RhdHV0cyDDoCBqb3VyIiwiZmlsZSI6eyJjb250ZW50VHlwZSI6ImltYWdlL3BuZyIsImNoZWNrc3VtIjoiVnQrb3hmWFZQdTd5UzJ4b2ZrcTJodz09IiwiZmlsZW5hbWUiOiJTdGF0dXRzIGFzc29jaWF0aW9uLlBORyIsInVybCI6Imh0dHBzOi8vb3N1LmNsb3VkZ291di1ldS13ZXN0LTEub3V0c2NhbGUuY29tL21lcy1kZW1hcmNoZXMtcHJvZC9leTU1NHV6eTl5emY4dDMyM2VxazQwcTlvemltP3Jlc3BvbnNlLWNvbnRlbnQtZGlzcG9zaXRpb249aW5saW5lJTNCJTIwZmlsZW5hbWUlM0QlMjJTdGF0dXRzJTIwYXNzb2NpYXRpb24uUE5HJTIyJTNCJTIwZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyN1N0YXR1dHMlMjUyMGFzc29jaWF0aW9uLlBOR1x1MDAyNnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZ1x1MDAyNlgtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2XHUwMDI2WC1BbXotQ3JlZGVudGlhbD1JRzFKWVA3NFFHV0dJWTc3SUdPNyUyRjIwMjIwMzIzJTJGY2xvdWRnb3V2LWV1LXdlc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0XHUwMDI2WC1BbXotRGF0ZT0yMDIyMDMyM1QyMjAwNTJaXHUwMDI2WC1BbXotRXhwaXJlcz0zNjAwXHUwMDI2WC1BbXotU2lnbmVkSGVhZGVycz1ob3N0XHUwMDI2WC1BbXotU2lnbmF0dXJlPTUzYTc1M2RhZTRmOGExNjU1OWUyMjFjNjNhZDYxNmEyZjVjMmE4ZWNhM2EzZDk0YzQyZWU3OTY2YzIwMThkMzkifSwic3RyaW5nVmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjM01URT0iLCJsYWJlbCI6IkNvbXBvc2l0aW9uIGR1IGJ1cmVhdSIsInZhbHVlIjoiTUFOQVJBTklcdENsw6ltZW50aW5lIEhpbGRhXHJcblJVUEVBXHRDaW5keSBFdmFcclxuVEVSQUlcdFJ1dGEgSnVsaWV0dGVcclxuIn0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVeE5qYz0iLCJsYWJlbCI6IkTDqWNsYXJhdGlvbiBkZSBsJ2Fzc29jaWF0aW9uIiwiZmlsZSI6eyJjb250ZW50VHlwZSI6ImltYWdlL3BuZyIsImNoZWNrc3VtIjoiTmlHNUpFb3dOMXZQbHBtWGRqNXpLUT09IiwiZmlsZW5hbWUiOiJSZWNpcGlzc8OpIEhhdXQgY29tbWlzc2FyaWF0LlBORyIsInVybCI6Imh0dHBzOi8vb3N1LmNsb3VkZ291di1ldS13ZXN0LTEub3V0c2NhbGUuY29tL21lcy1kZW1hcmNoZXMtcHJvZC95cnJlM3MwbXIwdG53Y3MwdTQ4ODJvMGhlY3plP3Jlc3BvbnNlLWNvbnRlbnQtZGlzcG9zaXRpb249aW5saW5lJTNCJTIwZmlsZW5hbWUlM0QlMjJSZWNpcGlzc2UlMjBIYXV0JTIwY29tbWlzc2FyaWF0LlBORyUyMiUzQiUyMGZpbGVuYW1lJTJBJTNEVVRGLTglMjclMjdSZWNpcGlzcyUyNUMzJTI1QTklMjUyMEhhdXQlMjUyMGNvbW1pc3NhcmlhdC5QTkdcdTAwMjZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmdcdTAwMjZYLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1Nlx1MDAyNlgtQW16LUNyZWRlbnRpYWw9SUcxSllQNzRRR1dHSVk3N0lHTzclMkYyMDIyMDMyMyUyRmNsb3VkZ291di1ldS13ZXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdFx1MDAyNlgtQW16LURhdGU9MjAyMjAzMjNUMjIwMDUyWlx1MDAyNlgtQW16LUV4cGlyZXM9MzYwMFx1MDAyNlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdFx1MDAyNlgtQW16LVNpZ25hdHVyZT05YjhmOTJjZWFmYzg0ZTQ4ZjBmNzcxMWFmZmEzZjdjZTA3NDE5NDQ3MDlmNDU0YmI2MmVjMzdhNDA3MDZhMzg0In0sInN0cmluZ1ZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UQTRNZz09IiwibGFiZWwiOiJFbmdhZ2VtZW50IiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelE0T1RFPSIsImxhYmVsIjoiVm90cmUgbm9tIiwidmFsdWUiOiJDaGV2YWwifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpRNE9UST0iLCJsYWJlbCI6IlZvdHJlIHByw6lub20iLCJ2YWx1ZSI6IkxhdXJhIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16UTRPVFE9IiwibGFiZWwiOiJWb3RyZSBmb25jdGlvbiIsInZhbHVlIjoiRmVtbWUgZGUgbcOpbmFnZSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelE0T1RVPSIsImxhYmVsIjoiVm90cmUgbnVtw6lybyBkZSB0w6lsw6lwaG9uZSIsInZhbHVlIjoiNDA0NjEyMTIifSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UQTFNZz09IiwibGFiZWwiOiJFeGFjdGl0dWRlIGRlcyByZW5zZWlnbmVtZW50cyIsInZhbHVlIjp0cnVlfV19fX0=
+  recorded_at: Wed, 23 Mar 2022 22:00:52 GMT
+- request:
+    method: get
+    uri: https://osu.cloudgouv-eu-west-1.outscale.com/mes-demarches-prod/oos4z40g21n3hr6gc25f229j9hag?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=IG1JYP74QGWGIY77IGO7/20220323/cloudgouv-eu-west-1/s3/aws4_request&X-Amz-Date=20220323T220052Z&X-Amz-Expires=3600&X-Amz-Signature=1d1834278695e6659d6c2b3854ed48fec406969f273220dfb370ab76b7e6bd56&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename=%22CIS%20Excel%20Liste%20des%20admis.csv%22%3B%20filename*=UTF-8%27%27CIS%2520Excel%2520Liste%2520des%2520admis.csv&response-content-type=application/vnd.ms-excel
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 23 Mar 2022 22:00:53 GMT
+      Content-Type:
+      - application/vnd.ms-excel
+      Content-Length:
+      - '1126'
+      Connection:
+      - close
+      Accept-Ranges:
+      - bytes
+      Content-Disposition:
+      - attachment; filename="CIS Excel Liste des admis.csv"; filename*=UTF-8''CIS%20Excel%20Liste%20des%20admis.csv
+      Etag:
+      - '"62faf5536b628a2165285a93307a3dbe"'
+      Last-Modified:
+      - Thu, 17 Mar 2022 19:04:54 GMT
+      X-Amz-Id-2:
+      - c01e8f3bf14da155f1df
+      X-Amz-Request-Id:
+      - c01e8f3bf14da155f1df
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      Content-Security-Policy:
+      - 'default-src https:'
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      Referrer-Policy:
+      - same-origin
+      X-Frame-Options:
+      - '"SAMEORIGIN"'
+      Set-Cookie:
+      - SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        TsKwIERvc3NpZXJzIDo7Mjk0NTQ0Ozs7Ozs7DQpEYXRlIGRlIGTDqW1hcnJhZ2UgOjswMS8wNC8yMDIyOzs7Ozs7DQpJbnRpdHVsw6kgZHUgY2hhbnRpZXIgOjtuZXR0b3lhZ2UgZGVzIGxpZXV4IHB1YmxpY3M7Ozs7OzsNCkROO05PTSBQQVRST05ZTUlRVUU7Tk9NIEQnRVBPVVNFO1BSRU5PTTtEQVRFIE5BSVNTQU5DRTtNT05UQU5UO1BFUklPREU7TsKwIENPTlZFTlRJT04NCjI1MzA5ODg7VEFOT0E7O1RhbmlhIFN0w6lwaGFuaWU7MDQvMDYvMTk4MDs1MDAwMDsyMDIyMDQ7MjEwNjNDSVMwMjYzMA0KMzI2NDIwMTtQVUFISU87O1RhdWhlcmUgTWlyZWlsbGU7MDcvMDUvMTk5NDs1MDAwMDsyMDIyMDQ7MjEwNjNDSVMwMjYzMQ0KMzExMjgxMTtNQU5BRkVOVUFST0E7O1RlaGluYSBNw6lsaW5hOzIzLzEwLzE5OTI7NTAwMDA7MjAyMjA0OzIxMDYzQ0lTMDI2MzINCjI0OTk2NzQ7TUFOQUZFTlVBUk9BOztNYXJ1YXRhIEFwdWFyaWk7MjEvMDgvMTk4MDs1MDAwMDsyMDIyMDQ7MjEwNjNDSVMwMjYzMw0KNDUxNjY4ODtNQU5BUklJOztWYWlyZWEgTHVjaWE7MTgvMDMvMTk5ODs1MDAwMDsyMDIyMDQ7MjEwNjNDSVMwMjYzNA0KMzIyMTY2ODtURUZBQVRBVTs7SGVpYXRhOzI0LzEyLzE5OTM7NTAwMDA7MjAyMjA0OzIxMDYzQ0lTMDI2MzUNCjI0NDEzOTg7SVRBRTs7QXJsw6huZTsyNS8wMS8xOTg2OzUwMDAwOzIwMjIwNDsyMTA2M0NJUzAyNjM2DQoyNDI0OTMyO1RFUlVBT1RVOztNYXJpZS1DbGF1ZGU7MDgvMTAvMTk4MDs1MDAwMDsyMDIyMDQ7MjEwNjNDSVMwMjYzNw0KMjM4NjM0MDtURUhBVTs7SmVhbm5ldHRlIFRpdGFpbmE7MjEvMDYvMTk3OTs1MDAwMDsyMDIyMDQ7MjEwNjNDSVMwMjYzOA0KMzA1MDIwOTtURVJJSVBBSUE7O0plc3N5IEFodXRpYXJlOzE4LzA3LzE5OTA7NTAwMDA7MjAyMjA0OzIxMDYzQ0lTMDI2MzkNCjIwMzc5MzE7TUFOQVJBTkk7O0Nsw6ltZW50aW5lIEhpbGRhOzE2LzA5LzE5NzI7NTAwMDA7MjAyMjA0OzIxMDYzQ0lTMDI2NDANCjIxMDg5MzU7UlVQRUE7O0NpbmR5IEV2YTsyNC8wOC8xOTg5OzUwMDAwOzIwMjIwNDsyMTA2M0NJUzAyNjQxDQoxMTQ5NDU3O1RFUkFJOztSdXRhIEp1bGlldHRlOzI4LzA2LzE5NzM7NTAwMDA7MjAyMjA0OzIxMDYzQ0lTMDI2NDINCg==
+  recorded_at: Wed, 23 Mar 2022 22:00:53 GMT
+recorded_with: VCR 6.0.0
