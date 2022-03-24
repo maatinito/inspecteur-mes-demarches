@@ -7,6 +7,13 @@ class FieldChecker < InspectorTask
 
   attr_writer :demarche
 
+  def initialize(params)
+    super(params)
+    @messages = []
+    @dossiers_to_ignore = Set.new
+    @dossiers_to_recheck = Set.new
+  end
+
   def process(demarche, dossier)
     @messages = []
     @dossiers_to_ignore = Set.new
