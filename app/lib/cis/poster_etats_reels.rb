@@ -21,8 +21,6 @@ module Cis
     end
 
     def process(_demarche, dossier)
-      # return unless must_check?(dossier)
-
       champ = dossier_annotations(dossier, @params[:champ_candidats_admis])&.first
       return if champ&.file.nil?
 
