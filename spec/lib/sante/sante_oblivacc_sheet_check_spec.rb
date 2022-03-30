@@ -2,17 +2,6 @@
 
 require 'rails_helper'
 
-def new_message(field, value, message_type, correction)
-  pp controle.params, message_type, 'impossible de trouver' if controle.params[message_type].nil?
-  msg = controle.params[message_type]
-  msg += ": #{correction}" if correction
-  FactoryBot.build :message, field: field, value: value, message: msg
-end
-
-def field_name(base, index)
-  index > 0 ? "#{base}+#{index}" : base
-end
-
 RSpec.describe Sante::OblivaccSheetCheck do
   context 'depot' do
     let(:controle) { FactoryBot.build :sante_oblivacc_sheet_check }
