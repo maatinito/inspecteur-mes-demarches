@@ -2,11 +2,12 @@
 
 class ScheduledTaskJob < CronJob
   # self.schedule_expression = 'every day at 7:00'
-  self.schedule_expression = 'every 2 minute'
+  self.schedule_expression = ENV.fetch(SCHEDULEDTASK_CRON, 'every day at 6:00')
 
   def perform
     date_arel = ScheduledTask.arel_table[:run_at]
-    ScheduledTask.where(date_arel.lteq(Date.today)).each do |scheduled|
+    date = Rails.env.development? ? 1.year.since.to_date : Date.today
+    ScheduledTask.where(date_arel.lteq(date)).each do |scheduled|
       Rails.logger.tagged(scheduled.task) do
         task = InspectorTask.create_tasks([{ scheduled.task => JSON.parse(scheduled.parameters) }]).first
         throw "Impossible d'initialiser la tache #{scheduled.task}: #{task.errors.join(',')}" unless task.valid?
