@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 Sentry.init do |config|
   config.dsn = 'https://22dfb14ef95e4f5596b4c8d439b770c0@o256076.ingest.sentry.io/6298520'
-  config.breadcrumbs_logger = [:active_support_logger, :http_logger]
+  config.breadcrumbs_logger = %i[active_support_logger http_logger]
 
   # Set tracesSampleRate to 1.0 to capture 100%
   # of transactions for performance monitoring.

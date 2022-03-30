@@ -64,7 +64,7 @@ module Cis
           champ_candidats_admis: @params[:champ_candidats_admis],
           date: date,
           month: "#{MONTHS[date.month - 1]} #{date.year}",
-          index: index+1,
+          index: index + 1,
           message: @params[:message],
           mot_de_passe: @params[:mot_de_passe],
           nom_fichier: @params[:nom_fichier]
