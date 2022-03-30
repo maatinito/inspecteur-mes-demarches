@@ -87,7 +87,7 @@ group :development do
   gem 'rspec-rails', '~> 5'
   gem 'rubocop', require: false
   gem 'rubocop-rails_config'
-  gem 'rubocop-rspec-focused', require: false
+  gem 'rubocop-rspec', require: false
   gem 'scss_lint', require: false
 end
 

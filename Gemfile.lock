@@ -358,8 +358,8 @@ GEM
       rubocop-packaging (~> 0.5)
       rubocop-performance (~> 1.11)
       rubocop-rails (~> 2.0)
-    rubocop-rspec-focused (1.0.0)
-      rubocop (>= 0.51)
+    rubocop-rspec (2.5.0)
+      rubocop (~> 1.19)
     ruby-ole (1.2.12.2)
     ruby-progressbar (1.11.0)
     ruby-rc4 (0.1.5)
@@ -507,7 +507,7 @@ DEPENDENCIES
   rspec-rails (~> 5)
   rubocop
   rubocop-rails_config
-  rubocop-rspec-focused
+  rubocop-rspec
   sablon
   sass-rails (~> 5.0)
   scss_lint
