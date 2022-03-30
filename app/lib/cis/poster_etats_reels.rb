@@ -5,7 +5,7 @@ module Cis
     include Cis::Shared
 
     def must_check?(md_dossier)
-      md_dossier&.state == 'accepté'
+      md_dossier&.state == 'accepte'
     end
 
     def version
@@ -60,12 +60,13 @@ module Cis
 
       ScheduledTask.where(dossier: dossier.number, task: task_name).destroy_all
 
-      theoric_dates.each do |date|
+      theoric_dates.each.with_index do |date, index|
         date = date.prev_month
         parameters = {
           champ_candidats_admis: @params[:champ_candidats_admis],
           date: date,
           month: "#{MONTHS[date.month - 1]} #{date.year}",
+          index: index+1,
           message: @params[:message],
           mot_de_passe: @params[:mot_de_passe],
           nom_fichier: @params[:nom_fichier]

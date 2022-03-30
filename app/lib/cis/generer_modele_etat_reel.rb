@@ -7,37 +7,33 @@ module Cis
     CSV_COLUMNS = ['DN', 'NOM PATRONYMIQUE', "NOM D'EPOUSE", 'PRENOM', 'DATE NAISSANCE', 'MONTANT', 'PERIODE', 'N° CONVENTION'].to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
     ABSENCE_COLUMNS = {
       'Nom de famille' => 'NOM PATRONYMIQUE',
-      'Prénom' => 'PRENOM',
+      'Prénom(s)' => 'PRENOM',
       'Date de naissance' => 'DATE NAISSANCE',
-      'DN' => 'DN',
+      'Numéro DN' => 'DN',
       'Civilité' => '',
-      'Téléphone' => '',
-      'IBAN' => '',
       "Niveau d'études" => '',
       'Date de naissance du conjoint' => '',
-      'DN du conjoint' => '',
-      "Nb d'enfants" => '',
+      'Numéro DN du conjoint' => '',
+      "Nombre d'enfants" => '',
       'Activité' => '',
       'Code ROME' => '',
       "Jours d'absences non justifiées" => '',
-      'Aide' => '=IF(OR(ISBLANK(INDIRECT("C"&ROW())),ISBLANK(INDIRECT("N"&ROW()))),"",ROUND(50000*(30-INDIRECT("N"&ROW()))/30,5))'
+      'Aide' => '=IF(OR(ISBLANK(INDIRECT("C"&ROW())),ISBLANK(INDIRECT("L"&ROW()))),"",ROUND(50000*(30-INDIRECT("L"&ROW()))/30,5))'
     }.freeze
 
-    HIDDEN_COLUMNS = ['DN',
+    HIDDEN_COLUMNS = ['Numéro DN',
                       'Civilité',
-                      'Téléphone',
-                      'IBAN',
                       "Niveau d'études",
                       'Date de naissance du conjoint',
-                      'DN du conjoint',
-                      "Nb d'enfants",
+                      'Numéro DN du conjoint',
+                      "Nombre d'enfants",
                       'Activité',
                       'Code ROME'].freeze
 
-    UNLOCKED_COLUMNS = Set.new(["Jours d'absences non justifiés"])
+    UNLOCKED_COLUMNS = Set.new(["Jours d'absences non justifiées"])
 
     def must_check?(md_dossier)
-      md_dossier&.state == 'accepté'
+      md_dossier&.state == 'accepte'
     end
 
     def version
@@ -45,7 +41,11 @@ module Cis
     end
 
     def required_fields
-      super + %i[champ_candidats_admis date month message nom_fichier]
+      super + %i[champ_candidats_admis date month index message nom_fichier]
+    end
+
+    def authorized_fields
+      super + %i[mot_de_passe]
     end
 
     def process(demarche, dossier)
@@ -59,8 +59,9 @@ module Cis
         admitted = sheet.parse(CSV_COLUMNS)
         absences = sheet_data(admitted)
         variables = {
-          'Mois' => @params[:month],
-          'Dossier' => dossier.number
+          'Periode' => @params[:month],
+          'Dossier' => dossier.number,
+          'Mois' => @params[:index]
         }
         save_excel(dossier, absences, variables) do |path|
           body = instanciate(@params[:message], variables)
