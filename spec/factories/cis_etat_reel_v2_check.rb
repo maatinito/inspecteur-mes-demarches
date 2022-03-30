@@ -4,6 +4,7 @@ FactoryBot.define do
   factory :cis_etat_reel_v2_check, class: Cis::EtatReelV2Check do
     champ { 'Relevé des absences' }
     champ_candidats_admis { 'Candidats admis' }
+    champ_periode { 'Année' }
 
     message_champ_non_renseigne { 'message_champ_non_renseigne' }
     message_type_de_fichier { 'message_type_de_fichier' }
@@ -18,6 +19,7 @@ FactoryBot.define do
     message_absence { 'message_absence' }
     message_personnes_inconnues { 'message_personnes_inconnues' }
     message_personnes_manquantes { 'message_personnes_manquantes' }
+    message_periode { 'message_periode' }
 
     initialize_with { Cis::EtatReelV2Check.new(attributes) }
   end

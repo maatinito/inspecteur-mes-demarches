@@ -22,7 +22,8 @@ RSpec.describe Cis::EtatReelV2Check do
         new_message(sheet_field, 'Personne En trop', :message_dn, '4567897,1973-06-28'),
         new_message(sheet_field, 'Personne En trop', :message_absence),
         new_message(field, filename, :message_personnes_manquantes, 'Ruta Juliette TERAI'),
-        new_message(field, filename, :message_personnes_inconnues, 'En trop Personne')
+        new_message(field, filename, :message_personnes_inconnues, 'En trop Personne'),
+        new_message('Année', 'Décembre 2022', :message_periode, 'mai 2022')
       ]
     end
 
