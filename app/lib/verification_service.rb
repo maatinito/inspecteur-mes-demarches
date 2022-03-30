@@ -170,7 +170,7 @@ class VerificationService
 
   def check_dossier(demarche, md_dossier, controls)
     Rails.logger.tagged("#{demarche.id},#{md_dossier.number}") do
-      affected = controls.find { |c| c.must_check?(md_dossier) }
+      affected = [*controls, *@ok_tasks].find { |c| c.must_check?(md_dossier) }
       if affected
         apply_controls(controls, demarche, md_dossier)
       else
