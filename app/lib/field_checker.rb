@@ -3,14 +3,31 @@
 require 'set'
 
 class FieldChecker < InspectorTask
-  attr_reader :messages, :accessed_fields, :dossier, :modified_dossiers
+  attr_reader :messages, :accessed_fields, :dossier, :dossiers_to_ignore, :dossiers_to_recheck
 
   attr_writer :demarche
 
+  def initialize(params)
+    super(params)
+    @messages = []
+    @dossiers_to_ignore = Set.new
+    @dossiers_to_recheck = Set.new
+  end
+
+  def process(demarche, dossier)
+    @messages = []
+    @dossiers_to_ignore = Set.new
+    @dossiers_to_recheck = Set.new
+    @dossier = dossier
+    @demarche = demarche
+  end
+
   def control(dossier)
     @messages = []
-    @modified_dossiers = []
+    @dossiers_to_ignore = Set.new
+    @dossiers_to_recheck = Set.new
     @dossier = dossier
+    @demarche = demarche
     check(dossier)
   end
 
@@ -83,16 +100,87 @@ class FieldChecker < InspectorTask
     objects
   end
 
+  def select_champ(champs, name)
+    champs.select { |champ| champ.label == name }
+  end
+
+  def attributes(object, name)
+    values = Array(object.send(name))
+    return values unless name.match?(/date/i)
+
+    values.map { |v| v.is_a?(String) ? Date.iso8601(v) : v }
+  end
+
+  def object_field_values(source, field, log_empty: true)
+    return [] if source.blank? || field.blank?
+
+    objects = [*source]
+    field.split(/\./).each do |name|
+      objects = objects.flat_map do |object|
+        object = object.dossier if object.respond_to?(:dossier)
+        r = []
+        r += select_champ(object.champs, name) if object.respond_to?(:champs)
+        r += select_champ(object.annotations, name) if object.respond_to?(:annotations)
+        r += attributes(object, name) if object.respond_to?(name)
+        r
+      end
+      Rails.logger.warn("Sur le dossier #{@dossier.number}, le champ #{field} est vide.") if log_empty && objects.blank?
+    end
+    objects
+  end
+
+  def champs_to_values(champs)
+    champs.map(&method(:champ_value)).compact.select(&:present?)
+  end
+
+  def champ_value(champ)
+    return nil unless champ
+
+    return champ.strftime('%d/%m/%Y') if champ.is_a?(Date)
+
+    return champ unless champ.respond_to?(:__typename) # direct value
+
+    case champ.__typename
+    when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp', 'CiviliteChamp'
+      champ.value || ''
+    when 'MultipleDropDownListChamp'
+      champ.values
+    when 'LinkedDropDownListChamp'
+      "#{champ.primary_value}/#{champ.secondary_value}"
+    when 'DateTimeChamp'
+      date_value(champ, '%d/%m/%Y %H:%M')
+    when 'DateChamp'
+      date_value(champ, '%d/%m/%Y')
+    when 'CheckboxChamp'
+      champ.value
+    when 'NumeroDnChamp'
+      "#{champ.numero_dn}|#{champ.date_de_naissance}"
+    when 'DossierLinkChamp', 'SiretChamp'
+      champ.string_value
+    when 'PieceJustificativeChamp'
+      champ&.file&.filename
+    else
+      throw "Unknown field type #{champ.label}:#{champ.__typename}"
+    end
+  end
+
+  def date_value(value, format)
+    if value.present?
+      Date.iso8601(champ.value).strftime(format)
+    else
+      ''
+    end
+  end
+
   def add_message(champ, valeur, message)
     @messages << Message.new(field: champ, value: valeur, message: message)
   end
 
-  def version
-    @params_version ||= @params.values.reduce(Digest::SHA1.new) { |d, s| d << s.to_s }.hexdigest.to_i(16) % (2 << 31)
-    1 + @params_version
+  def annotation_updated_on(dossier)
+    @dossiers_to_ignore << dossier
   end
 
-  def annotation_updated_on(dossier)
-    @modified_dossiers << dossier unless @modified_dossiers.any? { |d| d.number == dossier.number }
+  def recheck(dossier)
+    dossiers_to_recheck << dossier if dossier.present?
   end
 end

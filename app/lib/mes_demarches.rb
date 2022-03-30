@@ -115,6 +115,7 @@ module MesDemarches
     fragment DossierInfo on Dossier {
       id
       number
+      state
       archived
       datePassageEnConstruction
       datePassageEnInstruction
@@ -181,7 +182,6 @@ module MesDemarches
               hasNextPage
           }
           nodes {
-            state
             ...DossierInfo
             annotations {
               ...ChampInfo
@@ -219,6 +219,7 @@ module MesDemarches
     query Dossier($dossier: Int!) {
       dossier(number: $dossier) {
           state
+          demarche { number }
           ...DossierInfo
           annotations {
             ...ChampInfo
@@ -251,23 +252,5 @@ module MesDemarches
           }
         }
       }
-  GRAPHQL
-
-  Mutation = Client.parse <<-'GRAPHQL'
-    mutation EnvoyerMessage($dossierId: ID!, $instructeurId: ID!, $body: String!, $clientMutationId: String!) {
-        dossierEnvoyerMessage(
-            input: {
-                dossierId: $dossierId,
-                instructeurId: $instructeurId,
-                body: $body,
-                clientMutationId: $clientMutationId
-            }) {
-            clientMutationId
-            errors {
-                message
-            }
-        }
-    }
-
   GRAPHQL
 end

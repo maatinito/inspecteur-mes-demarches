@@ -1,0 +1,242 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"fragment MesDemarches__Queries__ChampInfo on Champ {\n  __typename\n  id\n  label\n  ...
+        on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
+        on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
+        on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
+        {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
+        MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  motivation\n  usager
+        {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
+        {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
+        on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
+        {\n        siren\n        capitalSocial\n        numeroTvaIntracommunautaire\n        formeJuridique\n        formeJuridiqueCode\n        nomCommercial\n        raisonSociale\n        siretSiegeSocial\n        codeEffectifEntreprise\n        dateCreation\n        nom\n        prenom\n      }\n      association
+        {\n        rna\n        titre\n        objet\n        dateCreation\n        dateDeclaration\n        dateDeclaration\n      }\n    }\n  }\n}\n\nquery
+        MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
+        {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n    }\n    champs
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
+        {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
+        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":295697},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Thu, 24 Mar 2022 00:02:45 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"820929d051ada43d2dde9e10e005e46b"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      X-Request-Id:
+      - ee82669e-03a1-4cd6-9fec-78b846af5718
+      X-Runtime:
+      - '0.413710'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '7235'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE1NzN9LCJpZCI6IlJHOXpjMmxsY2kweU9UVTJPVGM9IiwibnVtYmVyIjoyOTU2OTcsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDMtMjNUMTQ6MDE6MjUtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTAzLTIzVDE0OjAxOjI4LTEwOjAwIiwibW90aXZhdGlvbiI6bnVsbCwidXNhZ2VyIjp7ImVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIn0sInRyYWl0ZW1lbnRzIjpbeyJpbnN0cnVjdGV1ckVtYWlsIjpudWxsLCJwcm9jZXNzZWRBdCI6IjIwMjItMDMtMjNUMTQ6MDE6MjUtMTA6MDAiLCJzdGF0ZSI6ImVuX2NvbnN0cnVjdGlvbiJ9XSwiZGVtYW5kZXVyIjp7Il9fdHlwZW5hbWUiOiJQZXJzb25uZU1vcmFsZSIsInNpcmV0IjoiNTYxNDA3IiwibmFmIjoiOTQ5OVoiLCJsaWJlbGxlTmFmIjoiQXV0cmVzIG9yZ2FuaXNhdGlvbnMgZm9uY3Rpb25uYW50IHBhciBhZGjDqXNpb24gdm9sb250YWlyZSIsImFkcmVzc2UiOiI5OTk5OSBOb24gZMOpY2xhcsOpLCBVYS1Qb3UgYy9vIEVjb2xlLCBIYWthbWFpaSIsIm51bWVyb1ZvaWUiOiIiLCJ0eXBlVm9pZSI6bnVsbCwibm9tVm9pZSI6IiIsImNvbXBsZW1lbnRBZHJlc3NlIjpudWxsLCJjb2RlUG9zdGFsIjoiOTk5OTkiLCJsb2NhbGl0ZSI6Ikhha2FtYWlpIiwiZW50cmVwcmlzZSI6eyJzaXJlbiI6IjU2MTQwNyIsImNhcGl0YWxTb2NpYWwiOiItMSIsIm51bWVyb1R2YUludHJhY29tbXVuYXV0YWlyZSI6IiIsImZvcm1lSnVyaWRpcXVlIjoiQXNzb2NpYXRpb24gZGUgbG9pIDE5MDEgb3UgYXNzaW1pbMOpIiwiZm9ybWVKdXJpZGlxdWVDb2RlIjoiOTIwIiwibm9tQ29tbWVyY2lhbCI6IiIsInJhaXNvblNvY2lhbGUiOiJBTUlDQUxFIERFUyBQQVJFTlRTIEQnRUxFVkVTIERFIEwnRUNPTEUgREUgSEFLQU1BSUkiLCJzaXJldFNpZWdlU29jaWFsIjoiNTYxNDA3IiwiY29kZUVmZmVjdGlmRW50cmVwcmlzZSI6IjEiLCJkYXRlQ3JlYXRpb24iOiIyMDAwLTA5LTIxIiwibm9tIjoiIiwicHJlbm9tIjoiIn0sImFzc29jaWF0aW9uIjpudWxsfSwiYW5ub3RhdGlvbnMiOlt7Il9fdHlwZW5hbWUiOiJQaWVjZUp1c3RpZmljYXRpdmVDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV4T0RnPSIsImxhYmVsIjoiQ2FuZGlkYXRzIGFkbWlzIiwiZmlsZSI6bnVsbCwic3RyaW5nVmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRZNU1UZz0iLCJsYWJlbCI6IkNoYW1wcyBhdXRvbWF0aXF1ZXMiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRZNU1UWT0iLCJsYWJlbCI6IkNhbmRpZGF0cyIsImZpbGUiOm51bGwsInN0cmluZ1ZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVNVFU9IiwibGFiZWwiOiJJbnNwZWN0ZXVyIiwidmFsdWUiOm51bGx9XSwiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UQTFNUT09IiwibGFiZWwiOiJMJ29yZ2FuaXNtZSBkZW1hbmRldXIiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5USTROQT09IiwibGFiZWwiOiJOdW3DqXJvIFRhaGl0aSBJVEkiLCJ2YWx1ZSI6IjU2MTQwNzAwMSJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXROVEF6T0E9PSIsImxhYmVsIjoiTnVtw6lybyBlbXBsb3lldXIgQ1BTIiwidmFsdWUiOiIxMjM0NTY3OCJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVFk1TmpZPSIsImxhYmVsIjoiUmVwcsOpc2VudGFudCBsw6lnYWwiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UUXhPUT09IiwibGFiZWwiOiJOb20gZHUgcmVwcsOpc2VudGFudCBsw6lnYWwiLCJ2YWx1ZSI6IkZyaXRjaCJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVFF5TUE9PSIsImxhYmVsIjoiUHLDqW5vbSBkdSByZXByw6lzZW50YW50IGzDqWdhbCIsInZhbHVlIjoiRWRvdWFyZCJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVEEwTXc9PSIsImxhYmVsIjoiQ29tbXVuZSBkZSBsJ29yZ2FuaXNtZSIsInZhbHVlIjoiUGlyYWUgLSBUYWhpdGkgLSA5ODcxNiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVEEzTkE9PSIsImxhYmVsIjoiUmVuc2VpZ25lbWVudHMgY29uY2VybmFudCBsZSBjaGFudGllciBkJ2ludMOpcsOqdCBnw6luw6lyYWwiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16UTRPVGM9IiwibGFiZWwiOiJJbnRpdHVsw6kgZHUgY2hhbnRpZXIiLCJ2YWx1ZSI6IlJlbWlzZSBlbiDDqXRhdCBkZXMgZXNwYWNlcyB2ZXJ0cyBkZXMgcm9uZHMgcG9pbnRzIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXdPRGM9IiwibGFiZWwiOiJDb21tdW5lIiwidmFsdWUiOiJQaXJhZSAtIFRhaGl0aSAtIDk4NzE2In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXdPRFk9IiwibGFiZWwiOiJMb2NhbGlzYXRpb24gZ8Opb2dyYXBoaXF1ZSBwcsOpY2lzZSIsInZhbHVlIjoiUmQgcHQgRXJpbWEifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09EZz0iLCJsYWJlbCI6IkRlc2NyaXB0aWYgZGVzIGFjdGl2aXTDqXMiLCJ2YWx1ZSI6IkTDqWJyb3Vzc2FpbGxhZ2UsIHJlbWlzZSBlbiDDqXRhdCBkZXMgdsOpZ8OpdGF1eCJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV3T1RJPSIsImxhYmVsIjoiRXF1aXBlbWVudHMiLCJ2YWx1ZSI6ImJyb3VldHRlLCBwZWxsZSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV3T1RNPSIsImxhYmVsIjoiRXF1aXBlbWVudHMgZGUgcHJvdGVjdGlvbiBpbmRpdmlkdWVsbGUiLCJ2YWx1ZSI6ImdhbnRzLCBjYXNxdWV0dGUsIGNoYXVzc3VyZXMifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVeU5ERT0iLCJsYWJlbCI6IkNvbnRhY3Qgc3VyIGxlIGNoYW50aWVyIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV3T0RrPSIsImxhYmVsIjoiTm9tIGR1IHR1dGV1ciIsInZhbHVlIjoiQWx2ZXMifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09UQT0iLCJsYWJlbCI6IlByw6lub20gZHUgdHV0ZXVyIiwidmFsdWUiOiJVcmFtYW51In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXdPVEU9IiwibGFiZWwiOiJUw6lsw6lwaG9uZSBkdSB0dXRldXIiLCJ2YWx1ZSI6Ijg3NTQyMTU0In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXhOalU9IiwibGFiZWwiOiJBc3NvY2lhdGlvbnMiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXlOREk9IiwibGFiZWwiOiJWb3VzIMOqdGVzIHVuZSBhc3NvY2lhdGlvbi4iLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVeE5qWT0iLCJsYWJlbCI6IlN0YXR1dHMgw6Agam91ciIsImZpbGUiOm51bGwsInN0cmluZ1ZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dNVEU9IiwibGFiZWwiOiJDb21wb3NpdGlvbiBkdSBidXJlYXUiLCJ2YWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXhOamM9IiwibGFiZWwiOiJEw6ljbGFyYXRpb24gZGUgbCdhc3NvY2lhdGlvbiIsImZpbGUiOm51bGwsInN0cmluZ1ZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXlOREE9IiwibGFiZWwiOiLDiXRhdCBub21pbmF0aWYiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiUmVwZXRpdGlvbkNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVOVFE9IiwibGFiZWwiOiLDiXRhdCBub21pbmF0aWYgZGVzIGRlbWFuZGV1cnMiLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJDaXZpbGl0ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVOVGs9IiwibGFiZWwiOiJDaXZpbGl0w6kiLCJ2YWx1ZSI6Ik0ifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRZNU5UVT0iLCJsYWJlbCI6Ik5vbSIsInZhbHVlIjoiRXJyZXVyIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVOVFk9IiwibGFiZWwiOiJQcsOpbm9tKHMpIiwidmFsdWUiOiJUcm9wVmlldXgifSx7Il9fdHlwZW5hbWUiOiJOdW1lcm9EbkNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVOVGM9IiwibGFiZWwiOiJOdW3DqXJvIEROIiwiZGF0ZURlTmFpc3NhbmNlIjoiMTk0My0xMi0yOSIsIm51bWVyb0RuIjoiMzE5MDg4OSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGM1TURJPSIsImxhYmVsIjoiVMOpbMOpcGhvbmUiLCJ2YWx1ZSI6Ijg5NjUzMjY1In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVOakU9IiwibGFiZWwiOiJBY3Rpdml0w6kiLCJ2YWx1ZSI6IkVzcGFjZXMgdmVydHMgZXQgamFyZGlucyJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGM0T1RNPSIsImxhYmVsIjoiTml2ZWF1IGQnw6l0dWRlcyIsInZhbHVlIjoiQmFjY2FsYXVyw6lhdCJ9LHsiX190eXBlbmFtZSI6Ik51bWVyb0RuQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjNE9UVT0iLCJsYWJlbCI6Ik51bcOpcm8gRE4gZHUgY29uam9pbnQiLCJkYXRlRGVOYWlzc2FuY2UiOm51bGwsIm51bWVyb0RuIjoiIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UYzRPVGM9IiwibGFiZWwiOiJOb21icmUgZCdlbmZhbnRzIiwidmFsdWUiOiIwIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UYzVNREE9IiwibGFiZWwiOiJJQkFOIiwidmFsdWUiOiJGUjc2MzAwMDYwMDAwMTEyMzQ1Njc4OTAxODkifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRZNU5qVT0iLCJsYWJlbCI6IlN1aXRlIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IkNpdmlsaXRlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRZNU5Uaz0iLCJsYWJlbCI6IkNpdmlsaXTDqSIsInZhbHVlIjoiTW1lIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVOVFU9IiwibGFiZWwiOiJOb20iLCJ2YWx1ZSI6IlRBTk9BIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVOVFk9IiwibGFiZWwiOiJQcsOpbm9tKHMpIiwidmFsdWUiOiJUYW5pYSJ9LHsiX190eXBlbmFtZSI6Ik51bWVyb0RuQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRZNU5UYz0iLCJsYWJlbCI6Ik51bcOpcm8gRE4iLCJkYXRlRGVOYWlzc2FuY2UiOiIxOTk0LTA1LTA3IiwibnVtZXJvRG4iOiIzMjY0MjAxIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UYzVNREk9IiwibGFiZWwiOiJUw6lsw6lwaG9uZSIsInZhbHVlIjoiODc5ODY1MzIifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRZNU5qRT0iLCJsYWJlbCI6IkFjdGl2aXTDqSIsInZhbHVlIjoiUHJvcHJldMOpIGRlcyBsb2NhdXgifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjNE9UTT0iLCJsYWJlbCI6Ik5pdmVhdSBkJ8OpdHVkZXMiLCJ2YWx1ZSI6IkJhY2NhbGF1csOpYXQifSx7Il9fdHlwZW5hbWUiOiJOdW1lcm9EbkNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UYzRPVFU9IiwibGFiZWwiOiJOdW3DqXJvIEROIGR1IGNvbmpvaW50IiwiZGF0ZURlTmFpc3NhbmNlIjoiMTk5NS0wMi0wOSIsIm51bWVyb0RuIjoiNDI5MTc2OSJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXROVGM0T1RjPSIsImxhYmVsIjoiTm9tYnJlIGQnZW5mYW50cyIsInZhbHVlIjoiMiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGM1TURBPSIsImxhYmVsIjoiSUJBTiIsInZhbHVlIjoiRlI3NjMwMDc2MDIwODIxMjM0NTY3ODkwMTg2In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVOalU9IiwibGFiZWwiOiJTdWl0ZSIsInZhbHVlIjpudWxsfV19LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV4TmpnPSIsImxhYmVsIjoiTm9tYnJlIGRlIENJUyBkZW1hbmTDqXMiLCJ2YWx1ZSI6IjMifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRBNE1nPT0iLCJsYWJlbCI6IkVuZ2FnZW1lbnQiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16UTRPVEU9IiwibGFiZWwiOiJWb3RyZSBub20iLCJ2YWx1ZSI6IkFsdmVzIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16UTRPVEk9IiwibGFiZWwiOiJWb3RyZSBwcsOpbm9tIiwidmFsdWUiOiJVcmFtYW51In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16UTRPVFE9IiwibGFiZWwiOiJWb3RyZSBmb25jdGlvbiIsInZhbHVlIjoiQm9zcyJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelE0T1RVPSIsImxhYmVsIjoiVm90cmUgbnVtw6lybyBkZSB0w6lsw6lwaG9uZSIsInZhbHVlIjoiODc1Mjk4NzgifSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UQTFNZz09IiwibGFiZWwiOiJFeGFjdGl0dWRlIGRlcyByZW5zZWlnbmVtZW50cyIsInZhbHVlIjp0cnVlfV19fX0=
+  recorded_at: Thu, 24 Mar 2022 00:02:45 GMT
+- request:
+    method: post
+    uri: https://connect.cps.pf/auth/realms/TatouAssures/protocol/openid-connect/token
+    body:
+      encoding: UTF-8
+      string: client_id=mes-demarches&client_secret=f3a8e868-83e0-4098-ad5f-74391d1e5eef&grant_type=password&password=helloworld1&scope=openid&username=sipf-ext
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Thu, 24 Mar 2022 00:02:45 GMT
+      Content-Type:
+      - application/json
+      Content-Length:
+      - '3063'
+      Connection:
+      - keep-alive
+      Cache-Control:
+      - no-store
+      Set-Cookie:
+      - KC_RESTART=; Version=1; Expires=Thu, 01-Jan-1970 00:00:10 GMT; Max-Age=0;
+        Path=/auth/realms/TatouAssures/; Secure; HttpOnly
+      - KEYCLOAK_LOCALE=; Version=1; Comment=Expiring cookie; Expires=Thu, 01-Jan-1970
+        00:00:10 GMT; Max-Age=0; Path=/auth/realms/TatouAssures/; Secure; HttpOnly
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Pragma:
+      - no-cache
+      X-Frame-Options:
+      - ALLOW-FROM https://www.google.com
+      Referrer-Policy:
+      - no-referrer
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+      - max-age=31536000; includeSubDomains
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+    body:
+      encoding: ASCII-8BIT
+      string: '{"access_token":"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJXWTBzN1ZmYUl3ZW1OeVBPT1d3WUtyZ3pIR3RjbVdYMXgxSmlHZENsVllFIn0.eyJleHAiOjE2NDgwODA3NjUsImlhdCI6MTY0ODA4MDE2NSwianRpIjoiNDNlNDVkZGQtN2M0My00NTk1LTg1N2YtNzZhZGQ0YmI4OTAzIiwiaXNzIjoiaHR0cHM6Ly9jb25uZWN0LmNwcy5wZi9hdXRoL3JlYWxtcy9UYXRvdUFzc3VyZXMiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiN2M5YmMzNWYtNzcwYy00MzY3LWFjM2UtNDM2YTBhNzM0YTU2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibWVzLWRlbWFyY2hlcyIsInNlc3Npb25fc3RhdGUiOiJlMzMxMzBmNC0xNzY4LTRjNjctOTQxMC1mNjU3OTc4ZjFhYTgiLCJhY3IiOiIxIiwiYWxsb3dlZC1vcmlnaW5zIjpbIiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInByZWZlcnJlZF91c2VybmFtZSI6InNpcGYtZXh0In0.GgAjQJxJqs4NKRXjPjr4ryWYtdaHsA3HOdlQqzOSQifaApqut6TrF8q1srC95SRfNH0RtBs9fzQvHUXwNS7gGmYpaepMnhgOQChtX-JagjHrI_NvVTEMr-cAIbSqKgbC3F2VNPk5Kv2YfM-_HQcW8-jYnATTi3QUBxhxLoxV7FSnLyX7N_0TqRto1yO3MjggKEItnUkRcFcHMXwabWyOkCfc7PMpzFoA-xdQXY-Thj8DRMFigJHKCOJJWwTZE07jAjRoEnI5AsRHTBF2tj9F4UK2zdRk6m3NEi9d-9eKfZMBvRYbhK7WMNgNBl6srTij8P7zS_0TTA1gBrXnW869Tg","expires_in":600,"refresh_expires_in":1800,"refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJiNjlkZjkxNC1kZDQ4LTQ3ZGItYWVmOS1jNWE5MTVlZDcxYjYifQ.eyJleHAiOjE2NDgwODE5NjUsImlhdCI6MTY0ODA4MDE2NSwianRpIjoiMTc3OGM4MmItOTIwMi00ZTE1LTkzOWEtZGQyM2NmNjU5ZGZkIiwiaXNzIjoiaHR0cHM6Ly9jb25uZWN0LmNwcy5wZi9hdXRoL3JlYWxtcy9UYXRvdUFzc3VyZXMiLCJhdWQiOiJodHRwczovL2Nvbm5lY3QuY3BzLnBmL2F1dGgvcmVhbG1zL1RhdG91QXNzdXJlcyIsInN1YiI6IjdjOWJjMzVmLTc3MGMtNDM2Ny1hYzNlLTQzNmEwYTczNGE1NiIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJtZXMtZGVtYXJjaGVzIiwic2Vzc2lvbl9zdGF0ZSI6ImUzMzEzMGY0LTE3NjgtNGM2Ny05NDEwLWY2NTc5NzhmMWFhOCIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwifQ.hGZQ-lmuu0y-Q4tOf4JX3O1nAkLjlr-IMBhsM2BKZOw","token_type":"Bearer","id_token":"eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJXWTBzN1ZmYUl3ZW1OeVBPT1d3WUtyZ3pIR3RjbVdYMXgxSmlHZENsVllFIn0.eyJleHAiOjE2NDgwODA3NjUsImlhdCI6MTY0ODA4MDE2NSwiYXV0aF90aW1lIjowLCJqdGkiOiJhZTA1ZTVkMC04ZGQ0LTQyZmUtODVkNi1iN2M3MGY0MTVjNmQiLCJpc3MiOiJodHRwczovL2Nvbm5lY3QuY3BzLnBmL2F1dGgvcmVhbG1zL1RhdG91QXNzdXJlcyIsImF1ZCI6Im1lcy1kZW1hcmNoZXMiLCJzdWIiOiI3YzliYzM1Zi03NzBjLTQzNjctYWMzZS00MzZhMGE3MzRhNTYiLCJ0eXAiOiJJRCIsImF6cCI6Im1lcy1kZW1hcmNoZXMiLCJzZXNzaW9uX3N0YXRlIjoiZTMzMTMwZjQtMTc2OC00YzY3LTk0MTAtZjY1Nzk3OGYxYWE4IiwiYXRfaGFzaCI6Im55RmZ5amtsOV90eHlfQWtwTzhfOXciLCJhY3IiOiIxIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJzaXBmLWV4dCJ9.hnvUCQITQm38F45o5l8Y7tEntg9pmOEu2wvp4GFROGDHOcrArrUNqlgQpKJDVE8WjCYFXWN9nR4BZ5qtUwWwjOKn5xQiNFS4t0calfFwYJtYDcAfdx6ZCEf2lp1CIq7NPeIb_-w9AIqSeDSrioXt7M53HQQn_O4TyS6kfZnuIRnbb1AawtD_1n7FLyZfBHfI-PKmV1k9nS24cP96I49BRYLmVVzHY1M3D7O3_dH6T8o4FyPMGMRvbshIp57L8oAduby290jj2jVjWbYzweDARy_IDSW6z45MtKjR4tnlWy0Nyp8E-uuFwU2PPliiUx7KVOWwOhmXN3oWA-auuMlwbQ","not-before-policy":0,"session_state":"e33130f4-1768-4c67-9410-f657978f1aa8","scope":"openid
+        profile email"}'
+  recorded_at: Thu, 24 Mar 2022 00:02:45 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"3190889":"29/12/1943"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Thu, 24 Mar 2022 00:02:45 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=7076E5B1E1B2E4E57F569823A5D9F01E; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"3190889":"true"}}'
+  recorded_at: Thu, 24 Mar 2022 00:02:45 GMT
+- request:
+    method: post
+    uri: https://tatouapi.cps.pf/covid/assures/coherenceDnDdn/multiples
+    body:
+      encoding: UTF-8
+      string: '{"datas":{"3264201":"07/05/1994"}}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: ''
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Thu, 24 Mar 2022 00:02:45 GMT
+      Content-Type:
+      - application/json
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      Set-Cookie:
+      - JSESSIONID=CBD07064CA74F08AD6F4FA623FBC7E36; Path=/; HttpOnly
+      X-Content-Type-Options:
+      - nosniff
+      - nosniff
+      X-Xss-Protection:
+      - 1; mode=block
+      - 1; mode=block
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Pragma:
+      - no-cache
+      Expires:
+      - '0'
+      X-Frame-Options:
+      - DENY
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains
+    body:
+      encoding: ASCII-8BIT
+      string: '{"datas":{"3264201":"true"}}'
+  recorded_at: Thu, 24 Mar 2022 00:02:45 GMT
+recorded_with: VCR 6.0.0

@@ -90,6 +90,8 @@ GEM
       coffee-script-source
       execjs
     coffee-script-source (1.12.2)
+    combine_pdf (1.0.21)
+      ruby-rc4 (>= 0.1.5)
     concurrent-ruby (1.1.9)
     crack (0.4.5)
       rexml
@@ -133,6 +135,25 @@ GEM
     factory_bot_rails (6.2.0)
       factory_bot (~> 6.2.0)
       railties (>= 5.0.0)
+    faraday (1.8.0)
+      faraday-em_http (~> 1.0)
+      faraday-em_synchrony (~> 1.0)
+      faraday-excon (~> 1.1)
+      faraday-httpclient (~> 1.0.1)
+      faraday-net_http (~> 1.0)
+      faraday-net_http_persistent (~> 1.1)
+      faraday-patron (~> 1.0)
+      faraday-rack (~> 1.0)
+      multipart-post (>= 1.2, < 3)
+      ruby2_keywords (>= 0.0.4)
+    faraday-em_http (1.0.0)
+    faraday-em_synchrony (1.0.0)
+    faraday-excon (1.1.0)
+    faraday-httpclient (1.0.1)
+    faraday-net_http (1.0.1)
+    faraday-net_http_persistent (1.2.0)
+    faraday-patron (1.0.0)
+    faraday-rack (1.0.0)
     ffi (1.15.5)
     fugit (1.5.2)
       et-orbi (~> 1.1, >= 1.1.8)
@@ -172,6 +193,7 @@ GEM
       domain_name (~> 0.5)
     i18n (1.9.1)
       concurrent-ruby (~> 1.0)
+    iban-tools (1.1.0)
     jbuilder (2.11.5)
       actionview (>= 5.0.0)
       activesupport (>= 5.0.0)
@@ -212,6 +234,7 @@ GEM
     mry (0.78.0.0)
       rubocop (>= 0.41.0)
     msgpack (1.4.4)
+    multipart-post (2.1.1)
     mustermann (1.1.1)
       ruby2_keywords (~> 0.0.1)
     netrc (0.11.0)
@@ -223,7 +246,8 @@ GEM
     parallel (1.21.0)
     parser (3.1.0.0)
       ast (~> 2.4.1)
-    pg (1.3.1)
+    pg (1.3.4)
+    phonelib (0.6.57)
     popper_js (1.16.0)
     public_suffix (4.0.6)
     puma (5.6.2)
@@ -270,7 +294,7 @@ GEM
     rb-fsevent (0.11.0)
     rb-inotify (0.10.1)
       ffi (~> 1.0)
-    regexp_parser (2.2.0)
+    regexp_parser (2.2.1)
     responders (3.0.1)
       actionpack (>= 5.0)
       railties (>= 5.0)
@@ -338,11 +362,15 @@ GEM
       rubocop (>= 0.51)
     ruby-ole (1.2.12.2)
     ruby-progressbar (1.11.0)
+    ruby-rc4 (0.1.5)
     ruby2_keywords (0.0.5)
     ruby_dep (1.5.0)
     ruby_parser (3.18.1)
       sexp_processor (~> 4.16)
     rubyzip (2.3.2)
+    sablon (0.3.2)
+      nokogiri (>= 1.8.5)
+      rubyzip (>= 1.1.1)
     sass (3.7.4)
       sass-listen (~> 4.0.0)
     sass-listen (4.0.0)
@@ -365,6 +393,19 @@ GEM
     scss_lint (0.59.0)
       sass (~> 3.5, >= 3.5.5)
     semantic_range (3.0.0)
+    sentry-delayed_job (4.8.1)
+      delayed_job (>= 4.0)
+      sentry-ruby-core (~> 4.8.1)
+    sentry-rails (4.8.1)
+      railties (>= 5.0)
+      sentry-ruby-core (~> 4.8.1)
+    sentry-ruby (4.8.1)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      faraday (>= 1.0)
+      sentry-ruby-core (= 4.8.1)
+    sentry-ruby-core (4.8.1)
+      concurrent-ruby
+      faraday
     sexp_processor (4.16.0)
     sinatra (2.1.0)
       mustermann (~> 1.0)
@@ -437,6 +478,7 @@ DEPENDENCIES
   byebug
   caxlsx
   coffee-rails (~> 5.0)
+  combine_pdf
   delayed_cron_job
   delayed_job_active_record
   delayed_job_web
@@ -448,6 +490,7 @@ DEPENDENCIES
   graphql-client (~> 0.16.0)
   haml-lint
   haml-rails
+  iban-tools
   jbuilder (~> 2.5)
   jquery-rails
   letter_opener_web
@@ -456,6 +499,7 @@ DEPENDENCIES
   mime-types
   mry
   pg (>= 0.18, < 2.0)
+  phonelib
   puma (>= 3.12.6)
   rails (~> 6.1.4.4)
   rails-bootstrap-tabs (~> 0.2.2)
@@ -464,8 +508,12 @@ DEPENDENCIES
   rubocop
   rubocop-rails_config
   rubocop-rspec-focused
+  sablon
   sass-rails (~> 5.0)
   scss_lint
+  sentry-delayed_job
+  sentry-rails
+  sentry-ruby
   spring
   spring-commands-rspec
   spring-watcher-listen (~> 2.0.0)

@@ -27,7 +27,7 @@ class ExcelCheck < FieldChecker
   end
 
   def version
-    super + 6
+    super + 7
   end
 
   def required_fields
@@ -52,14 +52,11 @@ class ExcelCheck < FieldChecker
     champ = champs.first
     file = champ.file
     if file.present?
-      filename = file.filename
-      url = file.url
-      extension = File.extname(filename)
-      if bad_extension(extension)
+      if bad_extension(File.extname(file.filename))
         add_message(champ.label, file.filename, @params[:message_type_de_fichier])
         return
       end
-      check_file(champ, extension, url)
+      check_file(champ)
     else
       # throw StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
       add_message(champ.label, '', @params[:message_champ_non_renseigne])
@@ -68,9 +65,9 @@ class ExcelCheck < FieldChecker
 
   private
 
-  def check_file(champ, extension, url)
-    download(url, extension) do |file|
-      case extension
+  def check_file(champ)
+    PieceJustificativeCache.get(champ.file) do |file|
+      case File.extname(file)
       when '.xls', '.xlsx'
         check_xlsx(champ, file)
       when '.csv'
@@ -111,25 +108,36 @@ class ExcelCheck < FieldChecker
     []
   end
 
+  def id_of(row)
+    "#{row[:nom]} #{row[:prenoms]}".strip
+  end
+
   def check_sheet(champ, sheet, sheet_name, columns, checks)
-    rows = sheet.parse(columns)
-    employees = rows.reject { |line| line[:prenoms].nil? || line[:prenoms].to_s.strip.blank? || line[:prenoms] =~ /Prénom/ }
-    employees.each do |line|
-      nom = line[:nom] || line[:nom_marital]
-      prenoms = line[:prenoms]
+    rows = sheet.parse(columns).reject { |line| id_of(line).blank? || header?(columns, line) }
+    field_name = "#{champ.label}/#{sheet_name}"
+    apply_checks(checks, field_name, rows)
+  end
+
+  def apply_checks(checks, field_name, rows)
+    rows.each do |row|
+      id = id_of(row)
       checks.each do |name|
         method = "check_#{name.to_s.downcase}"
-        v = send(method, line)
+        v = send(method, row)
         unless [true, nil].include?(v)
           message = v.is_a?(String) ? v : @params["message_#{name}".to_sym]
-          add_message("#{champ.label}/#{sheet_name}", "#{nom} #{prenoms}", message)
+          add_message(field_name, id, message)
         end
       end
     end
   end
 
+  def header?(columns, line)
+    line&.first&.second&.match?(columns.first[1])
+  end
+
   def check_format_dn(line)
-    dn = line[:numero_dn]
+    dn = line[:numero_dn] || line['Numéro DN']
     dn = dn.to_i.to_s if dn.is_a? Float
     dn = dn.to_s.gsub(/\s+/, '')
     return check_format_date_de_naissance(line) if dn.match?(/^\d{6,7}$/)
@@ -149,7 +157,7 @@ class ExcelCheck < FieldChecker
   # good_range = (Date.iso8601('1920-01-01')..18.years.ago).cover?(ddn)
 
   def normalize_date_de_naissance(line)
-    ddn = line[:date_de_naissance]
+    ddn = line[:date_de_naissance] || line['Date de naissance']
     case ddn
     when Integer, Float
       ddn = Date.new(1899, 12, 30) + line[:date_de_naissance].days
@@ -166,19 +174,19 @@ class ExcelCheck < FieldChecker
   end
 
   def check_nom(line)
-    value = line[:nom] || line[:nom_marital]
+    value = line[:nom] || line[:nom_marital] || line['Nom']
     invalides = value&.scan(%r{[^[:alpha:] \-/'’()]+})
     invalides.present? ? @params[:message_nom_invalide] + invalides.join(' ') : true
   end
 
   def check_prenoms(line)
-    value = line[:prenoms]
+    value = line[:prenoms] || line['Prénom(s)'] || line['Prénom'] || line[:prenom] || ''
     invalides = value.scan(%r{[^[:alpha:] \-,/'’()]+})
-    invalides.present? ? @params[:message_prenom_invalide] + invalides.join(' ') : true
+    invalides.present? ? "#{@params[:message_prenom_invalide]}: #{invalides.join(' ')}" : true
   end
 
   def check_cps(line)
-    dn = line[:numero_dn]
+    dn = line[:numero_dn] || line['Numéro DN']
     dn = dn.to_i if dn.is_a? Float
     dn = dn.to_s if dn.is_a? Integer
     dn.gsub!(/\s+/, '')

@@ -12,14 +12,16 @@ class VerificationService
       @send_messages = procedure['messages_automatiques']
       @inform_annotation = procedure['annotation_information']
       procedure['name'] = procedure_name
-      controls = create_controls(procedure)
       @procedure = procedure
-      check_updated_dossiers(controls)
-      check_failed_dossiers(controls)
-      check_updated_controls(controls)
+      create_controls
+      create_when_ok_tasks
+      check_updated_dossiers(@controls)
+      check_failed_dossiers(@controls)
+      check_updated_controls(@controls)
     rescue StandardError => e
+      Sentry.capture_exception(e)
       Rails.logger.error(e.message)
-      e.backtrace.each { |b| Rails.logger.debug(b) }
+      e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
     end
   end
 
@@ -71,19 +73,8 @@ class VerificationService
     Rails.logger.error(result.errors.values.join(',')) unless data
   end
 
-  def create_controls(procedure)
-    procedure['controles'].flatten.map.with_index do |description, i|
-      create_control(description, i)
-    end.flatten
-  end
-
-  def create_control(description, position)
-    if description.is_a?(String)
-      Object.const_get(description.camelize).new({}).tap_name("#{position}:#{description}")
-    else
-      # hash
-      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).tap_name("#{position}:#{taskname}") }
-    end
+  def create_controls
+    @controls = InspectorTask.create_tasks(@procedure['controles'])
   end
 
   def check_updated_dossiers(controls)
@@ -142,7 +133,7 @@ class VerificationService
 
   def check_updated_controls(controls)
     Rails.logger.tagged('updated control') do
-      obsolete_checks(controls).each do |check|
+      obsolete_checks(controls + @ok_tasks).each do |check|
         on_dossier(check.dossier) do |dossier|
           if dossier.present?
             check_dossier(check.demarche, dossier, controls)
@@ -180,7 +171,7 @@ class VerificationService
 
   def check_dossier(demarche, md_dossier, controls)
     Rails.logger.tagged("#{demarche.id},#{md_dossier.number}") do
-      affected = controls.find { |c| c.must_check?(md_dossier) }
+      affected = [*controls, *@ok_tasks].find { |c| c.must_check?(md_dossier) }
       if affected
         apply_controls(controls, demarche, md_dossier)
       else
@@ -202,7 +193,7 @@ class VerificationService
     end
     unless failed_checks
       inform(md_dossier, checks, send_message: @send_messages) if @dossier_has_different_messages
-      when_ok(demarche, md_dossier, checks) if @procedure['when_ok']
+      when_ok(demarche, md_dossier, checks) if @ok_tasks.present?
     end
   end
 
@@ -214,19 +205,27 @@ class VerificationService
         apply_control(control, md_dossier, check) if control.must_check?(md_dossier)
         check.update(checked_at: start_time, version: control.version)
         avoid_useless_checks(control)
+        recheck_dependent_dossiers(control)
       end
       check
     end
   end
 
   def avoid_useless_checks(control)
-    control.modified_dossiers.each do |dossier|
+    control.dossiers_to_ignore.each do |dossier|
+      next unless dossier.present?
+
       checked_at = Check.arel_table[:checked_at]
       checkers = Check.where(dossier: dossier.number)
                       .where(checked_at.gt(dossier.date_derniere_modification))
       Rails.logger.debug("Checkers : #{checkers.map(&:checker).join(',')}")
       checkers.update_all(checked_at: Time.zone.now)
     end
+  end
+
+  def recheck_dependent_dossiers(control)
+    # tags associated checks to trigger recheck
+    Check.where(dossier: control.dossiers_to_recheck).update_all(version: 0)
   end
 
   def check_obsolete?(check, control, md_dossier)
@@ -255,18 +254,31 @@ class VerificationService
   end
 
   def when_ok(demarche, md_dossier, checks)
-    message_nb = checks.flat_map(&:messages).size
-    if message_nb.zero?
-      ok_tasks.each do |task|
-        task.process(demarche, md_dossier) if task.valid?
+    message_present = checks.any? { |c| c.messages.present? }
+    unless message_present
+      @ok_tasks.each do |task|
+        Rails.logger.tagged(task.name) do
+          check = Check.find_or_create_by(demarche: demarche, dossier: md_dossier.number, checker: task.name)
+          start_time = Time.zone.now
+          apply_task(demarche, task, md_dossier, check)
+          check.update(checked_at: start_time, version: task.version)
+        end
       end
     end
   end
 
-  def ok_tasks
-    @ok_tasks ||= @procedure['when_ok'].map.with_index do |description, i|
-      create_control(description, i)
-    end.flatten
+  def create_when_ok_tasks
+    @ok_tasks = InspectorTask.create_tasks(@procedure['when_ok'])
+  end
+
+  def apply_task(demarche, task, md_dossier, check)
+    check.failed = !task.valid?
+    task.process(demarche, md_dossier) if task.valid?
+  rescue StandardError => e
+    check.failed = true
+    Sentry.capture_exception(e)
+    Rails.logger.error(e)
+    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
   end
 
   def apply_control(control, md_dossier, check)
@@ -283,8 +295,9 @@ class VerificationService
     end
   rescue StandardError => e
     check.failed = true
+    Sentry.capture_exception(e)
     Rails.logger.error(e)
-    Rails.logger.debug(e.backtrace)
+    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
   end
 
   NOMS_PIECES_MESSAGES = %i[debut_premier_mail debut_second_mail entete_anomalies entete_anomalie tout_va_bien fin_mail].freeze
@@ -322,7 +335,14 @@ class VerificationService
   end
 
   def inform_instructeur(md_dossier, instructeur_id, messages)
-    if SetAnnotationValue.set_value(md_dossier, instructeur_id, @inform_annotation, messages.present?)
+    annotation = md_dossier.annotations.find { |champ| champ.label == @inform_annotation }
+    throw "Unable to find information annotation named '#{@inform_annotation}'" if annotation.nil?
+    value = if annotation.__typename == 'CheckboxChamp'
+              messages.present?
+            else
+              messages.present? ? 'En erreur' : 'OK'
+            end
+    if SetAnnotationValue.set_value(md_dossier, instructeur_id, @inform_annotation, value)
       # modified dossier ==> prevent next checking to consider the document is updated
       Check.where(dossier: md_dossier.number).update_all(checked_at: Time.zone.now)
     end
@@ -333,7 +353,7 @@ class VerificationService
     anomalies = liste_anomalies(md_dossier, messages)
     fin_mail = "<p>#{@pieces_messages[:fin_mail]}</p>"
     body = debut_mail + anomalies + fin_mail
-    md_send_message(md_dossier.id, instructeur_id, body)
+    SendMessage.send(md_dossier.id, instructeur_id, body)
   end
 
   def get_annotation(md_dossier, name)
@@ -365,16 +385,5 @@ class VerificationService
 
   def modifier_url(md_dossier)
     ENV['GRAPHQL_HOST'] + "/dossiers/#{md_dossier.number}/modifier"
-  end
-
-  def md_send_message(dossier_id, instructeur_id, body)
-    result = MesDemarches::Client.query(MesDemarches::Mutation::EnvoyerMessage,
-                                        variables: {
-                                          dossierId: dossier_id,
-                                          instructeurId: instructeur_id,
-                                          body: body,
-                                          clientMutationId: 'dededed'
-                                        })
-    Rails.logger.error(result.errors.map(&:message).join(',')) if result.errors&.present?
   end
 end

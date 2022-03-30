@@ -39,4 +39,26 @@ class InspectorTask
     @name = name
     self
   end
+
+  def version
+    @params_version ||= @params.values.reduce(Digest::SHA1.new) { |d, s| d << s.to_s }.hexdigest.to_i(16) % (2 << 31)
+    1 + @params_version
+  end
+
+  def self.create_tasks(elements)
+    return [] if elements.blank?
+
+    elements.flatten.map.with_index do |description, i|
+      create_task(description, i)
+    end.flatten
+  end
+
+  def self.create_task(description, position)
+    if description.is_a?(String)
+      Object.const_get(description.camelize).new({}).tap_name("#{position}:#{description}")
+    else
+      # hash
+      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).tap_name("#{position}:#{taskname}") }
+    end
+  end
 end
