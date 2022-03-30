@@ -2,17 +2,6 @@
 
 require 'rails_helper'
 
-def new_message(field, value, message_type, correction)
-  pp controle.params, message_type, 'impossible de trouver' if controle.params[message_type].nil?
-  msg = controle.params[message_type]
-  msg += ": #{correction}" if correction.present?
-  FactoryBot.build :message, field: field, value: value, message: msg
-end
-
-def field_name(base, index)
-  index > 0 ? "#{base}+#{index}" : base
-end
-
 RSpec.describe Cse::EtatReelCheck do
   context 'depot' do
     let(:controle) { FactoryBot.build :cse_etat_reel_check }
@@ -23,7 +12,7 @@ RSpec.describe Cse::EtatReelCheck do
       controle
     end
 
-    context 'Excel file has missing column', vcr: { cassette_name: 'etat_reel_check_69243' } do
+    context 'Excel file has missing column', vcr: { cassette_name: 'cse_etat_reel_check_69243' } do
       let(:dossier_nb) { 69_243 }
       let(:field) { 'Etat nominatif actualisé' }
       let(:value) { 'CSE v2 Etat Réel - SOCREDO - MC.xlsx' }
@@ -35,7 +24,7 @@ RSpec.describe Cse::EtatReelCheck do
       end
     end
 
-    context 'Excel file has multiple errors"', vcr: { cassette_name: 'etat_reel_check_69244' } do
+    context 'Excel file has multiple errors"', vcr: { cassette_name: 'cse_etat_reel_check_69244' } do
       let(:dossier_nb) { 69_244 }
       let(:field) { 'Etat nominatif actualisé/Etat' }
       let(:ddn_value) { 'DN (Nom) Julien' }
