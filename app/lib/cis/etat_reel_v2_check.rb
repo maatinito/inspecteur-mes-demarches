@@ -9,7 +9,7 @@ module Cis
     end
 
     def required_fields
-      super + %i[champ_candidats_admis message_colonnes_vides message_absence message_personnes_inconnues message_personnes_manquantes]
+      super + %i[champ_candidats_admis champ_periode message_colonnes_vides message_absence message_personnes_inconnues message_personnes_manquantes message_periode]
     end
 
     COLUMNS = {
@@ -37,6 +37,7 @@ module Cis
       @posted_dns = Set.new
       super(champ, sheet, sheet_name, columns, checks)
       check_people_are_valid(champ, sheet)
+      check_period(sheet)
     end
 
     def check_absence(line)
@@ -45,6 +46,8 @@ module Cis
       absence = line[:absences]
       absence.present? && (0..30).include?(absence.to_i)
     end
+
+    private
 
     CSV_COLUMNS = ['DN', 'NOM PATRONYMIQUE', "NOM D'EPOUSE", 'PRENOM', 'DATE NAISSANCE', 'MONTANT', 'PERIODE', 'N° CONVENTION'].to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
 
@@ -57,7 +60,14 @@ module Cis
       end
     end
 
-    private
+    def check_period(sheet)
+      sheet_month = sheet.cell(3, 'C')&.to_s.downcase
+      month_champ = param_field(:champ_periode)
+      throw "Impossible de trouver le champ #{@arams[:champ_periode]} sur le dossier #{@dossier.number}" if month_champ.blank?
+
+      file_month = "#{month_champ.secondary_value} #{month_champ.primary_value}".downcase
+      add_message(@params[:champ_periode], champ.value, "#{@params[message_periode]}: #{sheet_month}") if file_month != sheet_month
+    end
 
     def dossier_nb_is_invalid?(champ, dossier_nb)
       return false if dossier_nb > 290_000

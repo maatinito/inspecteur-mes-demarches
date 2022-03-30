@@ -11,8 +11,8 @@ RSpec.describe Cis::EtatReelV2Check do
     controle
   end
 
-  context 'Excel file', vcr: { cassette_name: 'cis_etat_reel_v2_check_294958' } do
-    let(:dossier_nb) { 294_958 }
+  context 'Excel file', vcr: { cassette_name: 'cis_etat_reel_v2_check_295695' } do
+    let(:dossier_nb) { 295_695 }
     let(:field) { 'Relevé des absences' }
     let(:sheet_field) { "#{field}/Personnes" }
     let(:filename) { 'Relevé des absences Mai 2022 nettoyage des plages Tombeau du roi_ vaipoopoo et lafayette.xlsx' }
