@@ -19,6 +19,7 @@ class VerificationService
       check_failed_dossiers(@controls)
       check_updated_controls(@controls)
     rescue StandardError => e
+      Sentry.capture_exception(e)
       Rails.logger.error(e.message)
       e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
     end
@@ -275,6 +276,7 @@ class VerificationService
     task.process(demarche, md_dossier) if task.valid?
   rescue StandardError => e
     check.failed = true
+    Sentry.capture_exception(e)
     Rails.logger.error(e)
     e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
   end
@@ -293,6 +295,7 @@ class VerificationService
     end
   rescue StandardError => e
     check.failed = true
+    Sentry.capture_exception(e)
     Rails.logger.error(e)
     e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
   end

@@ -135,6 +135,25 @@ GEM
     factory_bot_rails (6.2.0)
       factory_bot (~> 6.2.0)
       railties (>= 5.0.0)
+    faraday (1.8.0)
+      faraday-em_http (~> 1.0)
+      faraday-em_synchrony (~> 1.0)
+      faraday-excon (~> 1.1)
+      faraday-httpclient (~> 1.0.1)
+      faraday-net_http (~> 1.0)
+      faraday-net_http_persistent (~> 1.1)
+      faraday-patron (~> 1.0)
+      faraday-rack (~> 1.0)
+      multipart-post (>= 1.2, < 3)
+      ruby2_keywords (>= 0.0.4)
+    faraday-em_http (1.0.0)
+    faraday-em_synchrony (1.0.0)
+    faraday-excon (1.1.0)
+    faraday-httpclient (1.0.1)
+    faraday-net_http (1.0.1)
+    faraday-net_http_persistent (1.2.0)
+    faraday-patron (1.0.0)
+    faraday-rack (1.0.0)
     ffi (1.15.5)
     fugit (1.5.2)
       et-orbi (~> 1.1, >= 1.1.8)
@@ -215,6 +234,7 @@ GEM
     mry (0.78.0.0)
       rubocop (>= 0.41.0)
     msgpack (1.4.4)
+    multipart-post (2.1.1)
     mustermann (1.1.1)
       ruby2_keywords (~> 0.0.1)
     netrc (0.11.0)
@@ -373,6 +393,19 @@ GEM
     scss_lint (0.59.0)
       sass (~> 3.5, >= 3.5.5)
     semantic_range (3.0.0)
+    sentry-delayed_job (4.8.1)
+      delayed_job (>= 4.0)
+      sentry-ruby-core (~> 4.8.1)
+    sentry-rails (4.8.1)
+      railties (>= 5.0)
+      sentry-ruby-core (~> 4.8.1)
+    sentry-ruby (4.8.1)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      faraday (>= 1.0)
+      sentry-ruby-core (= 4.8.1)
+    sentry-ruby-core (4.8.1)
+      concurrent-ruby
+      faraday
     sexp_processor (4.16.0)
     sinatra (2.1.0)
       mustermann (~> 1.0)
@@ -478,6 +511,9 @@ DEPENDENCIES
   sablon
   sass-rails (~> 5.0)
   scss_lint
+  sentry-delayed_job
+  sentry-rails
+  sentry-ruby
   spring
   spring-commands-rspec
   spring-watcher-listen (~> 2.0.0)

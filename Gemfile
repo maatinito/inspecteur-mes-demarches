@@ -57,6 +57,9 @@ gem 'phonelib'
 gem 'rails-bootstrap-tabs', '~> 0.2.2'
 gem 'roo-xls'
 gem 'sablon'
+gem "sentry-ruby"
+gem "sentry-rails"
+gem "sentry-delayed_job"
 gem 'typhoeus'
 
 group :development, :test do
