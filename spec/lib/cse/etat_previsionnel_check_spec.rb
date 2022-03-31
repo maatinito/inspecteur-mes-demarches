@@ -24,15 +24,15 @@ RSpec.describe Cse::EtatPrevisionnelCheck do
     let(:field) { 'Etat nominatif prévisionnel des salariés/Mois' }
     let(:last_messages) do
       (3..5).flat_map do |m|
-        LM.map { |msg| new_message(field_name(field, m+1), msg[0], msg[1], msg[2]) }
+        LM.map { |msg| new_message(field_name(field, m + 1), msg[0], msg[1], msg[2]) }
       end
     end
     let(:first_messages) do
       (0..2).flat_map do |m|
-        LM.map { |msg| new_message(field_name(field, m+1), msg[0], msg[1], msg[2]) } +
+        LM.map { |msg| new_message(field_name(field, m + 1), msg[0], msg[1], msg[2]) } +
           FIELD_NAMES.each_with_index.map do |_name, i|
             value = (10 * (1 + m)) + i # 10,11,  20, 21
-            new_message(field_name(FIELD_NAMES[i], m+1), value, :message_different_value, SUMS[m][i])
+            new_message(field_name(FIELD_NAMES[i], m + 1), value, :message_different_value, SUMS[m][i])
           end
       end
     end
