@@ -37,9 +37,9 @@ RSpec.describe RegexCheck do
     end
   end
 
-  context 'Tahiti Iti number with -', vcr: { cassette_name: 'regex_check_71334' } do
+  context 'Tahiti Iti number with -', vcr: { cassette_name: 'regex_check_296392' } do
     let(:controle) { FactoryBot.build :regex_check, :for_no_tahiti_iti }
-    let(:dossier_nb) { 71_334 }
+    let(:dossier_nb) { 296_392 }
     let(:field) { 'Numéro Tahiti ITI' }
     let(:value) { 'C28723-001' }
     let(:messages) { [re_new_message(field, value, '-')] }

@@ -6,7 +6,8 @@ http_interactions:
     body:
       encoding: UTF-8
       string: '{"query":"query MesDemarches__Queries__Demarche($demarche: Int!) {\n  demarche(number:
-        $demarche) {\n    title\n    groupeInstructeurs {\n      instructeurs {\n        id\n        email\n      }\n    }\n  }\n}","variables":{"demarche":871},"operationName":"MesDemarches__Queries__Demarche"}'
+        $demarche) {\n    title\n    number\n    groupeInstructeurs {\n      instructeurs
+        {\n        id\n        email\n      }\n    }\n  }\n}","variables":{"demarche":871},"operationName":"MesDemarches__Queries__Demarche"}'
     headers:
       Accept-Encoding:
       - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
@@ -24,7 +25,7 @@ http_interactions:
       message: OK
     headers:
       Date:
-      - Mon, 15 Mar 2021 22:38:57 GMT
+      - Thu, 31 Mar 2022 00:01:39 GMT
       Server:
       - nginx/1.10.3
       Content-Type:
@@ -41,20 +42,22 @@ http_interactions:
       - none
       Referrer-Policy:
       - strict-origin-when-cross-origin
-      Cache-Control:
-      - no-cache, no-store
+      Vary:
+      - Accept
       Etag:
-      - W/"0050f906f58c5fd0cd37713e4d6276fd"
+      - W/"44d2ba652f1c25cbcc3f66e2d9fcb797"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
       X-Request-Id:
-      - 78697f1d-ef89-49d4-92c2-f31472a1e935
+      - 5873d40b-e6a8-4795-98de-d628de40d3c2
       X-Runtime:
-      - '0.853227'
+      - '0.315815'
       Strict-Transport-Security:
-      - max-age=31536000; includeSubDomains
+      - max-age=63072000; includeSubDomains
       Content-Length:
-      - '800'
+      - '1318'
     body:
       encoding: UTF-8
-      string: '{"data":{"demarche":{"title":"DiESE - Renouvellement 2.1","groupeInstructeurs":[{"instructeurs":[{"id":"SW5zdHJ1Y3RldXItNA==","email":"william.joseph@modernisation.gov.pf"},{"id":"SW5zdHJ1Y3RldXItMg==","email":"clautier@idt.pf"},{"id":"SW5zdHJ1Y3RldXItMTQ0","email":"stephanie.baricault@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTU4","email":"poeiti.mallegoll@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTY0","email":"vaihere.frogier@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTcw","email":"maima.paia@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTgy","email":"jules.cheffort@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTk2","email":"heirani.caron@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMjU1","email":"marau.brothers@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMzEy","email":"hina.grepin@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItNDQx","email":"oceane.brunet@sefi.pf"}]}]}}}'
-  recorded_at: Mon, 15 Mar 2021 22:38:56 GMT
+      string: '{"data":{"demarche":{"title":"DiESE - Renouvellement 2.1","number":871,"groupeInstructeurs":[{"instructeurs":[{"id":"SW5zdHJ1Y3RldXItNzY0","email":"titaina.yuen@cfpa.pf"},{"id":"SW5zdHJ1Y3RldXItMTQ2","email":"dominique.lestage@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItNzYy","email":"carole.zisou@cfpa.pf"},{"id":"SW5zdHJ1Y3RldXItMTQ1","email":"vaitia.buchin@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItNTU1","email":"vaimiti.poetai@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItNTU0","email":"myriam.viriamu@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItNTU2","email":"camille.charpin@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMjUz","email":"tamahere.chanson@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItNDQx","email":"oceane.brunet@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMzEy","email":"hina.grepin@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMjU1","email":"marau.brothers@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTk2","email":"heirani.caron@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTgy","email":"jules.cheffort@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTcw","email":"maima.paia@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTY0","email":"vaihere.frogier@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTU4","email":"poeiti.mallegoll@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMTQ0","email":"stephanie.baricault@sefi.pf"},{"id":"SW5zdHJ1Y3RldXItMg==","email":"clautier@idt.pf"},{"id":"SW5zdHJ1Y3RldXItNA==","email":"william.joseph@modernisation.gov.pf"}]}]}}}'
+  recorded_at: Thu, 31 Mar 2022 00:01:38 GMT
 recorded_with: VCR 6.0.0
