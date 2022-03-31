@@ -66,11 +66,11 @@ module Cis
       throw "Impossible de trouver le champ #{@params[:champ_periode]} sur le dossier #{@dossier.number}" if month_champ.blank?
 
       file_month = "#{month_champ.secondary_value} #{month_champ.primary_value}".downcase
-      if file_month != sheet_month
-        add_message(@params[:champ_periode],
-                    "#{month_champ.secondary_value} #{month_champ.primary_value}",
-                    "#{@params[:message_periode]}: #{sheet_month}")
-      end
+      return if file_month == sheet_month
+
+      add_message(@params[:champ_periode],
+                  "#{month_champ.secondary_value} #{month_champ.primary_value}",
+                  "#{@params[:message_periode]}: #{sheet_month}")
     end
 
     def dossier_nb_is_invalid?(champ, dossier_nb)
