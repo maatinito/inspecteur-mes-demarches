@@ -431,6 +431,7 @@ GEM
     temple (0.8.2)
     thor (1.2.1)
     tilt (2.0.10)
+    timecop (0.9.4)
     turbolinks (5.2.1)
       turbolinks-source (~> 5.2)
     turbolinks-source (5.2.0)
@@ -517,6 +518,7 @@ DEPENDENCIES
   spring
   spring-commands-rspec
   spring-watcher-listen (~> 2.0.0)
+  timecop
   turbolinks (~> 5)
   typhoeus
   tzinfo-data

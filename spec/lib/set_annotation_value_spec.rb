@@ -3,6 +3,9 @@
 require 'rails_helper'
 
 RSpec.describe SetAnnotationValue do
+  before { Timecop.travel(Date.parse('2022/02/14')) }
+  after { Timecop.return }
+
   def set(champ, value)
     DossierActions.on_dossier(dossier) do |d|
       SetAnnotationValue.set_value(d, demarche.instructeur, champ, value)
