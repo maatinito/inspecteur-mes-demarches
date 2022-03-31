@@ -1,6 +1,21 @@
 # frozen_string_literal: true
 
 FactoryBot.define do
+  factory :cis_association, class: ConditionalField do
+    champ { 'demandeur.entreprise.forme_juridique_code' }
+    valeurs do
+      {
+        'par défaut' => nil,
+        '920' => [
+          { 'mandatory_field_check' =>
+              { 'message' => 'Le champ doit être rempli car le dossier concerne une association',
+                'champs' => ['Statuts à jour', 'Composition du bureau', "Déclaration de l'association"] } }
+        ]
+      }
+    end
+    initialize_with { ConditionalField.new(attributes) }
+  end
+
   factory :protocole_sanitaire, class: ConditionalField do
     champ { 'Protocole sanitaire' }
     valeurs do

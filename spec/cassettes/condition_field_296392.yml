@@ -1,0 +1,85 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"fragment MesDemarches__Queries__ChampInfo on Champ {\n  __typename\n  id\n  label\n  ...
+        on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
+        on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
+        on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
+        {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
+        MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  motivation\n  usager
+        {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
+        {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
+        on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
+        {\n        siren\n        capitalSocial\n        numeroTvaIntracommunautaire\n        formeJuridique\n        formeJuridiqueCode\n        nomCommercial\n        raisonSociale\n        siretSiegeSocial\n        codeEffectifEntreprise\n        dateCreation\n        nom\n        prenom\n      }\n      association
+        {\n        rna\n        titre\n        objet\n        dateCreation\n        dateDeclaration\n        dateDeclaration\n      }\n    }\n  }\n}\n\nquery
+        MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
+        {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n    }\n    champs
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
+        {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
+        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":296392},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Thu, 31 Mar 2022 00:23:40 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"43c64b8813a54a7e9209a9ae91c60e99"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      X-Request-Id:
+      - 9a3b9d73-0c53-4585-b66d-5016de2478dc
+      X-Runtime:
+      - '0.387524'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '5854'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE1NzV9LCJpZCI6IlJHOXpjMmxsY2kweU9UWXpPVEk9IiwibnVtYmVyIjoyOTYzOTIsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDMtMzBUMTQ6MDg6MDQtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTAzLTMwVDE0OjExOjE2LTEwOjAwIiwibW90aXZhdGlvbiI6bnVsbCwidXNhZ2VyIjp7ImVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIn0sInRyYWl0ZW1lbnRzIjpbeyJpbnN0cnVjdGV1ckVtYWlsIjpudWxsLCJwcm9jZXNzZWRBdCI6IjIwMjItMDMtMzBUMTQ6MDg6MDQtMTA6MDAiLCJzdGF0ZSI6ImVuX2NvbnN0cnVjdGlvbiJ9XSwiZGVtYW5kZXVyIjp7Il9fdHlwZW5hbWUiOiJQZXJzb25uZU1vcmFsZSIsInNpcmV0IjoiNTYxNDA3IiwibmFmIjoiOTQ5OVoiLCJsaWJlbGxlTmFmIjoiQXV0cmVzIG9yZ2FuaXNhdGlvbnMgZm9uY3Rpb25uYW50IHBhciBhZGjDqXNpb24gdm9sb250YWlyZSIsImFkcmVzc2UiOiI5OTk5OSBOb24gZMOpY2xhcsOpLCBVYS1Qb3UgYy9vIEVjb2xlLCBIYWthbWFpaSIsIm51bWVyb1ZvaWUiOiIiLCJ0eXBlVm9pZSI6bnVsbCwibm9tVm9pZSI6IiIsImNvbXBsZW1lbnRBZHJlc3NlIjpudWxsLCJjb2RlUG9zdGFsIjoiOTk5OTkiLCJsb2NhbGl0ZSI6Ikhha2FtYWlpIiwiZW50cmVwcmlzZSI6eyJzaXJlbiI6IjU2MTQwNyIsImNhcGl0YWxTb2NpYWwiOiItMSIsIm51bWVyb1R2YUludHJhY29tbXVuYXV0YWlyZSI6IiIsImZvcm1lSnVyaWRpcXVlIjoiQXNzb2NpYXRpb24gZGUgbG9pIDE5MDEgb3UgYXNzaW1pbMOpIiwiZm9ybWVKdXJpZGlxdWVDb2RlIjoiOTIwIiwibm9tQ29tbWVyY2lhbCI6IiIsInJhaXNvblNvY2lhbGUiOiJBTUlDQUxFIERFUyBQQVJFTlRTIEQnRUxFVkVTIERFIEwnRUNPTEUgREUgSEFLQU1BSUkiLCJzaXJldFNpZWdlU29jaWFsIjoiNTYxNDA3IiwiY29kZUVmZmVjdGlmRW50cmVwcmlzZSI6IjEiLCJkYXRlQ3JlYXRpb24iOiIyMDAwLTA5LTIxIiwibm9tIjoiIiwicHJlbm9tIjoiIn0sImFzc29jaWF0aW9uIjpudWxsfSwiYW5ub3RhdGlvbnMiOlt7Il9fdHlwZW5hbWUiOiJQaWVjZUp1c3RpZmljYXRpdmVDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV4T0RnPSIsImxhYmVsIjoiQ2FuZGlkYXRzIGFkbWlzIiwiZmlsZSI6bnVsbCwic3RyaW5nVmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRZNU1UZz0iLCJsYWJlbCI6IkNoYW1wcyBhdXRvbWF0aXF1ZXMiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRZNU1UWT0iLCJsYWJlbCI6IkNhbmRpZGF0cyIsImZpbGUiOm51bGwsInN0cmluZ1ZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UWTVNVFU9IiwibGFiZWwiOiJJbnNwZWN0ZXVyIiwidmFsdWUiOm51bGx9XSwiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UQTFNUT09IiwibGFiZWwiOiJMJ29yZ2FuaXNtZSBkZW1hbmRldXIiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5USTROQT09IiwibGFiZWwiOiJOdW3DqXJvIFRhaGl0aSBJVEkiLCJ2YWx1ZSI6IkMyODcyMy0wMDEifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRBek9BPT0iLCJsYWJlbCI6Ik51bcOpcm8gZW1wbG95ZXVyIENQUyIsInZhbHVlIjoiMTIzNDU2NzgifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRReE9RPT0iLCJsYWJlbCI6Ik5vbSBkdSByZXByw6lzZW50YW50IGzDqWdhbCIsInZhbHVlIjoiRnJpdGNoIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UUXlNQT09IiwibGFiZWwiOiJQcsOpbm9tIGR1IHJlcHLDqXNlbnRhbnQgbMOpZ2FsIiwidmFsdWUiOiJFZG91YXJkIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UQTBNdz09IiwibGFiZWwiOiJDb21tdW5lIGRlIGwnb3JnYW5pc21lIiwidmFsdWUiOiJQaXJhZSAtIFRhaGl0aSAtIDk4NzE2In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UQTNOQT09IiwibGFiZWwiOiJSZW5zZWlnbmVtZW50cyBjb25jZXJuYW50IGxlIGNoYW50aWVyIGQnaW50w6lyw6p0IGfDqW7DqXJhbCIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpRNE9UYz0iLCJsYWJlbCI6IkludGl0dWzDqSBkdSBjaGFudGllciIsInZhbHVlIjoiUmVmZWN0aW9uIHbDqWfDqXRhbGUgZGVzIHJvbnRzIHBvaW50cyJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV3T0RjPSIsImxhYmVsIjoiQ29tbXVuZSIsInZhbHVlIjoiQXJ1ZSAtIFRhaGl0aSAtIDk4NzAxIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXdPRFk9IiwibGFiZWwiOiJMb2NhbGlzYXRpb24gZ8Opb2dyYXBoaXF1ZSBwcsOpY2lzZSIsInZhbHVlIjoiRXJpbWEsIG1hcmNow6kifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09EZz0iLCJsYWJlbCI6IkRlc2NyaXB0aWYgZGVzIGFjdGl2aXTDqXMiLCJ2YWx1ZSI6IlJlbWlzZSBlbiDDqXRhdCBkZXMgcGxhbnRhdGlvbnMifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09UST0iLCJsYWJlbCI6IkVxdWlwZW1lbnRzIiwidmFsdWUiOiJEw6licm91c3NhaWxsZXVyc2UsIG91dGlscyBkZSBqYXJkaW5hZ2UifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09UTT0iLCJsYWJlbCI6IkVxdWlwZW1lbnRzIGRlIHByb3RlY3Rpb24gaW5kaXZpZHVlbGxlIiwidmFsdWUiOiJnYW50cywgY2hhdXNzdXJlcyJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV5TkRFPSIsImxhYmVsIjoiQ29udGFjdCBzdXIgbGUgY2hhbnRpZXIiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXdPRGs9IiwibGFiZWwiOiJOb20gZHUgdHV0ZXVyIiwidmFsdWUiOiJBbHZlcyJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV3T1RBPSIsImxhYmVsIjoiUHLDqW5vbSBkdSB0dXRldXIiLCJ2YWx1ZSI6IlVyYW1hbnUifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVd09URT0iLCJsYWJlbCI6IlTDqWzDqXBob25lIGR1IHR1dGV1ciIsInZhbHVlIjoiODc1NDIxNDUifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVeU5EQT0iLCJsYWJlbCI6IsOJdGF0IG5vbWluYXRpZiIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJQaWVjZUp1c3RpZmljYXRpdmVDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV4TmpFPSIsImxhYmVsIjoiw4l0YXQgbm9taW5hdGlmIGRlcyBkZW1hbmRldXJzIiwiZmlsZSI6eyJjb250ZW50VHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybWF0cy1vZmZpY2Vkb2N1bWVudC5zcHJlYWRzaGVldG1sLnNoZWV0IiwiY2hlY2tzdW0iOiJPMEdWRFZRbzVTdFYwMy9mSmZkaDRBPT0iLCJmaWxlbmFtZSI6IkNJUyBFeGNlbCBFdGF0IHByw6l2aXNpb25uZWwgYXZlYyBlcnJldXJzLnhsc3giLCJ1cmwiOiJodHRwczovL29zdS5jbG91ZGdvdXYtZXUtd2VzdC0xLm91dHNjYWxlLmNvbS9tZXMtZGVtYXJjaGVzLXByb2QveXRoN2gwbTc0ZDFpdXo5ZWNwbm43cXpxcml4bD9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM0IlMjBmaWxlbmFtZSUzRCUyMkNJUyUyMEV4Y2VsJTIwRXRhdCUyMHByZXZpc2lvbm5lbCUyMGF2ZWMlMjBlcnJldXJzLnhsc3glMjIlM0IlMjBmaWxlbmFtZSUyQSUzRFVURi04JTI3JTI3Q0lTJTI1MjBFeGNlbCUyNTIwRXRhdCUyNTIwcHIlMjVDMyUyNUE5dmlzaW9ubmVsJTI1MjBhdmVjJTI1MjBlcnJldXJzLnhsc3hcdTAwMjZyZXNwb25zZS1jb250ZW50LXR5cGU9YXBwbGljYXRpb24lMkZ2bmQub3BlbnhtbGZvcm1hdHMtb2ZmaWNlZG9jdW1lbnQuc3ByZWFkc2hlZXRtbC5zaGVldFx1MDAyNlgtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2XHUwMDI2WC1BbXotQ3JlZGVudGlhbD1JRzFKWVA3NFFHV0dJWTc3SUdPNyUyRjIwMjIwMzMxJTJGY2xvdWRnb3V2LWV1LXdlc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0XHUwMDI2WC1BbXotRGF0ZT0yMDIyMDMzMVQwMDIzNDBaXHUwMDI2WC1BbXotRXhwaXJlcz0zNjAwXHUwMDI2WC1BbXotU2lnbmVkSGVhZGVycz1ob3N0XHUwMDI2WC1BbXotU2lnbmF0dXJlPTdiZDViYWFjMDNmMDUzYTU2NGU1MTFjZDBhNWM5ZjhkYmVlMzJkNzI0NGFjOWIzMTRhOTUzMGJlZDBiMWZhODYifSwic3RyaW5nVmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpVeE5qZz0iLCJsYWJlbCI6Ik5vbWJyZSBkZSBDSVMgZGVtYW5kw6lzIiwidmFsdWUiOiIxNSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV4TmpVPSIsImxhYmVsIjoiQXNzb2NpYXRpb25zIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV5TkRJPSIsImxhYmVsIjoiVm91cyDDqnRlcyB1bmUgYXNzb2NpYXRpb24uIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE16VXhOalk9IiwibGFiZWwiOiJTdGF0dXRzIMOgIGpvdXIiLCJmaWxlIjpudWxsLCJzdHJpbmdWYWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGMzTVRFPSIsImxhYmVsIjoiQ29tcG9zaXRpb24gZHUgYnVyZWF1IiwidmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJQaWVjZUp1c3RpZmljYXRpdmVDaGFtcCIsImlkIjoiUTJoaGJYQXRNelV4TmpjPSIsImxhYmVsIjoiRMOpY2xhcmF0aW9uIGRlIGwnYXNzb2NpYXRpb24iLCJmaWxlIjpudWxsLCJzdHJpbmdWYWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVEE0TWc9PSIsImxhYmVsIjoiRW5nYWdlbWVudCIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpRNE9URT0iLCJsYWJlbCI6IlZvdHJlIG5vbSIsInZhbHVlIjoiQWx2ZXMifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpRNE9UST0iLCJsYWJlbCI6IlZvdHJlIHByw6lub20iLCJ2YWx1ZSI6IlVyYW1hbnUifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpRNE9UUT0iLCJsYWJlbCI6IlZvdHJlIGZvbmN0aW9uIiwidmFsdWUiOiJCb3NzIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16UTRPVFU9IiwibGFiZWwiOiJWb3RyZSBudW3DqXJvIGRlIHTDqWzDqXBob25lIiwidmFsdWUiOiI4NzU0MjE1NCJ9LHsiX190eXBlbmFtZSI6IkNoZWNrYm94Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRBMU1nPT0iLCJsYWJlbCI6IkV4YWN0aXR1ZGUgZGVzIHJlbnNlaWduZW1lbnRzIiwidmFsdWUiOnRydWV9XX19fQ==
+  recorded_at: Thu, 31 Mar 2022 00:23:38 GMT
+recorded_with: VCR 6.0.0
