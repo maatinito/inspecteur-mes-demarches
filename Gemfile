@@ -67,6 +67,8 @@ group :development, :test do
   gem 'byebug', platforms: %i[mri mingw x64_mingw]
   gem 'dotenv-rails'
   gem 'factory_bot_rails'
+  gem 'rspec_junit_formatter'
+  gem 'rspec-rails', '~> 5'
   gem 'spring'
   gem 'spring-commands-rspec'
   gem 'spring-watcher-listen', '~> 2.0.0'
@@ -85,7 +87,6 @@ group :development do
   gem 'haml-lint'
   gem 'letter_opener_web'
   gem 'mry'
-  gem 'rspec-rails', '~> 5'
   gem 'rubocop', require: false
   gem 'rubocop-rails_config'
   gem 'rubocop-rspec', require: false

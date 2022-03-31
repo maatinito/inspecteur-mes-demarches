@@ -48,9 +48,9 @@ jobs:
       postgres:
         image: postgres:12
         env:
-          POSTGRES_USER: tps_test
-          POSTGRES_DB: tps_test
-          POSTGRES_PASSWORD: tps_test
+          POSTGRES_USER: imd_test
+          POSTGRES_DB: imd_test
+          POSTGRES_PASSWORD: imd_test
         ports: ["5432:5432"]
 
     steps:

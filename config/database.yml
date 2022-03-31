@@ -68,7 +68,10 @@ development:
 # Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: rosso_test
+  host: localhost
+  username: imd_test
+  password: imd_test
+  database: imd_test
 
 # As with config/secrets.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
