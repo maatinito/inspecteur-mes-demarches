@@ -52,6 +52,7 @@ services:
       - SCHEDULEDTASK_CRON
     volumes:
       - imd-data-files:/imd/storage
+      - imd-fonts:/usr/share/fonts
     networks:
       - md-network
 
@@ -82,7 +83,8 @@ services:
       - SCHEDULEDTASK_CRON
     volumes:
       - imd-data-files:/imd/storage
-    networks: 
+      - imd-fonts:/usr/share/fonts
+    networks:
       - md-network
 
 volumes:
@@ -92,7 +94,13 @@ volumes:
       type: none
       device: $ROOT/storage
       o: bind
-
+  imd-fonts:
+    driver: local
+    driver_opts:
+      type: none
+      device: /usr/share/fonts
+      o: bind
+      
 networks:
   md-network:
     driver: bridge
