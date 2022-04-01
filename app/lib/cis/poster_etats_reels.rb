@@ -9,7 +9,7 @@ module Cis
     end
 
     def version
-      super + 1
+      super + 3
     end
 
     def required_fields
@@ -27,51 +27,61 @@ module Cis
       task_name = GenererModeleEtatReel.name.underscore
       start = start_date(champ)
 
-      scheduled_dates = scheduled_dates(dossier, task_name)
-      theoric_dates = remaining_dates(start)
+      scheduled_dates = scheduled_dates(dossier)
+      theoric_dates = theoric_dates(start)
 
       return if scheduled_dates == theoric_dates
 
-      schedule_task(dossier, task_name, theoric_dates)
+      schedule_task(dossier, task_name, scheduled_dates, theoric_dates)
     end
 
     private
 
-    def remaining_dates(start)
+    def theoric_dates(start)
       start = start.at_beginning_of_month.next_month
       next_month = start.next_month
-      [start, next_month, next_month.next_month].select { |date| date >= Date.today }
+      [start, next_month, next_month.next_month]
     end
 
     MONTHS = %w[Janvier Février Mars Avril Mai Juin Juillet Août Septembre Octobre Novembre Décembre].freeze
 
-    def scheduled_dates(dossier, task_name)
-      future = ScheduledTask.arel_table[:run_at].gteq(Date.today)
-      ScheduledTask.where(dossier: dossier.number, task: task_name).where(future).pluck(:run_at)
+    def scheduled_dates(dossier)
+      filename = scheduled_filename(dossier)
+      return [] unless File.exist?(filename)
+
+      YAML.load_file(filename)
+      # future = ScheduledTask.arel_table[:run_at].gteq(Date.today)
+      # ScheduledTask.where(dossier: dossier.number, task: task_name).where(future).pluck(:run_at)
     end
 
-    def schedule_task(dossier, task_name, theoric_dates)
-      dir = 'storage/etat_reel'
-      FileUtils.mkpath(dir)
-      flag = "#{dir}/#{dossier.number}.txt"
-      return if File.exist?(flag)
+    def schedule_task(dossier, task_name, scheduled_dates, theoric_dates)
+      dates_to_remove = Set.new(scheduled_dates) - theoric_dates
+      ScheduledTask.where(dossier: dossier.number, task: task_name, run_at: dates_to_remove).destroy_all
 
-      ScheduledTask.where(dossier: dossier.number, task: task_name).destroy_all
-
-      theoric_dates.each.with_index do |date, index|
-        date = date.prev_month
-        parameters = {
-          champ_candidats_admis: @params[:champ_candidats_admis],
-          date: date,
-          month: "#{MONTHS[date.month - 1]} #{date.year}",
-          index: index + 1,
-          message: @params[:message],
-          mot_de_passe: @params[:mot_de_passe],
-          nom_fichier: @params[:nom_fichier]
-        }
+      dates_to_add = Set.new(theoric_dates) - scheduled_dates
+      dates_to_add.each.with_index do |date, index|
+        parameters = parameters(date.prev_month, index)
         ScheduledTask.create(dossier: dossier.number, task: task_name, parameters: parameters.to_json, run_at: date)
       end
-      File.write(flag, theoric_dates.to_s)
+      File.write(scheduled_filename(dossier), YAML.dump(theoric_dates))
+    end
+
+    def parameters(date, index)
+      {
+        champ_candidats_admis: @params[:champ_candidats_admis],
+        date: date,
+        month: "#{MONTHS[date.month - 1]} #{date.year}",
+        index: index + 1,
+        message: @params[:message],
+        mot_de_passe: @params[:mot_de_passe],
+        nom_fichier: @params[:nom_fichier]
+      }
+    end
+
+    def scheduled_filename(dossier)
+      dir = 'storage/etat_reel'
+      FileUtils.mkpath(dir)
+      "#{dir}/#{dossier.number}.txt"
     end
 
     def start_date(champ)
