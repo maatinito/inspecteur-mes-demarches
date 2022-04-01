@@ -32,7 +32,7 @@ RUN bundle config --global frozen 1 &&\
 FROM base
 ENV APP_PATH /imd
 #----- minimum set of packages including PostgreSQL client, yarn
-RUN apk add --no-cache --update tzdata libcurl postgresql-libs yarn build-base gcc libreoffice
+RUN apk add --no-cache --update tzdata libcurl postgresql-libs yarn build-base gcc libreoffice openjdk11-jre-headless
 
 WORKDIR ${APP_PATH}
 RUN adduser -Dh ${APP_PATH} userapp
