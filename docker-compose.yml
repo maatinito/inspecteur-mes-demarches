@@ -46,8 +46,10 @@ services:
       - GRAPHQL_HOST
       - MAILJET_API_KEY
       - MAILJET_SECRET_KEY
+      - OFFICE_PATH
       - RAILS_ENV=${ENV:-production}
       - RAILS_RELATIVE_URL_ROOT
+      - SCHEDULEDTASK_CRON
     volumes:
       - imd-data-files:/imd/storage
     networks:
@@ -75,7 +77,9 @@ services:
       - GRAPHQL_HOST
       - MAILJET_API_KEY
       - MAILJET_SECRET_KEY
+      - OFFICE_PATH
       - RAILS_ENV=${ENV:-production}
+      - SCHEDULEDTASK_CRON
     volumes:
       - imd-data-files:/imd/storage
     networks: 

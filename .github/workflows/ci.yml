@@ -123,4 +123,5 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
-        repository: "${{ env.repo }}" # sets to github.repository when getting back to maatinito dockerhub account
+        # sets to github.repository when getting back to maatinito dockerhub account
+        repository: "${{ env.repo }}"
