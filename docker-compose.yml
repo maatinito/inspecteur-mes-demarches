@@ -50,10 +50,8 @@ services:
       - RAILS_RELATIVE_URL_ROOT
     volumes:
       - imd-data-files:/imd/storage
-      - imd-uploads:/imd/public/uploads
-      - imd-downloads:/imd/public/downloads
-    depends_on:
-      - db
+    networks:
+      - md-network
 
   worker:
     image: ${IMAGE}:${TAG:-latest}
@@ -80,18 +78,8 @@ services:
       - RAILS_ENV=${ENV:-production}
     volumes:
       - imd-data-files:/imd/storage
-      - imd-uploads:/imd/public/uploads
-      - imd-downloads:/imd/public/downloads
-    depends_on:
-      - db
-
-  db:
-    image: postgres:10-alpine
-    restart: always
-    environment:
-      - POSTGRES_PASSWORD=$DB_PASSWORD
-    volumes:
-      - db:/var/lib/postgresql/data
+    networks: 
+      - md-network
 
 volumes:
   imd-data-files:
@@ -100,22 +88,10 @@ volumes:
       type: none
       device: $ROOT/storage
       o: bind
-  imd-uploads:
-    driver: local
-    driver_opts:
-      type: none
-      device: $ROOT/uploads
-      o: bind
-  imd-downloads:
-    driver: local
-    driver_opts:
-      type: none
-      device: $ROOT/downloads
-      o: bind
-  db:
-    driver: local
-    driver_opts:
-      type: none
-      device: $ROOT/postgres
-      o: bind
 
+networks:
+  md-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.1.0/24
