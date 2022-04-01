@@ -181,7 +181,9 @@ class Publipostage < FieldChecker
   end
 
   def same_document(fields)
-    datafile = "#{DATA_DIR}/#{@dossier.number}/#{instanciate(@params[:nom_fichier], fields)}.yml"
+    datadir = "#{DATA_DIR}/#{@dossier.number}"
+    FileUtils.mkpath(datadir)
+    datafile = "#{datadir}/#{instanciate(@params[:nom_fichier], fields)}.yml"
     fields['#checksum'] = FileUpload.checksum(@modele)
     same = File.exist?(datafile) && YAML.load_file(datafile) == fields
     File.write(datafile, YAML.dump(fields)) unless same
