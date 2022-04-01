@@ -17,7 +17,7 @@ class ScheduledTaskJob < CronJob
       rescue StandardError => e
         Sentry.capture_exception(e)
         Rails.logger.error("Error processing #{scheduled.task}: #{e.message}")
-        e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
+        e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
       end
     end
   end

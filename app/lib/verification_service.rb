@@ -21,7 +21,7 @@ class VerificationService
     rescue StandardError => e
       Sentry.capture_exception(e)
       Rails.logger.error(e.message)
-      e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
+      e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
     end
   end
 
@@ -278,7 +278,7 @@ class VerificationService
     check.failed = true
     Sentry.capture_exception(e)
     Rails.logger.error(e)
-    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
+    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
   end
 
   def apply_control(control, md_dossier, check)
@@ -297,7 +297,7 @@ class VerificationService
     check.failed = true
     Sentry.capture_exception(e)
     Rails.logger.error(e)
-    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
+    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
   end
 
   NOMS_PIECES_MESSAGES = %i[debut_premier_mail debut_second_mail entete_anomalies entete_anomalie tout_va_bien fin_mail].freeze
