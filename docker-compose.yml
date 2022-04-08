@@ -28,7 +28,7 @@ services:
     image: ${IMAGE}:${TAG:-latest}
     restart: always
     ports:
-      - ${PORT}:3000
+      - ${PORT}:${PORT}
     environment:
       - API_CPS_CLIENT_ID
       - API_CPS_CLIENT_SECRET
@@ -47,6 +47,7 @@ services:
       - MAILJET_API_KEY
       - MAILJET_SECRET_KEY
       - OFFICE_PATH
+      - PORT
       - RAILS_ENV=${ENV:-production}
       - RAILS_RELATIVE_URL_ROOT
       - SCHEDULEDTASK_CRON
