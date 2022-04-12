@@ -24,7 +24,7 @@ class SendMessage
   end
 
   def self.handle_errors(result)
-    throw "Unable to send message on dossier #{result.errors.messages.values.join(',')}" if result.errors.present?
+    throw "Unable to send message on dossier #{result.errors.map(&:message).join(',')}" if result.errors.present?
   end
 
   def self.file_already_posted(dossier_number, filename)
