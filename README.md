@@ -1,3 +1,4 @@
+[![Continuous Integration](https://github.com/maatinito/inspecteur-mes-demarches/actions/workflows/ci.yml/badge.svg)](https://github.com/maatinito/inspecteur-mes-demarches/actions/workflows/ci.yml)
 # Inspecteur Mes-Démarches
 
 L'inspecteur mes-démarches est un prototype de controle des dossiers dans https://www.mes-démarches.gov.pf.
