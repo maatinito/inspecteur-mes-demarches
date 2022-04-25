@@ -133,7 +133,8 @@ class ExcelCheck < FieldChecker
   end
 
   def header?(columns, line)
-    line&.first&.second&.match?(columns.first[1])
+    value = line&.first&.second
+    value.is_a?(String) && value.match?(columns.first[1])
   end
 
   def check_format_dn(line)
