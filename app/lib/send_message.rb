@@ -6,7 +6,7 @@ class SendMessage
                                              variables: {
                                                dossierId: dossier_id,
                                                instructeurId: instructeur_id,
-                                               body: body,
+                                               body:,
                                                clientMutationId: 'foo'
                                              }))
   end
@@ -17,7 +17,7 @@ class SendMessage
                                              variables: {
                                                dossierId: dossier_id,
                                                instructeurId: instructeur_id,
-                                               body: body,
+                                               body:,
                                                attachmentId: attachment_id,
                                                clientMutationId: 'foo'
                                              }))

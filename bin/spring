@@ -4,7 +4,7 @@
 # This file loads Spring without using Bundler, in order to be fast.
 # It gets overwritten when you run the `spring binstub` command.
 
-if !defined?(Spring) && [nil, 'development', 'test'].include?(ENV['RAILS_ENV'])
+if !defined?(Spring) && [nil, 'development', 'test'].include?(ENV.fetch('RAILS_ENV', nil))
   require 'rubygems'
   require 'bundler'
 

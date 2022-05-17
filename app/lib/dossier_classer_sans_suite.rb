@@ -18,7 +18,7 @@ class DossierClasserSansSuite < DossierChangerEtat
       {
         dossierId: dossier.id,
         instructeurId: demarche.instructeur,
-        motivation: motivation
+        motivation:
       })
     throw StandardError.new result.errors if result.errors.present?
   end

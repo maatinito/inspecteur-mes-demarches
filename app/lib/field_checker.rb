@@ -40,39 +40,39 @@ class FieldChecker < InspectorTask
   end
 
   def fields(name, warn_if_empty: true)
-    dossier_fields(@dossier, name, warn_if_empty: warn_if_empty)
+    dossier_fields(@dossier, name, warn_if_empty:)
   end
 
   def field(name, warn_if_empty: true)
-    fields(name, warn_if_empty: warn_if_empty)&.first
+    fields(name, warn_if_empty:)&.first
   end
 
   def annotations(name, warn_if_empty: true)
-    dossier_annotations(@dossier, name, warn_if_empty: warn_if_empty)
+    dossier_annotations(@dossier, name, warn_if_empty:)
   end
 
   def annotation(name, warn_if_empty: true)
-    annotations(name, warn_if_empty: warn_if_empty)&.first
+    annotations(name, warn_if_empty:)&.first
   end
 
   def param_fields(param_name, warn_if_empty: true)
-    fields(@params[param_name], warn_if_empty: warn_if_empty)
+    fields(@params[param_name], warn_if_empty:)
   end
 
   def param_field(param_name, warn_if_empty: true)
-    param_fields(param_name, warn_if_empty: warn_if_empty)&.first
+    param_fields(param_name, warn_if_empty:)&.first
   end
 
   def param_annotations(param_name, warn_if_empty: true)
-    annotations(@params[param_name], warn_if_empty: warn_if_empty)
+    annotations(@params[param_name], warn_if_empty:)
   end
 
   def param_annotation(param_name, warn_if_empty: true)
-    param_annotations(param_name, warn_if_empty: warn_if_empty)&.first
+    param_annotations(param_name, warn_if_empty:)&.first
   end
 
   def dossier_field(dossier, name, warn_if_empty: true)
-    dossier_fields(dossier, name, warn_if_empty: warn_if_empty)&.first
+    dossier_fields(dossier, name, warn_if_empty:)&.first
   end
 
   def dossier_fields(dossier, path, warn_if_empty: true)
@@ -173,7 +173,7 @@ class FieldChecker < InspectorTask
   end
 
   def add_message(champ, valeur, message)
-    @messages << Message.new(field: champ, value: valeur, message: message)
+    @messages << Message.new(field: champ, value: valeur, message:)
   end
 
   def annotation_updated_on(dossier)

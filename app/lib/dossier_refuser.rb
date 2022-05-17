@@ -18,7 +18,7 @@ class DossierRefuser < DossierChangerEtat
       {
         dossierId: dossier.id,
         instructeurId: demarche.instructeur,
-        motivation: motivation
+        motivation:
       })
     pp result.errors
   end

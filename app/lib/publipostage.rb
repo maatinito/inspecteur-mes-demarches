@@ -210,7 +210,7 @@ class Publipostage < FieldChecker
     context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[()]/, '') }
     template = Sablon.template(File.expand_path(@modele))
     template.render_to_file docx, context
-    stdout_str, stderr_str, status = Open3.capture3(ENV['OFFICE_PATH'], '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, docx)
+    stdout_str, stderr_str, status = Open3.capture3(ENV.fetch('OFFICE_PATH', nil), '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, docx)
     throw "Unable to convert #{docx} to pdf\n#{stdout_str}#{stderr_str}" if status != 0
     File.delete(docx)
     "#{basename}.pdf"

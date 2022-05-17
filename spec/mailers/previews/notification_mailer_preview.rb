@@ -5,6 +5,6 @@ class NotificationMailerPreview < ActionMailer::Preview
   def unauthorized_decision
     traitement = { instructeurEmail: 'rapetou@corp.com', state: 'refuse' }
 
-    NotificationMailer.with(dossier: 78_748, demarche: 1054, traitement: traitement).unauthorized_decision
+    NotificationMailer.with(dossier: 78_748, demarche: 1054, traitement:).unauthorized_decision
   end
 end

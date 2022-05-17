@@ -121,7 +121,7 @@ class VerificationService
 
   def remove_checks(dossier)
     Rails.logger.info('Dossier non concerné par les contrôles')
-    Check.where(dossier: dossier).destroy_all
+    Check.where(dossier:).destroy_all
   end
 
   def failed_checks
@@ -258,7 +258,7 @@ class VerificationService
     unless message_present
       @ok_tasks.each do |task|
         Rails.logger.tagged(task.name) do
-          check = Check.find_or_create_by(demarche: demarche, dossier: md_dossier.number, checker: task.name)
+          check = Check.find_or_create_by(demarche:, dossier: md_dossier.number, checker: task.name)
           start_time = Time.zone.now
           apply_task(demarche, task, md_dossier, check)
           check.update(checked_at: start_time, version: task.version)
@@ -384,6 +384,6 @@ class VerificationService
   end
 
   def modifier_url(md_dossier)
-    ENV['GRAPHQL_HOST'] + "/dossiers/#{md_dossier.number}/modifier"
+    ENV.fetch('GRAPHQL_HOST', nil) + "/dossiers/#{md_dossier.number}/modifier"
   end
 end

@@ -146,7 +146,7 @@ class ExcelCheck < FieldChecker
     "#{@params[:message_format_dn]}: #{dn}" if dn.present?
   end
 
-  DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/.freeze
+  DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/
 
   def check_format_date_de_naissance(line)
     ddn = normalize_date_de_naissance(line)

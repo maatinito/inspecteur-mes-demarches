@@ -8,7 +8,7 @@ module Instruction
 
     DECISIONS = Set['accepte', 'refuse', 'classe_sans_suite']
     DEFAULT_DECISIONS = 'accepte,refuse,classe_sans_suite'
-    SPLIT = /[\s,]/.freeze
+    SPLIT = /[\s,]/
 
     def must_check?(md_dossier)
       @authorized_decisions.include?(md_dossier&.state)

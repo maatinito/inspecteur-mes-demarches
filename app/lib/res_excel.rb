@@ -130,7 +130,7 @@ class ResExcel < FieldChecker
     "#{@params[:message_format_dn]}:#{dn}"
   end
 
-  DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/.freeze
+  DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/
 
   def check_format_date_de_naissance(line)
     ddn = line[:date_de_naissance]

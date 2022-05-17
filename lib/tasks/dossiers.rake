@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-CLOSE_MESSAGE_DOUBLON = <<~MSG
+CLOSE_MESSAGE_DOUBLON = <<~MSG.freeze
           Cher voyageur,
   #{'    '}
           Pour votre venue en Polynésie française, vous avez complété un nouveau dossier sanitaire suite au changement de réglementation.
@@ -23,7 +23,7 @@ CLOSE_MESSAGE_DOUBLON = <<~MSG
           The Manava team
 MSG
 
-CLOSE_MESSAGE = <<~MSG
+CLOSE_MESSAGE = <<~MSG.freeze
   Cher voyageur,
 
   Les conditions d'entrée en Polynésie française ont changé depuis le 9 juin (décret N°525 CM du 13 mai 2020 modifié).

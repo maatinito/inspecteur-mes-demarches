@@ -5,7 +5,7 @@ require 'rails_helper'
 def re_new_message(field, value, correction)
   msg = controle.params[:message]
   msg += controle.params[:message_aide] + ": #{correction}" if correction.present?
-  FactoryBot.build :message, field: field, value: value, message: msg
+  FactoryBot.build :message, field:, value:, message: msg
 end
 
 RSpec.describe RegexCheck do

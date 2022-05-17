@@ -31,10 +31,10 @@ class SetAnnotationValue
   def self.raw_set_value(dossier_id, instructeur_id, annotation_id, value)
     result = MesDemarches::Client.query(typed_query(value), variables:
       {
-        dossier_id: dossier_id,
-        instructeur_id: instructeur_id,
-        annotation_id: annotation_id,
-        value: value,
+        dossier_id:,
+        instructeur_id:,
+        annotation_id:,
+        value:,
         client_mutation_id: 'set_value'
       })
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
@@ -140,10 +140,10 @@ class SetAnnotationValue
   def self.raw_set_piece_justificative(dossier_id, instructeur_id, annotation_id, attachment_id)
     result = MesDemarches::Client.query(Queries::SetPieceJustificative, variables:
       {
-        dossier_id: dossier_id,
-        instructeur_id: instructeur_id,
-        annotation_id: annotation_id,
-        attachment_id: attachment_id,
+        dossier_id:,
+        instructeur_id:,
+        annotation_id:,
+        attachment_id:,
         client_mutation_id: 'set_value'
       })
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']

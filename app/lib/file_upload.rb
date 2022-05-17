@@ -12,10 +12,10 @@ class FileUpload
   def self.upload_slot(dossier_id, checksum, path, filename)
     result = MesDemarches::Client.query(Queries::CreateDirectUpload, variables:
       {
-        dossier_id: dossier_id,
-        filename: filename,
+        dossier_id:,
+        filename:,
         byteSize: File.size(path),
-        checksum: checksum,
+        checksum:,
         contentType: (MIME::Types.type_for(path).presence || MIME::Types['text/plain']).first.to_s,
         client_mutation_id: 'upload'
       })

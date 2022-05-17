@@ -69,7 +69,7 @@ module Cis
     def parameters(date, index)
       {
         champ_candidats_admis: @params[:champ_candidats_admis],
-        date: date,
+        date:,
         month: "#{MONTHS[date.month - 1]} #{date.year}",
         index: index + 1,
         message: @params[:message],

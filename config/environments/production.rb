@@ -72,7 +72,7 @@ Rails.application.configure do
   else
     config.action_mailer.delivery_method = :smtp
     config.action_mailer.smtp_settings = {
-      address: ENV['SMTP_HOST']
+      address: ENV.fetch('SMTP_HOST', nil)
       # user_name: ENV['SMTP_LOGIN'],
       # password: ENV['SMTP_PASSWORD'],
       # authentication: :plain
@@ -81,10 +81,10 @@ Rails.application.configure do
   # Configure default root URL for generating URLs to routes
   config.action_mailer.default_url_options = {
     protocol: :http,
-    port: ENV['PORT'],
-    host: ENV['APP_HOST']
+    port: ENV.fetch('PORT', nil),
+    host: ENV.fetch('APP_HOST', nil)
   }
-  config.action_mailer.asset_host = "http://#{ENV['APP_HOST']}:#{ENV['PORT']}"
+  config.action_mailer.asset_host = "http://#{ENV.fetch('APP_HOST', nil)}:#{ENV.fetch('PORT', nil)}"
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.

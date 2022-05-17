@@ -16,7 +16,7 @@ RSpec.describe ConditionalField do
     let(:dossier_nb) { 296_392 }
     let(:messages) do
       ['Statuts à jour', 'Composition du bureau', "Déclaration de l'association"].map do |field|
-        FactoryBot.build(:message, field: field, message: controle.params[:valeurs]['920'][0]['mandatory_field_check']['message'], value: 'vide')
+        FactoryBot.build(:message, field:, message: controle.params[:valeurs]['920'][0]['mandatory_field_check']['message'], value: 'vide')
       end
     end
 

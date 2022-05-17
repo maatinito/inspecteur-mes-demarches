@@ -10,11 +10,11 @@ class DossierActions
                                             variables: {
                                               demarche: demarche_id,
                                               since: since.iso8601,
-                                              cursor: cursor
+                                              cursor:
                                             })
 
       unless (data = response.data)
-        throw StandardError.new "La démarche #{demarche_id} est introuvable #{ENV['GRAPHQL_HOST']}: #{response.errors.values.join(',')}"
+        throw StandardError.new "La démarche #{demarche_id} est introuvable #{ENV.fetch('GRAPHQL_HOST', nil)}: #{response.errors.values.join(',')}"
       end
 
       dossiers = data.demarche.dossiers

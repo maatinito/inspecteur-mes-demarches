@@ -117,7 +117,7 @@ def new_message(field, value, message_type, correction = nil)
   pp controle.params, message_type, 'impossible de trouver' if controle.params[message_type].nil?
   msg = controle.params[message_type]
   msg += ": #{correction}" if correction.present?
-  FactoryBot.build :message, field: field, value: value, message: msg
+  FactoryBot.build :message, field:, value:, message: msg
 end
 
 def field_name(base, index)

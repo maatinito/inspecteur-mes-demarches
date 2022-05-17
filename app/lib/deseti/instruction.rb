@@ -87,7 +87,7 @@ module Deseti
     end
 
     def action(klass, params, motivation)
-      klass.new(params.merge(motivation: motivation))
+      klass.new(params.merge(motivation:))
     end
 
     def close_dossier(demarche, dossier_number, operation)

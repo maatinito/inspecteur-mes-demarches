@@ -19,7 +19,7 @@ module Cps
     def call(resource_name, dn_pairs)
       url = url(resource_name)
       json_dn = json_dn(dn_pairs)
-      response = Typhoeus.post(url, body: json_dn, timeout: TIMEOUT, ssl_verifypeer: true, verbose: false, headers: headers)
+      response = Typhoeus.post(url, body: json_dn, timeout: TIMEOUT, ssl_verifypeer: true, verbose: false, headers:)
 
       if response.success?
         JSON.parse(response.body)['datas']
@@ -37,7 +37,7 @@ module Cps
       [API_CPS_URL, resource_name].join('/')
     end
 
-    TWO_DIGIT_YEAR = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d\d?)\s*$/.freeze
+    TWO_DIGIT_YEAR = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d\d?)\s*$/
 
     def json_dn(dn_pairs)
       dn_pairs = dn_pairs.to_h do |dn, date|
