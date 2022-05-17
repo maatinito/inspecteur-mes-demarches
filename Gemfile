@@ -3,10 +3,10 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby '2.7.3'
+ruby '3.1.2'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '~> 6.1.4.4'
+gem 'rails', '~> 6.1.5'
 # Use postgresql as the database for Active Record
 gem 'pg', '>= 0.18', '< 2.0'
 # Use Puma as the app server
@@ -38,8 +38,8 @@ gem 'jbuilder', '~> 2.5'
 # gem 'capistrano-rails', group: :development
 
 # Reduces boot times through caching; required in config/boot.rb
-gem 'bootsnap', '>= 1.1.0', require: false
-gem 'bootstrap', '~> 4.5.0'
+gem 'bootsnap', require: false
+gem 'bootstrap', '~> 4.6.0'
 gem 'caxlsx'
 gem 'combine_pdf'
 gem 'delayed_cron_job' # Cron jobs
@@ -48,19 +48,22 @@ gem 'delayed_job_web'
 gem 'devise', '~> 4.7'
 gem 'devise-i18n'
 gem 'fugit'
+gem 'graphql-client', '~> 0.16.0'
 gem 'haml-rails'
 gem 'iban-tools'
 gem 'jquery-rails'
 gem 'mailjet'
 gem 'mime-types'
+gem 'net-smtp'
 gem 'phonelib'
-gem 'rails-bootstrap-tabs', '~> 0.2.2'
+gem 'rails-bootstrap-tabs'
 gem 'roo-xls'
 gem 'sablon'
 gem 'sentry-delayed_job'
 gem 'sentry-rails'
 gem 'sentry-ruby'
 gem 'typhoeus'
+gem 'tzinfo-data', platforms: %i[mingw mswin x64_mingw jruby] # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
@@ -75,7 +78,6 @@ group :development, :test do
   gem 'timecop'
   gem 'vcr', '~> 6.0.0'
   gem 'webmock', '~> 3.8.0'
-  gem 'xray-rails'
 end
 
 group :development do
@@ -93,7 +95,3 @@ group :development do
   gem 'scss_lint', require: false
 end
 
-# Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem 'tzinfo-data', platforms: %i[mingw mswin x64_mingw jruby]
-
-gem 'graphql-client', '~> 0.16.0'
