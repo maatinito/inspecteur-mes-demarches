@@ -1,4 +1,4 @@
-FROM ruby:2.7.3-alpine AS base
+FROM ruby:3.1.2-alpine AS base
 
 #------------ intermediate container with specific dev tools
 FROM base AS builder
