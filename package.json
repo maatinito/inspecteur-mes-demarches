@@ -9,5 +9,9 @@
   },
   "devDependencies": {
     "webpack-dev-server": "^4.6.0"
+  },
+  "scripts": {
+    "lint": "sass-lint -v",
+    "lint:fix": "sass-lint-auto-fix"
   }
 }
