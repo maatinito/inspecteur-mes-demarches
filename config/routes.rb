@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
-  root 'check#report'
+  root 'demarche#show'
   devise_for :users
 
-  get 'check/verify'
-  get 'check/report'
-  put 'check/post_message/:dossier', to: 'check#post_message', as: :check_post_message
+  get 'demarche/verify'
+  get 'demarche/report'
+  put 'demarche/post_message/:dossier', to: 'demarche#post_message', as: :demarche_post_message
+
+  get 'configurations', to: 'demarche#show', as: 'configuration'
 
   # view jobs
   match '/delayed_job' => DelayedJobWeb, :anchor => false, :via => %i[get post]

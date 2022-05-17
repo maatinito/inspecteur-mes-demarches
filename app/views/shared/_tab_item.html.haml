@@ -1,0 +1,7 @@
+%li.navitem
+  - if notification
+    %span.notifications{ 'aria-label': 'notifications' }
+  = link_to(url, class: "nav-link#{active ? ' active' : ''}", 'aria-current': active ? 'page' : nil) do
+    = label
+    - if badge.present?
+      %span.badge.badge-pill.badge-secondary= badge
