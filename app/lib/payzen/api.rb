@@ -10,7 +10,7 @@ module Payzen
 
     TIMEOUT = 3
 
-    def create_url_order(amount, reference, expiration_date:, customer:)
+    def create_url_order(amount, reference, expiration_date: nil, customer: nil)
       call(CREATE_ORDER, order(amount, reference, url_channel, expiration_date:, customer:))
     end
 
@@ -19,11 +19,9 @@ module Payzen
     end
 
     def customer(email, billing_details = nil)
-      result = {
-        email:,
-        billingDetails: billing_details
-      }
+      result = { email: }
       result[:billingDetails] = billing_details if billing_details.present?
+      result
     end
 
     def private_billing_details(firstname, lastname)
@@ -57,14 +55,14 @@ module Payzen
       response = Typhoeus.post(url, body: body.to_json, timeout: TIMEOUT, ssl_verifypeer: true, verbose: false, headers:)
 
       if response.success?
-        body = parse_response_body(response)
-        return body[:answer] if body[:status] == 'SUCCESS'
+        response_body = parse_response_body(response)
+        return response_body[:answer] if response_body[:status] == 'SUCCESS'
 
-        raise APIEntreprise::API::Error::RequestFailed("Erreur Payzen: #{body['answer']}")
+        raise APIEntreprise::API::Error::RequestFailed, response
       elsif response.code&.between?(401, 499)
         raise APIEntreprise::API::Error::ResourceNotFound, response
       else
-        Rails.logger.error("Unable to contact CPS API: response code #{response.code} url=#{url} called with #{body}")
+        Rails.logger.error("Unable to contact PayZen API: response code #{response.code} url=#{url} called with #{body}")
         raise APIEntreprise::API::Error::RequestFailed, response
       end
     end

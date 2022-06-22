@@ -1,0 +1,87 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://api.secure.osb.pf/api-payment/V4/Charge/CreatePaymentOrder
+    body:
+      encoding: UTF-8
+      string: '{"amount":10000,"currency":"XPF","channelOptions":{"channelType":"URL"},"orderId":"my-reference"}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Basic NTg3Mzk5MzM6dGVzdHBhc3N3b3JkX0NHdnBNOEFyRDhMMnNlaFBPS2FyVkNjVWFGd0p4RzBwUVE3VkxtS3hNOEc4bg==
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 22 Jun 2022 19:28:08 GMT
+      Server:
+      - Apache
+      X-Powered-By:
+      - Undertow/1
+      Set-Cookie:
+      - JSESSIONID=zBLHLts0AWElm9C6Ldi2MTJ0VVmjGqUrorjFIXej.vadapi01-tls-prod-fr-lyra;
+        path=/api-payment
+      Content-Length:
+      - '1915'
+      Vary:
+      - Accept-Encoding,User-Agent
+      Timing-Allow-Origin:
+      - "*"
+      Content-Type:
+      - application/json;charset=utf-8
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJ3ZWJTZXJ2aWNlIjoiQ2hhcmdlL0NyZWF0ZVBheW1lbnRPcmRlciIsInZlcnNpb24iOiJWNCIsImFwcGxpY2F0aW9uVmVyc2lvbiI6IjUuMzcuMCIsInN0YXR1cyI6IlNVQ0NFU1MiLCJhbnN3ZXIiOnsicGF5bWVudE9yZGVySWQiOiI2N2MzMDA2MzBjMWU0ZmExYTU3ODQ3MDI3NTM1MzEyMSIsInBheW1lbnRVUkwiOiJodHRwczovL3NlY3VyZS5vc2IucGYvdC8zaGlneW03dCIsInBheW1lbnRPcmRlclN0YXR1cyI6IlJVTk5JTkciLCJjcmVhdGlvbkRhdGUiOiIyMDIyLTA2LTIyVDE5OjI4OjA4KzAwOjAwIiwidXBkYXRlRGF0ZSI6bnVsbCwiYW1vdW50IjoxMDAwMCwiY3VycmVuY3kiOiJYUEYiLCJsb2NhbGUiOiJmcl9GUiIsInN0cm9uZ0F1dGhlbnRpY2F0aW9uIjoiQVVUTyIsIm9yZGVySWQiOiJteS1yZWZlcmVuY2UiLCJjaGFubmVsRGV0YWlscyI6eyJjaGFubmVsVHlwZSI6IlVSTCIsIm1haWxEZXRhaWxzIjpudWxsLCJzbXNEZXRhaWxzIjpudWxsLCJ3aGF0c0FwcERldGFpbHMiOm51bGwsIml2ckRldGFpbHMiOm51bGwsIl90eXBlIjoiVjQvQ2hhbm5lbERldGFpbHMifSwicGF5bWVudFJlY2VpcHRFbWFpbCI6bnVsbCwidGF4UmF0ZSI6bnVsbCwidGF4QW1vdW50IjpudWxsLCJleHBpcmF0aW9uRGF0ZSI6IjIwMjItMDYtMjNUMDk6NTk6NTkrMDA6MDAiLCJ0cmFuc2FjdGlvbkRldGFpbHMiOnsiY2FyZERldGFpbHMiOnsibWFudWFsVmFsaWRhdGlvbiI6Ik5PIiwiY2FwdHVyZURlbGF5IjowLCJfdHlwZSI6IlY0L0NhcmREZXRhaWxzIn0sIl90eXBlIjoiVjQvUGF5bWVudE9yZGVyVHJhbnNhY3Rpb25EZXRhaWxzIn0sImRhdGFDb2xsZWN0aW9uRm9ybSI6ZmFsc2UsImFsbG93RENGQW1vdW50VXBkYXRlIjoiTk9ORSIsIm1lcmNoYW50Q29tbWVudCI6bnVsbCwibWVzc2FnZSI6IkplIHLDqGdsZSAlYW1vdW50JSBwYXIgcGFpZW1lbnQgc8OpY3VyaXPDqSBhdmFudCBsZSAlZW5kX2RhdGUlIChzaSBsZSBsaWVuIG5lIGZvbmN0aW9ubmUgcGFzLCBjb3BpZXIgbCdVUkwgOiAldXJsJSApLiIsImRlc2NyaXB0aW9uIjpudWxsLCJmb3JtQWN0aW9uIjoiUEFZTUVOVCIsInBheW1lbnRNZXRob2RUb2tlbiI6bnVsbCwibWV0YWRhdGEiOnt9LCJjdXN0b21lciI6eyJiaWxsaW5nRGV0YWlscyI6bnVsbCwiZW1haWwiOm51bGwsInJlZmVyZW5jZSI6bnVsbCwic2hpcHBpbmdEZXRhaWxzIjpudWxsLCJleHRyYURldGFpbHMiOnsiYnJvd3NlckFjY2VwdCI6bnVsbCwiZmluZ2VyUHJpbnRJZCI6bnVsbCwiaXBBZGRyZXNzIjpudWxsLCJicm93c2VyVXNlckFnZW50IjpudWxsLCJfdHlwZSI6IlY0L0N1c3RvbWVyL0V4dHJhRGV0YWlscyJ9LCJzaG9wcGluZ0NhcnQiOm51bGwsIl90eXBlIjoiVjQvQ3VzdG9tZXIvQ3VzdG9tZXIifSwiYWNxdWlyZXJUcmFuc2llbnREYXRhIjp7fSwicGF5bWVudE1ldGhvZHMiOltdLCJzdWJNZXJjaGFudERldGFpbHMiOnsiY29tcGFueVR5cGUiOm51bGwsImxlZ2FsTnVtYmVyIjpudWxsLCJuYW1lIjpudWxsLCJ1cmwiOm51bGwsInBob25lTnVtYmVyIjpudWxsLCJhZGRyZXNzMSI6bnVsbCwiYWRkcmVzczIiOm51bGwsInppcCI6bnVsbCwiY2l0eSI6bnVsbCwiY291bnRyeSI6bnVsbCwibWNjIjpudWxsLCJtaWQiOm51bGwsInNvZnREZXNjcmlwdG9yIjpudWxsLCJfdHlwZSI6IlY0L1N1Yk1lcmNoYW50RGV0YWlscyJ9LCJfdHlwZSI6IlY0L1BheW1lbnRPcmRlciJ9LCJ0aWNrZXQiOiI1NDQwZDRjNThjY2U0M2JmOWZkNjkxZjUwNGY0MzRkMyIsInNlcnZlckRhdGUiOiIyMDIyLTA2LTIyVDE5OjI4OjA4KzAwOjAwIiwiYXBwbGljYXRpb25Qcm92aWRlciI6Ik9TQiIsIm1ldGFkYXRhIjpudWxsLCJtb2RlIjoiVEVTVCIsInNlcnZlclVybCI6Imh0dHBzOi8vYXBpLnNlY3VyZS5vc2IucGYiLCJfdHlwZSI6IlY0L1dlYlNlcnZpY2UvUmVzcG9uc2UifQ==
+  recorded_at: Wed, 22 Jun 2022 19:28:09 GMT
+- request:
+    method: post
+    uri: https://api.secure.osb.pf/api-payment/V4/Charge/PaymentOrder/Get
+    body:
+      encoding: UTF-8
+      string: '{"paymentOrderId":"67c300630c1e4fa1a578470275353121"}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Basic NTg3Mzk5MzM6dGVzdHBhc3N3b3JkX0NHdnBNOEFyRDhMMnNlaFBPS2FyVkNjVWFGd0p4RzBwUVE3VkxtS3hNOEc4bg==
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 22 Jun 2022 19:28:09 GMT
+      Server:
+      - Apache
+      X-Powered-By:
+      - Undertow/1
+      Set-Cookie:
+      - JSESSIONID=acP--aDLW1JaX78HbKWIDykS_7DzlbVJP78uyvZ4.vadapi01-tls-prod-fr-lyra;
+        path=/api-payment
+      Content-Length:
+      - '1913'
+      Vary:
+      - Accept-Encoding,User-Agent
+      Timing-Allow-Origin:
+      - "*"
+      Content-Type:
+      - application/json;charset=utf-8
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJ3ZWJTZXJ2aWNlIjoiQ2hhcmdlL1BheW1lbnRPcmRlci9HZXQiLCJ2ZXJzaW9uIjoiVjQiLCJhcHBsaWNhdGlvblZlcnNpb24iOiI1LjM3LjAiLCJzdGF0dXMiOiJTVUNDRVNTIiwiYW5zd2VyIjp7InBheW1lbnRPcmRlcklkIjoiNjdjMzAwNjMwYzFlNGZhMWE1Nzg0NzAyNzUzNTMxMjEiLCJwYXltZW50VVJMIjoiaHR0cHM6Ly9zZWN1cmUub3NiLnBmL3QvM2hpZ3ltN3QiLCJwYXltZW50T3JkZXJTdGF0dXMiOiJSVU5OSU5HIiwiY3JlYXRpb25EYXRlIjoiMjAyMi0wNi0yMlQxOToyODowOCswMDowMCIsInVwZGF0ZURhdGUiOm51bGwsImFtb3VudCI6MTAwMDAsImN1cnJlbmN5IjoiWFBGIiwibG9jYWxlIjoiZnJfRlIiLCJzdHJvbmdBdXRoZW50aWNhdGlvbiI6IkFVVE8iLCJvcmRlcklkIjoibXktcmVmZXJlbmNlIiwiY2hhbm5lbERldGFpbHMiOnsiY2hhbm5lbFR5cGUiOiJVUkwiLCJtYWlsRGV0YWlscyI6bnVsbCwic21zRGV0YWlscyI6bnVsbCwid2hhdHNBcHBEZXRhaWxzIjpudWxsLCJpdnJEZXRhaWxzIjpudWxsLCJfdHlwZSI6IlY0L0NoYW5uZWxEZXRhaWxzIn0sInBheW1lbnRSZWNlaXB0RW1haWwiOm51bGwsInRheFJhdGUiOm51bGwsInRheEFtb3VudCI6bnVsbCwiZXhwaXJhdGlvbkRhdGUiOiIyMDIyLTA2LTIzVDA5OjU5OjU5KzAwOjAwIiwidHJhbnNhY3Rpb25EZXRhaWxzIjp7ImNhcmREZXRhaWxzIjp7Im1hbnVhbFZhbGlkYXRpb24iOiJOTyIsImNhcHR1cmVEZWxheSI6MCwiX3R5cGUiOiJWNC9DYXJkRGV0YWlscyJ9LCJfdHlwZSI6IlY0L1BheW1lbnRPcmRlclRyYW5zYWN0aW9uRGV0YWlscyJ9LCJkYXRhQ29sbGVjdGlvbkZvcm0iOmZhbHNlLCJhbGxvd0RDRkFtb3VudFVwZGF0ZSI6Ik5PTkUiLCJtZXJjaGFudENvbW1lbnQiOm51bGwsIm1lc3NhZ2UiOiJKZSByw6hnbGUgJWFtb3VudCUgcGFyIHBhaWVtZW50IHPDqWN1cmlzw6kgYXZhbnQgbGUgJWVuZF9kYXRlJSAoc2kgbGUgbGllbiBuZSBmb25jdGlvbm5lIHBhcywgY29waWVyIGwnVVJMIDogJXVybCUgKS4iLCJkZXNjcmlwdGlvbiI6bnVsbCwiZm9ybUFjdGlvbiI6IlBBWU1FTlQiLCJwYXltZW50TWV0aG9kVG9rZW4iOm51bGwsIm1ldGFkYXRhIjp7fSwiY3VzdG9tZXIiOnsiYmlsbGluZ0RldGFpbHMiOm51bGwsImVtYWlsIjpudWxsLCJyZWZlcmVuY2UiOm51bGwsInNoaXBwaW5nRGV0YWlscyI6bnVsbCwiZXh0cmFEZXRhaWxzIjp7ImJyb3dzZXJBY2NlcHQiOm51bGwsImZpbmdlclByaW50SWQiOm51bGwsImlwQWRkcmVzcyI6bnVsbCwiYnJvd3NlclVzZXJBZ2VudCI6bnVsbCwiX3R5cGUiOiJWNC9DdXN0b21lci9FeHRyYURldGFpbHMifSwic2hvcHBpbmdDYXJ0IjpudWxsLCJfdHlwZSI6IlY0L0N1c3RvbWVyL0N1c3RvbWVyIn0sImFjcXVpcmVyVHJhbnNpZW50RGF0YSI6e30sInBheW1lbnRNZXRob2RzIjpbXSwic3ViTWVyY2hhbnREZXRhaWxzIjp7ImNvbXBhbnlUeXBlIjpudWxsLCJsZWdhbE51bWJlciI6bnVsbCwibmFtZSI6bnVsbCwidXJsIjpudWxsLCJwaG9uZU51bWJlciI6bnVsbCwiYWRkcmVzczEiOm51bGwsImFkZHJlc3MyIjpudWxsLCJ6aXAiOm51bGwsImNpdHkiOm51bGwsImNvdW50cnkiOm51bGwsIm1jYyI6bnVsbCwibWlkIjpudWxsLCJzb2Z0RGVzY3JpcHRvciI6bnVsbCwiX3R5cGUiOiJWNC9TdWJNZXJjaGFudERldGFpbHMifSwiX3R5cGUiOiJWNC9QYXltZW50T3JkZXIifSwidGlja2V0IjoiOGUzNmU0ZjllZWM1NDA0ZGEyODEwZGViZjZmYzIyM2EiLCJzZXJ2ZXJEYXRlIjoiMjAyMi0wNi0yMlQxOToyODowOSswMDowMCIsImFwcGxpY2F0aW9uUHJvdmlkZXIiOiJPU0IiLCJtZXRhZGF0YSI6bnVsbCwibW9kZSI6IlRFU1QiLCJzZXJ2ZXJVcmwiOiJodHRwczovL2FwaS5zZWN1cmUub3NiLnBmIiwiX3R5cGUiOiJWNC9XZWJTZXJ2aWNlL1Jlc3BvbnNlIn0=
+  recorded_at: Wed, 22 Jun 2022 19:28:09 GMT
+recorded_with: VCR 6.1.0

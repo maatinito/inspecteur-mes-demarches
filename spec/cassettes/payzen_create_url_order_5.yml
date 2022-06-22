@@ -1,0 +1,46 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://api.secure.osb.pf/api-payment/V4/Charge/CreatePaymentOrder
+    body:
+      encoding: UTF-8
+      string: '{"amount":-1,"currency":"XPF","channelOptions":{"channelType":"URL"},"orderId":"my-reference"}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Basic NTg3Mzk5MzM6dGVzdHBhc3N3b3JkX0NHdnBNOEFyRDhMMnNlaFBPS2FyVkNjVWFGd0p4RzBwUVE3VkxtS3hNOEc4bg==
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 22 Jun 2022 19:35:27 GMT
+      Server:
+      - Apache
+      X-Powered-By:
+      - Undertow/1
+      Set-Cookie:
+      - JSESSIONID=JezL4TBauYJwlUXk2XZ2amGCz10mEbB6gDaXBZ4P.vadapi01-tls-prod-fr-lyra;
+        path=/api-payment
+      Content-Length:
+      - '543'
+      Vary:
+      - Accept-Encoding,User-Agent
+      Timing-Allow-Origin:
+      - "*"
+      Content-Type:
+      - application/json;charset=utf-8
+    body:
+      encoding: ASCII-8BIT
+      string: '{"webService":"Charge/CreatePaymentOrder","version":"V4","applicationVersion":"5.37.0","status":"ERROR","answer":{"errorCode":"INT_009","errorMessage":"invalid
+        amount","detailedErrorCode":null,"detailedErrorMessage":"Invalid input amount
+        [value=-1]","ticket":"null","shopId":"58739933","_type":"V4/WebService/WebServiceError"},"ticket":"54c1c82906364dcbbe11e61a4a6fc864","serverDate":"2022-06-22T19:35:27+00:00","applicationProvider":"OSB","metadata":null,"mode":"TEST","serverUrl":"https://api.secure.osb.pf","_type":"V4/WebService/Response"}'
+  recorded_at: Wed, 22 Jun 2022 19:35:27 GMT
+recorded_with: VCR 6.1.0
