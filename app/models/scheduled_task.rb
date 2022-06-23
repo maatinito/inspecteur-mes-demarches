@@ -7,7 +7,7 @@
 #  id         :bigint           not null, primary key
 #  dossier    :integer
 #  parameters :text
-#  run_at     :date
+#  run_at     :datetime
 #  task       :string
 #  created_at :datetime         not null
 #  updated_at :datetime         not null

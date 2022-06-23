@@ -55,10 +55,10 @@ module Cis
     end
 
     def schedule_task(dossier, task_name, scheduled_dates, theoric_dates)
-      dates_to_remove = Set.new(scheduled_dates) - theoric_dates
+      dates_to_remove = (Set.new(scheduled_dates) - theoric_dates).map(&:to_datetime)
       ScheduledTask.where(dossier: dossier.number, task: task_name, run_at: dates_to_remove).destroy_all
 
-      dates_to_add = Set.new(theoric_dates) - scheduled_dates
+      dates_to_add = (Set.new(theoric_dates) - scheduled_dates).map(&:to_datetime)
       dates_to_add.each.with_index do |date, index|
         parameters = parameters(date.prev_month, index)
         ScheduledTask.create(dossier: dossier.number, task: task_name, parameters: parameters.to_json, run_at: date)
