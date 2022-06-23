@@ -10,6 +10,10 @@ module Payzen
 
     TIMEOUT = 3
 
+    def initialize(test_mode: true)
+      @test_mode = test_mode
+    end
+
     def create_url_order(amount, reference, expiration_date: nil, customer: nil)
       call(CREATE_ORDER, order(amount, reference, url_channel, expiration_date:, customer:))
     end
@@ -56,6 +60,9 @@ module Payzen
 
       if response.success?
         response_body = parse_response_body(response)
+        response_body[:expirationDate] = DateTime.iso8601(response_body[:expirationDate])
+        response_body[:creationDate] = DateTime.iso8601(response_body[:creationDate])
+
         return response_body[:answer] if response_body[:status] == 'SUCCESS'
 
         raise APIEntreprise::API::Error::RequestFailed, response
@@ -79,7 +86,14 @@ module Payzen
     end
 
     def authentification
-      @authentification ||= Base64.strict_encode64("#{ENV.fetch('PAYZEN_LOGIN', nil)}:#{ENV.fetch('PAYZEN_PASSWORD', nil)}")
+      return @authentification if @authentification.present?
+
+      key = @test_mode ? 'TEST' : 'PROD'
+      login = ENV.fetch("PAYZEN_#{key}_LOGIN", nil)
+      password = ENV.fetch("PAYZEN_#{key}_PASSWORD", nil)
+      raise ArgumentError, "PayZen API: PAYZEN_#{key}_(LOGIN,PASSWORD) environment variables not intialized." if login.nil? || password.nil?
+
+      @authentification = Base64.strict_encode64("#{login}:#{password}")
     end
 
     def parse_response_body(response)
