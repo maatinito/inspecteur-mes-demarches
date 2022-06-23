@@ -2,7 +2,7 @@
 
 module Payzen
   class SetField < Task
-    include StringTemplate
+    include Payzen::StringTemplate
 
     def version
       super + 1
@@ -12,10 +12,10 @@ module Payzen
       %i[champ valeur]
     end
 
-    def handle_order(_order)
+    def handle_order(order)
       field = @params[:champ]
       template = @params[:valeur]
-      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, field, instanciate(template, source))
+      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, field, instanciate(template, order))
     end
   end
 end
