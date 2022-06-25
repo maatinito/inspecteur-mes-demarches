@@ -185,6 +185,11 @@ module MesDemarches
             ...DossierInfo
             annotations {
               ...ChampInfo
+               ... on RepetitionChamp {
+                  champs {
+                      ...ChampInfo
+                  }
+              }
             }
             champs {
               ...ChampInfo
@@ -223,6 +228,11 @@ module MesDemarches
           ...DossierInfo
           annotations {
             ...ChampInfo
+              ... on RepetitionChamp {
+                  champs {
+                      ...ChampInfo
+                  }
+              }
           }
           champs {
             ...ChampInfo
