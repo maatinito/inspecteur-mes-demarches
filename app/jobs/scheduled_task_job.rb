@@ -2,7 +2,7 @@
 
 class ScheduledTaskJob < CronJob
   # self.schedule_expression = 'every day at 7:00'
-  self.schedule_expression = ENV.fetch('SCHEDULEDTASK_CRON', '0,15,30,45 5-23 * * *')
+  self.schedule_expression = ENV.fetch('SCHEDULEDTASK_CRON', '0-59 5-23 * * *')
 
   def perform
     datetime_arel = ScheduledTask.arel_table[:run_at]
