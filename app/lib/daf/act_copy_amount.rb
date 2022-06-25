@@ -1,2 +1,87 @@
-class ActCopyAmount
+# frozen_string_literal: true
+
+module Daf
+  class ActCopyAmount < FieldChecker
+    def version
+      super + 1
+    end
+
+    def required_fields
+      super + %i[champ_montant champ_commande_prete]
+    end
+
+    def must_check?(dossier)
+      dossier.state == 'en_instruction'
+    end
+
+    def process(demarche, dossier)
+      super
+      return if order_not_ready
+
+      return if amount_already_set
+
+      dossier.annotations.each do |repetition|
+        process_orders(demarche, dossier, repetition) if repetition.__typename == 'RepetitionChamp'
+      end
+    end
+
+    private
+
+    def process_orders(demarche, dossier, repetition)
+      order = {}
+      amount = 0
+      repetition.champs.each do |champ|
+        if order[champ.label].present?
+          amount += amount_for(pages_count(order))
+          order = {}
+        end
+        order[champ.label] = champ
+      end
+      amount += amount_for(pages_count(order))
+      SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant], amount) if amount.positive?
+    end
+
+    def amount_already_set
+      annotation(@params[:champ_montant])&.value.present?
+    end
+
+    def order_not_ready
+      !annotation(@params[:champ_commande_prete])&.value
+    end
+
+    def pages_count(bloc)
+      champs = bloc.values
+      pages = champs.find { |champ| champ.__typename == 'IntegerNumberChamp' }&.value.to_i
+      return pages if pages.positive?
+
+      file_field = champs.find { |champ| champ.__typename == 'PieceJustificativeChamp' }
+      return 0 if file_field&.file&.filename.blank?
+
+      PieceJustificativeCache.get(file_field.file) do |file|
+        pages = file_page_count(file)
+        Rails.logger.error("Unable to compute pdf page count in dossier #{dossier.number}: #{champ.file}") if pages.zero?
+
+        return pages
+      end
+    end
+
+    def file_page_count(filename)
+      file = File.open(filename, 'rb')
+      text = file.read
+      file.close
+
+      keyword_c = text.scan(/Count\s+(\d+)/).size
+      keyword_t = text.scan(%r{/Type\s*/Page[^s]}).size
+
+      keyword_c > keyword_t ? keyword_c : keyword_t
+    end
+
+    def amount_for(pages)
+      if pages.zero?
+        0
+      else
+        pages >= 25 ? 600 + ((pages - 25) * 30) : 300
+      end
+    end
+  end
 end

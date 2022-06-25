@@ -60,12 +60,12 @@ module Payzen
 
       if response.success?
         response_body = parse_response_body(response)
-        response_body[:expirationDate] = DateTime.iso8601(response_body[:expirationDate])
-        response_body[:creationDate] = DateTime.iso8601(response_body[:creationDate])
+        raise APIEntreprise::API::Error::RequestFailed, response unless response_body[:status] == 'SUCCESS'
 
-        return response_body[:answer] if response_body[:status] == 'SUCCESS'
-
-        raise APIEntreprise::API::Error::RequestFailed, response
+        answer = response_body[:answer]
+        answer[:expirationDate] = DateTime.iso8601(answer[:expirationDate]).new_offset(-10.0 / 24)
+        answer[:creationDate] = DateTime.iso8601(answer[:creationDate]).new_offset(-10.0 / 24)
+        answer
       elsif response.code&.between?(401, 499)
         raise APIEntreprise::API::Error::ResourceNotFound, response
       else

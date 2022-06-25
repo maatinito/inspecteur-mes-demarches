@@ -56,7 +56,7 @@ RSpec.describe Payzen::API do
       let(:customer) { api.customer('example@company.com', api.private_billing_details('firstname', 'lastname')) }
       let(:expiration_date) { DateTime.iso8601('2022-06-22T19:45:25Z') }
       it 'succeeds' do
-        expect(DateTime.iso8601(subject[:expirationDate])).to eq(expiration_date.utc)
+        expect(subject[:expirationDate]).to eq(expiration_date.utc)
       end
     end
 

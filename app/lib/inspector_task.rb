@@ -6,7 +6,7 @@ class InspectorTask
 
   def initialize(params)
     @errors = []
-    @params = params.symbolize_keys
+    @params = params&.symbolize_keys || {}
     missing_fields = (required_fields - @params.keys)
     @errors << "Les champs #{missing_fields.join(',')} devrait être définis sur #{self.class.name.underscore}" if missing_fields.present?
     unknown_fields = @params.keys - authorized_fields - required_fields
