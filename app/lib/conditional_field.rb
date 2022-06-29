@@ -36,7 +36,7 @@ class ConditionalField < FieldChecker
       controls = config.map.with_index do |description, i|
         create_control(description, i)
       end.flatten
-      controls.reject(&:valid?).each { |task| puts "#{task.class.name}: #{task.errors.join(',')}" }
+      controls.reject(&:valid?).each { |task| Rails.logger.error("#{task.class.name}: #{task.errors.join(',')}") }
       controls.filter(&:valid?)
     end
   end

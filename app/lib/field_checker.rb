@@ -36,7 +36,7 @@ class FieldChecker < InspectorTask
   end
 
   def check(_dossier)
-    raise "Should be implemented by class #{self}"
+    raise "check(dossier) should be implemented by class #{self}"
   end
 
   def fields(name, warn_if_empty: true)
