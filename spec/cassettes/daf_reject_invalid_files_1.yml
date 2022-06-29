@@ -1,0 +1,100 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"fragment MesDemarches__Queries__ChampInfo on Champ {\n  __typename\n  id\n  label\n  ...
+        on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
+        on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
+        on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
+        {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
+        MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  motivation\n  usager
+        {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
+        {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
+        on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
+        {\n        siren\n        capitalSocial\n        numeroTvaIntracommunautaire\n        formeJuridique\n        formeJuridiqueCode\n        nomCommercial\n        raisonSociale\n        siretSiegeSocial\n        codeEffectifEntreprise\n        dateCreation\n        nom\n        prenom\n      }\n      association
+        {\n        rna\n        titre\n        objet\n        dateCreation\n        dateDeclaration\n        dateDeclaration\n      }\n    }\n  }\n}\n\nquery
+        MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
+        {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n    }\n    champs
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
+        {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
+        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":303082},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 29 Jun 2022 00:11:29 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"f4769c2ef2ae2fabd74cc603e5317b57"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Content-Security-Policy:
+      - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
+        script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
+        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
+        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
+        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
+        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
+        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
+        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
+        osu.cloudgouv-eu-west-1.outscale.com'
+      X-Request-Id:
+      - 6eb9a59c-ad4c-4824-8d35-4a5cafbc25bd
+      X-Runtime:
+      - '0.393648'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '3367'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9pbnN0cnVjdGlvbiIsImRlbWFyY2hlIjp7Im51bWJlciI6MTY2N30sImlkIjoiUkc5emMybGxjaTB6TURNd09EST0iLCJudW1iZXIiOjMwMzA4MiwiYXJjaGl2ZWQiOmZhbHNlLCJkYXRlUGFzc2FnZUVuQ29uc3RydWN0aW9uIjoiMjAyMi0wNi0yOFQxMzoyMzoyOS0xMDowMCIsImRhdGVQYXNzYWdlRW5JbnN0cnVjdGlvbiI6IjIwMjItMDYtMjhUMTM6MjQ6MDItMTA6MDAiLCJkYXRlVHJhaXRlbWVudCI6bnVsbCwiZGF0ZURlcm5pZXJlTW9kaWZpY2F0aW9uIjoiMjAyMi0wNi0yOFQxMzoyNDowMi0xMDowMCIsIm1vdGl2YXRpb24iOm51bGwsInVzYWdlciI6eyJlbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiJ9LCJ0cmFpdGVtZW50cyI6W3siaW5zdHJ1Y3RldXJFbWFpbCI6bnVsbCwicHJvY2Vzc2VkQXQiOiIyMDIyLTA2LTI4VDEzOjIzOjI5LTEwOjAwIiwic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24ifSx7Imluc3RydWN0ZXVyRW1haWwiOm51bGwsInByb2Nlc3NlZEF0IjoiMjAyMi0wNi0yOFQxMzoyNDowMi0xMDowMCIsInN0YXRlIjoiZW5faW5zdHJ1Y3Rpb24ifV0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVQaHlzaXF1ZSIsImNpdmlsaXRlIjoiTSIsImRhdGVEZU5haXNzYW5jZSI6bnVsbCwibm9tIjoiTEFVVElFUiIsInByZW5vbSI6IkNocmlzdGlhbiJ9LCJhbm5vdGF0aW9ucyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROak0zTVRjPSIsImxhYmVsIjoiQ09NTUFOREVTIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlJlcGV0aXRpb25DaGFtcCIsImlkIjoiUTJoaGJYQXROak0zTVRnPSIsImxhYmVsIjoiQ29tbWFuZGVzIiwiY2hhbXBzIjpbXX0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImlkIjoiUTJoaGJYQXROak00TURFPSIsImxhYmVsIjoiUmVjaGVyY2hlIHRlcm1pbsOpZSIsInZhbHVlIjpmYWxzZX0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16Z3hOems9IiwibGFiZWwiOiJQQUlFTUVOVCIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TkRBM05ERT0iLCJsYWJlbCI6Ik1vbnRhbnQiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5qTTJPREU9IiwibGFiZWwiOiJEZW1hbmRlIGRlIHBhaWVtZW50IiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROak15T0RFPSIsImxhYmVsIjoiRXhwaXJhdGlvbiBkZSBsYSBkZW1hbmRlIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROak0yT0RNPSIsImxhYmVsIjoiUGFpZW1lbnQgUGF5WmVuIiwidmFsdWUiOm51bGx9XSwiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE1UQXhNREk9IiwibGFiZWwiOiJSRU5TRUlHTkVNRU5UUyBDT01QTEVNRU5UQUlSRVMiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE16Z3hOak09IiwibGFiZWwiOiJDb21tdW5lIGRlIHLDqXNpZGVuY2UiLCJ2YWx1ZSI6IkFydWUgLSBUYWhpdGkgLSA5ODcwMSJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNVFkyTVRVPSIsImxhYmVsIjoiVMOpbMOpcGhvbmUiLCJ2YWx1ZSI6IjQwNDU3ODQ1In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5qTTNNVFE9IiwibGFiZWwiOiJERU1BTkRFUyIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TXpneE56QT0iLCJsYWJlbCI6IlZPTFVNRSBcdTAwMjYgTlVNRVJPIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlJlcGV0aXRpb25DaGFtcCIsImlkIjoiUTJoaGJYQXROak0zTVRNPSIsImxhYmVsIjoiRGVtYW5kZXMiLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNM01UVT0iLCJsYWJlbCI6IlZvbHVtZSIsInZhbHVlIjoiNCJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXROak0zTVRZPSIsImxhYmVsIjoiTnVtw6lybyBkZSBkw6lww7R0IiwidmFsdWUiOiI0NTYifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNM05qTT0iLCJsYWJlbCI6IkF1dHJlIGRlbWFuZGUgPyIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNM01UVT0iLCJsYWJlbCI6IlZvbHVtZSIsInZhbHVlIjoiNSJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXROak0zTVRZPSIsImxhYmVsIjoiTnVtw6lybyBkZSBkw6lww7R0IiwidmFsdWUiOiI1NjcifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNM05qTT0iLCJsYWJlbCI6IkF1dHJlIGRlbWFuZGUgPyIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNM01UVT0iLCJsYWJlbCI6IlZvbHVtZSIsInZhbHVlIjoiNiJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXROak0zTVRZPSIsImxhYmVsIjoiTnVtw6lybyBkZSBkw6lww7R0IiwidmFsdWUiOiI2NjgifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNM05qTT0iLCJsYWJlbCI6IkF1dHJlIGRlbWFuZGUgPyIsInZhbHVlIjpudWxsfV19LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROak00TURJPSIsImxhYmVsIjoiU2VydmljZXMgYWRtaW5pc3RyYXRpZnMiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5qTTNOakU9IiwibGFiZWwiOiJTZXJ2aWNlIGFkbWluaXN0cmF0aWYiLCJ2YWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNVEkzTkRJPSIsImxhYmVsIjoiTU9EQUxJVMOJUyBERSBUUkFJVEVNRU5UIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRNVEl5TmpRPSIsImxhYmVsIjoiRGVtYW5kZXMgaG9ycyBhZG1pbmlzdHJhdGlvbiIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwiaWQiOiJRMmhoYlhBdE1USXlOalU9IiwibGFiZWwiOiJWw6lyaWZpY2F0aW9uIiwidmFsdWUiOnRydWV9XX19fQ==
+  recorded_at: Wed, 29 Jun 2022 00:11:29 GMT
+recorded_with: VCR 6.1.0
