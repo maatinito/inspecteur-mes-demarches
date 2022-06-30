@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Daf::ActCopyAmount do
-  let(:dossier_nb) { 303_082 }
+  let(:dossier_nb) { 303_186 }
   let(:dossier) do
     r = nil
     DossierActions.on_dossier(dossier_nb) { |d| r = d }

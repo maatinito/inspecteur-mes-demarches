@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Daf::RejectInvalidFiles do
-  let(:dossier_nb) { 303_082 }
+  let(:dossier_nb) { 303_186 }
 
   context 'depot' do
     subject do
