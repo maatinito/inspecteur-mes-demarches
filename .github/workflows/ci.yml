@@ -63,6 +63,9 @@ jobs:
         uses: ./.github/actions/ci-setup-assets
 
       - name: Run tests
+        env:
+          PAYZEN_TEST_LOGIN: test
+          PAYZEN_TEST_PASSWORD: test
         run: |
           echo "Running tests "
           bin/rspec --format progress --format RspecJunitFormatter --out tmp/rspec_${{ github.job }}.junit.xml
