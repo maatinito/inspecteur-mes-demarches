@@ -3,13 +3,16 @@
 module Payzen
   class PaymentOrder < FieldChecker
     include Payzen::StringTemplate
+    attr_reader :when_asked, :when_paid, :when_expired
+
+    CHECK_DELAY = 5.minutes.since.end_of_minute
 
     def version
       super + 1
     end
 
     def required_fields
-      %i[reference champ_montant champ_etat_paiement champ_ordre_de_paiement message]
+      %i[reference champ_montant champ_ordre_de_paiement message]
     end
 
     def authorized_fields
@@ -36,7 +39,6 @@ module Payzen
     end
 
     def process(demarche, dossier)
-      puts "-- dossier #{dossier.number} ok ==> Payzen order --"
       return unless must_check?(dossier)
 
       @dossier = dossier
@@ -66,7 +68,7 @@ module Payzen
     end
 
     def schedule_next_check
-      ScheduledTask.enqueue(dossier.number, self.class, @params, 1.minutes.since)
+      ScheduledTask.enqueue(dossier.number, self.class, @params, CHECK_DELAY)
     end
 
     def check_payment

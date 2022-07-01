@@ -24,7 +24,7 @@ RSpec.describe Daf::RejectInvalidFiles do
     end
 
     context 'When dossier has good number of ', vcr: { cassette_name: 'daf_reject_invalid_files_1' } do
-      let(:controle) { FactoryBot.build :reject_invalid_files, :max_10, quand_invalide: [{ 'when_task' => {} }] }
+      let(:controle) { FactoryBot.build :reject_invalid_files, :max10, quand_invalide: [{ 'when_task' => {} }] }
 
       it 'task is called' do
         expect_any_instance_of(WhenTask).not_to receive(:process)
