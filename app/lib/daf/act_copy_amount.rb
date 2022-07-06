@@ -11,17 +11,14 @@ module Daf
     end
 
     def must_check?(dossier)
-      dossier.state == 'en_instruction'
+      @dossier = dossier
+      !(dossier.state == 'en_construction' || order_not_ready || amount_already_set)
     end
 
     def process(demarche, dossier)
       super
-      return if order_not_ready
-
-      return if amount_already_set
-
-      dossier.annotations.each do |repetition|
-        process_orders(demarche, dossier, repetition) if repetition.__typename == 'RepetitionChamp'
+      dossier.annotations.each do |champ|
+        process_orders(demarche, dossier, champ) if champ.__typename == 'RepetitionChamp'
       end
     end
 

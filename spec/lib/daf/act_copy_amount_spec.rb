@@ -14,7 +14,7 @@ RSpec.describe Daf::ActCopyAmount do
   let(:instructeur) { 'instructeur' }
 
   subject do
-    controle.process(demarche, dossier)
+    controle.process(demarche, dossier) if controle.must_check?(dossier)
     controle
   end
 
