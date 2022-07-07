@@ -82,6 +82,10 @@ services:
       - OFFICE_PATH
       - RAILS_ENV=${ENV:-production}
       - SCHEDULEDTASK_CRON
+      - PAYZEN_TEST_LOGIN
+      - PAYZEN_TEST_PASSWORD
+      - PAYZEN_PROD_LOGIN
+      - PAYZEN_PROD_PASSWORD
     volumes:
       - imd-data-files:/imd/storage
       - imd-fonts:/usr/share/fonts
@@ -107,4 +111,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 10.5.1.0/24
+        - subnet: 10.5.2.0/24
