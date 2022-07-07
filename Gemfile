@@ -54,7 +54,9 @@ gem 'iban-tools'
 gem 'jquery-rails'
 gem 'mailjet'
 gem 'mime-types'
-gem 'net-smtp'
+gem 'net-imap', require: false
+gem 'net-pop', require: false
+gem 'net-smtp', require: false
 gem 'phonelib'
 gem 'roo-xls'
 gem 'sablon'
