@@ -16,7 +16,7 @@ module Payzen
     end
 
     def authorized_fields
-      %i[etat_du_dossier tentatives quand_payé quand_demandé quand_expiré mode_test]
+      %i[etat_du_dossier tentatives quand_payé quand_demandé quand_expiré mode_test champ_telephone sms]
     end
 
     def initialize(params)
@@ -32,6 +32,8 @@ module Payzen
 
       @reference_prefix = @params[:reference]
       @reference_prefix = 'md' if @reference_prefix.blank?
+      @errors << "l'attribut sms est obligatoire quand le champ 'champ_telephone' est donné." if @params[:champ_telephone].present? && @params[:sms].blank?
+      @errors << "l'attribut champ_telephone est obligatoire quand le champ 'sms' est donné." if @params[:sms].present? && @params[:champ_telephone].blank?
     end
 
     def must_check?(dossier)
@@ -58,13 +60,24 @@ module Payzen
     private
 
     def ask_for_payment(amount)
-      reference = "#{@reference_prefix}-#{@dossier.number}"
-      order = @api.create_url_order(amount, reference)
+      order = craate_order(amount)
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @params[:champ_ordre_de_paiement], order[:paymentOrderId])
-      send_notification(order)
+      notify_user(order)
       execute(@when_asked, order)
       annotation_updated_on(@dossier)
       schedule_next_check
+    end
+
+    def craate_order(amount)
+      reference = "#{@reference_prefix}-#{@dossier.number}"
+      phone_number = param_field(:champ_telephone)&.value
+      if phone_number.present? && phone_number.match?(/8[789][0-9]{6}/)
+        message = instanciate(@params[:sms])
+        order = @api.create_sms_order(amount, reference, phone_number, message)
+      else
+        order = @api.create_url_order(amount, reference)
+      end
+      order
     end
 
     def schedule_next_check
@@ -92,7 +105,7 @@ module Payzen
       Ce lien est valide jusqu'au {expirationDate}."
     MSG
 
-    def send_notification(order)
+    def notify_user(order)
       template = @params[:message].presence || DEFAULT_MESSAGE
       body = instanciate(template, order)
       SendMessage.send(@dossier.id, @demarche.instructeur, body)

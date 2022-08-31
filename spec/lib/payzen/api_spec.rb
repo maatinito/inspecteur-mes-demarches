@@ -63,7 +63,33 @@ RSpec.describe Payzen::API do
     context 'invalid amount', vcr: { cassette_name: 'payzen_create_url_order 5' } do
       let(:amount) { -1 }
       it 'should fail' do
-        expect { subject }.to raise_error(APIEntreprise::API::Error::RequestFailed)
+        expect { subject }.to raise_error(APIEntreprise::API::RequestFailed)
+      end
+    end
+  end
+
+  context 'create_sms_order' do
+    let(:phone) { (1_243_619 * 3 * 3 * 2 * 2 * 2).to_s }
+    let(:message) { 'url=%url% amount=%amount% end_date=%end_date% dossier={number}' }
+
+    subject { api.create_sms_order(amount, reference, phone, message, expiration_date:, customer:) }
+
+    context 'minimal parameters', vcr: { cassette_name: 'payzen_create_sms_order 1' } do
+      it 'succeeds' do
+        expect(subject).to include(
+          amount:,
+          currency: 'XPF',
+          paymentOrderStatus: 'RUNNING',
+          orderId: reference
+        )
+      end
+    end
+
+    context 'with expiration date', vcr: { cassette_name: 'payzen_create_sms_order 4' } do
+      let(:customer) { api.customer('example@company.com', api.private_billing_details('firstname', 'lastname')) }
+      let(:expiration_date) { DateTime.iso8601('2022-06-22T19:45:25Z') }
+      it 'succeeds' do
+        expect(subject[:expirationDate]).to eq(expiration_date.utc)
       end
     end
   end

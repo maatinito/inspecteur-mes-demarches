@@ -18,6 +18,10 @@ module Payzen
       call(CREATE_ORDER, order(amount, reference, url_channel, expiration_date:, customer:))
     end
 
+    def create_sms_order(amount, reference, phone, message, expiration_date: nil, customer: nil)
+      call(CREATE_ORDER, order(amount, reference, sms_channel(phone, message), expiration_date:, customer:))
+    end
+
     def get_order(payzen_reference)
       call(GET_ORDER, { paymentOrderId: payzen_reference })
     end
@@ -54,23 +58,35 @@ module Payzen
       { channelType: 'URL' }
     end
 
+    def sms_channel(phone, message)
+      {
+        channelType: 'SMS',
+        smsOptions: {
+          phoneNumber: phone,
+          message:
+        }
+      }
+    end
+
     def call(resource_name, body)
       url = url(resource_name)
       response = Typhoeus.post(url, body: body.to_json, timeout: TIMEOUT, ssl_verifypeer: true, verbose: false, headers:)
-
       if response.success?
         response_body = parse_response_body(response)
-        raise APIEntreprise::API::Error::RequestFailed, response unless response_body[:status] == 'SUCCESS'
+        unless response_body[:status] == 'SUCCESS'
+          Rails.logger.error(response_body)
+          raise APIEntreprise::API::RequestFailed, response
+        end
 
         answer = response_body[:answer]
         answer[:expirationDate] = DateTime.iso8601(answer[:expirationDate]).new_offset(-10.0 / 24)
         answer[:creationDate] = DateTime.iso8601(answer[:creationDate]).new_offset(-10.0 / 24)
         answer
       elsif response.code&.between?(401, 499)
-        raise APIEntreprise::API::Error::ResourceNotFound, response
+        raise APIEntreprise::API::ResourceNotFound, response
       else
         Rails.logger.error("Unable to contact PayZen API: response code #{response.code} url=#{url} called with #{body}")
-        raise APIEntreprise::API::Error::RequestFailed, response
+        raise APIEntreprise::API::RequestFailed, response
       end
     end
 
