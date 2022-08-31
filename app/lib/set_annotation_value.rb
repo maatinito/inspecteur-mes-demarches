@@ -167,7 +167,7 @@ class SetAnnotationValue
         clientMutationId
         errors {message }
         __typename
-        annotation {          
+        annotation {
           champs {
             id
             label
