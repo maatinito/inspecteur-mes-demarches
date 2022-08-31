@@ -10,13 +10,10 @@ module Daf
       super + %i[champ_montant champ_commande_prete]
     end
 
-    def must_check?(dossier)
-      @dossier = dossier
-      !(dossier.state == 'en_construction' || order_not_ready || amount_already_set)
-    end
-
     def process(demarche, dossier)
       super
+      return if dossier.state == 'en_construction' || order_not_ready || amount_already_set
+
       dossier.annotations.each do |champ|
         process_orders(demarche, dossier, champ) if champ.__typename == 'RepetitionChamp'
       end
