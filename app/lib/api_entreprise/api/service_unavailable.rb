@@ -2,9 +2,7 @@
 
 module APIEntreprise
   module API
-    class Error
-      class BadGateway < APIEntreprise::API::Error
-      end
+    class ServiceUnavailable < APIEntreprise::API::Error
     end
   end
 end

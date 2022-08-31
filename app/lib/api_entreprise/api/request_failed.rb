@@ -2,9 +2,7 @@
 
 module APIEntreprise
   module API
-    class Error
-      class ResourceNotFound < APIEntreprise::API::Error
-      end
+    class RequestFailed < APIEntreprise::API::Error
     end
   end
 end

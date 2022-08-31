@@ -2,9 +2,7 @@
 
 module APIEntreprise
   module API
-    class Error
-      class RequestFailed < APIEntreprise::API::Error
-      end
+    class TimedOut < APIEntreprise::API::Error
     end
   end
 end

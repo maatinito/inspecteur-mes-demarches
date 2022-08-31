@@ -2,9 +2,7 @@
 
 module APIEntreprise
   module API
-    class Error
-      class BadFormatRequest < APIEntreprise::API::Error
-      end
+    class ResourceNotFound < APIEntreprise::API::Error
     end
   end
 end
