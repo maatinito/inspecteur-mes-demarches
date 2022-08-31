@@ -28,6 +28,20 @@ class SetAnnotationValue
     end
   end
 
+  def self.allocate_blocks(md_dossier, instructeur_id, annotation_name, block_count)
+    annotation = get_annotation(md_dossier, annotation_name)
+    if annotation.present?
+      count = count_block_in(annotation.champs)
+      result = annotation
+      (count...block_count).each do
+        result = raw_add_block(md_dossier.id, instructeur_id, annotation.id)
+      end
+      result
+    else
+      throw "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}"
+    end
+  end
+
   def self.raw_set_value(dossier_id, instructeur_id, annotation_id, value)
     result = MesDemarches::Client.query(typed_query(value), variables:
       {
@@ -43,6 +57,26 @@ class SetAnnotationValue
 
   def self.get_annotation(md_dossier, name)
     md_dossier.annotations.find { |champ| champ.label == name }
+  end
+
+  def self.raw_add_block(dossier_id, instructeur_id, annotation_id)
+    result = MesDemarches::Client.query(Queries::AddBlock, variables:
+      {
+        dossier_id:,
+        instructeur_id:,
+        annotation_id:,
+        client_mutation_id: 'add_block'
+      })
+    errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
+    throw errors.join(';') if errors.present?
+    result.data.dossier_modifier_annotation_ajouter_ligne.annotation
+  end
+
+  def self.count_block_in(champs)
+    return 0 if champs.size.zero?
+
+    label = champs.first.label
+    champs.count { |c| c.label == label }
   end
 
   Queries = MesDemarches::Client.parse <<-'GRAPHQL'
@@ -120,6 +154,29 @@ class SetAnnotationValue
         }
       }
     }
+
+    mutation AddBlock($dossier_id: ID!, $instructeur_id: ID!, $annotation_id: ID!, $client_mutation_id: String!) {
+      dossierModifierAnnotationAjouterLigne(
+        input: {
+          dossierId: $dossier_id
+          instructeurId: $instructeur_id
+          annotationId: $annotation_id
+          clientMutationId: $client_mutation_id
+        }
+      ) {
+        clientMutationId
+        errors {message }
+        __typename
+        annotation {          
+          champs {
+            id
+            label
+            stringValue
+          }
+        }
+      }
+    }
+
   GRAPHQL
 
   def self.typed_query(value)
