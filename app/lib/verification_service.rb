@@ -7,17 +7,19 @@ class VerificationService
 
   def check
     VerificationService.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
-      @pieces_messages = get_pieces_messages(procedure_name, procedure)
-      @instructeur_email = instructeur_email(procedure)
-      @send_messages = procedure['messages_automatiques']
-      @inform_annotation = procedure['annotation_information']
-      procedure['name'] = procedure_name
-      @procedure = procedure
-      create_controls
-      create_when_ok_tasks
-      check_updated_dossiers(@controls)
-      check_failed_dossiers(@controls)
-      check_updated_controls(@controls)
+      Rails.logger.tagged(procedure_name) do
+        @pieces_messages = get_pieces_messages(procedure_name, procedure)
+        @instructeur_email = instructeur_email(procedure)
+        @send_messages = procedure['messages_automatiques']
+        @inform_annotation = procedure['annotation_information']
+        procedure['name'] = procedure_name
+        @procedure = procedure
+        create_controls
+        create_when_ok_tasks
+        check_updated_dossiers(@controls)
+        check_failed_dossiers(@controls)
+        check_updated_controls(@controls)
+      end
     rescue StandardError => e
       Sentry.capture_exception(e)
       Rails.logger.error(e.message)
@@ -91,14 +93,16 @@ class VerificationService
 
   def check_demarche(controls, demarche_number, reset, configuration_name)
     demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
-    set_demarche(controls, demarche)
-    start_time = Time.zone.now
-    since = reset ? EPOCH : demarche.checked_at
-    DossierActions.on_dossiers(demarche.id, since) do |dossier|
-      check_dossier(demarche, dossier, controls)
+    Rails.logger.tagged(demarche_number) do
+      set_demarche(controls, demarche)
+      start_time = Time.zone.now
+      since = reset ? EPOCH : demarche.checked_at
+      DossierActions.on_dossiers(demarche.id, since) do |dossier|
+        check_dossier(demarche, dossier, controls)
+      end
+      demarche.checked_at = start_time
+      demarche.save
     end
-    demarche.checked_at = start_time
-    demarche.save
   end
 
   def set_demarche(controls, demarche)
