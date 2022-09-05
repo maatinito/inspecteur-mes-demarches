@@ -7,7 +7,11 @@ module Daf
     end
 
     def required_fields
-      super + %i[champ_montant champ_commande_prete]
+      super + %i[champ_montant champ_montant_theorique champ_commande_prete]
+    end
+
+    def authorized_fields
+      super + %i[champ_commande_gratuite]
     end
 
     def process(demarche, dossier)
@@ -22,6 +26,16 @@ module Daf
     private
 
     def process_orders(demarche, dossier, repetition)
+      amount = amount_for_repetition(repetition)
+      SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant_theorique], amount) unless annotation_present?(:champ_montant_theorique)
+
+      unless annotation_present?(:champ_montant)
+        commande_gratuite = field(@params[:champ_commande_gratuite])&.value.present?
+        SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant], commande_gratuite ? 0 : amount)
+      end
+    end
+
+    def amount_for_repetition(repetition)
       order = {}
       amount = 0
       repetition.champs.each do |champ|
@@ -31,16 +45,19 @@ module Daf
         end
         order[champ.label] = champ
       end
-      amount += amount_for(pages_count(order))
-      SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant], amount) if amount.positive?
+      amount + amount_for(pages_count(order))
     end
 
     def amount_already_set
-      annotation(@params[:champ_montant])&.value.present?
+      annotation_present?(:champ_montant_theorique) && annotation_present?(:champ_montant)
     end
 
     def order_not_ready
-      !annotation(@params[:champ_commande_prete])&.value
+      !annotation_present?(:champ_commande_prete)
+    end
+
+    def annotation_present?(param)
+      annotation(@params[param])&.value.present?
     end
 
     def pages_count(bloc)
