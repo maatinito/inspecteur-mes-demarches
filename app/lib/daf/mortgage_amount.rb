@@ -21,7 +21,7 @@ module Daf
       names = @params[:champs_source]
       @source_champs_names ||= names.is_a?(Array) ? names : names&.split(',')
       amount = @source_champs_names.flat_map { |name| champs_to_values(annotations(name)) }.map(&:to_i).reduce(&:+)
-      SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_cible], amount) if amount.positive?
+      SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_cible], amount) unless amount.nil?
     end
 
     private
