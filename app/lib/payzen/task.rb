@@ -6,7 +6,7 @@ module Payzen
 
     def process_order(demarche, dossier, order)
       process(demarche, dossier)
-      handle_order(order)
+      handle_order(order) if order
     end
 
     def handle_order(order) end

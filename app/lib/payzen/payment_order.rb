@@ -5,7 +5,6 @@ module Payzen
     include Payzen::StringTemplate
     attr_reader :when_asked, :when_paid, :when_expired
 
-    CHECK_DELAY = 5.minutes.since.end_of_minute
 
     def version
       super + 1
@@ -16,7 +15,7 @@ module Payzen
     end
 
     def authorized_fields
-      %i[etat_du_dossier tentatives quand_payé quand_demandé quand_expiré mode_test champ_telephone sms]
+      %i[etat_du_dossier tentatives quand_payé quand_demandé quand_expiré quand_gratuit mode_test champ_telephone sms]
     end
 
     def initialize(params)
@@ -24,6 +23,7 @@ module Payzen
       @when_asked = InspectorTask.create_tasks(@params[:quand_demandé])
       @when_paid = InspectorTask.create_tasks(@params[:quand_payé])
       @when_expired = InspectorTask.create_tasks(@params[:quand_expiré])
+      @when_free = InspectorTask.create_tasks(@params[:quand_gratuit])
 
       @states = Set.new([*(@params[:etat_du_dossier] || 'en_instruction')])
 
@@ -46,21 +46,28 @@ module Payzen
       @dossier = dossier
       @demarche = demarche
 
-      montant = annotation(@params[:champ_montant])&.value.to_i
-      return unless montant.positive?
+      montant = annotation(@params[:champ_montant])&.value
+      return if montant.blank?
 
+      montant = montant.to_i
       payment_id = annotation(@params[:champ_ordre_de_paiement])&.value
-      if payment_id.blank?
-        ask_for_payment(montant)
-      else
-        check_payment
+      if montant.positive?
+        if payment_id.blank?
+          ask_for_payment(montant)
+        else
+          check_payment
+        end
+      elsif montant.zero?
+        execute(@when_free, nil)
       end
     end
 
     private
 
+    def check_delay = 5.minutes.since.end_of_minute
+
     def ask_for_payment(amount)
-      order = craate_order(amount)
+      order = create_order(amount)
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @params[:champ_ordre_de_paiement], order[:paymentOrderId])
       notify_user(order)
       execute(@when_asked, order)
@@ -68,7 +75,7 @@ module Payzen
       schedule_next_check
     end
 
-    def craate_order(amount)
+    def create_order(amount)
       reference = "#{@reference_prefix}-#{@dossier.number}"
       phone_number = param_field(:champ_telephone)&.value
       if phone_number.present? && phone_number.match?(/8[789][0-9]{6}/)
@@ -81,7 +88,7 @@ module Payzen
     end
 
     def schedule_next_check
-      ScheduledTask.enqueue(dossier.number, self.class, @params, CHECK_DELAY)
+      ScheduledTask.enqueue(dossier.number, self.class, @params, check_delay)
     end
 
     def check_payment
