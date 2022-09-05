@@ -16,18 +16,28 @@ class ConditionalField < FieldChecker
 
   def check(dossier)
     values = object_field_values(dossier, @params[:champ], log_empty: false)
-    values.each do |value|
-      controls = @controls[value]
-      controls = @controls['par défaut'] if controls.nil?
-      throw "No list for value '#{field&.value}'" if controls.nil?
-      controls.each do |task|
-        task.control(dossier)
-        @messages.push(*task.messages)
+    if values.blank?
+      run_controls(@controls['non renseigné'], dossier)
+    else
+      values.each do |value|
+        controls = @controls[value]
+        controls = @controls['par défaut'] if controls.nil?
+        throw "No list for value '#{field&.value}'" if controls.nil?
+        run_controls(controls, dossier)
       end
     end
   end
 
   private
+
+  def run_controls(controls, dossier)
+    return if controls.blank?
+
+    controls.each do |task|
+      task.control(dossier)
+      @messages.push(*task.messages)
+    end
+  end
 
   def init_controls
     @controls = @params[:valeurs].transform_values do |config|
