@@ -9,6 +9,8 @@ module Daf
     def process(demarche, dossier)
       super
       return if dossier.state != 'en_construction'
+      return if field("Numéro Tahiti")&.string_value.present?
+      return if field("Administration")&.value.present?
 
       set_amount(demarche, dossier, 'TRANSCRIPTION', 'Montant transcription')
       set_amount(demarche, dossier, 'INSCRIPTION', 'Montant inscription')
