@@ -29,10 +29,10 @@ module Daf
       amount = amount_for_repetition(repetition)
       SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant_theorique], amount) unless annotation_present?(:champ_montant_theorique)
 
-      unless annotation_present?(:champ_montant)
-        commande_gratuite = field(@params[:champ_commande_gratuite])&.value.present?
-        SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant], commande_gratuite ? 0 : amount)
-      end
+      return if annotation_present?(:champ_montant)
+
+      commande_gratuite = field(@params[:champ_commande_gratuite])&.value.present?
+      SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant], commande_gratuite ? 0 : amount)
     end
 
     def amount_for_repetition(repetition)
