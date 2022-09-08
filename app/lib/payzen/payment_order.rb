@@ -5,7 +5,6 @@ module Payzen
     include Payzen::StringTemplate
     attr_reader :when_asked, :when_paid, :when_expired
 
-
     def version
       super + 1
     end
@@ -64,7 +63,7 @@ module Payzen
 
     private
 
-    def check_delay = 5.minutes.since.end_of_minute
+    def check_delay = 5.minutes.since
 
     def ask_for_payment(amount)
       order = create_order(amount)
@@ -93,6 +92,11 @@ module Payzen
 
     def check_payment
       order_id = annotation(@params[:champ_ordre_de_paiement])&.value
+      unless order_id.present? && order_id.match(/[a-f0-9]{32}/)
+        Rails.logger.warn("Vérification de l'état du paiement ignoré: L'id #{order_id} de la demande de paiement ne corresponds pas à une demande PayZen.")
+        return
+      end
+
       order = @api.get_order(order_id)
       case order[:paymentOrderStatus]
       when 'RUNNING', 'REFUSED'
