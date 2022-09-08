@@ -121,6 +121,7 @@ module MesDemarches
       datePassageEnInstruction
       dateTraitement
       dateDerniereModification
+      dateDepot
       motivation
       usager {
           email
