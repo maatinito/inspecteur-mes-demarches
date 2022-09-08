@@ -42,7 +42,7 @@ module Daf
     end
 
     def trigger_field_set
-      @params[:champ_declencheur].blank? || annotation(@params[:champ_declencheur])&.value
+      @params[:champ_declencheur].blank? || annotation(@params[:champ_declencheur])&.string_value.present?
     end
   end
 end
