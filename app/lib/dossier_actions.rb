@@ -30,11 +30,11 @@ class DossierActions
   end
 
   def self.on_dossier(dossier_number)
-    result = MesDemarches::Client.query(MesDemarches::Queries::Dossier,
-                                        variables: { dossier: dossier_number })
-    dossier = result.data&.dossier
-    r = yield dossier if dossier.present?
-    Rails.logger.error(result.errors.values.join(',')) unless dossier
-    r
+    response = MesDemarches::Client.query(MesDemarches::Queries::Dossier,
+                                          variables: { dossier: dossier_number })
+    result = response.data&.dossier
+    Rails.logger.error(response.errors.values.join(',')) unless result
+    result = yield result if result.present? && block_given?
+    result
   end
 end
