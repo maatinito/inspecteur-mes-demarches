@@ -13,7 +13,7 @@ http_interactions:
         on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
         {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
         MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
-        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  motivation\n  usager
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  dateDepot\n  motivation\n  usager
         {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
         {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
         on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
@@ -29,7 +29,7 @@ http_interactions:
         {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
         {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
         {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
-        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":286690},"operationName":"MesDemarches__Queries__Dossier"}'
+        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":308727},"operationName":"MesDemarches__Queries__Dossier"}'
     headers:
       Accept-Encoding:
       - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
@@ -47,7 +47,7 @@ http_interactions:
       message: OK
     headers:
       Date:
-      - Wed, 31 Aug 2022 21:54:01 GMT
+      - Fri, 09 Sep 2022 02:48:40 GMT
       Server:
       - nginx/1.10.3
       Content-Type:
@@ -67,7 +67,7 @@ http_interactions:
       Vary:
       - Accept
       Etag:
-      - W/"b446fc1e2a9feb450dd8a73ada193d4e"
+      - W/"ffac59bca58d9499ba09eda39731872e"
       Cache-Control:
       - max-age=0, private, must-revalidate
       Content-Security-Policy:
@@ -85,21 +85,169 @@ http_interactions:
         *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
         osu.cloudgouv-eu-west-1.outscale.com'
       X-Request-Id:
-      - 8ee90322-e56c-427e-bbe8-8e07c2e76f1c
+      - b6ddf923-4cfa-41dd-beaa-ed17b2362047
       X-Runtime:
-      - '0.054995'
+      - '0.366546'
       Strict-Transport-Security:
       - max-age=63072000; includeSubDomains
       Content-Length:
-      - '443'
+      - '1461'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE0ODh9LCJpZCI6IlJHOXpjMmxsY2kwek1EZzNNamM9IiwibnVtYmVyIjozMDg3MjcsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDktMDhUMTY6NDc6MzQtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTA5LTA4VDE2OjQ4OjM5LTEwOjAwIiwiZGF0ZURlcG90IjoiMjAyMi0wOS0wOFQxNjo0NzozNC0xMDowMCIsIm1vdGl2YXRpb24iOm51bGwsInVzYWdlciI6eyJlbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiJ9LCJ0cmFpdGVtZW50cyI6W3siaW5zdHJ1Y3RldXJFbWFpbCI6bnVsbCwicHJvY2Vzc2VkQXQiOiIyMDIyLTA5LTA4VDE2OjQ3OjM0LTEwOjAwIiwic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24ifV0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVQaHlzaXF1ZSIsImNpdmlsaXRlIjoiTSIsImRhdGVEZU5haXNzYW5jZSI6bnVsbCwibm9tIjoiTEFVVElFUiIsInByZW5vbSI6IkNocmlzdGlhbiJ9LCJhbm5vdGF0aW9ucyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T0RnPSIsImxhYmVsIjoiQ2hhbXAgdGV4dGUiLCJ2YWx1ZSI6InYyIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPRGs9IiwibGFiZWwiOiJDaGFtcCBlbnRpZXIiLCJ2YWx1ZSI6IjIwIn0seyJfX3R5cGVuYW1lIjoiRGF0ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEk9IiwibGFiZWwiOiJDaGFtcCBkYXRlIiwidmFsdWUiOiIyMDIyLTAyLTEzVDAwOjAwOjAwLTEwOjAwIn0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T1RBPSIsImxhYmVsIjoiQ2hhbXAgY2hlY2tib3giLCJ2YWx1ZSI6ZmFsc2V9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEU9IiwibGFiZWwiOiJDaGFtcCBwaiIsImZpbGUiOm51bGwsInN0cmluZ1ZhbHVlIjoiIn1dLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJOdW1lcm9EbkNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVE09IiwibGFiZWwiOiJOdW3DqXJvIEROIiwiZGF0ZURlTmFpc3NhbmNlIjpudWxsLCJudW1lcm9EbiI6IiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROak15TXpRPSIsImxhYmVsIjoiQ29tbXVuZSBkZSByw6lzaWRlbmNlIiwidmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNeU16VT0iLCJsYWJlbCI6IkNhcGFjaXTDqSBkdSBiYXRlYXUiLCJ2YWx1ZSI6bnVsbH1dfX19
+  recorded_at: Mon, 14 Feb 2022 10:00:00 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
     body:
       encoding: UTF-8
-      string: '{"data":null,"errors":[{"message":"Couldn''t find Dossier with ''id''=286690
-        [WHERE \"dossiers\".\"state\" != $1 AND \"dossiers\".\"hidden_by_administration_at\"
-        IS NULL AND ((\"dossiers\".\"for_procedure_preview\" = $2 OR \"dossiers\".\"for_procedure_preview\"
-        IS NULL) AND \"dossiers\".\"hidden_by_user_at\" IS NULL OR \"dossiers\".\"state\"
-        != $3)]","locations":[{"line":112,"column":3}],"path":["dossier"],"extensions":{"code":"not_found"}}]}'
+      string: '{"query":"query MesDemarches__Queries__Demarche($demarche: Int!) {\n  demarche(number:
+        $demarche) {\n    title\n    number\n    groupeInstructeurs {\n      instructeurs
+        {\n        id\n        email\n      }\n    }\n  }\n}","variables":{"demarche":1488},"operationName":"MesDemarches__Queries__Demarche"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Fri, 09 Sep 2022 02:48:41 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"04fa14e01cfae1502428e5fa11a0739e"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Content-Security-Policy:
+      - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
+        script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
+        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
+        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
+        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
+        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
+        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
+        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
+        osu.cloudgouv-eu-west-1.outscale.com'
+      X-Request-Id:
+      - 5b14b0c5-c41f-4e1f-8196-294b1516215b
+      X-Runtime:
+      - '0.310294'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '154'
+    body:
+      encoding: UTF-8
+      string: '{"data":{"demarche":{"title":"Test IMD","number":1488,"groupeInstructeurs":[{"instructeurs":[{"id":"SW5zdHJ1Y3RldXItMg==","email":"clautier@idt.pf"}]}]}}}'
   recorded_at: Mon, 14 Feb 2022 10:00:00 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"mutation SetAnnotationValue__Queries__SetCheckBox($dossier_id:
+        ID!, $instructeur_id: ID!, $annotation_id: ID!, $value: Boolean!, $client_mutation_id:
+        String!) {\n  dossierModifierAnnotationCheckbox(input: {dossierId: $dossier_id,
+        instructeurId: $instructeur_id, annotationId: $annotation_id, value: $value,
+        clientMutationId: $client_mutation_id}) {\n    clientMutationId\n    errors
+        {\n      message\n    }\n  }\n}","variables":{"dossier_id":"RG9zc2llci0zMDg3Mjc=","instructeur_id":"SW5zdHJ1Y3RldXItMg==","annotation_id":"Q2hhbXAtNTcwOTA=","value":true,"client_mutation_id":"set_value"},"operationName":"SetAnnotationValue__Queries__SetCheckBox"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Fri, 09 Sep 2022 02:48:41 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"817c4e3e16e3f551e768904948024166"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Content-Security-Policy:
+      - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
+        script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
+        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
+        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
+        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
+        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
+        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
+        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
+        osu.cloudgouv-eu-west-1.outscale.com'
+      X-Request-Id:
+      - 0fa99119-b83b-4ee3-9648-a82de2528831
+      X-Runtime:
+      - '0.323910'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '93'
+    body:
+      encoding: UTF-8
+      string: '{"data":{"dossierModifierAnnotationCheckbox":{"clientMutationId":"set_value","errors":null}}}'
+  recorded_at: Mon, 14 Feb 2022 10:00:01 GMT
 - request:
     method: post
     uri: https://www.mes-demarches.gov.pf/api/v2/graphql
@@ -113,7 +261,7 @@ http_interactions:
         on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
         {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
         MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
-        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  motivation\n  usager
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  dateDepot\n  motivation\n  usager
         {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
         {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
         on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
@@ -129,7 +277,7 @@ http_interactions:
         {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
         {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
         {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
-        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":286690},"operationName":"MesDemarches__Queries__Dossier"}'
+        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":308727},"operationName":"MesDemarches__Queries__Dossier"}'
     headers:
       Accept-Encoding:
       - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
@@ -147,7 +295,7 @@ http_interactions:
       message: OK
     headers:
       Date:
-      - Wed, 31 Aug 2022 21:54:02 GMT
+      - Fri, 09 Sep 2022 02:48:41 GMT
       Server:
       - nginx/1.10.3
       Content-Type:
@@ -167,7 +315,7 @@ http_interactions:
       Vary:
       - Accept
       Etag:
-      - W/"b446fc1e2a9feb450dd8a73ada193d4e"
+      - W/"2ed4d415cffe9f196f57a1669b18d64e"
       Cache-Control:
       - max-age=0, private, must-revalidate
       Content-Security-Policy:
@@ -185,19 +333,287 @@ http_interactions:
         *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
         osu.cloudgouv-eu-west-1.outscale.com'
       X-Request-Id:
-      - a84c55ed-20bd-44ed-a6ff-ab6b14a276b5
+      - 7952922d-57de-40e2-8e27-6346867601c8
       X-Runtime:
-      - '0.053074'
+      - '0.361654'
       Strict-Transport-Security:
       - max-age=63072000; includeSubDomains
       Content-Length:
-      - '443'
+      - '1460'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE0ODh9LCJpZCI6IlJHOXpjMmxsY2kwek1EZzNNamM9IiwibnVtYmVyIjozMDg3MjcsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDktMDhUMTY6NDc6MzQtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTA5LTA4VDE2OjQ4OjQxLTEwOjAwIiwiZGF0ZURlcG90IjoiMjAyMi0wOS0wOFQxNjo0NzozNC0xMDowMCIsIm1vdGl2YXRpb24iOm51bGwsInVzYWdlciI6eyJlbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiJ9LCJ0cmFpdGVtZW50cyI6W3siaW5zdHJ1Y3RldXJFbWFpbCI6bnVsbCwicHJvY2Vzc2VkQXQiOiIyMDIyLTA5LTA4VDE2OjQ3OjM0LTEwOjAwIiwic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24ifV0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVQaHlzaXF1ZSIsImNpdmlsaXRlIjoiTSIsImRhdGVEZU5haXNzYW5jZSI6bnVsbCwibm9tIjoiTEFVVElFUiIsInByZW5vbSI6IkNocmlzdGlhbiJ9LCJhbm5vdGF0aW9ucyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T0RnPSIsImxhYmVsIjoiQ2hhbXAgdGV4dGUiLCJ2YWx1ZSI6InYyIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPRGs9IiwibGFiZWwiOiJDaGFtcCBlbnRpZXIiLCJ2YWx1ZSI6IjIwIn0seyJfX3R5cGVuYW1lIjoiRGF0ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEk9IiwibGFiZWwiOiJDaGFtcCBkYXRlIiwidmFsdWUiOiIyMDIyLTAyLTEzVDAwOjAwOjAwLTEwOjAwIn0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T1RBPSIsImxhYmVsIjoiQ2hhbXAgY2hlY2tib3giLCJ2YWx1ZSI6dHJ1ZX0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09URT0iLCJsYWJlbCI6IkNoYW1wIHBqIiwiZmlsZSI6bnVsbCwic3RyaW5nVmFsdWUiOiIifV0sImNoYW1wcyI6W3siX190eXBlbmFtZSI6Ik51bWVyb0RuQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09UTT0iLCJsYWJlbCI6Ik51bcOpcm8gRE4iLCJkYXRlRGVOYWlzc2FuY2UiOm51bGwsIm51bWVyb0RuIjoiIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5qTXlNelE9IiwibGFiZWwiOiJDb21tdW5lIGRlIHLDqXNpZGVuY2UiLCJ2YWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXROak15TXpVPSIsImxhYmVsIjoiQ2FwYWNpdMOpIGR1IGJhdGVhdSIsInZhbHVlIjpudWxsfV19fX0=
+  recorded_at: Mon, 14 Feb 2022 10:00:01 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
     body:
       encoding: UTF-8
-      string: '{"data":null,"errors":[{"message":"Couldn''t find Dossier with ''id''=286690
-        [WHERE \"dossiers\".\"state\" != $1 AND \"dossiers\".\"hidden_by_administration_at\"
-        IS NULL AND ((\"dossiers\".\"for_procedure_preview\" = $2 OR \"dossiers\".\"for_procedure_preview\"
-        IS NULL) AND \"dossiers\".\"hidden_by_user_at\" IS NULL OR \"dossiers\".\"state\"
-        != $3)]","locations":[{"line":112,"column":3}],"path":["dossier"],"extensions":{"code":"not_found"}}]}'
-  recorded_at: Mon, 14 Feb 2022 10:00:01 GMT
+      string: '{"query":"fragment MesDemarches__Queries__ChampInfo on Champ {\n  __typename\n  id\n  label\n  ...
+        on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
+        on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
+        on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
+        {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
+        MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  dateDepot\n  motivation\n  usager
+        {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
+        {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
+        on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
+        {\n        siren\n        capitalSocial\n        numeroTvaIntracommunautaire\n        formeJuridique\n        formeJuridiqueCode\n        nomCommercial\n        raisonSociale\n        siretSiegeSocial\n        codeEffectifEntreprise\n        dateCreation\n        nom\n        prenom\n      }\n      association
+        {\n        rna\n        titre\n        objet\n        dateCreation\n        dateDeclaration\n        dateDeclaration\n      }\n    }\n  }\n}\n\nquery
+        MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
+        {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n    }\n    champs
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
+        {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
+        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":308727},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Fri, 09 Sep 2022 02:48:42 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"2ed4d415cffe9f196f57a1669b18d64e"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Content-Security-Policy:
+      - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
+        script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
+        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
+        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
+        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
+        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
+        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
+        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
+        osu.cloudgouv-eu-west-1.outscale.com'
+      X-Request-Id:
+      - 6d2c38f1-63cb-4b95-8641-735e75c37824
+      X-Runtime:
+      - '0.389183'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '1460'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE0ODh9LCJpZCI6IlJHOXpjMmxsY2kwek1EZzNNamM9IiwibnVtYmVyIjozMDg3MjcsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDktMDhUMTY6NDc6MzQtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTA5LTA4VDE2OjQ4OjQxLTEwOjAwIiwiZGF0ZURlcG90IjoiMjAyMi0wOS0wOFQxNjo0NzozNC0xMDowMCIsIm1vdGl2YXRpb24iOm51bGwsInVzYWdlciI6eyJlbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiJ9LCJ0cmFpdGVtZW50cyI6W3siaW5zdHJ1Y3RldXJFbWFpbCI6bnVsbCwicHJvY2Vzc2VkQXQiOiIyMDIyLTA5LTA4VDE2OjQ3OjM0LTEwOjAwIiwic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24ifV0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVQaHlzaXF1ZSIsImNpdmlsaXRlIjoiTSIsImRhdGVEZU5haXNzYW5jZSI6bnVsbCwibm9tIjoiTEFVVElFUiIsInByZW5vbSI6IkNocmlzdGlhbiJ9LCJhbm5vdGF0aW9ucyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T0RnPSIsImxhYmVsIjoiQ2hhbXAgdGV4dGUiLCJ2YWx1ZSI6InYyIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPRGs9IiwibGFiZWwiOiJDaGFtcCBlbnRpZXIiLCJ2YWx1ZSI6IjIwIn0seyJfX3R5cGVuYW1lIjoiRGF0ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEk9IiwibGFiZWwiOiJDaGFtcCBkYXRlIiwidmFsdWUiOiIyMDIyLTAyLTEzVDAwOjAwOjAwLTEwOjAwIn0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T1RBPSIsImxhYmVsIjoiQ2hhbXAgY2hlY2tib3giLCJ2YWx1ZSI6dHJ1ZX0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09URT0iLCJsYWJlbCI6IkNoYW1wIHBqIiwiZmlsZSI6bnVsbCwic3RyaW5nVmFsdWUiOiIifV0sImNoYW1wcyI6W3siX190eXBlbmFtZSI6Ik51bWVyb0RuQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09UTT0iLCJsYWJlbCI6Ik51bcOpcm8gRE4iLCJkYXRlRGVOYWlzc2FuY2UiOm51bGwsIm51bWVyb0RuIjoiIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5qTXlNelE9IiwibGFiZWwiOiJDb21tdW5lIGRlIHLDqXNpZGVuY2UiLCJ2YWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXROak15TXpVPSIsImxhYmVsIjoiQ2FwYWNpdMOpIGR1IGJhdGVhdSIsInZhbHVlIjpudWxsfV19fX0=
+  recorded_at: Mon, 14 Feb 2022 10:00:02 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"mutation SetAnnotationValue__Queries__SetCheckBox($dossier_id:
+        ID!, $instructeur_id: ID!, $annotation_id: ID!, $value: Boolean!, $client_mutation_id:
+        String!) {\n  dossierModifierAnnotationCheckbox(input: {dossierId: $dossier_id,
+        instructeurId: $instructeur_id, annotationId: $annotation_id, value: $value,
+        clientMutationId: $client_mutation_id}) {\n    clientMutationId\n    errors
+        {\n      message\n    }\n  }\n}","variables":{"dossier_id":"RG9zc2llci0zMDg3Mjc=","instructeur_id":"SW5zdHJ1Y3RldXItMg==","annotation_id":"Q2hhbXAtNTcwOTA=","value":false,"client_mutation_id":"set_value"},"operationName":"SetAnnotationValue__Queries__SetCheckBox"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Fri, 09 Sep 2022 02:48:42 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"817c4e3e16e3f551e768904948024166"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Content-Security-Policy:
+      - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
+        script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
+        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
+        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
+        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
+        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
+        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
+        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
+        osu.cloudgouv-eu-west-1.outscale.com'
+      X-Request-Id:
+      - 17f53ab0-0343-465a-ba6f-460bcf839181
+      X-Runtime:
+      - '0.335025'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '93'
+    body:
+      encoding: UTF-8
+      string: '{"data":{"dossierModifierAnnotationCheckbox":{"clientMutationId":"set_value","errors":null}}}'
+  recorded_at: Mon, 14 Feb 2022 10:00:02 GMT
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"fragment MesDemarches__Queries__ChampInfo on Champ {\n  __typename\n  id\n  label\n  ...
+        on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
+        on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
+        on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
+        {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
+        MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  dateDepot\n  motivation\n  usager
+        {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
+        {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
+        on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
+        {\n        siren\n        capitalSocial\n        numeroTvaIntracommunautaire\n        formeJuridique\n        formeJuridiqueCode\n        nomCommercial\n        raisonSociale\n        siretSiegeSocial\n        codeEffectifEntreprise\n        dateCreation\n        nom\n        prenom\n      }\n      association
+        {\n        rna\n        titre\n        objet\n        dateCreation\n        dateDeclaration\n        dateDeclaration\n      }\n    }\n  }\n}\n\nquery
+        MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
+        {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n    }\n    champs
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
+        {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
+        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":308727},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Fri, 09 Sep 2022 02:48:43 GMT
+      Server:
+      - nginx/1.10.3
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - 1; mode=block
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"faaf19dd851edc4d0f1cfdda050d050f"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Content-Security-Policy:
+      - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
+        script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
+        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
+        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
+        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
+        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
+        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
+        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
+        osu.cloudgouv-eu-west-1.outscale.com'
+      X-Request-Id:
+      - e1bfbeea-a6c2-46ca-9726-6143b03190c9
+      X-Runtime:
+      - '0.370609'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Content-Length:
+      - '1461'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE0ODh9LCJpZCI6IlJHOXpjMmxsY2kwek1EZzNNamM9IiwibnVtYmVyIjozMDg3MjcsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDktMDhUMTY6NDc6MzQtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTA5LTA4VDE2OjQ4OjQyLTEwOjAwIiwiZGF0ZURlcG90IjoiMjAyMi0wOS0wOFQxNjo0NzozNC0xMDowMCIsIm1vdGl2YXRpb24iOm51bGwsInVzYWdlciI6eyJlbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiJ9LCJ0cmFpdGVtZW50cyI6W3siaW5zdHJ1Y3RldXJFbWFpbCI6bnVsbCwicHJvY2Vzc2VkQXQiOiIyMDIyLTA5LTA4VDE2OjQ3OjM0LTEwOjAwIiwic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24ifV0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVQaHlzaXF1ZSIsImNpdmlsaXRlIjoiTSIsImRhdGVEZU5haXNzYW5jZSI6bnVsbCwibm9tIjoiTEFVVElFUiIsInByZW5vbSI6IkNocmlzdGlhbiJ9LCJhbm5vdGF0aW9ucyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T0RnPSIsImxhYmVsIjoiQ2hhbXAgdGV4dGUiLCJ2YWx1ZSI6InYyIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPRGs9IiwibGFiZWwiOiJDaGFtcCBlbnRpZXIiLCJ2YWx1ZSI6IjIwIn0seyJfX3R5cGVuYW1lIjoiRGF0ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEk9IiwibGFiZWwiOiJDaGFtcCBkYXRlIiwidmFsdWUiOiIyMDIyLTAyLTEzVDAwOjAwOjAwLTEwOjAwIn0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T1RBPSIsImxhYmVsIjoiQ2hhbXAgY2hlY2tib3giLCJ2YWx1ZSI6ZmFsc2V9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEU9IiwibGFiZWwiOiJDaGFtcCBwaiIsImZpbGUiOm51bGwsInN0cmluZ1ZhbHVlIjoiIn1dLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJOdW1lcm9EbkNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVE09IiwibGFiZWwiOiJOdW3DqXJvIEROIiwiZGF0ZURlTmFpc3NhbmNlIjpudWxsLCJudW1lcm9EbiI6IiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROak15TXpRPSIsImxhYmVsIjoiQ29tbXVuZSBkZSByw6lzaWRlbmNlIiwidmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNeU16VT0iLCJsYWJlbCI6IkNhcGFjaXTDqSBkdSBiYXRlYXUiLCJ2YWx1ZSI6bnVsbH1dfX19
+  recorded_at: Mon, 14 Feb 2022 10:00:02 GMT
 recorded_with: VCR 6.1.0
