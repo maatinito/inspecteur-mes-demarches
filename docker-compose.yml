@@ -86,6 +86,8 @@ services:
       - PAYZEN_TEST_PASSWORD
       - PAYZEN_PROD_LOGIN
       - PAYZEN_PROD_PASSWORD
+      - SENDINBLUE_SMTP_KEY
+      - SENDINBLUE_USER_NAME
     volumes:
       - imd-data-files:/imd/storage
       - imd-fonts:/usr/share/fonts

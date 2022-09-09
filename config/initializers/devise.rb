@@ -24,7 +24,7 @@ Devise.setup do |config|
   # Configure the e-mail address which will be shown in Devise::Mailer,
   # note that it will be overwritten if you use your own mailer class
   # with default "from" parameter.
-  config.mailer_sender = "#{SITE_NAME} <clautier@idt.pf>"
+  config.mailer_sender = "#{SITE_NAME} <#{ENV.fetch('CONTACT_EMAIL', "mes-demarches#{64.chr}modernisation.gov.pf")}>"
 
   # Configure the class responsible to send e-mails.
   # config.mailer = 'Devise::Mailer'

@@ -67,24 +67,34 @@ Rails.application.configure do
   # config.active_job.queue_name_prefix = "rosso_production"
 
   config.action_mailer.perform_caching = false
-  if ENV.fetch('MAILJET_API_KEY', '').present?
+  if ENV.fetch('SENDINBLUE_USER_NAME', '').present?
+    config.action_mailer.delivery_method = :smtp
+    ActionMailer::Base.sendinblue_settings = {
+      user_name: Rails.application.secrets.sendinblue[:username],
+      password: Rails.application.secrets.sendinblue[:smtp_key],
+      address: 'smtp-relay.sendinblue.com',
+      domain: 'smtp-relay.sendinblue.com',
+      port: '587',
+      authentication: :cram_md5
+    }
+  elsif ENV.fetch('MAILJET_API_KEY', '').present?
     config.action_mailer.delivery_method = :mailjet_api
   else
     config.action_mailer.delivery_method = :smtp
     config.action_mailer.smtp_settings = {
-      address: ENV.fetch('SMTP_HOST', nil)
-      # user_name: ENV['SMTP_LOGIN'],
-      # password: ENV['SMTP_PASSWORD'],
-      # authentication: :plain
+      address: ENV.fetch('SMTP_HOST', nil),
+      user_name: ENV.fetch('SMTP_LOGIN', nil),
+      password: ENV.fetch('SMTP_PASSWORD', nil),
+      authentication: :plain
     }
   end
   # Configure default root URL for generating URLs to routes
   config.action_mailer.default_url_options = {
-    protocol: :http,
-    port: ENV.fetch('PORT', nil),
+    protocol: :https,
+    # port: ENV.fetch('PORT', nil),
     host: ENV.fetch('APP_HOST', nil)
   }
-  config.action_mailer.asset_host = "http://#{ENV.fetch('APP_HOST', nil)}:#{ENV.fetch('PORT', nil)}"
+  config.action_mailer.asset_host = "https://#{ENV.fetch('APP_HOST', nil)}#{config.relative_url_root}"
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
@@ -111,7 +121,7 @@ Rails.application.configure do
   # config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new 'app-name')
 
   if ENV['RAILS_LOG_TO_STDOUT'].present?
-    logger           = ActiveSupport::Logger.new($stdout)
+    logger = ActiveSupport::Logger.new($stdout)
     logger.formatter = config.log_formatter
     config.logger = ActiveSupport::TaggedLogging.new(logger)
   end

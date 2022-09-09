@@ -19,12 +19,10 @@ COPY Gemfile Gemfile.lock package.json yarn.lock  ${INSTALL_PATH}/
 WORKDIR ${INSTALL_PATH}
 
 # sassc https://github.com/sass/sassc-ruby/issues/146#issuecomment-608489863
-RUN bundle config specific_platform x86_64-linux \
-  && bundle config --local build.sassc --disable-march-tune-native
-
-RUN bundle config --global frozen 1 &&\
-    bundle config set deployment 'true' &&\
-    bundle config set without 'development test' &&\
+RUN bundle config specific_platform x86_64-linux &&\
+    bundle config build.sassc --disable-march-tune-native &&\
+    bundle config deployment true &&\
+    bundle config without "development test" &&\
     bundle install &&\
     yarn install --production
 
@@ -65,7 +63,10 @@ ENV \
     PORT=3001\
     RAILS_SERVE_STATIC_FILES="true"\
     RAILS_RELATIVE_URL_ROOT=""\
-    SECRET_KEY_BASE="bcab70b0157b199a918f0a7f1177e5995d085a919dfb0cc6b2a92dc30877f99dbad5144fe5f64e2a22da70161e6c9a39ede54b54a21a4fc4b78fdf3de55088b1"
+    SECRET_KEY_BASE="bcab70b0157b199a918f0a7f1177e5995d085a919dfb0cc6b2a92dc30877f99dbad5144fe5f64e2a22da70161e6c9a39ede54b54a21a4fc4b78fdf3de55088b1"\
+    SENDINBLUE_USER_NAME=""\
+    SENDINBLUE_SMTP_KEY=""
+
 
 
 COPY --chown=userapp:userapp . ${APP_PATH}
