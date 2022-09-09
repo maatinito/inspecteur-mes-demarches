@@ -61,9 +61,9 @@ module Payzen
       end
     end
 
-    private
+    def self.check_delay = 5.minutes.since.end_of_minute
 
-    def check_delay = 5.minutes.since
+    private
 
     def ask_for_payment(amount)
       order = create_order(amount)
@@ -87,7 +87,7 @@ module Payzen
     end
 
     def schedule_next_check
-      ScheduledTask.enqueue(dossier.number, self.class, @params, check_delay)
+      ScheduledTask.enqueue(dossier.number, self.class, @params, PaymentOrder.check_delay)
     end
 
     def check_payment
