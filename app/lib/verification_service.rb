@@ -21,9 +21,12 @@ class VerificationService
         check_updated_controls(@controls)
       end
     rescue StandardError => e
-      Sentry.capture_exception(e)
       Rails.logger.error(e.message)
       e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
+      if Rails.env.production?
+        NotificationException.with(message: e.message, exception: e).report_error.deliver_later
+        Sentry.capture_exception(e)
+      end
     end
   end
 

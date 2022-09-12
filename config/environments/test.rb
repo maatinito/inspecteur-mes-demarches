@@ -45,6 +45,13 @@ Rails.application.configure do
   # ActionMailer::Base.deliveries array.
   config.action_mailer.delivery_method = :test
 
+  # Configure default root URL for generating URLs to routes
+  config.action_mailer.default_url_options = {
+    protocol: :http,
+    port: ENV.fetch('PORT', 3001),
+    host: 'localhost'
+  }
+
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr
 

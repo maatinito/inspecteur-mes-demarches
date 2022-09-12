@@ -83,6 +83,7 @@ module Payzen
       else
         order = @api.create_url_order(amount, reference)
       end
+      report_error(order) if order[:errorCode].present?
       order
     end
 
@@ -98,6 +99,11 @@ module Payzen
       end
 
       order = @api.get_order(order_id)
+      if order[:errorCode].present?
+        report_error(order)
+        return
+      end
+
       case order[:paymentOrderStatus]
       when 'RUNNING', 'REFUSED'
         schedule_next_check
@@ -108,6 +114,11 @@ module Payzen
       else
         raise StandardError, "Payzen: Status inconnu de l'ordre de paiement: #{order['paymentOrderStatus']}"
       end
+    end
+
+    def report_error(order)
+      message = "Erreur PayZen en vérifiant un ordre de paiement: #{order[:errorCode]} - #{order[:errorMessage]}"
+      NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:).report_error.deliver_later
     end
 
     DEFAULT_MESSAGE = <<~MSG

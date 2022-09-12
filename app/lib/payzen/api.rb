@@ -73,14 +73,9 @@ module Payzen
       response = Typhoeus.post(url, body: body.to_json, timeout: TIMEOUT, ssl_verifypeer: true, verbose: false, headers:)
       if response.success?
         response_body = parse_response_body(response)
-        unless response_body[:status] == 'SUCCESS'
-          Rails.logger.error(response_body)
-          raise APIEntreprise::API::RequestFailed, response
-        end
-
         answer = response_body[:answer]
-        answer[:expirationDate] = DateTime.iso8601(answer[:expirationDate]).new_offset(-10.0 / 24)
-        answer[:creationDate] = DateTime.iso8601(answer[:creationDate]).new_offset(-10.0 / 24)
+        answer[:expirationDate] = DateTime.iso8601(answer[:expirationDate]).new_offset(-10.0 / 24) if answer[:expirationDate].present?
+        answer[:creationDate] = DateTime.iso8601(answer[:creationDate]).new_offset(-10.0 / 24) if answer[:creationDate].present?
         answer
       elsif response.code&.between?(401, 499)
         raise APIEntreprise::API::ResourceNotFound, response

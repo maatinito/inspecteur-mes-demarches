@@ -1,0 +1,25 @@
+.col
+  %p
+    Bonjour,
+    %br/
+    Une erreur est survenue.
+    %br/
+  %p
+  - if @demarche.present?
+    Démarche:
+    = @demarche
+  - if @dossier_url.present?
+    %p
+      Dossier:
+      %a{ href: @dossier_url }
+        = @dossier
+  %pre
+    = @details
+    %br/
+  %pre
+    - if @exception.present?
+      = @exception.backtrace.select { |b| b.include?('/app/') }.first(7).each do |b|
+        = b
+
+  %br/
+  = SITE_NAME

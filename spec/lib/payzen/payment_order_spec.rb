@@ -7,7 +7,7 @@ class TestOrderTask < Payzen::Task
 end
 
 RSpec.describe Payzen::PaymentOrder do
-  let(:dossier_nb) { 303_186 }
+  let(:dossier_nb) { 308_712 }
   let(:dossier) { DossierActions.on_dossier(dossier_nb) }
   let(:demarche) { double(Demarche) }
   let(:controle) { FactoryBot.build :payment_order }
@@ -54,6 +54,7 @@ RSpec.describe Payzen::PaymentOrder do
   let(:expired_order) { base_order.merge(expirationDate: 1.minute.ago.iso8601, paymentOrderStatus: 'EXPIRED') }
   let(:refused_order) { base_order.merge(expirationDate: 1.hour.since.iso8601, paymentOrderStatus: 'REFUSED') }
   let(:paid_order) { base_order.merge(expirationDate: 1.hour.since.iso8601, paymentOrderStatus: 'PAID') }
+  let(:unknown_order) { base_order.merge(errorCode: 'PSP_010', errorMessage: 'transaction not found') }
   let(:order_id) { order[:paymentOrderId] }
 
   let(:payzen_api) { double('Payzen::API', create_url_order: order, get_order: order) }
@@ -173,6 +174,27 @@ RSpec.describe Payzen::PaymentOrder do
         expect(SetAnnotationValue).not_to have_received(:set_value)
         expect(ScheduledTask).not_to have_received(:enqueue)
         expect(task).to have_received(:process_order)
+      end
+    end
+
+    context 'and order unknown', vcr: { cassette_name: 'payzen_payment_order_2' } do
+      include ActiveJob::TestHelper
+
+      let(:order) { unknown_order }
+      let(:task) { controle.when_expired.first }
+      it 'should be ignored' do
+        field = controle.dossier_annotations(dossier, controle.params[:champ_ordre_de_paiement]).first
+        allow(field).to receive(:value).and_return('c4402491f1f048509bdbcdc846505f80') # invalid id
+        allow(demarche).to receive(:id).and_return(1718)
+        allow(task).to receive(:process_order)
+        expect do
+          perform_enqueued_jobs do # process mail job
+            subject
+          end
+        end.to change { ActionMailer::Base.deliveries.size }.by(1)
+        expect(SetAnnotationValue).not_to have_received(:set_value)
+        expect(ScheduledTask).not_to have_received(:enqueue)
+        expect(task).not_to have_received(:process_order)
       end
     end
   end

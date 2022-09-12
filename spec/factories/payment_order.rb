@@ -5,7 +5,7 @@ FactoryBot.define do
     etat_du_dossier { 'en_instruction' }
     mode_test { 'oui' }
     reference { 'reference' }
-    champ_montant { 'Montant' }
+    champ_montant { 'Montant à payer' }
     champ_ordre_de_paiement { 'Demande de paiement' }
     message { 'message' }
 

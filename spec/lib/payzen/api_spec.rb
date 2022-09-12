@@ -63,7 +63,7 @@ RSpec.describe Payzen::API do
     context 'invalid amount', vcr: { cassette_name: 'payzen_create_url_order 5' } do
       let(:amount) { -1 }
       it 'should fail' do
-        expect { subject }.to raise_error(APIEntreprise::API::RequestFailed)
+        expect(subject[:errorCode]).to eql('INT_009')
       end
     end
   end

@@ -11,13 +11,21 @@ class NotificationMailer < ApplicationMailer
     throw 'instructeur parameter required' if @instructeur.nil?
     throw 'state parameter required' if @action.nil?
 
-    mail(to: recipients, from: ENV.fetch('CONTACT_EMAIL', nil),
-         subject: "#{SITE_NAME}: Instructeur non répertorié sur dossier #{@dossier}")
+    mail(to: recipients, subject: "#{SITE_NAME}: Instructeur non répertorié sur dossier #{@dossier}")
+  end
+
+  def report_error
+    @dossier = params[:dossier]
+    @demarche = params[:demarche]
+    @dossier_url = [ENV.fetch('GRAPHQL_HOST', nil), 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
+    @message = params[:message]
+    @exception = params[:exception]
+    mail(to: CONTACT_EMAIL, subject: "#{SITE_NAME}: erreur à l'exécution")
   end
 
   private
 
   def recipients
-    params[:recipients] || ENV.fetch('CONTACT_EMAIL', nil)
+    params[:recipients] || CONTACT_EMAIL
   end
 end
