@@ -98,7 +98,8 @@ module Payzen
         return
       end
 
-      order = @api.get_order(order_id)
+      order = get_order(order_id)
+
       if order[:errorCode].present?
         report_error(order)
         return
@@ -114,6 +115,17 @@ module Payzen
       else
         raise StandardError, "Payzen: Status inconnu de l'ordre de paiement: #{order['paymentOrderStatus']}"
       end
+    end
+
+    def get_order(order_id)
+      begin
+        order = @api.get_order(order_id)
+      rescue APIEntreprise::API::Error => e
+        message = "Erreur réseau lors l'appel à PayZen"
+        NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:, exception: e).report_error.deliver_later
+        schedule_next_check
+      end
+      order
     end
 
     def report_error(order)

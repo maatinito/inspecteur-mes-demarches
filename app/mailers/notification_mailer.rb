@@ -20,6 +20,8 @@ class NotificationMailer < ApplicationMailer
     @dossier_url = [ENV.fetch('GRAPHQL_HOST', nil), 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
     @message = params[:message]
     @exception = params[:exception]
+    Rails.logger.error(message)
+    Rails.logger.error(@exception) if @exception.present?
     mail(to: CONTACT_EMAIL, subject: "#{SITE_NAME}: erreur à l'exécution")
   end
 
