@@ -3,7 +3,7 @@
 module Daf
   class ActCopyAmount < FieldChecker
     def version
-      super + 1
+      super + 3
     end
 
     def required_fields
@@ -62,7 +62,8 @@ module Daf
 
     def pages_count(bloc)
       champs = bloc.values
-      pages = champs.find { |champ| champ.__typename == 'IntegerNumberChamp' }&.value.to_i
+      page_field = champs.find { |champ| champ.__typename == 'IntegerNumberChamp' }
+      pages = page_field&.value.to_i
       return pages if pages.positive?
 
       file_field = champs.find { |champ| champ.__typename == 'PieceJustificativeChamp' }
@@ -70,6 +71,8 @@ module Daf
 
       PieceJustificativeCache.get(file_field.file) do |file|
         pages = file_page_count(file)
+        SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, page_field.id, pages) if page_field
+
         Rails.logger.error("Unable to compute pdf page count in dossier #{dossier.number}: #{champ.file}") if pages.zero?
 
         return pages

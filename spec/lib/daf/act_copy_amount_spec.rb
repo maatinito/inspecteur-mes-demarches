@@ -21,7 +21,12 @@ RSpec.describe Daf::ActCopyAmount do
   end
 
   context 'dossier ready with different answers', vcr: { cassette_name: 'daf_act_copy_amount_1' } do
+    let(:repetition) { dossier.annotations.find { |champ| champ.__typename == 'RepetitionChamp' } }
+    let(:page_field) { repetition.champs.find { |champ| champ.__typename == 'IntegerNumberChamp' } }
+
     it 'amount should be set' do
+      expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
+
       expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
       expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], amount)
       subject
@@ -49,9 +54,15 @@ RSpec.describe Daf::ActCopyAmount do
   end
 
   context 'dossier ready but administration field set', vcr: { cassette_name: 'daf_act_copy_amount_1' } do
+    let(:repetition) { dossier.annotations.find { |champ| champ.__typename == 'RepetitionChamp' } }
+    let(:page_field) { repetition.champs.find { |champ| champ.__typename == 'IntegerNumberChamp' } }
+
     it 'amount to pay should be 0' do
       field = controle.dossier_field(dossier, controle.params[:champ_commande_gratuite])
       expect(field).to receive(:value).and_return('DOM')
+
+      expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
+
       expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
       expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], 0)
       subject
