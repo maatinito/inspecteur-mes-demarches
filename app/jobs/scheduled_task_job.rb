@@ -6,12 +6,12 @@ class ScheduledTaskJob < CronJob
 
   def perform
     datetime_arel = ScheduledTask.arel_table[:run_at]
-    datetime = Rails.env.development? ? 1.year.since : Time.zone.now
-    ScheduledTask.where(datetime_arel.lteq(datetime)).each do |scheduled|
+    ScheduledTask.where(datetime_arel.lteq(Time.zone.now)).each do |scheduled|
       Rails.logger.tagged(scheduled.task) do
         task = InspectorTask.create_tasks([{ scheduled.task => JSON.parse(scheduled.parameters) }]).first
         throw "Impossible d'initialiser la tache #{scheduled.task}: #{task.errors.join(',')}" unless task.valid?
 
+        Rails.logger.debug("Processing Scheduled Task at #{scheduled.run_at} / #{Time.zone.now}")
         perform_task(scheduled, task)
         scheduled.destroy
       rescue StandardError => e

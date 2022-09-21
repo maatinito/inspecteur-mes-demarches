@@ -14,7 +14,7 @@ module Payzen
     end
 
     def authorized_fields
-      %i[etat_du_dossier tentatives quand_payé quand_demandé quand_expiré quand_gratuit mode_test champ_telephone sms]
+      %i[etat_du_dossier quand_payé quand_demandé quand_expiré quand_gratuit mode_test champ_telephone sms]
     end
 
     def initialize(params)
@@ -26,8 +26,8 @@ module Payzen
 
       @states = Set.new([*(@params[:etat_du_dossier] || 'en_instruction')])
 
-      test_mode = Set['oui', 'true', '1', 1].include?(@params[:mode_test]&.downcase)
-      @api = Payzen::API.new(test_mode:)
+      @test_mode = Set['oui', 'true', '1', 1].include?(@params[:mode_test]&.downcase)
+      @api = Payzen::API.new(test_mode: @test_mode)
 
       @reference_prefix = @params[:reference]
       @reference_prefix = 'md' if @reference_prefix.blank?
@@ -61,7 +61,7 @@ module Payzen
       end
     end
 
-    def self.check_delay = 5.minutes.since.end_of_minute
+    def check_delay = (@test_mode ? 1 : 5).minutes.since.end_of_minute
 
     private
 
@@ -88,7 +88,7 @@ module Payzen
     end
 
     def schedule_next_check
-      ScheduledTask.enqueue(dossier.number, self.class, @params, PaymentOrder.check_delay)
+      ScheduledTask.enqueue(dossier.number, self.class, @params, check_delay)
     end
 
     def check_payment
@@ -107,10 +107,13 @@ module Payzen
 
       case order[:paymentOrderStatus]
       when 'RUNNING', 'REFUSED'
+        Rails.logger.info("Schedule payzen order check for dossier #{@dossier.number} field #{@params[:champ_montant]} at #{check_delay}")
         schedule_next_check
       when 'PAID'
+        Rails.logger.info("Payzen order for dossier #{@dossier.number} field #{@params[:champ_montant]} is paid")
         execute(@when_paid, order)
       when 'EXPIRED', 'CANCELLED'
+        Rails.logger.info("Payzen order for dossier #{@dossier.number} field #{@params[:champ_montant]} has expired")
         execute(@when_expired, order)
       else
         raise StandardError, "Payzen: Status inconnu de l'ordre de paiement: #{order['paymentOrderStatus']}"
