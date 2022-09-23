@@ -6,7 +6,7 @@ module Payzen
     attr_reader :when_asked, :when_paid, :when_expired
 
     def version
-      super + 1
+      super + 2
     end
 
     def required_fields
@@ -125,7 +125,8 @@ module Payzen
         order = @api.get_order(order_id)
       rescue APIEntreprise::API::Error => e
         message = "Erreur réseau lors l'appel à PayZen"
-        NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:, exception: e).report_error.deliver_later
+        exception = "#{e.message}\n#{e.backtrace.select { |b| b.include?('/app/') }.first(7).join('\n')}"
+        NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:, exception:).report_error.deliver_later
         schedule_next_check
       end
       order
