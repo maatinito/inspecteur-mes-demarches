@@ -71,10 +71,8 @@ module Daf
 
       PieceJustificativeCache.get(file_field.file) do |file|
         pages = file_page_count(file)
+
         SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, page_field.id, pages) if page_field
-
-        Rails.logger.error("Unable to compute pdf page count in dossier #{dossier.number}: #{champ.file}") if pages.zero?
-
         return pages
       end
     end
@@ -87,7 +85,10 @@ module Daf
       keyword_c = text.scan(/Count\s+(\d+)/).size
       keyword_t = text.scan(%r{/Type\s*/Page[^s]}).size
 
-      keyword_c > keyword_t ? keyword_c : keyword_t
+      pages = keyword_c > keyword_t ? keyword_c : keyword_t
+      throw "No page found in #{filename}" if pages.zero?
+
+      pages
     end
 
     def amount_for(pages)
