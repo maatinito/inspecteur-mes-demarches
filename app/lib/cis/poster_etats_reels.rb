@@ -9,7 +9,7 @@ module Cis
     end
 
     def version
-      super + 3
+      super + 5
     end
 
     def required_fields
@@ -37,10 +37,12 @@ module Cis
 
     private
 
+    START_DATE = Date.new(2022, 9, 30)
+
     def theoric_dates(start)
       start = start.at_beginning_of_month.next_month
       next_month = start.next_month
-      [start, next_month, next_month.next_month]
+      [start, next_month, next_month.next_month].select { |date| date > START_DATE }
     end
 
     MONTHS = %w[Janvier Février Mars Avril Mai Juin Juillet Août Septembre Octobre Novembre Décembre].freeze
