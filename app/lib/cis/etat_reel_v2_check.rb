@@ -5,7 +5,7 @@ module Cis
     include Shared
 
     def version
-      super + 10
+      super + 12
     end
 
     def required_fields
@@ -53,7 +53,7 @@ module Cis
 
     def check_people_are_valid(champ, sheet)
       dossier_nb = sheet.cell(4, 'C')&.to_i
-      return if dossier_nb_is_invalid?(champ, dossier_nb)
+      # return if dossier_nb_is_invalid?(champ, dossier_nb)
 
       DossierActions.on_dossier(dossier_nb) do |dossier|
         return dossier_check_people_are_valid(champ, dossier)
