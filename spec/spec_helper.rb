@@ -114,7 +114,6 @@ RSpec.configure do |config|
 end
 
 def new_message(field, value, message_type, correction = nil)
-  pp controle.params, message_type, 'impossible de trouver' if controle.params[message_type].nil?
   msg = controle.params[message_type]
   msg += ": #{correction}" if correction.present?
   FactoryBot.build :message, field:, value:, message: msg

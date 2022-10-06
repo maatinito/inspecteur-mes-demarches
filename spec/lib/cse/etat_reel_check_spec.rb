@@ -19,7 +19,6 @@ RSpec.describe Cse::EtatReelCheck do
       let(:messages) { [new_message(field, value, :message_colonnes_manquantes, 'aide maximale')] }
 
       it 'has one error message' do
-        pp subject.messages
         expect(subject.messages).to eq messages
       end
     end
@@ -37,7 +36,6 @@ RSpec.describe Cse::EtatReelCheck do
       end
 
       it 'have one error message' do
-        pp subject.messages
         expect(subject.messages).to eq messages
       end
     end

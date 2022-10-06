@@ -5,7 +5,6 @@ require 'rails_helper'
 
 class TestFieldChecker < FieldChecker
   def check(dossier)
-    pp dossier
     add_message('field', 'value', 'message') if @params[:fail]
   end
 

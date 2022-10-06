@@ -8,8 +8,6 @@ RSpec.describe MemeDemandeur do
   subject do
     DossierActions.on_dossier(dossier_nb) do |dossier|
       controle.control(dossier)
-      pp controle
-      pp dossier
     end
     controle
   end

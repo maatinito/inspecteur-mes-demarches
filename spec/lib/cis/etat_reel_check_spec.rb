@@ -24,7 +24,6 @@ RSpec.describe Cis::EtatReelCheck do
       end
 
       it 'have one error message' do
-        pp subject.messages
         expect(subject.messages).to eq messages
       end
     end
