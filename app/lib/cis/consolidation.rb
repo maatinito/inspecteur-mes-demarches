@@ -24,7 +24,7 @@ module Cis
 
     def set_text_attribute(dossier, field, value)
       modified = SetAnnotationValue.set_value(dossier, @demarche.instructeur, field, value)
-      annotation_updated_on(@dossier_oa) if modified
+      dossier_updated(@dossier_oa) if modified
     end
 
     def save_excel(candidats)
@@ -86,7 +86,7 @@ module Cis
     def set_candidats_attribute(dossier, field, candidats)
       save_excel(candidats) do |f|
         SetAnnotationValue.set_piece_justificative(dossier, @demarche.instructeur, field, f.path, "#{field}.xlsx")
-        annotation_updated_on(@dossier_oa)
+        dossier_updated(@dossier_oa)
         PieceJustificativeCache.put(f.path)
       end
     end

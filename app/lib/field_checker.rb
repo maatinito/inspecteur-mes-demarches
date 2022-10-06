@@ -176,11 +176,11 @@ class FieldChecker < InspectorTask
     @messages << Message.new(field: champ, value: valeur, message:)
   end
 
-  def annotation_updated_on(dossier)
+  def dossier_updated(dossier)
     @dossiers_to_ignore << dossier
   end
 
   def recheck(dossier)
-    dossiers_to_recheck << dossier if dossier.present?
+    @dossiers_to_recheck << dossier if dossier.present?
   end
 end

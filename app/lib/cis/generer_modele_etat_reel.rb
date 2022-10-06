@@ -66,8 +66,8 @@ module Cis
         save_excel(dossier, absences, variables) do |path|
           body = instanciate(@params[:message], variables)
           filename = build_filename(@params[:nom_fichier], variables)
-          SendMessage.send_with_file(dossier.id, demarche.instructeur, body, path, filename)
-          annotation_updated_on(@dossier) # to prevent infinite check
+          SendMessage.send_with_file(dossier, demarche.instructeur, body, path, filename)
+          dossier_updated(@dossier) # to prevent infinite check
         end
       end
     end

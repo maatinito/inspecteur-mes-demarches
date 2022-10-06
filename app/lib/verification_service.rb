@@ -197,11 +197,16 @@ class VerificationService
       check = check_control(control, demarche, md_dossier)
       checks << check
       failed_checks ||= check.failed
+      md_dossier = DossierActions.on_dossier(md_dossier.number) if dossier_updated?(control, md_dossier)
     end
     unless failed_checks
       inform(md_dossier, checks, send_message: @send_messages) if @dossier_has_different_messages
       when_ok(demarche, md_dossier, checks) if @ok_tasks.present?
     end
+  end
+
+  def dossier_updated?(control, md_dossier)
+    control.dossiers_to_ignore.find { |d| d.number == md_dossier.number }.present?
   end
 
   def check_control(control, demarche, md_dossier)
@@ -213,6 +218,7 @@ class VerificationService
         check.update(checked_at: start_time, version: control.version)
         avoid_useless_checks(control)
         recheck_dependent_dossiers(control)
+        # reload_dossier_if
       end
       check
     end
@@ -283,7 +289,7 @@ class VerificationService
     task.process(demarche, md_dossier) if task.valid?
   rescue StandardError => e
     check.failed = true
-    Sentry.capture_exception(e)
+    Sentry.capture_exception(e) if Rails.env.production?
     Rails.logger.error(e)
     e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
   end
@@ -360,7 +366,7 @@ class VerificationService
     anomalies = liste_anomalies(md_dossier, messages)
     fin_mail = "<p>#{@pieces_messages[:fin_mail]}</p>"
     body = debut_mail + anomalies + fin_mail
-    SendMessage.send(md_dossier.id, instructeur_id, body)
+    SendMessage.send(md_dossier, instructeur_id, body)
   end
 
   def get_annotation(md_dossier, name)

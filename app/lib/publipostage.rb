@@ -50,7 +50,7 @@ class Publipostage < FieldChecker
       filename = build_filename(@params[:nom_fichier_lot] || @params[:nom_fichier],
                                 { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(pdf_path)
       SendMessage.send_with_file(target.id, demarche.instructeur, body, pdf_path, filename)
-      annotation_updated_on(@dossier) # to prevent infinite check
+      dossier_updated(@dossier) # to prevent infinite check
     end
   end
 

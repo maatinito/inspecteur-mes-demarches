@@ -40,6 +40,7 @@ module Payzen
     end
 
     def process(demarche, dossier)
+      super
       return unless must_check?(dossier)
 
       @dossier = dossier
@@ -70,7 +71,7 @@ module Payzen
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @params[:champ_ordre_de_paiement], order[:paymentOrderId])
       notify_user(order)
       execute(@when_asked, order)
-      annotation_updated_on(@dossier)
+      dossier_updated(@dossier)
       schedule_next_check
     end
 
@@ -146,7 +147,7 @@ module Payzen
     def notify_user(order)
       template = @params[:message].presence || DEFAULT_MESSAGE
       body = instanciate(template, order)
-      SendMessage.send(@dossier.id, @demarche.instructeur, body)
+      SendMessage.send(@dossier, @demarche.instructeur, body)
     end
 
     def execute(tasks, order)
