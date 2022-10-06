@@ -8,7 +8,8 @@ module Payzen
     CREATE_ORDER = 'Charge/CreatePaymentOrder'
     GET_ORDER = 'Charge/PaymentOrder/Get'
 
-    TIMEOUT = 3
+    TIMEOUT = 0
+    CTIMEOUT = 60
 
     def initialize(test_mode: true)
       @test_mode = test_mode
@@ -70,7 +71,7 @@ module Payzen
 
     def call(resource_name, body)
       url = url(resource_name)
-      response = Typhoeus.post(url, body: body.to_json, timeout: TIMEOUT, ssl_verifypeer: true, verbose: false, headers:)
+      response = Typhoeus.post(url, timeout: TIMEOUT, connecttimeout: CTIMEOUT, body: body.to_json, ssl_verifypeer: true, verbose: false, headers:)
       if response.success?
         response_body = parse_response_body(response)
         answer = response_body[:answer]
