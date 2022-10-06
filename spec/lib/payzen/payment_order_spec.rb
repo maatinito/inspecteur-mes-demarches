@@ -110,7 +110,7 @@ RSpec.describe Payzen::PaymentOrder do
         subject
         expect(SetAnnotationValue).to have_received(:set_value).with(dossier, instructeur, controle.params[:champ_ordre_de_paiement], order_id)
         expect(ScheduledTask).to have_received(:enqueue).with(dossier.number, Payzen::PaymentOrder, controle.params, controle.check_delay)
-        expect(SendMessage).to have_received(:send).with(dossier.id, instructeur, controle.params[:message])
+        expect(SendMessage).to have_received(:send).with(dossier, instructeur, controle.params[:message])
         expect(task).to have_received(:process_order).with(demarche, dossier, order)
       end
     end
