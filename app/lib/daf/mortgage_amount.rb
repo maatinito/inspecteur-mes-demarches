@@ -11,20 +11,28 @@ module Daf
     end
 
     def authorized_fields
-      super + %i[champ_declencheur etats_du_dossier]
+      super + %i[champ_declencheur etats_du_dossier champs_prepaiement]
     end
 
     def process(demarche, dossier)
       super
       return unless dossier_has_right_state && trigger_field_set && amount_not_set
 
-      names = @params[:champs_source]
-      @source_champs_names ||= names.is_a?(Array) ? names : names&.split(',')
-      amount = @source_champs_names.flat_map { |name| champs_to_values(annotations(name)) }.map(&:to_i).reduce(&:+)
-      SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_cible], amount) unless amount.nil?
+      amount = sum_of(:champs_source)
+      return if amount.nil?
+
+      amount -= sum_of(:champs_prepaiement)
+      changed = SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_cible], amount)
+      dossier_updated(dossier) if changed
     end
 
     private
+
+    def sum_of(champs)
+      names = @params[champs]
+      source_champs_names = names.is_a?(Array) ? names : names&.split(',')
+      source_champs_names&.flat_map { |name| champs_to_values(annotations(name)) }&.map(&:to_i)&.reduce(&:+).to_i
+    end
 
     def dossier_has_right_state
       @states ||= right_states
