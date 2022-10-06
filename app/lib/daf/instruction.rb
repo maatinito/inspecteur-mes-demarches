@@ -16,7 +16,7 @@ module Daf
     end
 
     def required_fields
-      super + %i[paiement1 paiement2 sans_paiement]
+      super + %i[paiement1 paiement2 sans_paiement1 sans_paiement2]
     end
 
     def authorized_fields
@@ -50,7 +50,7 @@ module Daf
 
     def ask_prepayment?
       company = field('Numéro Tahiti').etablissement
-      company.blank? || !@nafs_without_prepayment.include?(company.naf)
+      company.blank? || !company.naf.split(' | ').any? { |naf| @nafs_without_prepayment.include?(naf) }
     end
 
     def set_certification_date(demarche, dossier)
@@ -69,7 +69,8 @@ module Daf
       @tasks = {}
       create_tasks(:paiement1)
       create_tasks(:paiement2)
-      create_tasks(:sans_paiement)
+      create_tasks(:sans_paiement1)
+      create_tasks(:sans_paiement2)
     end
 
     def check_presence(payment_management, section)
@@ -93,10 +94,9 @@ module Daf
       changed = SetAnnotationValue.set_value(dossier, demarche.instructeur, PAYMENT_PROCESS_ATT, pp)
       changed |= set_amounts(demarche, dossier)
 
-      return unless pp == WITH_PREPAYMENT
-
       dossier = @dossier = DossierActions.on_dossier(dossier.number) if changed
-      process_tasks(demarche, dossier, @tasks[:paiement1])
+      payment_section = pp == WITH_PREPAYMENT ? :paiement1 : :sans_paiement1
+      process_tasks(demarche, dossier, @tasks[payment_section])
     end
 
     def payment_process
@@ -110,7 +110,7 @@ module Daf
     def payment2(demarche, dossier)
       return unless instruction?(dossier) && ready_to_deliver?
 
-      payment_section = must_pay? ? :paiement2 : :sans_paiement
+      payment_section = must_pay? ? :paiement2 : :sans_paiement2
       process_tasks(demarche, dossier, @tasks[payment_section])
     end
 
@@ -132,7 +132,7 @@ module Daf
     end
 
     def dossier_updated?(task, md_dossier)
-      task.dossiers_to_ignore.find { |d| d.number == md_dossier.number }.present?
+      task.updated_dossiers.find { |d| d.number == md_dossier.number }.present?
     end
 
     def instruction?(dossier)
