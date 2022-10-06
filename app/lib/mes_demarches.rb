@@ -103,12 +103,26 @@ module MesDemarches
       }
       ... on SiretChamp {
           stringValue
+          etablissement {
+             entreprise {
+               nomCommercial
+               raisonSociale
+             }
+             association {
+               titre
+             }
+             libelleNaf
+             naf
+          }
       }
       ... on CiviliteChamp {
           value
       }
       ... on MultipleDropDownListChamp {
           values
+      }
+      ... on VisaChamp {
+          stringValue
       }
     }
 
