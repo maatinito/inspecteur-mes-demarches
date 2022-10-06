@@ -4,7 +4,7 @@ class SetAnnotationValue
   def self.set_value(md_dossier, instructeur_id, annotation_name, value)
     annotation = get_annotation(md_dossier, annotation_name)
     if annotation.present?
-      old_value = annotation.__typename == 'DateChamp' && annotation.value.present? ? Date.iso8601(annotation.value) : annotation.value
+      old_value = value_of(annotation)
       different_value = old_value != value
       raw_set_value(md_dossier.id, instructeur_id, annotation.id, value) if different_value
       different_value
@@ -206,5 +206,18 @@ class SetAnnotationValue
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
     throw errors.join(';') if errors.present?
     result.data
+  end
+
+  def self.value_of(annotation)
+    old_value = annotation.value
+    if old_value.present?
+      case annotation.__typename
+      when 'DateChamp'
+        old_value = Date.iso8601(annotation.value)
+      when 'IntegerNumberChamp'
+        old_value = old_value.to_i
+      end
+    end
+    old_value
   end
 end
