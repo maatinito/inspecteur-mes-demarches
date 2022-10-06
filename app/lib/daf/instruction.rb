@@ -50,7 +50,7 @@ module Daf
 
     def ask_prepayment?
       company = field('Numéro Tahiti').etablissement
-      company.blank? || !company.naf.split(' | ').any? { |naf| @nafs_without_prepayment.include?(naf) }
+      company.blank? || company.naf.split(' | ').none? { |naf| @nafs_without_prepayment.include?(naf) }
     end
 
     def set_certification_date(demarche, dossier)

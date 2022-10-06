@@ -4,7 +4,7 @@ require 'rails_helper'
 # require 'app/lib/inspector_task'
 
 class TestFieldChecker < FieldChecker
-  def check(dossier)
+  def check(_dossier)
     add_message('field', 'value', 'message') if @params[:fail]
   end
 
