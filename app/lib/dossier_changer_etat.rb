@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class DossierChangerEtat < InspectorTask
+class DossierChangerEtat < FieldChecker
   attr_reader :dossier
 
   def initialize(params)
@@ -9,7 +9,7 @@ class DossierChangerEtat < InspectorTask
   end
 
   def process(demarche, dossier)
-    @dossier = dossier
+    super
     change_state(demarche, dossier) if conditions_ok(demarche, dossier)
   end
 

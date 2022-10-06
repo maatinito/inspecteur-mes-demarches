@@ -206,7 +206,7 @@ class VerificationService
   end
 
   def dossier_updated?(control, md_dossier)
-    control.dossiers_to_ignore.find { |d| d.number == md_dossier.number }.present?
+    control.updated_dossiers.find { |d| d.number == md_dossier.number }.present?
   end
 
   def check_control(control, demarche, md_dossier)
@@ -225,7 +225,7 @@ class VerificationService
   end
 
   def avoid_useless_checks(control)
-    control.dossiers_to_ignore.each do |dossier|
+    control.updated_dossiers.each do |dossier|
       next unless dossier.present?
 
       checked_at = Check.arel_table[:checked_at]
@@ -274,6 +274,7 @@ class VerificationService
           check = Check.find_or_create_by(demarche:, dossier: md_dossier.number, checker: task.name)
           start_time = Time.zone.now
           apply_task(demarche, task, md_dossier, check)
+          md_dossier = DossierActions.on_dossier(md_dossier.number) if dossier_updated?(task, md_dossier)
           check.update(checked_at: start_time, version: task.version)
         end
       end

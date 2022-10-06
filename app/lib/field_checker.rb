@@ -3,20 +3,20 @@
 require 'set'
 
 class FieldChecker < InspectorTask
-  attr_reader :messages, :accessed_fields, :dossier, :dossiers_to_ignore, :dossiers_to_recheck
+  attr_reader :messages, :accessed_fields, :dossier, :updated_dossiers, :dossiers_to_recheck
 
   attr_writer :demarche
 
   def initialize(params)
     super(params)
     @messages = []
-    @dossiers_to_ignore = Set.new
+    @updated_dossiers = Set.new
     @dossiers_to_recheck = Set.new
   end
 
   def process(demarche, dossier)
     @messages = []
-    @dossiers_to_ignore = Set.new
+    @updated_dossiers = Set.new
     @dossiers_to_recheck = Set.new
     @dossier = dossier
     @demarche = demarche
@@ -24,7 +24,7 @@ class FieldChecker < InspectorTask
 
   def control(dossier)
     @messages = []
-    @dossiers_to_ignore = Set.new
+    @updated_dossiers = Set.new
     @dossiers_to_recheck = Set.new
     @dossier = dossier
     @demarche = demarche
@@ -177,7 +177,7 @@ class FieldChecker < InspectorTask
   end
 
   def dossier_updated(dossier)
-    @dossiers_to_ignore << dossier
+    @updated_dossiers << dossier
   end
 
   def recheck(dossier)
