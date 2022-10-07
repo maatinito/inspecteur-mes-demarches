@@ -178,13 +178,22 @@ class VerificationService
 
   def check_dossier(demarche, md_dossier, controls)
     Rails.logger.tagged("#{demarche.id},#{md_dossier.number}") do
-      affected = [*controls, *@ok_tasks].find { |c| c.must_check?(md_dossier) }
+      affected = affected?(controls, md_dossier)
       if affected
         apply_controls(controls, demarche, md_dossier)
       else
         remove_checks(md_dossier.number)
       end
     end
+  end
+
+  def affected?(controls, md_dossier)
+    [*controls, *@ok_tasks].find { |c| c.must_check?(md_dossier) }
+  rescue StandardError => e
+    Sentry.capture_exception(e)
+    Rails.logger.error(e)
+    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
+    true
   end
 
   def apply_controls(controls, demarche, md_dossier)
