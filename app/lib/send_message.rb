@@ -17,7 +17,7 @@ class SendMessage
   def self.send_with_file(dossier, instructeur_id, body, file_path, filename, check_not_sent: false)
     return false if check_not_sent && already_posted(dossier.number, body)
 
-    attachment_id = FileUpload.upload_file(dossier_id, file_path, filename)
+    attachment_id = FileUpload.upload_file(dossier.id, file_path, filename)
     handle_errors(MesDemarches::Client.query(Mutation::EnvoyerMessageAvecFichier,
                                              variables: {
                                                dossierId: dossier.id,

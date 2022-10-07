@@ -8,7 +8,7 @@ class Publipostage < FieldChecker
   BATCH_SIZE = 2.5 * 1024 * 1024
 
   def version
-    super + 26 + @calculs.map(&:version).reduce(0, &:+)
+    super + 27 + @calculs.map(&:version).reduce(0, &:+)
   end
 
   def initialize(params)
@@ -30,6 +30,11 @@ class Publipostage < FieldChecker
     super + %i[calculs dossier_cible etat_du_dossier champ_source nom_fichier_lot champ_force_publipost]
   end
 
+  def must_check?(dossier)
+    target = destination(dossier)
+    dossiers_have_right_state?(dossier, target)
+  end
+
   def process(demarche, dossier)
     super
     target = destination(dossier)
@@ -49,7 +54,7 @@ class Publipostage < FieldChecker
       timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
       filename = build_filename(@params[:nom_fichier_lot] || @params[:nom_fichier],
                                 { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(pdf_path)
-      SendMessage.send_with_file(target.id, demarche.instructeur, body, pdf_path, filename)
+      SendMessage.send_with_file(target, demarche.instructeur, body, pdf_path, filename)
       dossier_updated(@dossier) # to prevent infinite check
     end
   end
