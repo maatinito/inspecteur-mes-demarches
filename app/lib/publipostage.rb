@@ -27,7 +27,7 @@ class Publipostage < FieldChecker
   end
 
   def authorized_fields
-    super + %i[calculs dossier_cible etat_du_dossier champ_source nom_fichier_lot champ_force_publipost]
+    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost]
   end
 
   def must_check?(dossier)

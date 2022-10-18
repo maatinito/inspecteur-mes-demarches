@@ -9,8 +9,6 @@ Naming/MethodParameterName:
 AllCops:
   NewCops: enable
 
-Gemspec/DateAssignment: # (new in 1.10)
-  Enabled: true
 Layout/SpaceBeforeBrackets: # (new in 1.7)
   Enabled: true
 Lint/AmbiguousAssignment: # (new in 1.7)

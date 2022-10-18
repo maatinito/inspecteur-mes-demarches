@@ -2,7 +2,7 @@
 
 class ConditionalField < FieldChecker
   def version
-    super + @controls.values.flatten.reduce(2) { |s, c| s + c.version } + 3
+    super + @controls.values.flatten.map(&:version).reduce(&:+) + 2
   end
 
   def required_fields
@@ -14,28 +14,42 @@ class ConditionalField < FieldChecker
     init_controls
   end
 
-  def check(dossier)
-    values = object_field_values(dossier, @params[:champ], log_empty: false)
-    if values.blank?
-      run_controls(@controls['non renseigné'], dossier)
-    else
-      values.each do |value|
-        controls = @controls[value]
-        controls = @controls['par défaut'] if controls.nil?
-        throw "No list for value '#{field&.value}'" if controls.nil?
-        run_controls(controls, dossier)
-      end
-    end
+  def process(demarche, dossier)
+    super
+    process_condition(:process)
+  end
+
+  def check(_dossier)
+    process_condition(:control)
   end
 
   private
 
-  def run_controls(controls, dossier)
+  def process_condition(method)
+    values = champs_to_values(object_field_values(@dossier, @params[:champ], log_empty: false))
+    if values.blank?
+      run_controls(@controls['non renseigné'], method)
+    else
+      values.each do |value|
+        controls = @controls[value]
+        controls = @controls['par défaut'] if controls.nil?
+        throw "No task for value '#{field&.value}'" if controls.nil?
+        run_controls(controls, method)
+      end
+    end
+  end
+
+  def run_controls(controls, method)
     return if controls.blank?
 
     controls.each do |task|
-      task.control(dossier)
-      @messages.push(*task.messages)
+      case method
+      when :control
+        task.control(@dossier)
+        @messages.push(*task.messages)
+      when :process
+        task.process(@demarche, @dossier)
+      end
     end
   end
 

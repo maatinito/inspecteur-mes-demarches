@@ -33,10 +33,10 @@ FactoryBot.define do
               { 'champ' => 'Lieu de quarantaine',
                 'valeurs' =>
                   { 'dans votre logement' => [
-                    { 'mandatory_field_check' =>
-                        { 'message' => 'm3',
-                          'champs' => ['Commune', 'Indications logement', "Transport depuis l'aéroport"] } }
-                  ],
+                      { 'mandatory_field_check' =>
+                          { 'message' => 'm3',
+                            'champs' => ['Commune', 'Indications logement', "Transport depuis l'aéroport"] } }
+                    ],
                     'en hôtel agréé' => [
                       { 'mandatory_field_check' =>
                           { 'message' => 'm4',

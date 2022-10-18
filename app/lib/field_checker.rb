@@ -3,7 +3,8 @@
 require 'set'
 
 class FieldChecker < InspectorTask
-  attr_reader :messages, :accessed_fields, :dossier, :updated_dossiers, :dossiers_to_recheck
+  attr_accessor :dossier
+  attr_reader :messages, :accessed_fields, :updated_dossiers, :dossiers_to_recheck
 
   attr_writer :demarche
 
@@ -12,6 +13,9 @@ class FieldChecker < InspectorTask
     @messages = []
     @updated_dossiers = Set.new
     @dossiers_to_recheck = Set.new
+    etat_du_dossier = @params[:etat_du_dossier] || ['en_construction']
+    etat_du_dossier = etat_du_dossier.split(/\s*,\s*/) if etat_du_dossier.is_a?(String)
+    @states = Set.new(etat_du_dossier)
   end
 
   def process(demarche, dossier)
@@ -31,8 +35,12 @@ class FieldChecker < InspectorTask
     check(dossier)
   end
 
+  def authorized_fields
+    super + %i[etat_du_dossier]
+  end
+
   def must_check?(md_dossier)
-    md_dossier&.state == 'en_construction'
+    @states.include?(md_dossier.state)
   end
 
   def check(_dossier)
