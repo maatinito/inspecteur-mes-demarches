@@ -25,6 +25,15 @@ class NotificationMailer < ApplicationMailer
     mail(to: CONTACT_EMAIL, subject: "#{SITE_NAME}: erreur à l'exécution")
   end
 
+  def notify_user
+    @dossier = params[:dossier]
+    @demarche = params[:demarche]
+    @dossier_url = [ENV.fetch('GRAPHQL_HOST', nil), 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
+    @message = params[:message].gsub(/\n\r?/, "<br>\n")
+    attachments[params[:filename]] = params[:file]
+    mail(to: recipients, subject: "#{SITE_NAME}: #{params[:subject]}")
+  end
+
   private
 
   def recipients

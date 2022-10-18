@@ -8,15 +8,18 @@ class Publipostage < FieldChecker
   BATCH_SIZE = 2.5 * 1024 * 1024
 
   def version
-    super + 27 + @calculs.map(&:version).reduce(0, &:+)
+    super + 38 + @calculs.map(&:version).reduce(0, &:+)
   end
 
   def initialize(params)
     super
     @calculs = create_tasks
     @modele = @params[:modele]
-    throw 'Modèle introuvable' unless File.exist?(@modele)
-    throw 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
+    @mails = @params[:destinataires]
+    @mails = @mails.split(/\s*,\s*/) if @mails.is_a?(String)
+    raise 'Modèle introuvable' unless File.exist?(@modele)
+    raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
+
     FileUtils.mkdir_p(OUTPUT_DIR)
     FileUtils.mkdir_p(DATA_DIR)
     @states = Set.new([*(@params[:etat_du_dossier] || 'en_instruction')])
@@ -27,7 +30,7 @@ class Publipostage < FieldChecker
   end
 
   def authorized_fields
-    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost]
+    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost destinataires]
   end
 
   def must_check?(dossier)
@@ -49,17 +52,38 @@ class Publipostage < FieldChecker
     end
     return unless pdf_paths.present?
 
-    combine(pdf_paths) do |pdf_path, batch_number|
+    combine(pdf_paths) do |pdf_file, batch_number|
       body = instanciate(@params[:message])
       timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
       filename = build_filename(@params[:nom_fichier_lot] || @params[:nom_fichier],
-                                { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(pdf_path)
-      SendMessage.send_with_file(target, demarche.instructeur, body, pdf_path, filename)
+                                { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(pdf_file)
+      send_document(demarche, target, body, filename, pdf_file)
       dossier_updated(@dossier) # to prevent infinite check
     end
   end
 
   private
+
+  def send_document(demarche, dossier, message, filename, file)
+    if @mails.present?
+      send_mail(demarche, dossier, file, filename, message)
+    else
+      SendMessage.send_with_file(dossier, demarche.instructeur, message, file, filename)
+    end
+  end
+
+  def send_mail(demarche, dossier, file, filename, message)
+    params = {
+      subject: demarche.libelle,
+      demarche: demarche.id,
+      dossier: dossier.number,
+      message:,
+      filename:,
+      file: File.read(file, mode: 'rb'),
+      recipients: @mails
+    }
+    NotificationMailer.with(params).notify_user.deliver_later
+  end
 
   def init_calculs
     @calculs.each do |calcul|
