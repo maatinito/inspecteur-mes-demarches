@@ -17,7 +17,7 @@ class DossierClasserSansSuite < DossierChangerEtat
     result = MesDemarches::Client.query(Queries::ClasserSansSuite, variables:
       {
         dossierId: dossier.id,
-        instructeurId: demarche.instructeur,
+        instructeurId: instructeur_id(demarche, dossier),
         motivation:
       })
     throw StandardError.new result.errors if result.errors.present?

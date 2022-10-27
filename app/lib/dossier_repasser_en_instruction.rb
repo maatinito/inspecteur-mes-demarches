@@ -23,7 +23,7 @@ class DossierRepasserEnInstruction < DossierChangerEtat
     result = MesDemarches::Client.query(Queries::EnInstruction, variables:
       {
         dossierId: dossier.id,
-        instructeurId: demarche.instructeur
+        instructeurId: instructeur_id(demarche, dossier)
       })
     throw StandardError.new result.errors if result.errors.present?
   end
