@@ -11,7 +11,7 @@ module Daf
     end
 
     def authorized_fields
-      super + %i[champ_declencheur etats_du_dossier champs_prepaiement]
+      super + %i[champ_declencheur champs_prepaiement]
     end
 
     def process(demarche, dossier)
@@ -35,14 +35,7 @@ module Daf
     end
 
     def dossier_has_right_state
-      @states ||= right_states
       @states.include?(@dossier.state)
-    end
-
-    def right_states
-      states = @params[:etats_du_dossier]
-      states = states.split(',') if states.is_a?(String)
-      Set[*states.presence || 'en_construction']
     end
 
     def amount_not_set
