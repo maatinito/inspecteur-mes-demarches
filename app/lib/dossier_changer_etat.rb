@@ -24,27 +24,4 @@ class DossierChangerEtat < FieldChecker
   def authorized_fields
     super + %i[conditions]
   end
-
-  protected
-
-  def instructeur_id(demarche, dossier)
-    first_instructeur(dossier) || demarche.instructeur
-  end
-
-  def first_instructeur(dossier)
-    d = MesDemarches::Client.query(Queries::Instructeurs, variables: { number: dossier.number })
-    throw StandardError.new d.errors if d.errors.present?
-
-    d.data.dossier.instructeurs.first&.id
-  end
-
-  Queries = MesDemarches::Client.parse <<-'GRAPHQL'
-    query Instructeurs($number: Int!) {
-      dossier(number: $number) {
-        instructeurs {
-          id
-        }
-      }
-    }
-  GRAPHQL
 end

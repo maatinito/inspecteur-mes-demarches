@@ -12,7 +12,7 @@ class DossierAccepter < DossierChangerEtat
     result = MesDemarches::Client.query(Queries::Accepter, variables:
       {
         dossierId: dossier.id,
-        instructeurId: instructeur_id(demarche, dossier),
+        instructeurId: instructeur_id_for(demarche, dossier),
         motivation:
       })
     throw StandardError.new result.errors if result.errors.present?

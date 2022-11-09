@@ -59,6 +59,14 @@ module MesDemarches
       }
     }
 
+    query Instructeurs($number: Int!) {
+      dossier(number: $number) {
+        instructeurs {
+          id
+        }
+      }
+    }
+
     query DossierState($number: Int!) {
       dossier(number: $number) {
         id

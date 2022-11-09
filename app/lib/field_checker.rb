@@ -191,4 +191,19 @@ class FieldChecker < InspectorTask
   def recheck(dossier)
     @dossiers_to_recheck << dossier if dossier.present?
   end
+
+  def instructeur_id_for(demarche, dossier)
+    first_instructeur(dossier) || demarche.instructeur
+  end
+
+  def instructeur_id
+    instructeur_id_for(@demarche, @dossier)
+  end
+
+  def first_instructeur(dossier)
+    d = MesDemarches::Client.query(MesDemarches::Queries::Instructeurs, variables: { number: dossier.number })
+    throw StandardError.new d.errors if d.errors.present?
+
+    d.data.dossier.instructeurs.first&.id
+  end
 end

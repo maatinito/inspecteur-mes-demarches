@@ -17,7 +17,7 @@ class DossierRefuser < DossierChangerEtat
     result = MesDemarches::Client.query(Queries::Refuser, variables:
       {
         dossierId: dossier.id,
-        instructeurId: instructeur_id(demarche, dossier),
+        instructeurId: instructeur_id_for(demarche, dossier),
         motivation:
       })
     pp result.errors

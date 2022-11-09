@@ -19,7 +19,7 @@ module Daf
     def process(demarche, dossier)
       super
 
-      SendMessage.send(dossier, demarche.instructeur, instanciate(@params[:message]), check_not_sent: true)
+      SendMessage.send(dossier, instructeur_id, instanciate(@params[:message]), check_not_sent: true)
     end
   end
 end
