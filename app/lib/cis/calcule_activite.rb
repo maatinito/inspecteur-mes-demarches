@@ -30,7 +30,7 @@ module Cis
       end
     rescue StandardError => e
       Rails.logger.error(e.message)
-      e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.debug(b) }
+      e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
       UNKNOWN
     end
 

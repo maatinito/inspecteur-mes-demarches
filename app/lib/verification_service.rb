@@ -222,12 +222,15 @@ class VerificationService
     Rails.logger.tagged(control.name) do
       check = find_or_create_check(control, demarche, md_dossier)
       start_time = Time.zone.now
-      if check_obsolete?(check, control, md_dossier)
-        apply_control(control, md_dossier, check) if control.must_check?(md_dossier)
+      check_obsolete = check_obsolete?(check, control, md_dossier)
+      Rails.logger.info("dossier or task version modified = #{check_obsolete}")
+      if check_obsolete
+        control_must_check = control.must_check?(md_dossier)
+        Rails.logger.info("task ask for processing = #{control_must_check}")
+        apply_control(control, md_dossier, check) if control_must_check
         check.update(checked_at: start_time, version: control.version)
         avoid_useless_checks(control)
         recheck_dependent_dossiers(control)
-        # reload_dossier_if
       end
       check
     end
