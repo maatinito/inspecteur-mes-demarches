@@ -91,6 +91,7 @@ module Daf
       return unless dossier.state == 'en_construction'
 
       pp = payment_process
+      Rails.logger.info("Payment 1: #{pp}")
       changed = SetAnnotationValue.set_value(dossier, demarche.instructeur, PAYMENT_PROCESS_ATT, pp)
       changed |= set_amounts(demarche, dossier)
 
@@ -111,6 +112,7 @@ module Daf
       return unless instruction?(dossier) && ready_to_deliver?
 
       payment_section = must_pay? ? :paiement2 : :sans_paiement2
+      Rails.logger.info("Payment 2: #{payment_section}")
       process_tasks(demarche, dossier, @tasks[payment_section])
     end
 
@@ -122,6 +124,7 @@ module Daf
 
     def process_tasks(demarche, dossier, tasks)
       tasks.each do |task|
+        Rails.logger.info("Applying task #{task.class.name}")
         task.process(demarche, dossier) if task.valid?
         dossier = DossierActions.on_dossier(dossier.number) if dossier_updated?(task, dossier)
       rescue StandardError => e

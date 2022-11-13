@@ -6,7 +6,12 @@ class SetAnnotationValue
     if annotation.present?
       old_value = value_of(annotation)
       different_value = old_value != value
-      raw_set_value(md_dossier.id, instructeur_id, annotation.id, value) if different_value
+      if different_value
+        Rails.logger.info("Setting private annotation #{annotation_name} with #{value}")
+        raw_set_value(md_dossier.id, instructeur_id, annotation.id, value)
+      else
+        Rails.logger.info("Private annotation #{annotation_name} already set to #{value}")
+      end
       different_value
     else
       throw "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}"

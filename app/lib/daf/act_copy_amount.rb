@@ -71,8 +71,10 @@ module Daf
 
       PieceJustificativeCache.get(file_field.file) do |file|
         pages = file_page_count(file)
-
-        SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, page_field.id, pages) if page_field
+        if page_field
+          Rails.logger.info("Setting #{page_field.label} to #{pages}")
+          SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, page_field.id, pages)
+        end
         return pages
       end
     end

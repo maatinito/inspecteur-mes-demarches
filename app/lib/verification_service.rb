@@ -96,6 +96,7 @@ class VerificationService
 
   def check_demarche(controls, demarche_number, reset, configuration_name)
     demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
+    Rails.logger.info("Processing procedure #{demarche_number}")
     Rails.logger.tagged(demarche_number) do
       set_demarche(controls, demarche)
       start_time = Time.zone.now
@@ -177,6 +178,7 @@ class VerificationService
   end
 
   def check_dossier(demarche, md_dossier, controls)
+    Rails.logger.info("Processing dossier #{md_dossier.number}")
     Rails.logger.tagged("#{demarche.id},#{md_dossier.number}") do
       affected = affected?(controls, md_dossier)
       if affected
