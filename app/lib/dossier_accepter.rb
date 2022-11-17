@@ -9,6 +9,7 @@ class DossierAccepter < DossierChangerEtat
   end
 
   def change_state(demarche, dossier)
+    Rails.logger.info('Acceptation du dossier')
     result = MesDemarches::Client.query(Queries::Accepter, variables:
       {
         dossierId: dossier.id,

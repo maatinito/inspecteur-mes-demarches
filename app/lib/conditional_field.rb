@@ -45,6 +45,7 @@ class ConditionalField < FieldChecker
     return if controls.blank?
 
     controls.each do |task|
+      Rails.logger.info("Applying task #{task.class.name}")
       case method
       when :control
         task.control(@dossier)

@@ -14,6 +14,7 @@ class DossierClasserSansSuite < DossierChangerEtat
   end
 
   def change_state(demarche, dossier)
+    Rails.logger.info('Classement sans suite du dossier')
     result = MesDemarches::Client.query(Queries::ClasserSansSuite, variables:
       {
         dossierId: dossier.id,

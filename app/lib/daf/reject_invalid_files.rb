@@ -26,7 +26,10 @@ module Daf
     def process(demarche, dossier)
       super
       check_count do
-        @when_invalid.each { |a| a.process(@demarche, @dossier) }
+        @when_invalid.each do |task|
+          Rails.logger.info("Applying task #{task.class.name}")
+          task.process(@demarche, @dossier)
+        end
       end
     end
 

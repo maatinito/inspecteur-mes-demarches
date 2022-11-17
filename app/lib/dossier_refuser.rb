@@ -14,6 +14,7 @@ class DossierRefuser < DossierChangerEtat
   end
 
   def change_state(demarche, dossier)
+    Rails.logger.info('Refus du dossier')
     result = MesDemarches::Client.query(Queries::Refuser, variables:
       {
         dossierId: dossier.id,
