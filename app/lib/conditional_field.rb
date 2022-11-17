@@ -27,15 +27,17 @@ class ConditionalField < FieldChecker
 
   def process_condition(method)
     values = champs_to_values(object_field_values(@dossier, @params[:champ], log_empty: false))
-    if values.blank?
-      run_controls(@controls['non renseigné'], method)
-    else
-      values.each do |value|
-        controls = @controls[value]
-        controls = @controls['par défaut'] if controls.nil?
-        throw "No task for value '#{field&.value}'" if controls.nil?
-        run_controls(controls, method)
+    values = [''] if values.blank?
+    values.each do |value|
+      controls = @controls[value]
+      if controls.present?
+        Rails.logger.info("Executing tasks for #{@params[:champ]} : '#{value}'")
+      else
+        controls = @controls['par défaut']
+        Rails.logger.info("Executing 'par défaut' tasks as #{@params[:champ]} : '#{value}'") if controls.present?
       end
+      throw "No task for value '#{field&.value}'" if controls.nil?
+      run_controls(controls, method)
     end
   end
 
