@@ -14,7 +14,7 @@ class DemarcheActions
     result = MesDemarches::Client.query(MesDemarches::Queries::Demarche,
                                         variables: { demarche: demarche_number })
 
-    throw StandardError.new result.errors.join(',') if result.errors.present?
+    throw StandardError.new result.errors.messages.values.join(',') if result.errors.present?
     throw StandardError.new "La démarche #{demarche_number} n'existe pas" if result&.data&.demarche.nil?
 
     result.data.demarche
