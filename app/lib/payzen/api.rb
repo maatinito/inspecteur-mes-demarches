@@ -11,16 +11,17 @@ module Payzen
     TIMEOUT = 0
     CTIMEOUT = 60
 
-    def initialize(test_mode: true)
-      @test_mode = test_mode
+    def initialize(store, password)
+      @store = store
+      @password = password
     end
 
-    def create_url_order(amount, reference, expiration_date: nil, customer: nil)
-      call(CREATE_ORDER, order(amount, reference, url_channel, expiration_date:, customer:))
+    def create_url_order(amount, reference, expiration_date: nil, customer: nil, return_url: nil)
+      call(CREATE_ORDER, order(amount, reference, url_channel, expiration_date:, customer:, return_url:))
     end
 
-    def create_sms_order(amount, reference, phone, message, expiration_date: nil, customer: nil)
-      call(CREATE_ORDER, order(amount, reference, sms_channel(phone, message), expiration_date:, customer:))
+    def create_sms_order(amount, reference, phone, message, expiration_date: nil, customer: nil, return_url: nil)
+      call(CREATE_ORDER, order(amount, reference, sms_channel(phone, message), expiration_date:, customer:, return_url:))
     end
 
     def get_order(payzen_reference)
@@ -41,15 +42,17 @@ module Payzen
       }
     end
 
-    def order(amount, reference, channel, expiration_date:, customer:)
+    def order(amount, reference, channel, expiration_date:, customer:, return_url:)
       result = {
         amount:,
         currency: 'XPF',
         channelOptions: channel,
-        orderId: reference
+        orderId: reference,
+        returnUrl: return_url
       }
       result[:expirationDate] = expiration_date.iso8601 if expiration_date.present?
       result[:customer] = customer if customer.present?
+      result[:returnUrl] = return_url if return_url.present?
       result
     end
 
@@ -100,12 +103,12 @@ module Payzen
     def authentification
       return @authentification if @authentification.present?
 
-      key = @test_mode ? 'TEST' : 'PROD'
-      login = ENV.fetch("PAYZEN_#{key}_LOGIN", nil)
-      password = ENV.fetch("PAYZEN_#{key}_PASSWORD", nil)
-      raise ArgumentError, "PayZen API: PAYZEN_#{key}_(LOGIN,PASSWORD) environment variables not intialized." if login.nil? || password.nil?
+      # key = @test_mode ? 'TEST' : 'PROD'
+      # login = ENV.fetch("PAYZEN_#{key}_LOGIN", nil)
+      # password = ENV.fetch("PAYZEN_#{key}_PASSWORD", nil)
+      # raise ArgumentError, "PayZen API: PAYZEN_#{key}_(LOGIN,PASSWORD) environment variables not intialized." if login.nil? || password.nil?
 
-      @authentification = Base64.strict_encode64("#{login}:#{password}")
+      @authentification = Base64.strict_encode64("#{@store}:#{@password}")
     end
 
     def parse_response_body(response)

@@ -10,7 +10,7 @@ module Payzen
     end
 
     def required_fields
-      %i[reference champ_montant champ_ordre_de_paiement message]
+      %i[reference champ_montant champ_ordre_de_paiement message boutique cle_de_test cle]
     end
 
     def authorized_fields
@@ -27,7 +27,9 @@ module Payzen
       @states = Set.new([*(@params[:etat_du_dossier] || 'en_instruction')])
 
       @test_mode = Set['oui', 'true', '1', 1].include?(@params[:mode_test]&.downcase)
-      @api = Payzen::API.new(test_mode: @test_mode)
+      password = @params[@test_mode ? :cle_de_test : :cle]
+      store = @params[:boutique]
+      @api = Payzen::API.new(store, password)
 
       @reference_prefix = @params[:reference]
       @reference_prefix = 'md' if @reference_prefix.blank?
@@ -78,11 +80,12 @@ module Payzen
     def create_order(amount)
       reference = "#{@reference_prefix}-#{@dossier.number}"
       phone_number = param_field(:champ_telephone)&.value
+      return_url = "https://www.mes-demarches.gov.pf/dossiers/#{@dossier.number}/messagerie"
       if phone_number.present? && phone_number.match?(/8[789][0-9]{6}/)
         message = instanciate(@params[:sms])
-        order = @api.create_sms_order(amount, reference, phone_number, message)
+        order = @api.create_sms_order(amount, reference, phone_number, message, return_url:)
       else
-        order = @api.create_url_order(amount, reference)
+        order = @api.create_url_order(amount, reference, return_url:)
       end
       report_error(order) if order[:errorCode].present?
       order
@@ -152,6 +155,7 @@ module Payzen
 
     def execute(tasks, order)
       tasks.each do |task|
+        Rails.logger.info("Applying task #{task.class.name}")
         if task.is_a?(Payzen::Task)
           task.process_order(@demarche, @dossier, order)
         else

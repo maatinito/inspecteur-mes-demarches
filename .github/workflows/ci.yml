@@ -64,8 +64,8 @@ jobs:
 
       - name: Run tests
         env:
-          PAYZEN_TEST_LOGIN: test
-          PAYZEN_TEST_PASSWORD: test
+          PAYZEN_STORE: test
+          PAYZEN_PASSWORD: test
         run: |
           echo "Running tests "
           bin/rspec --format progress --format RspecJunitFormatter --out tmp/rspec_${{ github.job }}.junit.xml

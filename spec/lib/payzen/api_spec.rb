@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Payzen::API do
-  let(:api) { Payzen::API.new }
+  let(:api) { Payzen::API.new(ENV.fetch('PAYZEN_STORE'), ENV.fetch('PAYZEN_PASSWORD')) }
   let(:amount) { 10_000 }
   let(:reference) { 'my-reference' }
   let(:expiration_date) { nil }
