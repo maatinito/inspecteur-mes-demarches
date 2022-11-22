@@ -11,6 +11,8 @@ module Drm
 
     def process_row(_row)
       (name, number, length) = field(VESSEL)&.value&.split(%r{\s*/\s*})
+      length.sub!(/m?$/i, 'm') if length.is_a?(String)
+      number.sub!(/^(PY)?\s*/i, 'PY ') if number.is_a?(String)
       {
         'Nom_Navire' => display(name),
         'Immatriculation_Navire' => display(number),
