@@ -68,7 +68,7 @@ class Publipostage < FieldChecker
     if @mails.present?
       send_mail(demarche, dossier, file, filename, message)
     else
-      SendMessage.send_with_file(dossier, demarche.instructeur, message, file, filename)
+      SendMessage.send_with_file(dossier, instructeur_id_for(demarche, dossier), message, file, filename)
     end
   end
 
