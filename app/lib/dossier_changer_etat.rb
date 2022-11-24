@@ -24,4 +24,12 @@ class DossierChangerEtat < FieldChecker
   def authorized_fields
     super + %i[conditions]
   end
+
+  def passer_en_instruction(demarche, dossier)
+    DossierPasserEnInstruction.new({}).process(demarche, dossier)
+  end
+
+  def repasser_en_instruction(demarche, dossier)
+    DossierRepasserEnInstruction.new({}).process(demarche, dossier)
+  end
 end

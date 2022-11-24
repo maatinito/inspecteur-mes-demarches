@@ -20,7 +20,7 @@ class DossierPasserEnInstruction < DossierChangerEtat
   GRAPHQL
 
   def change_state(demarche, dossier)
-    Rails.logger.info('Passage en instuction')
+    Rails.logger.info('Passage en instruction')
     result = MesDemarches::Client.query(Queries::EnInstruction, variables:
       {
         dossierId: dossier.id,
