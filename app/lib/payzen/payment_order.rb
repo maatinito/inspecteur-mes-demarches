@@ -18,6 +18,11 @@ module Payzen
     end
 
     def initialize(params)
+      # backward compatibility where old scheduled task payment_order has no 'boutique, cle and cle_de_test' params
+      params['boutique'] = ENV.fetch('PAYZEN_PROD_LOGIN', nil) unless params.key?('boutique')
+      params['cle_de_test'] = ENV.fetch('PAYZEN_TEST_PASSWORD', nil) unless params.key?('cle_de_test')
+      params['cle'] = ENV.fetch('PAYZEN_PROD_PASSWORD', nil) unless params.key?('cle')
+
       super
       @when_asked = InspectorTask.create_tasks(@params[:quand_demandé])
       @when_paid = InspectorTask.create_tasks(@params[:quand_payé])
