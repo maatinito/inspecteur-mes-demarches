@@ -16,7 +16,7 @@ class FileUpload
         filename:,
         byteSize: File.size(path),
         checksum:,
-        contentType: (MIME::Types.type_for(path).presence || MIME::Types['text/plain']).first.to_s,
+        contentType: (MIME::Types.type_for(filename).presence || MIME::Types['text/plain']).first.to_s,
         client_mutation_id: 'upload'
       })
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']

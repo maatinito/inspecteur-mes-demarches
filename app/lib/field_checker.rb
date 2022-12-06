@@ -173,7 +173,7 @@ class FieldChecker < InspectorTask
   end
 
   def date_value(champ, format)
-    if champ.present?
+    if champ.present? && champ.value.present?
       Date.iso8601(champ.value).strftime(format)
     else
       ''

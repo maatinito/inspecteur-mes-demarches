@@ -17,6 +17,8 @@ class Publipostage < FieldChecker
     @modele = @params[:modele]
     @mails = @params[:destinataires]
     @mails = @mails.split(/\s*,\s*/) if @mails.is_a?(String)
+    @champ_cible = @params[:champ_cible]
+    @generate_docx = @params[:type_de_document]&.match?(/\.?docx?/i)
     raise 'Modèle introuvable' unless File.exist?(@modele)
     raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
 
@@ -30,7 +32,7 @@ class Publipostage < FieldChecker
   end
 
   def authorized_fields
-    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost destinataires]
+    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost destinataires champ_cible type_de_document]
   end
 
   def must_check?(dossier)
@@ -45,19 +47,19 @@ class Publipostage < FieldChecker
 
     init_calculs
 
-    pdf_paths = rows.filter_map do |row|
+    paths = rows.filter_map do |row|
       compute_dynamic_fields(row)
       fields = get_fields(row, params[:champs])
       generate_doc(fields) unless same_document(fields)
     end
-    return unless pdf_paths.present?
+    return unless paths.present?
 
-    combine(pdf_paths) do |pdf_file, batch_number|
+    combine(paths) do |file, batch_number|
       body = instanciate(@params[:message])
       timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
       filename = build_filename(@params[:nom_fichier_lot] || @params[:nom_fichier],
-                                { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(pdf_file)
-      send_document(demarche, target, body, filename, pdf_file)
+                                { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(file)
+      send_document(demarche, target, body, filename, file)
       dossier_updated(@dossier) # to prevent infinite check
     end
   end
@@ -65,8 +67,9 @@ class Publipostage < FieldChecker
   private
 
   def send_document(demarche, dossier, message, filename, file)
-    if @mails.present?
-      send_mail(demarche, dossier, file, filename, message)
+    if @champ_cible.present? || @mails.present?
+      send_mail(demarche, dossier, file, filename, message) if @mails.present?
+      SetAnnotationValue.set_piece_justificative(dossier, instructeur_id_for(demarche, dossier), @champ_cible, file, filename) if @champ_cible.present?
     else
       SendMessage.send_with_file(dossier, instructeur_id_for(demarche, dossier), message, file, filename)
     end
@@ -92,33 +95,31 @@ class Publipostage < FieldChecker
     end
   end
 
-  def combine(pdf_paths)
+  def combine(paths)
     size = 0
     batch = 0
-    pdf_batch = []
-    pdf_paths.each do |path|
+    batch_files = []
+    paths.each do |path|
       file_size = File.size(path)
-      if size + file_size > BATCH_SIZE
+      if size + file_size > BATCH_SIZE && batch_files.size.positive?
         batch += 1
-        combine_batch(pdf_batch) { |combined_pdf| yield combined_pdf, batch }
-        pdf_batch = []
+        combine_batch(batch_files) { |combined_pdf| yield combined_pdf, batch }
+        batch_files = []
         size = 0
       end
       size += file_size
-      pdf_batch << path
+      batch_files << path
     end
-    combine_batch(pdf_batch) { |path| yield path, batch + 1 }
+    combine_batch(batch_files) { |path| yield path, batch + 1 }
   end
 
-  def combine_batch(pdf_batch)
-    Tempfile.create(['publipost', '.pdf']) do |f|
-      f.binmode
-      pdf = CombinePDF.new
-      pdf_batch.each { |path| pdf << CombinePDF.load(path) }
-      pdf.save f
-      pdf_batch.each { |path| File.delete(path) }
-      f.rewind
-      yield f
+  def combine_batch(files, &)
+    if files.size == 1
+      combine_one(files, &)
+    elsif @generate_docx
+      combine_zip(files, &)
+    else
+      combine_pdf(files, &)
     end
   end
 
@@ -212,7 +213,8 @@ class Publipostage < FieldChecker
   def same_document(fields)
     datadir = "#{DATA_DIR}/#{@dossier.number}"
     FileUtils.mkpath(datadir)
-    datafile = "#{datadir}/#{instanciate(@params[:nom_fichier], fields)}.yml"
+    datafilename = @params[:nom_fichier].gsub(/\s*\{(horodatage|lot)\}/, '')
+    datafile = "#{datadir}/#{instanciate(datafilename, fields)}.yml"
     fields['#checksum'] = FileUpload.checksum(@modele)
     same = File.exist?(datafile) && YAML.load_file(datafile) == fields
     File.write(datafile, YAML.dump(fields)) unless same
@@ -239,6 +241,9 @@ class Publipostage < FieldChecker
     context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[()]/, '') }
     template = Sablon.template(File.expand_path(@modele))
     template.render_to_file docx, context
+
+    return docx if @generate_docx
+
     stdout_str, stderr_str, status = Open3.capture3(ENV.fetch('OFFICE_PATH', nil), '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, docx)
     throw "Unable to convert #{docx} to pdf\n#{stdout_str}#{stderr_str}" if status != 0
     File.delete(docx)
@@ -295,7 +300,7 @@ class Publipostage < FieldChecker
 
   def load_definition(param)
     if param.is_a?(Hash)
-      par_defaut = param['par_defaut'] || ''
+      par_defaut = param['par défaut'] || ''
       field = param['champ']
       name = param['colonne']
     else
@@ -323,5 +328,35 @@ class Publipostage < FieldChecker
     return [] if taches.nil?
 
     InspectorTask.create_tasks(taches)
+  end
+
+  def combine_one(files, &)
+    File.open(files[0], 'r', &)
+  ensure
+    File.delete(files[0])
+  end
+
+  def combine_pdf(files)
+    Tempfile.create(['publipost', '.pdf']) do |f|
+      f.binmode
+      pdf = CombinePDF.new
+      files.each { |path| pdf << CombinePDF.load(path) }
+      pdf.save f
+      files.each { |path| File.delete(path) }
+      f.rewind
+      yield f
+    end
+  end
+
+  def combine_zip(files)
+    Tempfile.create(['publipost', '.zip']) do |f|
+      Zip::File.open(f, create: true) do |zipfile|
+        files.each do |filename|
+          zipfile.add(filename, filename)
+        end
+      end
+      files.each { |path| File.delete(path) }
+      yield f
+    end
   end
 end
