@@ -42,7 +42,7 @@ module Cis
     def theoric_dates(start)
       start = start.at_beginning_of_month.next_month
       next_month = start.next_month
-      [start, next_month, next_month.next_month].select { |date| date > START_DATE }
+      [start, next_month, next_month.next_month]
     end
 
     MONTHS = %w[Janvier Février Mars Avril Mai Juin Juillet Août Septembre Octobre Novembre Décembre].freeze
@@ -60,10 +60,13 @@ module Cis
       dates_to_remove = (Set.new(scheduled_dates) - theoric_dates).map(&:to_datetime)
       ScheduledTask.where(dossier: dossier.number, task: task_name, run_at: dates_to_remove).destroy_all
 
-      dates_to_add = (Set.new(theoric_dates) - scheduled_dates).map(&:to_datetime)
-      dates_to_add.each.with_index do |date, index|
-        parameters = parameters(date.prev_month, index)
-        ScheduledTask.create(dossier: dossier.number, task: task_name, parameters: parameters.to_json, run_at: date)
+      theoric_dates.each.with_index do |date, index|
+        unless scheduled_dates.include?(date) || date <= START_DATE
+          parameters = parameters(date.prev_month.in_time_zone, index)
+
+          ScheduledTask.where(dossier: dossier.number, task: task_name, run_at: date.in_time_zone).destroy_all
+          ScheduledTask.create(dossier: dossier.number, task: task_name, parameters: parameters.to_json, run_at: date)
+        end
       end
       File.write(scheduled_filename(dossier), YAML.dump(theoric_dates))
     end
