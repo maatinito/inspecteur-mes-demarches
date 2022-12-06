@@ -16,7 +16,7 @@ module Sante
       result['Avance'] = (given_grant * 50 / 100).round
       result['Acompte'] = (given_grant * 40 / 100).round
       result['Solde'] = given_grant.round - result['Avance'] - result['Acompte']
-      result.each_key { |k| result["#{k} en lettres"] = result[k].humanize }
+      %w[Avance Acompte Solde].each { |k| result["#{k} en lettres"] = result[k].humanize }
       result['Pourcentage subvention'] = (given_grant / asked_grant * 100).round
       result['Pourcentage total'] = (given_grant / project_amount * 100).round
 
