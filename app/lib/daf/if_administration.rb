@@ -44,7 +44,7 @@ module Daf
       return false unless company.present? && company.naf.split(' | ').any? { |naf| @administration_naf == naf }
 
       user_email = @dossier.usager.email
-      case annotation('Administration')&.value
+      case annotation('Agent administratif')&.value
       when 'Non'
         remove_user(user_email)
         return false
