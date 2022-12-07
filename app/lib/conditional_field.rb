@@ -29,7 +29,7 @@ class ConditionalField < FieldChecker
     values = champs_to_values(object_field_values(@dossier, @params[:champ], log_empty: false))
     values = [''] if values.blank?
     values.each do |value|
-      controls = @controls[value]
+      controls = @controls[value&.to_s]
       if controls.present?
         Rails.logger.info("Executing tasks for #{@params[:champ]} : '#{value}'")
       else
