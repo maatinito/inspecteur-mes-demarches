@@ -86,11 +86,12 @@ module Payzen
       reference = "#{@reference_prefix}-#{@dossier.number}"
       phone_number = param_field(:champ_telephone)&.value
       return_url = "https://www.mes-demarches.gov.pf/dossiers/#{@dossier.number}/messagerie"
+      receipt_email = @dossier.usager.email
       if phone_number.present? && phone_number.match?(/8[789][0-9]{6}/)
         message = instanciate(@params[:sms])
-        order = @api.create_sms_order(amount, reference, phone_number, message, return_url:)
+        order = @api.create_sms_order(amount, reference, phone_number, message, return_url:, receipt_email:)
       else
-        order = @api.create_url_order(amount, reference, return_url:)
+        order = @api.create_url_order(amount, reference, return_url:, receipt_email:)
       end
       report_error(order) if order[:errorCode].present?
       order

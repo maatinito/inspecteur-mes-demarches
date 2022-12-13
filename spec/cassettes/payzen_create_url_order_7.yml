@@ -1,0 +1,45 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://api.secure.osb.pf/api-payment/V4/Charge/CreatePaymentOrder
+    body:
+      encoding: UTF-8
+      string: '{"amount":10000,"currency":"XPF","channelOptions":{"channelType":"URL"},"orderId":"my-reference","paymentReceiptEmail":"toto@tutu.com"}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Basic ODUzODQ0MzI6dGVzdHBhc3N3b3JkX2lNSW11azFIR2ZhSEhjS04zZEpScjg1MFU5ZkJMVUpyOHFubTA3bzI4bldwNw==
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Tue, 13 Dec 2022 22:58:00 GMT
+      Server:
+      - JBoss-EAP/7
+      X-Powered-By:
+      - Undertow/1
+      Set-Cookie:
+      - JSESSIONID=B56F83bDCa17AEBc18eEb2eeFC4Ed81D3dbd4Cab.vadapi01-tls-prod-fr-lyra;
+        path=/api-payment
+      Content-Type:
+      - application/json;charset=utf-8
+      Content-Length:
+      - '2185'
+      Vary:
+      - Accept-Encoding,User-Agent
+      Timing-Allow-Origin:
+      - "*"
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJ3ZWJTZXJ2aWNlIjoiQ2hhcmdlL0NyZWF0ZVBheW1lbnRPcmRlciIsInZlcnNpb24iOiJWNCIsImFwcGxpY2F0aW9uVmVyc2lvbiI6IjUuNDQuMiIsInN0YXR1cyI6IlNVQ0NFU1MiLCJhbnN3ZXIiOnsicGF5bWVudE9yZGVySWQiOiIwOTg2ZWMwZGY4YTM0NGNmODYyYjkxNzgxMjNiOWY1OSIsInBheW1lbnRVUkwiOiJodHRwczovL3NlY3VyZS5vc2IucGYvdC84cmFiYzMzMiIsInBheW1lbnRPcmRlclN0YXR1cyI6IlJVTk5JTkciLCJjcmVhdGlvbkRhdGUiOiIyMDIyLTEyLTEzVDIyOjU4OjAwKzAwOjAwIiwidXBkYXRlRGF0ZSI6bnVsbCwiYW1vdW50IjoxMDAwMCwiY3VycmVuY3kiOiJYUEYiLCJsb2NhbGUiOiJmcl9GUiIsInN0cm9uZ0F1dGhlbnRpY2F0aW9uIjoiQVVUTyIsIm9yZGVySWQiOiJteS1yZWZlcmVuY2UiLCJjaGFubmVsRGV0YWlscyI6eyJjaGFubmVsVHlwZSI6IlVSTCIsIm1haWxEZXRhaWxzIjpudWxsLCJzbXNEZXRhaWxzIjpudWxsLCJ3aGF0c0FwcERldGFpbHMiOm51bGwsIml2ckRldGFpbHMiOm51bGwsIl90eXBlIjoiVjQvQ2hhbm5lbERldGFpbHMifSwicGF5bWVudFJlY2VpcHRFbWFpbCI6InRvdG9AdHV0dS5jb20iLCJ0YXhSYXRlIjpudWxsLCJ0YXhBbW91bnQiOm51bGwsImV4cGlyYXRpb25EYXRlIjoiMjAyMi0xMi0xN1QwOTo1OTo1OSswMDowMCIsInRyYW5zYWN0aW9uRGV0YWlscyI6eyJjYXJkRGV0YWlscyI6eyJtYW51YWxWYWxpZGF0aW9uIjoiTk8iLCJjYXB0dXJlRGVsYXkiOjAsImluc3RhbGxtZW50TnVtYmVyIjowLCJfdHlwZSI6IlY0L0NhcmREZXRhaWxzIn0sIl90eXBlIjoiVjQvUGF5bWVudE9yZGVyVHJhbnNhY3Rpb25EZXRhaWxzIn0sImRhdGFDb2xsZWN0aW9uRm9ybSI6ZmFsc2UsImFsbG93RENGQW1vdW50VXBkYXRlIjoiTk9ORSIsIm1lcmNoYW50Q29tbWVudCI6bnVsbCwibWVzc2FnZSI6IkplIHLDqGdsZSAlYW1vdW50JSBwYXIgcGFpZW1lbnQgc8OpY3VyaXPDqSBhdmFudCBsZSAlZW5kX2RhdGUlIChzaSBsZSBsaWVuIG5lIGZvbmN0aW9ubmUgcGFzLCBjb3BpZXIgbCdVUkwgOiAldXJsJSApLiIsImRlc2NyaXB0aW9uIjpudWxsLCJmb3JtQWN0aW9uIjoiUEFZTUVOVCIsInBheW1lbnRNZXRob2RUb2tlbiI6bnVsbCwibWV0YWRhdGEiOnt9LCJjdXN0b21lciI6eyJiaWxsaW5nRGV0YWlscyI6bnVsbCwiZW1haWwiOm51bGwsInJlZmVyZW5jZSI6bnVsbCwic2hpcHBpbmdEZXRhaWxzIjpudWxsLCJleHRyYURldGFpbHMiOnsiYnJvd3NlckFjY2VwdCI6bnVsbCwiZmluZ2VyUHJpbnRJZCI6bnVsbCwiaXBBZGRyZXNzIjpudWxsLCJicm93c2VyVXNlckFnZW50IjpudWxsLCJfdHlwZSI6IlY0L0N1c3RvbWVyL0V4dHJhRGV0YWlscyJ9LCJzaG9wcGluZ0NhcnQiOm51bGwsIl90eXBlIjoiVjQvQ3VzdG9tZXIvQ3VzdG9tZXIifSwiYWNxdWlyZXJUcmFuc2llbnREYXRhIjp7fSwicGF5bWVudE1ldGhvZHMiOltdLCJzdWJNZXJjaGFudERldGFpbHMiOnsiY29tcGFueVR5cGUiOm51bGwsImxlZ2FsTnVtYmVyIjpudWxsLCJuYW1lIjpudWxsLCJ1cmwiOm51bGwsInBob25lTnVtYmVyIjpudWxsLCJhZGRyZXNzMSI6bnVsbCwiYWRkcmVzczIiOm51bGwsInppcCI6bnVsbCwiY2l0eSI6bnVsbCwiY291bnRyeSI6bnVsbCwibWNjIjpudWxsLCJtaWQiOm51bGwsInNvZnREZXNjcmlwdG9yIjpudWxsLCJmYWNpbGl0YXRvcklkIjpudWxsLCJzdGF0ZSI6bnVsbCwiX3R5cGUiOiJWNC9TdWJNZXJjaGFudERldGFpbHMifSwicmV0dXJuTW9kZSI6bnVsbCwicmV0dXJuVXJsIjpudWxsLCJjYW5jZWxVcmwiOm51bGwsInN1Y2Nlc3NVcmwiOm51bGwsInJlZnVzZWRVcmwiOm51bGwsImVycm9yVXJsIjpudWxsLCJwb3N0V2FsbGV0VXJsIjpudWxsLCJpcG5UYXJnZXRVcmwiOm51bGwsInJlZGlyZWN0U3VjY2Vzc1RpbWVvdXQiOm51bGwsInJlZGlyZWN0RXJyb3JUaW1lb3V0IjpudWxsLCJfdHlwZSI6IlY0L1BheW1lbnRPcmRlciJ9LCJ0aWNrZXQiOiJmMDgwZGU5NjY1MDM0Mjg0OWYxYmUwNjIzMWQwNzM2MSIsInNlcnZlckRhdGUiOiIyMDIyLTEyLTEzVDIyOjU4OjAwKzAwOjAwIiwiYXBwbGljYXRpb25Qcm92aWRlciI6Ik9TQiIsIm1ldGFkYXRhIjpudWxsLCJtb2RlIjoiVEVTVCIsInNlcnZlclVybCI6Imh0dHBzOi8vYXBpLnNlY3VyZS5vc2IucGYiLCJfdHlwZSI6IlY0L1dlYlNlcnZpY2UvUmVzcG9uc2UifQ==
+  recorded_at: Tue, 13 Dec 2022 22:58:00 GMT
+recorded_with: VCR 6.1.0

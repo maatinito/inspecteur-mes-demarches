@@ -8,9 +8,11 @@ RSpec.describe Payzen::API do
   let(:reference) { 'my-reference' }
   let(:expiration_date) { nil }
   let(:customer) { nil }
+  let(:return_url) { nil }
+  let(:receipt_email) { nil }
 
   context 'create_url_order' do
-    subject { api.create_url_order(amount, reference, expiration_date:, customer:) }
+    subject { api.create_url_order(amount, reference, expiration_date:, customer:, return_url:, receipt_email:) }
 
     context 'minimal parameters', vcr: { cassette_name: 'payzen_create_url_order 1' } do
       it 'succeeds' do
@@ -64,6 +66,20 @@ RSpec.describe Payzen::API do
       let(:amount) { -1 }
       it 'should fail' do
         expect(subject[:errorCode]).to eql('INT_009')
+      end
+    end
+
+    context 'with return_url', vcr: { cassette_name: 'payzen_create_url_order 6' } do
+      let(:return_url) { 'https://www.mes-demarches.gov.pf' }
+      it 'succeeds' do
+        expect(subject).to include(returnUrl: return_url)
+      end
+    end
+
+    context 'with return_url', vcr: { cassette_name: 'payzen_create_url_order 7' } do
+      let(:receipt_email) { 'toto@tutu.com' }
+      it 'succeeds' do
+        expect(subject).to include(paymentReceiptEmail: receipt_email)
       end
     end
   end

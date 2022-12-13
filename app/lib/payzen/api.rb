@@ -16,12 +16,12 @@ module Payzen
       @password = password
     end
 
-    def create_url_order(amount, reference, expiration_date: nil, customer: nil, return_url: nil)
-      call(CREATE_ORDER, order(amount, reference, url_channel, expiration_date:, customer:, return_url:))
+    def create_url_order(amount, reference, expiration_date: nil, customer: nil, return_url: nil, receipt_email: nil)
+      call(CREATE_ORDER, order(amount, reference, url_channel, expiration_date:, customer:, return_url:, receipt_email:))
     end
 
-    def create_sms_order(amount, reference, phone, message, expiration_date: nil, customer: nil, return_url: nil)
-      call(CREATE_ORDER, order(amount, reference, sms_channel(phone, message), expiration_date:, customer:, return_url:))
+    def create_sms_order(amount, reference, phone, message, expiration_date: nil, customer: nil, return_url: nil, receipt_email: nil)
+      call(CREATE_ORDER, order(amount, reference, sms_channel(phone, message), expiration_date:, customer:, return_url:, receipt_email:))
     end
 
     def get_order(payzen_reference)
@@ -42,17 +42,17 @@ module Payzen
       }
     end
 
-    def order(amount, reference, channel, expiration_date:, customer:, return_url:)
+    def order(amount, reference, channel, expiration_date:, customer:, return_url:, receipt_email:)
       result = {
         amount:,
         currency: 'XPF',
         channelOptions: channel,
-        orderId: reference,
-        returnUrl: return_url
+        orderId: reference
       }
       result[:expirationDate] = expiration_date.iso8601 if expiration_date.present?
       result[:customer] = customer if customer.present?
       result[:returnUrl] = return_url if return_url.present?
+      result[:paymentReceiptEmail] = receipt_email if receipt_email.present?
       result
     end
 

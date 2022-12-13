@@ -1,0 +1,45 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://api.secure.osb.pf/api-payment/V4/Charge/CreatePaymentOrder
+    body:
+      encoding: UTF-8
+      string: '{"amount":10000,"currency":"XPF","channelOptions":{"channelType":"URL"},"orderId":"my-reference","returnUrl":"https://www.mes-demarches.gov.pf"}'
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+      Authorization:
+      - Basic ODUzODQ0MzI6dGVzdHBhc3N3b3JkX2lNSW11azFIR2ZhSEhjS04zZEpScjg1MFU5ZkJMVUpyOHFubTA3bzI4bldwNw==
+      Content-Type:
+      - application/json
+      Expect:
+      - ''
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Tue, 13 Dec 2022 22:57:59 GMT
+      Server:
+      - JBoss-EAP/7
+      X-Powered-By:
+      - Undertow/1
+      Set-Cookie:
+      - JSESSIONID=154E3Ff37791A3bd7cAfFbdc4b4C7adA6e36D8cF.vadapi01-tls-prod-fr-lyra;
+        path=/api-payment
+      Content-Type:
+      - application/json;charset=utf-8
+      Content-Length:
+      - '2204'
+      Vary:
+      - Accept-Encoding,User-Agent
+      Timing-Allow-Origin:
+      - "*"
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJ3ZWJTZXJ2aWNlIjoiQ2hhcmdlL0NyZWF0ZVBheW1lbnRPcmRlciIsInZlcnNpb24iOiJWNCIsImFwcGxpY2F0aW9uVmVyc2lvbiI6IjUuNDQuMiIsInN0YXR1cyI6IlNVQ0NFU1MiLCJhbnN3ZXIiOnsicGF5bWVudE9yZGVySWQiOiJiY2MxNzUwNDBiOWY0NTQxYTM2MWY1ZDA0MDE2MDBlYyIsInBheW1lbnRVUkwiOiJodHRwczovL3NlY3VyZS5vc2IucGYvdC91eGFsemlpaCIsInBheW1lbnRPcmRlclN0YXR1cyI6IlJVTk5JTkciLCJjcmVhdGlvbkRhdGUiOiIyMDIyLTEyLTEzVDIyOjU3OjU5KzAwOjAwIiwidXBkYXRlRGF0ZSI6bnVsbCwiYW1vdW50IjoxMDAwMCwiY3VycmVuY3kiOiJYUEYiLCJsb2NhbGUiOiJmcl9GUiIsInN0cm9uZ0F1dGhlbnRpY2F0aW9uIjoiQVVUTyIsIm9yZGVySWQiOiJteS1yZWZlcmVuY2UiLCJjaGFubmVsRGV0YWlscyI6eyJjaGFubmVsVHlwZSI6IlVSTCIsIm1haWxEZXRhaWxzIjpudWxsLCJzbXNEZXRhaWxzIjpudWxsLCJ3aGF0c0FwcERldGFpbHMiOm51bGwsIml2ckRldGFpbHMiOm51bGwsIl90eXBlIjoiVjQvQ2hhbm5lbERldGFpbHMifSwicGF5bWVudFJlY2VpcHRFbWFpbCI6bnVsbCwidGF4UmF0ZSI6bnVsbCwidGF4QW1vdW50IjpudWxsLCJleHBpcmF0aW9uRGF0ZSI6IjIwMjItMTItMTdUMDk6NTk6NTkrMDA6MDAiLCJ0cmFuc2FjdGlvbkRldGFpbHMiOnsiY2FyZERldGFpbHMiOnsibWFudWFsVmFsaWRhdGlvbiI6Ik5PIiwiY2FwdHVyZURlbGF5IjowLCJpbnN0YWxsbWVudE51bWJlciI6MCwiX3R5cGUiOiJWNC9DYXJkRGV0YWlscyJ9LCJfdHlwZSI6IlY0L1BheW1lbnRPcmRlclRyYW5zYWN0aW9uRGV0YWlscyJ9LCJkYXRhQ29sbGVjdGlvbkZvcm0iOmZhbHNlLCJhbGxvd0RDRkFtb3VudFVwZGF0ZSI6Ik5PTkUiLCJtZXJjaGFudENvbW1lbnQiOm51bGwsIm1lc3NhZ2UiOiJKZSByw6hnbGUgJWFtb3VudCUgcGFyIHBhaWVtZW50IHPDqWN1cmlzw6kgYXZhbnQgbGUgJWVuZF9kYXRlJSAoc2kgbGUgbGllbiBuZSBmb25jdGlvbm5lIHBhcywgY29waWVyIGwnVVJMIDogJXVybCUgKS4iLCJkZXNjcmlwdGlvbiI6bnVsbCwiZm9ybUFjdGlvbiI6IlBBWU1FTlQiLCJwYXltZW50TWV0aG9kVG9rZW4iOm51bGwsIm1ldGFkYXRhIjp7fSwiY3VzdG9tZXIiOnsiYmlsbGluZ0RldGFpbHMiOm51bGwsImVtYWlsIjpudWxsLCJyZWZlcmVuY2UiOm51bGwsInNoaXBwaW5nRGV0YWlscyI6bnVsbCwiZXh0cmFEZXRhaWxzIjp7ImJyb3dzZXJBY2NlcHQiOm51bGwsImZpbmdlclByaW50SWQiOm51bGwsImlwQWRkcmVzcyI6bnVsbCwiYnJvd3NlclVzZXJBZ2VudCI6bnVsbCwiX3R5cGUiOiJWNC9DdXN0b21lci9FeHRyYURldGFpbHMifSwic2hvcHBpbmdDYXJ0IjpudWxsLCJfdHlwZSI6IlY0L0N1c3RvbWVyL0N1c3RvbWVyIn0sImFjcXVpcmVyVHJhbnNpZW50RGF0YSI6e30sInBheW1lbnRNZXRob2RzIjpbXSwic3ViTWVyY2hhbnREZXRhaWxzIjp7ImNvbXBhbnlUeXBlIjpudWxsLCJsZWdhbE51bWJlciI6bnVsbCwibmFtZSI6bnVsbCwidXJsIjpudWxsLCJwaG9uZU51bWJlciI6bnVsbCwiYWRkcmVzczEiOm51bGwsImFkZHJlc3MyIjpudWxsLCJ6aXAiOm51bGwsImNpdHkiOm51bGwsImNvdW50cnkiOm51bGwsIm1jYyI6bnVsbCwibWlkIjpudWxsLCJzb2Z0RGVzY3JpcHRvciI6bnVsbCwiZmFjaWxpdGF0b3JJZCI6bnVsbCwic3RhdGUiOm51bGwsIl90eXBlIjoiVjQvU3ViTWVyY2hhbnREZXRhaWxzIn0sInJldHVybk1vZGUiOm51bGwsInJldHVyblVybCI6Imh0dHBzOi8vd3d3Lm1lcy1kZW1hcmNoZXMuZ292LnBmIiwiY2FuY2VsVXJsIjpudWxsLCJzdWNjZXNzVXJsIjpudWxsLCJyZWZ1c2VkVXJsIjpudWxsLCJlcnJvclVybCI6bnVsbCwicG9zdFdhbGxldFVybCI6bnVsbCwiaXBuVGFyZ2V0VXJsIjpudWxsLCJyZWRpcmVjdFN1Y2Nlc3NUaW1lb3V0IjpudWxsLCJyZWRpcmVjdEVycm9yVGltZW91dCI6bnVsbCwiX3R5cGUiOiJWNC9QYXltZW50T3JkZXIifSwidGlja2V0IjoiNjVmZjUyMjUwZjdkNDdkNGJiNzZiYjRmOGUzNzNhMzMiLCJzZXJ2ZXJEYXRlIjoiMjAyMi0xMi0xM1QyMjo1Nzo1OSswMDowMCIsImFwcGxpY2F0aW9uUHJvdmlkZXIiOiJPU0IiLCJtZXRhZGF0YSI6bnVsbCwibW9kZSI6IlRFU1QiLCJzZXJ2ZXJVcmwiOiJodHRwczovL2FwaS5zZWN1cmUub3NiLnBmIiwiX3R5cGUiOiJWNC9XZWJTZXJ2aWNlL1Jlc3BvbnNlIn0=
+  recorded_at: Tue, 13 Dec 2022 22:58:00 GMT
+recorded_with: VCR 6.1.0
