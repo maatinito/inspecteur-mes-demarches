@@ -83,7 +83,7 @@ module Payzen
         answer
       elsif response.code&.between?(401, 499)
         raise APIEntreprise::API::ResourceNotFound, response
-      elsif response.code == 0
+      elsif response.code.zero?
         raise APIEntreprise::API::ServiceUnavailable, response
       else
         raise APIEntreprise::API::RequestFailed, response
