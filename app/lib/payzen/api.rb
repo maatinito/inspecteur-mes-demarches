@@ -83,8 +83,9 @@ module Payzen
         answer
       elsif response.code&.between?(401, 499)
         raise APIEntreprise::API::ResourceNotFound, response
+      elsif response.code == 0
+        raise APIEntreprise::API::ServiceUnavailable, response
       else
-        Rails.logger.error("Unable to contact PayZen API: response code #{response.code} url=#{url} called with #{body}")
         raise APIEntreprise::API::RequestFailed, response
       end
     end
