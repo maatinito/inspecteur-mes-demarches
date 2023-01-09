@@ -19,7 +19,7 @@ class Publipostage < FieldChecker
     @mails = @mails.split(/\s*,\s*/) if @mails.is_a?(String)
     @champ_cible = @params[:champ_cible]
     @generate_docx = @params[:type_de_document]&.match?(/\.?docx?/i)
-    raise 'Modèle introuvable' unless File.exist?(@modele)
+    raise "Modèle #{@modele} introuvable" unless File.exist?(@modele)
     raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
 
     FileUtils.mkdir_p(OUTPUT_DIR)
