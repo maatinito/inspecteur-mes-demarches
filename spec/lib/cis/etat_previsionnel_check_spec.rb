@@ -24,7 +24,7 @@ RSpec.describe Cis::EtatPrevisionnelCheck do
           new_message(field, 'Erreur DN Conjoint', :message_dn, '1234567,1979-12-11'),
           new_message(field, 'Erreur DDN Conjoint', :message_date_de_naissance, '2464292,1979-12-12'),
           new_message(field, 'Erreur ActiviteVide', :message_colonnes_vides, 'activite'),
-          new_message(field, 'Erreur TropVieux', :message_age, '78'),
+          new_message(field, 'Erreur TropVieux', :message_age, '79'),
           new_message('Nombre de CIS demandés', '3', :message_cis_demandes, '11')
         ]
       end
