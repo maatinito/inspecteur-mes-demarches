@@ -12,9 +12,14 @@ module Daf
       super + %i[taches]
     end
 
+    def authorized_fields
+      super + %i[confirmation]
+    end
+
     def initialize(params)
       super
       @administration_naf = '8411Z'
+      @check_validation = Set['oui', 'true', '1', 1].include?(@params[:confirmation]&.downcase)
       @tasks = InspectorTask.create_tasks(@params[:taches])
       FileUtils.mkdir_p(DATA_DIR)
     end
@@ -43,39 +48,7 @@ module Daf
       company = field('Numéro Tahiti').etablissement
       return false unless company.present? && company.naf.split(' | ').any? { |naf| @administration_naf == naf }
 
-      user_email = @dossier.usager.email
-      case annotation('Agent administratif')&.value
-      when 'Non'
-        remove_user(user_email)
-        return false
-      when 'Oui'
-        add_valid_user(user_email)
-        return true
-      end
-      valid_users.include?(user_email)
-    end
-
-    def read_valid_users
-      filename = valid_user_file
-      return Set.new unless File.exist?(filename)
-
-      YAML.load_file(filename, permitted_classes: [Set])
-    end
-
-    def valid_user_file
-      "#{DATA_DIR}/valid_users.yml"
-    end
-
-    def valid_users
-      @valid_users ||= read_valid_users
-    end
-
-    def add_valid_user(email)
-      File.write(valid_user_file, YAML.dump(valid_users)) if valid_users.add?(email)
-    end
-
-    def remove_user(_user_email)
-      File.write(valid_user_file, YAML.dump(valid_users)) if valid_users.delete(email)
+      !@check_validation || annotation('Agent administratif')&.value == 'Oui'
     end
   end
 end
