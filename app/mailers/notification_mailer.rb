@@ -30,7 +30,7 @@ class NotificationMailer < ApplicationMailer
     @demarche = params[:demarche]
     @dossier_url = [ENV.fetch('GRAPHQL_HOST', nil), 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
     @message = params[:message].gsub(/\n\r?/, "<br>\n")
-    attachments[params[:filename]] = params[:file]
+    attachments[params[:filename]] = params[:file] if params[:file] && params[:filename]
     mail(to: recipients, subject: "#{SITE_NAME}: #{params[:subject]}")
   end
 
