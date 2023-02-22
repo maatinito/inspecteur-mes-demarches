@@ -134,13 +134,15 @@ module Payzen
     def get_order(order_id)
       begin
         order = @api.get_order(order_id)
-      rescue APIEntreprise::API::ServiceUnavailable
-        schedule_next_check
-      rescue APIEntreprise::API::Error => e
-        message = "Erreur réseau lors l'appel à PayZen"
+      rescue APIEntreprise::API::ServiceUnavailable => e
+        Rails.logger.error("Erreur réseau lors de la lecture de l'ordre de paiement #{order_id}: #{e.message}")
+        e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
+      rescue StandardError => e
+        message = "Erreur lors l'appel à PayZen"
         exception = "#{e.message}\n#{e.backtrace.select { |b| b.include?('/app/') }.first(7).join('\n')}"
         NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:, exception:).report_error.deliver_later
-        schedule_next_check
+      ensure
+        schedule_next_check unless order
       end
       order
     end
