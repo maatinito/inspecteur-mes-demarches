@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -39,6 +39,7 @@ jobs:
       - name: Run linters
         run: |
           bundle exec rake lint
+          bundle exec rake zeitwerk:check
 
 
   unit_tests:
