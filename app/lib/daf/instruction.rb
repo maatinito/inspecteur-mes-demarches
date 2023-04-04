@@ -49,7 +49,7 @@ module Daf
     end
 
     def ask_prepayment?
-      company = field('Numéro Tahiti').etablissement
+      company = field('Numéro Tahiti')&.etablissement
       company.blank? || company.naf.split(' | ').none? { |naf| @nafs_without_prepayment.include?(naf) }
     end
 

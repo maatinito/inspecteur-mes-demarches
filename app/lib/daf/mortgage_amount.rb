@@ -16,7 +16,7 @@ module Daf
 
     def process(demarche, dossier)
       super
-      return unless dossier_has_right_state && trigger_field_set && amount_not_set
+      return unless dossier_has_right_state && trigger_field_set
 
       amount = sum_of(:champs_source)
       return if amount.nil?
@@ -36,10 +36,6 @@ module Daf
 
     def dossier_has_right_state
       @states.include?(@dossier.state)
-    end
-
-    def amount_not_set
-      annotation(@params[:champ_cible])&.value.blank?
     end
 
     def trigger_field_set
