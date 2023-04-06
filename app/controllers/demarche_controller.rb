@@ -54,7 +54,7 @@ class DemarcheController < ApplicationController
   end
 
   def last_processed_configuration
-    Check.order('updated_at desc').joins(:messages).first.demarche.configuration
+    Check.order('updated_at desc').joins(:messages).first&.demarche&.configuration
   end
 
   def configuration_list
