@@ -10,11 +10,11 @@ module Payzen
     end
 
     def required_fields
-      %i[reference champ_montant champ_ordre_de_paiement message boutique cle_de_test cle]
+      %i[reference champ_ordre_de_paiement message boutique cle_de_test cle]
     end
 
     def authorized_fields
-      %i[etat_du_dossier quand_payé quand_demandé quand_expiré quand_gratuit mode_test champ_telephone sms]
+      %i[etat_du_dossier champ_montant montant quand_payé quand_demandé quand_expiré quand_gratuit mode_test champ_telephone sms]
     end
 
     def initialize(params)
@@ -38,8 +38,13 @@ module Payzen
 
       @reference_prefix = @params[:reference]
       @reference_prefix = 'md' if @reference_prefix.blank?
+      check_errors
+    end
+
+    def check_errors
       @errors << "l'attribut sms est obligatoire quand le champ 'champ_telephone' est donné." if @params[:champ_telephone].present? && @params[:sms].blank?
       @errors << "l'attribut champ_telephone est obligatoire quand le champ 'sms' est donné." if @params[:sms].present? && @params[:champ_telephone].blank?
+      @errors << "L'un des attributs champs_montant ou montant doit être renseigné" if @params[:montant].blank? && @params[:champ_montant].blank?
     end
 
     def must_check?(dossier)
@@ -53,7 +58,7 @@ module Payzen
       @dossier = dossier
       @demarche = demarche
 
-      montant = annotation(@params[:champ_montant])&.value
+      montant = annotation(@params[:champ_montant])&.value || @params[:montant]
       return if montant.blank?
 
       montant = montant.to_i
