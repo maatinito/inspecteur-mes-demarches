@@ -45,6 +45,8 @@ jobs:
   unit_tests:
     name: Unit tests
     runs-on: ubuntu-latest
+    env:
+      OFFICE_PATH: /bin/office
     services:
       postgres:
         image: postgres:12

@@ -118,6 +118,9 @@ GEM
     devise-i18n (1.10.2)
       devise (>= 4.8.0)
     diff-lcs (1.5.0)
+    docx (0.7.0)
+      nokogiri (~> 1.13, >= 1.13.0)
+      rubyzip (~> 2.0)
     domain_name (0.5.20190701)
       unf (>= 0.0.5, < 1.0.0)
     dotenv (2.8.1)
@@ -463,6 +466,7 @@ DEPENDENCIES
   delayed_job_web
   devise (~> 4.7)
   devise-i18n
+  docx
   dotenv-rails
   factory_bot_rails
   fugit

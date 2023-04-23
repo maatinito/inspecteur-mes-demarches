@@ -12,6 +12,7 @@ RSpec.describe Payzen::PaymentOrder do
   let(:demarche) { double(Demarche) }
   let(:controle) { FactoryBot.build :payment_order }
   let(:instructeur) { 'instructeur' }
+  
   let(:base_order) do
     {
       _type: 'V4/PaymentOrder',
@@ -61,9 +62,7 @@ RSpec.describe Payzen::PaymentOrder do
 
   before do
     allow(demarche).to receive(:instructeur).and_return(instructeur)
-    allow(ScheduledTask).to receive(:enqueue)
     allow(SendMessage).to receive(:send)
-    allow(SetAnnotationValue).to receive(:set_value).and_return(nil)
   end
 
   subject do

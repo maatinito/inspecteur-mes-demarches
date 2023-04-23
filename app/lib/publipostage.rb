@@ -64,6 +64,31 @@ class Publipostage < FieldChecker
     end
   end
 
+  def output_basename(row)
+    "#{OUTPUT_DIR}/#{build_filename(@params[:nom_fichier], row)}"
+  end
+
+  def generate_docx(output_file, row)
+    context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[()]/, '') }
+                 .transform_values { |v| [*v].map(&:to_s).join(',') }
+
+    template = Sablon.template(File.expand_path(@modele))
+    template.render_to_file output_file, context
+  end
+
+  def rows_from_champs(champs)
+    champs.map do |champ_source|
+      case champ_source.__typename
+      when 'PieceJustificativeChamp'
+        excel_to_rows(champ_source)
+      when 'RepetitionChamp'
+        bloc_to_rows(champ_source)
+      else
+        []
+      end
+    end.reduce(&:+)
+  end
+
   private
 
   def send_document(demarche, dossier, message, filename, file)
@@ -183,16 +208,7 @@ class Publipostage < FieldChecker
     champ_source_name = @params[:champ_source]
     return [@dossier] if champ_source_name.blank?
 
-    fields(champ_source_name).map do |champ_source|
-      case champ_source.__typename
-      when 'PieceJustificativeChamp'
-        excel_to_rows(champ_source)
-      when 'RepetitionChamp'
-        bloc_to_rows(champ_source)
-      else
-        []
-      end
-    end.reduce(&:+)
+    rows_from_champs(fields(champ_source_name))
   end
 
   def dossiers_have_right_state?(dossier, target)
@@ -235,18 +251,15 @@ class Publipostage < FieldChecker
   end
 
   def generate_doc(row)
-    basename = "#{OUTPUT_DIR}/#{build_filename(@params[:nom_fichier], row)}"
+    basename = output_basename(row)
     docx = "#{basename}.docx"
-
-    context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[()]/, '') }
-    template = Sablon.template(File.expand_path(@modele))
-    template.render_to_file docx, context
+    generate_docx(docx, row)
 
     return docx if @generate_docx
 
     stdout_str, stderr_str, status = Open3.capture3(ENV.fetch('OFFICE_PATH', nil), '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, docx)
     throw "Unable to convert #{docx} to pdf\n#{stdout_str}#{stderr_str}" if status != 0
-    File.delete(docx)
+    delete(docx)
     "#{basename}.pdf"
   end
 
@@ -254,7 +267,7 @@ class Publipostage < FieldChecker
     result = { 'Dossier' => @dossier.number }
     definitions.each do |definition|
       column, field, par_defaut = load_definition(definition)
-      result[column] = [*get_values_of(row, column, field, par_defaut)].join(',')
+      result[column] = get_values_of(row, column, field, par_defaut)
     end
     result
   end
@@ -333,7 +346,11 @@ class Publipostage < FieldChecker
   def combine_one(files, &)
     File.open(files[0], 'r', &)
   ensure
-    File.delete(files[0])
+    delete(files[0])
+  end
+
+  def delete(file)
+    File.delete(file)
   end
 
   def combine_pdf(files)
@@ -342,7 +359,7 @@ class Publipostage < FieldChecker
       pdf = CombinePDF.new
       files.each { |path| pdf << CombinePDF.load(path) }
       pdf.save f
-      files.each { |path| File.delete(path) }
+      files.each { |path| delete(path) }
       f.rewind
       yield f
     end
@@ -355,7 +372,7 @@ class Publipostage < FieldChecker
           zipfile.add(filename, filename)
         end
       end
-      files.each { |path| File.delete(path) }
+      files.each { |path| delete(path) }
       yield f
     end
   end

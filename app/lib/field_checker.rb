@@ -138,7 +138,7 @@ class FieldChecker < InspectorTask
   end
 
   def champs_to_values(champs)
-    champs.map(&method(:champ_value)).compact.select(&:present?)
+    champs.flat_map(&method(:champ_value)).compact.select(&:present?)
   end
 
   def champ_value(champ)
