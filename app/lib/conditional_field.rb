@@ -11,7 +11,7 @@ class ConditionalField < FieldChecker
 
   def initialize(params)
     super
-    init_controls
+    init_controls if valid?
   end
 
   def process(demarche, dossier)

@@ -6,6 +6,7 @@ FactoryBot.define do
     champ_montant_theorique { 'Montant théorique' }
     champ_commande_prete { 'Recherche terminée' }
     champ_commande_gratuite { 'Administration' }
+    champ_agent { 'Agent administratif' }
 
     initialize_with { Daf::ActCopyAmount.new(attributes) }
   end
