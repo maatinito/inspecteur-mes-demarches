@@ -21,22 +21,22 @@ RSpec.describe Publipostage do
     controle
   end
 
-  context 'valid control' do
+  context 'initialization' do
     let(:controle) { FactoryBot.build :publipostage, :docx, :store_to_field }
     it 'should be valid' do
       expect(controle.valid?).to be_truthy
     end
   end
 
-  context 'store docx to root field' do
+  context 'generate docx' do
     let(:generated_path) { "tmp/publipost/publipostage #{dossier_nb}.docx" }
     before do
       allow(controle).to receive(:delete)
-      allow(SetAnnotationValue).to receive(:set_piece_justificative)
+      expect(SetAnnotationValue).to receive(:set_piece_justificative_on_annotation)
     end
     after { FileUtils.rm_f(generated_path) }
 
-    context 'with perfect variables' do
+    context 'on root field from dossier' do
       let(:controle) { FactoryBot.build :publipostage, :docx, :store_to_field }
       it 'generate docx', vcr: { cassette_name: 'publipostage-1' } do
         subject
@@ -44,6 +44,30 @@ RSpec.describe Publipostage do
         doc = Docx::Document.open(generated_path)
         expect(doc.to_html).to include('NAVIRE')
         expect(doc.to_html).to include('05/05/2023')
+      end
+    end
+
+    context 'on repetition field from repetition' do
+      let(:controle) { FactoryBot.build :publipostage, :docx, :on_repetition }
+      it 'generate docx', vcr: { cassette_name: 'publipostage-1' } do
+        subject
+
+        doc = Docx::Document.open(generated_path).to_html
+        expect(doc).to include('NAVIRE')
+        expect(doc).to include('05/05/2023')
+        expect(doc).to include('MOTIF')
+      end
+    end
+
+    context 'on root field from repetition' do
+      let(:controle) { FactoryBot.build :publipostage, :docx, :on_repetition, :store_to_field }
+      it 'generate docx', vcr: { cassette_name: 'publipostage-1' } do
+        subject
+
+        doc = Docx::Document.open(generated_path).to_html
+        expect(doc).to include('NAVIRE')
+        expect(doc).to include('05/05/2023')
+        expect(doc).to include('MOTIF')
       end
     end
   end

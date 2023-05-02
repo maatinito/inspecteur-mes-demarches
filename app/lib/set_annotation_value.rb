@@ -21,15 +21,19 @@ class SetAnnotationValue
   def self.set_piece_justificative(md_dossier, instructeur_id, annotation_name, path, filename = File.basename(path))
     annotation = get_annotation(md_dossier, annotation_name)
     if annotation.present?
-      old_checksum = annotation.file&.checksum
-      new_checksum = FileUpload.checksum(path)
-      different_file = old_checksum != new_checksum
-      if different_file
-        attachment = FileUpload.upload_file(md_dossier.id, path, filename, new_checksum)
-        raw_set_piece_justificative(md_dossier.id, instructeur_id, annotation.id, attachment)
-      end
+      set_piece_justificative_on_annotation(md_dossier, instructeur_id, annotation, path, filename)
     else
       throw "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}"
+    end
+  end
+
+  def self.set_piece_justificative_on_annotation(md_dossier, instructeur_id, annotation, path, filename)
+    old_checksum = annotation.file&.checksum
+    new_checksum = FileUpload.checksum(path)
+    different_file = old_checksum != new_checksum
+    if different_file
+      attachment = FileUpload.upload_file(md_dossier.id, path, filename, new_checksum)
+      raw_set_piece_justificative(md_dossier.id, instructeur_id, annotation.id, attachment)
     end
   end
 

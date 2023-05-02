@@ -21,6 +21,12 @@ FactoryBot.define do
       modele { 'spec/fixtures/publipostage_with_errors.docx' }
     end
 
+    trait :on_repetition do
+      champ_source { 'Bloc' }
+      champ_cible { 'Publipostage' }
+      champs { ['Navire', "Date d'arrivée", "Motif"] }
+    end
+
     initialize_with { Publipostage.new(attributes) }
   end
 end

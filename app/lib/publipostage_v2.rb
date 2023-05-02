@@ -7,9 +7,8 @@ class PublipostageV2 < Publipostage
 
   def generate_docx(output_file, fields)
     doc = Docx::Document.open(@modele)
-    tables = doc.tables.select { |table| fields.key?(table.xpath('w:tblPr/w:tblCaption/@w:val').text) }
-    tables.each do |table|
-      fill_table(table, fields)
+    doc.tables.each do |table|
+      process_table(table, fields)
     end
     paragraph_substitution(doc, fields)
 
@@ -28,35 +27,42 @@ class PublipostageV2 < Publipostage
     end
   end
 
-  def fill_table(table, fields)
+  def process_table(table, fields)
     field = table.xpath('w:tblPr/w:tblCaption/@w:val').text
-    last_row = table.rows.last
-    if fields.key?(field) && fields[field].is_a?(Array)
-      fields[field].each do |line|
-        insert_row_before(last_row, line)
-      end
-      last_row.remove!
+    if field.present?
+      fill_table(table, fields, field)
     else
-      keys = row.keys.join(',')
-      lists = row.keys.select { |_k, v| v.is_a?(Array) }.join(',')
-      table.insert_text_after("La table a pour titre #{field} mais aucun champ contenant une liste porte ce nom. Clés disponibles: #{keys}, listes disponibles: #{lists}")
+      table_substitution(table, fields)
     end
   end
 
-  def insert_row_before(last_row, line)
-    line = line.transform_keys { |k| "--#{k}--" }.transform_values(&:to_s)
+  def fill_table(table, fields, field)
+    last_row = table.rows.last
+    if fields.key?(field) && fields[field].is_a?(Array)
+      fields[field].each do |sub_fields|
+        insert_row_before(last_row, sub_fields)
+      end
+      last_row.remove!
+    else
+      keys = fields.keys.join(',')
+      p = table.rows[0]&.cells[0]&.paragraphs[0]&.text_runs[0]
+      p&.text = "La table a pour titre #{field} mais aucun champ contenant une liste porte ce nom. Clés disponibles: #{keys}"
+    end
+  end
+
+  def table_substitution(table, fields)
+    table.rows.each do |row|
+      row.cells.each do |cell|
+        paragraph_substitution(cell, fields)
+      end
+    end
+  end
+
+  def insert_row_before(last_row, sub_fields)
     row = last_row.copy
     row.insert_before(last_row)
     row.cells.each do |cell|
-      cell.paragraphs.each do |paragraph|
-        paragraph.each_text_run do |tr|
-          next unless tr.text.include?('--')
-
-          line.each do |k, v|
-            tr.substitute(k, v)
-          end
-        end
-      end
+      paragraph_substitution(cell, sub_fields)
     end
   end
 

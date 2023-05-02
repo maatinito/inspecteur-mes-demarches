@@ -50,18 +50,37 @@ class Publipostage < FieldChecker
     paths = rows.filter_map do |row|
       compute_dynamic_fields(row)
       fields = get_fields(row, params[:champs])
-      generate_doc(fields) unless same_document(fields)
+      next if same_document(fields)
+
+      path = generate_doc(fields)
+      send_if_target_field_is_in_current_row(demarche, dossier, row, path)
     end
     return unless paths.present?
 
+    annotation = dossier_annotations(target, @champ_cible)&.first
     combine(paths) do |file, batch_number|
-      body = instanciate(@params[:message])
-      timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
-      filename = build_filename(@params[:nom_fichier_lot] || @params[:nom_fichier],
-                                { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(file)
-      send_document(demarche, target, body, filename, file)
-      dossier_updated(@dossier) # to prevent infinite check
+      send_document(demarche, target, annotation, file, batch_number)
     end
+  end
+
+  def send_if_target_field_is_in_current_row(demarche, dossier, row, path)
+    annotation = dossier_fields(row, @champ_cible, warn_if_empty: false)
+    return path unless annotation.present?
+
+    # store generated document on current repetition
+    send_document(demarche, dossier, annotation, path, 1)
+  end
+
+  def send_document(demarche, target, annotation, file, batch_number)
+    body = instanciate(@params[:message])
+    timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
+    filename = build_filename(@params[:nom_fichier_lot] || @params[:nom_fichier],
+                              { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(file)
+    send_mail(demarche, target, file, filename, body) if @mails.present?
+    SetAnnotationValue.set_piece_justificative_on_annotation(target, instructeur_id_for(demarche, dossier), annotation, file, filename) if annotation.present?
+    SendMessage.send_with_file(target, instructeur_id_for(demarche, dossier), message, file, filename) unless @champ_cible.present? || @mails.present?
+    dossier_updated(@dossier) # to prevent infinite checks
+    nil
   end
 
   def output_basename(row)
@@ -90,15 +109,6 @@ class Publipostage < FieldChecker
   end
 
   private
-
-  def send_document(demarche, dossier, message, filename, file)
-    if @champ_cible.present? || @mails.present?
-      send_mail(demarche, dossier, file, filename, message) if @mails.present?
-      SetAnnotationValue.set_piece_justificative(dossier, instructeur_id_for(demarche, dossier), @champ_cible, file, filename) if @champ_cible.present?
-    else
-      SendMessage.send_with_file(dossier, instructeur_id_for(demarche, dossier), message, file, filename)
-    end
-  end
 
   def send_mail(demarche, dossier, file, filename, message)
     params = {
@@ -208,7 +218,7 @@ class Publipostage < FieldChecker
     champ_source_name = @params[:champ_source]
     return [@dossier] if champ_source_name.blank?
 
-    rows_from_champs(fields(champ_source_name))
+    rows_from_champs(fields(champ_source_name).presence || annotations(champ_source_name))
   end
 
   def dossiers_have_right_state?(dossier, target)

@@ -12,7 +12,7 @@ RSpec.describe PublipostageV2 do
     allow(demarche).to receive(:instructeur).and_return(instructeur)
     allow(SendMessage).to receive(:send)
     allow(controle).to receive(:instructeur_id_for).and_return(1)
-    file = "storage/publipost/#{dossier_nb}/publipostage #{dossier_nb}.yml"
+    file = "storage/publipost/#{dossier_nb}/publipostage v2 #{dossier_nb}.yml"
     FileUtils.rm_f(file)
   end
 
@@ -31,8 +31,9 @@ RSpec.describe PublipostageV2 do
   context 'store docx to root field' do
     let(:generated_path) { "tmp/publipost/publipostage v2 #{dossier_nb}.docx" }
     before do
+      FileUtils.rm_f(generated_path)
       allow(controle).to receive(:delete)
-      allow(SetAnnotationValue).to receive(:set_piece_justificative)
+      expect(SetAnnotationValue).to receive(:set_piece_justificative_on_annotation)
     end
     after { FileUtils.rm_f(generated_path) }
 
@@ -66,10 +67,13 @@ RSpec.describe PublipostageV2 do
         expect(doc.to_html).to include('NAVIRE')
         expect(doc.to_html).to include('05/05/2023')
         expect(doc.tables.size).to eq(2)
-        expect(doc.tables[0].rows.map { |row| row.cells.map(&:text) }).to eq([['Libellé des produits', 'Poids', 'Code'], ['Libellé : --Libellé des produits--', '--Poids--', '--Mauvais Code--']])
-        expect(doc.tables[1].rows.map do |row|
-          row.cells.map(&:text)
-        end).to eq([['Libellé des produits', 'Poids', 'Code'], ['Cuisses de poulets', '314.0', '--Mauvais Code--'], ['Porc', '333.0', '--Mauvais Code--']])
+        expect(doc.tables[0].rows.map { |row| row.cells.map(&:text) })
+          .to eq([["La table a pour titre Produits mais aucun champ contenant une liste porte ce nom. Clés disponibles: Dossier,Navire,Date d'arrivée,Produits 1,Produits 2,#checksum", 'Poids', 'Code'],
+                  ['Libellé : --Libellé des produits--', '--Poids--', '--Mauvais Code--']])
+        expect(doc.tables[1].rows.map { |row| row.cells.map(&:text) })
+          .to eq([['Libellé des produits', 'Poids', 'Code'],
+                  ['Cuisses de poulets', '314.0', '--Mauvais Code--'],
+                  ['Porc', '333.0', '--Mauvais Code--']])
       end
     end
   end
