@@ -2,7 +2,7 @@
 
 class ConditionalField < FieldChecker
   def version
-    super + @controls.values.flatten.map(&:version).reduce(&:+) + 2
+    super + @controls.values.flatten.map(&:version).reduce(0, &:+) + 2
   end
 
   def required_fields

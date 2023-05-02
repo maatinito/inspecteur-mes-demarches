@@ -167,6 +167,8 @@ class VerificationService
         .where.not(version: control.version)
         .where(checker: control.name)
     end
+    return [] unless conditions.present?
+
     conditions
       .reduce { |c1, c2| c1.or(c2) }
       .where(demarche: [*@procedure['demarches']])
