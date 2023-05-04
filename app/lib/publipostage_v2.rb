@@ -31,9 +31,8 @@ class PublipostageV2 < Publipostage
     field = table.xpath('w:tblPr/w:tblCaption/@w:val').text
     if field.present?
       fill_table(table, fields, field)
-    else
-      table_substitution(table, fields)
     end
+    table_substitution(table, fields)
   end
 
   def fill_table(table, fields, field)
