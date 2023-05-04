@@ -149,8 +149,10 @@ class FieldChecker < InspectorTask
     return champ unless champ.respond_to?(:__typename) # direct value
 
     case champ.__typename
-    when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp', 'CiviliteChamp'
+    when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp'
       champ.value || ''
+    when 'CiviliteChamp'
+      champ.value&.to_s || ''
     when 'MultipleDropDownListChamp'
       champ.values
     when 'LinkedDropDownListChamp'
@@ -163,10 +165,12 @@ class FieldChecker < InspectorTask
       champ.value
     when 'NumeroDnChamp'
       "#{champ.numero_dn}|#{champ.date_de_naissance}"
-    when 'DossierLinkChamp', 'SiretChamp'
+    when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp'
       champ.string_value
     when 'PieceJustificativeChamp'
       champ&.file&.filename
+    when 'TitreIdentiteChamp'
+      "Titre d'identité"
     else
       throw "Unknown field type #{champ.label}:#{champ.__typename}"
     end
