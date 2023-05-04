@@ -143,13 +143,15 @@ class FieldChecker < InspectorTask
 
   def champ_value(champ)
     return nil unless champ
-
     return champ.strftime('%d/%m/%Y') if champ.is_a?(Date)
-
     return champ unless champ.respond_to?(:__typename) # direct value
 
+    graphql_champ_value(champ)
+  end
+
+  def graphql_champ_value(champ)
     case champ.__typename
-    when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp'
+    when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp', 'CheckboxChamp'
       champ.value || ''
     when 'CiviliteChamp'
       champ.value&.to_s || ''
@@ -161,8 +163,6 @@ class FieldChecker < InspectorTask
       date_value(champ, '%d/%m/%Y %H:%M')
     when 'DateChamp'
       date_value(champ, '%d/%m/%Y')
-    when 'CheckboxChamp'
-      champ.value
     when 'NumeroDnChamp'
       "#{champ.numero_dn}|#{champ.date_de_naissance}"
     when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp'

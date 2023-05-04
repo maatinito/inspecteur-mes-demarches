@@ -29,9 +29,7 @@ class PublipostageV2 < Publipostage
 
   def process_table(table, fields)
     field = table.xpath('w:tblPr/w:tblCaption/@w:val').text
-    if field.present?
-      fill_table(table, fields, field)
-    end
+    fill_table(table, fields, field) if field.present?
     table_substitution(table, fields)
   end
 
@@ -44,7 +42,7 @@ class PublipostageV2 < Publipostage
       last_row.remove!
     else
       keys = fields.keys.join(',')
-      p = table.rows[0]&.cells[0]&.paragraphs[0]&.text_runs[0]
+      p = table.rows[0]&.cells&.[](0)&.paragraphs&.[](0)&.text_runs&.[](0)
       p&.text = "La table a pour titre #{field} mais aucun champ contenant une liste porte ce nom. Clés disponibles: #{keys}"
     end
   end

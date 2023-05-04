@@ -31,10 +31,10 @@ class SetAnnotationValue
     old_checksum = annotation.file&.checksum
     new_checksum = FileUpload.checksum(path)
     different_file = old_checksum != new_checksum
-    if different_file
-      attachment = FileUpload.upload_file(md_dossier.id, path, filename, new_checksum)
-      raw_set_piece_justificative(md_dossier.id, instructeur_id, annotation.id, attachment)
-    end
+    return unless different_file
+
+    attachment = FileUpload.upload_file(md_dossier.id, path, filename, new_checksum)
+    raw_set_piece_justificative(md_dossier.id, instructeur_id, annotation.id, attachment)
   end
 
   def self.allocate_blocks(md_dossier, instructeur_id, annotation_name, block_count)
