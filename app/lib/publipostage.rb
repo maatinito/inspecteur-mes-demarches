@@ -19,6 +19,7 @@ class Publipostage < FieldChecker
     @mails = @mails.split(/\s*,\s*/) if @mails.is_a?(String)
     @champ_cible = @params[:champ_cible]
     @generate_docx = @params[:type_de_document]&.match?(/\.?docx?/i)
+    @if_field_set = @params[:si_presence_champ]
     raise "Modèle #{@modele} introuvable" unless File.exist?(@modele)
     raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
 
@@ -32,7 +33,7 @@ class Publipostage < FieldChecker
   end
 
   def authorized_fields
-    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost destinataires champ_cible type_de_document]
+    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost destinataires champ_cible type_de_document si_presence_champ]
   end
 
   def must_check?(dossier)
@@ -48,6 +49,8 @@ class Publipostage < FieldChecker
     init_calculs
 
     paths = rows.filter_map do |row|
+      next unless trigger_field_set(row)
+
       compute_dynamic_fields(row)
       fields = get_fields(row, params[:champs])
       next if same_document(fields)
@@ -61,6 +64,10 @@ class Publipostage < FieldChecker
     combine(paths) do |file, batch_number|
       send_document(demarche, target, annotation, file, batch_number)
     end
+  end
+
+  def trigger_field_set(row)
+    @if_field_set.blank? || get_values_of(row, @if_field_set, @if_field_set)&.find(&:present?)
   end
 
   def send_if_target_field_is_in_current_row(demarche, dossier, row, path)
@@ -78,7 +85,7 @@ class Publipostage < FieldChecker
                               { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(file)
     send_mail(demarche, target, file, filename, body) if @mails.present?
     SetAnnotationValue.set_piece_justificative_on_annotation(target, instructeur_id_for(demarche, dossier), annotation, file, filename) if annotation.present?
-    SendMessage.send_with_file(target, instructeur_id_for(demarche, dossier), message, file, filename) unless @champ_cible.present? || @mails.present?
+    SendMessage.send_with_file(target, instructeur_id_for(demarche, dossier), body, file, filename) unless @champ_cible.present? || @mails.present?
     dossier_updated(@dossier) # to prevent infinite checks
     nil
   end
