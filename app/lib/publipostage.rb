@@ -166,9 +166,9 @@ class Publipostage < FieldChecker
   end
 
   def excel_to_rows(champ_source)
-    PieceJustificativeCache.get(champ_source.file) do |file|
-      next if File.extname(file) != '.xlsx'
+    return nil if champ_source.file.blank? || File.extname(champ_source.file.filename) != '.xlsx'
 
+    PieceJustificativeCache.get(champ_source.file) do |file|
       xlsx = Roo::Spreadsheet.open(file)
       sheet = xlsx.sheet(0)
       header_line = header_line(sheet)
