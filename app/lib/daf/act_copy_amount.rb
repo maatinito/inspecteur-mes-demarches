@@ -16,7 +16,7 @@ module Daf
 
     def process(demarche, dossier)
       super
-      return if dossier.state == 'en_construction' || order_not_ready || amount_already_set
+      return if dossier.state != 'en_instruction' || order_not_ready || amount_already_set
 
       dossier.annotations.each do |champ|
         process_orders(demarche, dossier, champ) if champ.__typename == 'RepetitionChamp'
@@ -96,7 +96,7 @@ module Daf
       if pages.zero?
         0
       else
-        pages >= 25 ? 600 + ((pages - 25) * 30) : 300
+        pages >= 25 ? 300 + ((pages - 25) * 30) : 300
       end
     end
   end
