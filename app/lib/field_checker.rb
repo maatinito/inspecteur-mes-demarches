@@ -144,6 +144,7 @@ class FieldChecker < InspectorTask
   def champ_value(champ)
     return nil unless champ
     return champ.strftime('%d/%m/%Y') if champ.is_a?(Date)
+    return champ.to_s if champ.is_a? GraphQL::Client::Schema::EnumType::EnumValue
     return champ unless champ.respond_to?(:__typename) # direct value
 
     graphql_champ_value(champ)
