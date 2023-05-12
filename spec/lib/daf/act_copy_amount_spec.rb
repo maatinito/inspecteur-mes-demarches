@@ -53,32 +53,43 @@ RSpec.describe Daf::ActCopyAmount do
     end
   end
 
-  context 'dossier ready, administration field set', vcr: { cassette_name: 'daf_act_copy_amount_2' } do
-    let(:dossier_nb) { 338_610 }
+  context 'dossier ready', vcr: { cassette_name: 'daf_act_copy_amount_2' } do
+    let(:dossier_nb) { 342_049 }
     let(:repetition) { dossier.annotations.find { |champ| champ.__typename == 'RepetitionChamp' } }
     let(:page_field) { repetition.champs.find { |champ| champ.__typename == 'IntegerNumberChamp' } }
 
-    context "and instructor didn't say user is agent" do
-      it 'amount to pay should be normal' do
-        # field = controle.dossier_field(dossier, controle.params[:champ_commande_gratuite])
-        # expect(field).to receive(:value).and_return('DOM')
+    context 'and administration field set' do
+      it 'amount to pay should be 0' do
+        field = controle.dossier_field(dossier, controle.params[:champ_commande_gratuite])
+        expect(field).to receive(:value).and_return('BDA')
 
         expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
-        expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], amount)
-        expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 4)
+        expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], 0)
+        expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 2)
         subject
       end
     end
 
-    context 'and instructor said user is agent' do
-      it 'amount to pay should be 0' do
-        field = controle.dossier_annotations(dossier, controle.params[:champ_agent])&.first
-        expect(field).to receive(:value).and_return('Oui')
+    context 'and administration field not set' do
+      context 'and Paiement administratif not set' do
+        it 'amount to pay should not be 0' do
+          expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
+          expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], amount)
+          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 2)
+          subject
+        end
+      end
 
-        expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
-        expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], 0)
-        expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 4)
-        subject
+      context 'and Paiement administratif set' do
+        it 'amount to pay should be 0' do
+          field = controle.dossier_annotations(dossier, controle.params[:champ_administration_gratuite])&.first
+          expect(field).to receive(:value).and_return('Debet')
+
+          expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
+          expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], 0)
+          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 2)
+          subject
+        end
       end
     end
   end
