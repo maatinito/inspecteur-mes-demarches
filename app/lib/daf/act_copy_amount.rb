@@ -11,7 +11,7 @@ module Daf
     end
 
     def authorized_fields
-      super + %i[champ_commande_gratuite champ_agent]
+      super + %i[champ_commande_gratuite champ_administration_gratuite]
     end
 
     def process(demarche, dossier)
@@ -29,9 +29,9 @@ module Daf
       amount = amount_for_repetition(repetition)
       SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant_theorique], amount)
 
-      commande_gratuite = @params.key?(:champ_commande_gratuite) && field(@params[:champ_commande_gratuite])&.value.present?
-      agent = @params.key?(:champ_agent) && annotation(@params[:champ_agent])&.value == 'Oui'
-      SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant], commande_gratuite && agent ? 0 : amount)
+      daf_gratuit = field(@params[:champ_commande_gratuite])&.value.present?
+      administration_gratuite = annotation(@params[:champ_administration_gratuite])&.value == 'Debet'
+      SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:champ_montant], daf_gratuit || administration_gratuite ? 0 : amount)
     end
 
     def amount_for_repetition(repetition)
