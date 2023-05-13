@@ -45,7 +45,7 @@ module Daf
     end
 
     def administration?
-      company = field('Numéro Tahiti').etablissement
+      company = field('Numéro Tahiti')&.etablissement
       return false unless company.present? && company.naf.split(' | ').any? { |naf| @administration_naf == naf }
 
       !@check_validation || annotation('Agent administratif')&.value == 'Oui'
