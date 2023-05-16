@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class InspectJob < CronJob
-  self.schedule_expression = 'every 10 minute'
+  self.schedule_expression = 'every 5 minute'
 
   MANUAL_SYNC = 'ManualSync'
 
