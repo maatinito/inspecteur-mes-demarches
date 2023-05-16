@@ -20,7 +20,7 @@ class PublipostageV2 < Publipostage
       p.each_text_run do |tr|
         next unless tr.text.include?('--')
 
-        fields.each do |k, v|
+        [*fields].each do |k, v|
           tr.substitute("--#{k}--", [*v].map(&:to_s).join(','))
         end
       end

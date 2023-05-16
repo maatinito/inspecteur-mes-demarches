@@ -14,7 +14,11 @@ class PieceJustificativeCache
         end
         maintenance
       end
-      yield pathname.to_s
+      if block_given?
+        yield pathname.to_s
+      else
+        pathname.to_s
+      end
     end
 
     def put(src)

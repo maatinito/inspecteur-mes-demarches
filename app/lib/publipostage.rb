@@ -18,8 +18,10 @@ class Publipostage < FieldChecker
     @mails = @params[:destinataires]
     @mails = @mails.split(/\s*,\s*/) if @mails.is_a?(String)
     @champ_cible = @params[:champ_cible]
+    @champ_source = @params[:champ_source]
     @generate_docx = @params[:type_de_document]&.match?(/\.?docx?/i)
     @if_field_set = @params[:si_presence_champ]
+    @annexe_field = [*@params[:champ_annexe]]
     raise "Modèle #{@modele} introuvable" unless File.exist?(@modele)
     raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
 
@@ -33,7 +35,7 @@ class Publipostage < FieldChecker
   end
 
   def authorized_fields
-    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost destinataires champ_cible type_de_document si_presence_champ]
+    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost destinataires champ_cible champ_annexe type_de_document si_presence_champ]
   end
 
   def must_check?(dossier)
@@ -71,8 +73,10 @@ class Publipostage < FieldChecker
   end
 
   def send_if_target_field_is_in_current_row(demarche, dossier, row, path)
+    return path if @champ_source.blank? || @champ_cible.blank?
+
     annotation = dossier_fields(row, @champ_cible, warn_if_empty: false)
-    return path unless annotation.present?
+    return path if annotation.blank?
 
     # store generated document on current repetition
     send_document(demarche, dossier, annotation, path, 1)
@@ -115,6 +119,22 @@ class Publipostage < FieldChecker
     end.reduce(&:+)
   end
 
+  def add_annexes(result_path)
+    annexes_champs = @annexe_field.flat_map { |name| object_field_values(@dossier, name, log_empty: false) }
+                                  .filter { |champ| champ.__typename == 'PieceJustificativeChamp' && champ.file.filename.end_with?('.pdf') }
+    pdfs = annexes_champs.flat_map(&method(:download))
+    if pdfs.present?
+      combine_pdf([result_path, *pdfs]) do |file|
+        IO.copy_stream(file, result_path)
+      end
+    end
+    result_path
+  end
+
+  def download(champ)
+    PieceJustificativeCache.get(champ.file) if champ.__typename == 'PieceJustificativeChamp'
+  end
+
   private
 
   def send_mail(demarche, dossier, file, filename, message)
@@ -137,13 +157,13 @@ class Publipostage < FieldChecker
     end
   end
 
-  def combine(paths)
+  def combine(paths, batch_size = BATCH_SIZE)
     size = 0
     batch = 0
     batch_files = []
     paths.each do |path|
       file_size = File.size(path)
-      if size + file_size > BATCH_SIZE && batch_files.size.positive?
+      if size + file_size > batch_size && batch_files.size.positive?
         batch += 1
         combine_batch(batch_files) { |combined_pdf| yield combined_pdf, batch }
         batch_files = []
@@ -166,7 +186,8 @@ class Publipostage < FieldChecker
   end
 
   def excel_to_rows(champ_source)
-    return nil if champ_source.file.blank? || File.extname(champ_source.file.filename) != '.xlsx'
+    return nil if champ_source.file.blank?
+    return champ_source.file.url if File.extname(champ_source.file.filename) != '.xlsx'
 
     PieceJustificativeCache.get(champ_source.file) do |file|
       xlsx = Roo::Spreadsheet.open(file)
@@ -222,10 +243,9 @@ class Publipostage < FieldChecker
   end
 
   def rows
-    champ_source_name = @params[:champ_source]
-    return [@dossier] if champ_source_name.blank?
+    return [@dossier] if @champ_source.blank?
 
-    rows_from_champs(fields(champ_source_name).presence || annotations(champ_source_name))
+    rows_from_champs(fields(@champ_source).presence || annotations(@champ_source))
   end
 
   def dossiers_have_right_state?(dossier, target)
@@ -277,7 +297,8 @@ class Publipostage < FieldChecker
     stdout_str, stderr_str, status = Open3.capture3(ENV.fetch('OFFICE_PATH', nil), '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, docx)
     throw "Unable to convert #{docx} to pdf\n#{stdout_str}#{stderr_str}" if status != 0
     delete(docx)
-    "#{basename}.pdf"
+
+    add_annexes("#{basename}.pdf")
   end
 
   def get_fields(row, definitions)
