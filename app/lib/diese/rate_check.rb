@@ -15,7 +15,7 @@ module Diese
       if @must_check_rate
         activity = activity_field
         @max_rates = RATES.dig(activity.primary_value, activity.secondary_value)
-        throw "Secteur inconnu #{activity.primary_value};#{activity.secondary_value} dans le dossier #{dossier.number}" if @max_rates.blank?
+        raise "Secteur inconnu #{activity.primary_value};#{activity.secondary_value} dans le dossier #{dossier.number}" if @max_rates.blank?
       end
       super
     end
@@ -49,17 +49,18 @@ module Diese
 
       value = line[:taux]
       value = value.to_f if value.is_a?(String)
-      throw "Mois inconnu dans le dossier #{dossier.number}" if month.blank?
+      raise "Mois inconnu dans le dossier #{dossier.number}" if month.blank?
+
       max_rate = @max_rates[month]
       value <= (max_rate / 100.0) ? true : "#{@params[:message_taux_depasse]}#{max_rate}%"
     end
 
     def must_check_rate
-      throw NotImplementedError.new("must_check_rate must be implemented by class #{self.class.name}")
+      raise NotImplementedError, "must_check_rate must be implemented by class #{self.class.name}"
     end
 
     def month
-      throw NotImplementedError.new("month must be implemented by class #{self.class.name}")
+      raise NotImplementedError, "month must be implemented by class #{self.class.name}"
     end
   end
 end

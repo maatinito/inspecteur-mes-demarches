@@ -30,7 +30,7 @@ module Cis
 
     def dossier_oa
       champ = dossier_field(dossier, @params[:champ_oa])
-      throw StandardError.new "Le champ #{@params[:champ_oa]} n'existe pas sur le dossier #{dossier.number}" if champ.blank?
+      raise StandardError, "Le champ #{@params[:champ_oa]} n'existe pas sur le dossier #{dossier.number}" if champ.blank?
       return unless champ.dossier.present? && @demarches_oa.include?(champ.dossier.demarche.number)
 
       champ.dossier
@@ -40,7 +40,7 @@ module Cis
 
     def update_candidats(candidats, dossier)
       dn_field = dossier_field(dossier, DN)
-      throw "Numero DN vide dans dossier #{dossier.number}" if dn_field.blank?
+      raise "Numero DN vide dans dossier #{dossier.number}" if dn_field.blank?
 
       dn = dn_field.numero_dn.to_i
       candidat = candidats[dn] = candidats[dn] || {}

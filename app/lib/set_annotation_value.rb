@@ -3,28 +3,24 @@
 class SetAnnotationValue
   def self.set_value(md_dossier, instructeur_id, annotation_name, value)
     annotation = get_annotation(md_dossier, annotation_name)
-    if annotation.present?
-      old_value = value_of(annotation)
-      different_value = old_value != value
-      if different_value
-        Rails.logger.info("Setting private annotation #{annotation_name} with #{value}")
-        raw_set_value(md_dossier.id, instructeur_id, annotation.id, value)
-      else
-        Rails.logger.info("Private annotation #{annotation_name} already set to #{value}")
-      end
-      different_value
+    raise "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}" unless annotation.present?
+
+    old_value = value_of(annotation)
+    different_value = old_value != value
+    if different_value
+      Rails.logger.info("Setting private annotation #{annotation_name} with #{value}")
+      raw_set_value(md_dossier.id, instructeur_id, annotation.id, value)
     else
-      throw "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}"
+      Rails.logger.info("Private annotation #{annotation_name} already set to #{value}")
     end
+    different_value
   end
 
   def self.set_piece_justificative(md_dossier, instructeur_id, annotation_name, path, filename = File.basename(path))
     annotation = get_annotation(md_dossier, annotation_name)
-    if annotation.present?
-      set_piece_justificative_on_annotation(md_dossier, instructeur_id, annotation, path, filename)
-    else
-      throw "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}"
-    end
+    raise "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}" unless annotation.present?
+
+    set_piece_justificative_on_annotation(md_dossier, instructeur_id, annotation, path, filename)
   end
 
   def self.set_piece_justificative_on_annotation(md_dossier, instructeur_id, annotation, path, filename)
@@ -39,16 +35,14 @@ class SetAnnotationValue
 
   def self.allocate_blocks(md_dossier, instructeur_id, annotation_name, block_count)
     annotation = get_annotation(md_dossier, annotation_name)
-    if annotation.present?
-      count = count_block_in(annotation.champs)
-      result = annotation
-      (count...block_count).each do
-        result = raw_add_block(md_dossier.id, instructeur_id, annotation.id)
-      end
-      result
-    else
-      throw "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}"
+    raise "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}" unless annotation.present?
+
+    count = count_block_in(annotation.champs)
+    result = annotation
+    (count...block_count).each do
+      result = raw_add_block(md_dossier.id, instructeur_id, annotation.id)
     end
+    result
   end
 
   def self.raw_set_value(dossier_id, instructeur_id, annotation_id, value)
@@ -61,7 +55,7 @@ class SetAnnotationValue
         client_mutation_id: 'set_value'
       })
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
-    throw errors.join(';') if errors.present?
+    raise errors.join(';') if errors.present?
   end
 
   def self.get_annotation(md_dossier, name)
@@ -77,7 +71,8 @@ class SetAnnotationValue
         client_mutation_id: 'add_block'
       })
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
-    throw errors.join(';') if errors.present?
+    raise errors.join(';') if errors.present?
+
     result.data.dossier_modifier_annotation_ajouter_ligne.annotation
   end
 
@@ -199,7 +194,7 @@ class SetAnnotationValue
     when TrueClass, FalseClass
       Queries::SetCheckBox
     else
-      throw "Unable to know which graphql request to call with value of type #{value.class.name}"
+      raise "Unable to know which graphql request to call with value of type #{value.class.name}"
     end
   end
 
@@ -213,7 +208,8 @@ class SetAnnotationValue
         client_mutation_id: 'set_value'
       })
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
-    throw errors.join(';') if errors.present?
+    raise errors.join(';') if errors.present?
+
     result.data
   end
 

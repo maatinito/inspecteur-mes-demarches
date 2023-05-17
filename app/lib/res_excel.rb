@@ -78,20 +78,19 @@ class ResExcel < FieldChecker
 
     champs.each do |champ|
       file = champ.file
-      if file.present?
-        filename = file.filename
-        url = file.url
-        extension = filename.match(/(\.[^.]+)$/)
-        extension &&= extension[1].downcase
-        if bad_extension(extension)
-          add_message(champ.label, file.filename, @params[:message_type_de_fichier])
-          next
-        end
-        check_file(champ, extension, url)
-      else
-        throw StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
-        # add_message(champ.label, '', @params[:message_champ_non_renseigne])
+      raise StandardError, "Le champ #{@params[:champ]} n'est pas renseigné" unless file.present?
+
+      filename = file.filename
+      url = file.url
+      extension = filename.match(/(\.[^.]+)$/)
+      extension &&= extension[1].downcase
+      if bad_extension(extension)
+        add_message(champ.label, file.filename, @params[:message_type_de_fichier])
+        next
       end
+      check_file(champ, extension, url)
+
+      # add_message(champ.label, '', @params[:message_champ_non_renseigne])
     end
   end
 

@@ -8,8 +8,8 @@ class NotificationMailer < ApplicationMailer
     @recipients = recipients
     @instructeur = params[:instructeur]
     @action = params[:state]
-    throw 'instructeur parameter required' if @instructeur.nil?
-    throw 'state parameter required' if @action.nil?
+    raise 'instructeur parameter required' if @instructeur.nil?
+    raise 'state parameter required' if @action.nil?
 
     mail(to: recipients, subject: "#{SITE_NAME}: Instructeur non répertorié sur dossier #{@dossier}")
   end

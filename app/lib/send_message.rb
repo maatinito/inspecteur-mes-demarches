@@ -30,12 +30,12 @@ class SendMessage
   end
 
   def self.handle_errors(result)
-    throw "Unable to send message on dossier #{result.errors.map(&:message).join(',')}" if result.errors.present?
+    raise "Unable to send message on dossier #{result.errors.map(&:message).join(',')}" if result.errors.present?
   end
 
   def self.already_posted(dossier_number, body)
     result = MesDemarches::Client.query(Query::Dossier, variables: { dossier: dossier_number })
-    throw "Unable to get dossier nb #{dossier_number}" if result.errors.present? || result.data.blank?
+    raise "Unable to get dossier nb #{dossier_number}" if result.errors.present? || result.data.blank?
 
     result.data&.dossier&.messages&.any? { |m| m&.body == body }
   end

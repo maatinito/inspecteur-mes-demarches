@@ -16,10 +16,10 @@ module Utils
   def initial_dossier
     if @initial_dossier.nil?
       initial_dossier_field = param_field(:champ_dossier)
-      throw "Impossible de trouver le dossier prévisionnel via le champ #{params[:champ_dossier]}" if initial_dossier_field.nil?
+      raise "Impossible de trouver le dossier prévisionnel via le champ #{params[:champ_dossier]}" if initial_dossier_field.nil?
 
       @initial_dossier = initial_dossier_field.dossier
-      throw "Mes-Démarche n'a pas retourné le sous-dossier #{initial_dossier_field.string_value} à partir du dossier #{dossier.number}" if @initial_dossier.nil?
+      raise "Mes-Démarche n'a pas retourné le sous-dossier #{initial_dossier_field.string_value} à partir du dossier #{dossier.number}" if @initial_dossier.nil?
     end
     @initial_dossier
   end

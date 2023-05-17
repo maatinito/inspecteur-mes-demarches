@@ -366,7 +366,8 @@ class VerificationService
 
   def inform_instructeur(md_dossier, instructeur_id, messages)
     annotation = md_dossier.annotations.find { |champ| champ.label == @inform_annotation }
-    throw "Unable to find information annotation named '#{@inform_annotation}'" if annotation.nil?
+    raise "Unable to find information annotation named '#{@inform_annotation}'" if annotation.nil?
+
     value = if annotation.__typename == 'CheckboxChamp'
               messages.present?
             else

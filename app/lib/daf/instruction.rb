@@ -74,7 +74,7 @@ module Daf
     end
 
     def check_presence(payment_management, section)
-      throw "La section paiement automatique doit contenir des taches pour #{section}: #{@params[payment_management]}" if @tasks[payment_management].key?(section)
+      raise "La section paiement automatique doit contenir des taches pour #{section}: #{@params[payment_management]}" if @tasks[payment_management].key?(section)
     end
 
     def init_nafs

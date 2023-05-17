@@ -14,8 +14,8 @@ class DemarcheActions
     result = MesDemarches::Client.query(MesDemarches::Queries::Demarche,
                                         variables: { demarche: demarche_number })
 
-    throw StandardError.new result.errors.messages.values.join(',') if result.errors.present?
-    throw StandardError.new "La démarche #{demarche_number} n'existe pas" if result&.data&.demarche.nil?
+    raise StandardError, result.errors.messages.values.join(',') if result.errors.present?
+    raise StandardError, "La démarche #{demarche_number} n'existe pas" if result&.data&.demarche.nil?
 
     result.data.demarche
   end
@@ -26,7 +26,7 @@ class DemarcheActions
                       else
                         gql_demarche.groupe_instructeurs.first.instructeurs.first
                       end
-    throw StandardError.new "Aucun instructeur #{instructeur_email} sur la demarche #{gql_demarche.number}" if gql_instructeur.nil?
+    raise StandardError, "Aucun instructeur #{instructeur_email} sur la demarche #{gql_demarche.number}" if gql_instructeur.nil?
 
     demarche = Demarche.find_or_create_by({ id: gql_demarche.number }) do |d|
       d.checked_at = EPOCH

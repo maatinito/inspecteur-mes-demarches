@@ -75,7 +75,7 @@ class Publipostage < FieldChecker
   def send_if_target_field_is_in_current_row(demarche, dossier, row, path)
     return path if @champ_source.blank? || @champ_cible.blank?
 
-    annotation = dossier_fields(row, @champ_cible, warn_if_empty: false)
+    annotation = dossier_fields(row, @champ_cible, warn_if_empty: false)&.first
     return path if annotation.blank?
 
     # store generated document on current repetition
@@ -87,9 +87,19 @@ class Publipostage < FieldChecker
     timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
     filename = build_filename(@params[:nom_fichier_lot] || @params[:nom_fichier],
                               { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(file)
-    send_mail(demarche, target, file, filename, body) if @mails.present?
-    SetAnnotationValue.set_piece_justificative_on_annotation(target, instructeur_id_for(demarche, dossier), annotation, file, filename) if annotation.present?
-    SendMessage.send_with_file(target, instructeur_id_for(demarche, dossier), body, file, filename) unless @champ_cible.present? || @mails.present?
+
+    if @mails.present?
+      Rails.logger.info("Sending file #{filename} by mail to #{@mails}")
+      send_mail(demarche, target, file, filename, body)
+    end
+    if annotation.present?
+      Rails.logger.info("Storing file #{filename} to private annotation #{annotation.label}")
+      SetAnnotationValue.set_piece_justificative_on_annotation(target, instructeur_id_for(demarche, dossier), annotation, file, filename)
+    end
+    unless @champ_cible.present? || @mails.present?
+      Rails.logger.info("Sending file #{filename} to user using MD message system")
+      SendMessage.send_with_file(target, instructeur_id_for(demarche, dossier), body, file, filename)
+    end
     dossier_updated(@dossier) # to prevent infinite checks
     nil
   end
@@ -124,6 +134,7 @@ class Publipostage < FieldChecker
                                   .filter { |champ| champ.__typename == 'PieceJustificativeChamp' && champ.file.filename.end_with?('.pdf') }
     pdfs = annexes_champs.flat_map(&method(:download))
     if pdfs.present?
+      Rails.logger.info("Adding annexes #{annexes_champs.flat_map(&:file).flat_map(&:filename).join(',')}")
       combine_pdf([result_path, *pdfs]) do |file|
         IO.copy_stream(file, result_path)
       end
@@ -133,6 +144,13 @@ class Publipostage < FieldChecker
 
   def download(champ)
     PieceJustificativeCache.get(champ.file) if champ.__typename == 'PieceJustificativeChamp'
+  end
+
+  def data_filename(fields)
+    datadir = "#{DATA_DIR}/#{@dossier.number}"
+    FileUtils.mkpath(datadir)
+    datafilename = @params[:nom_fichier].gsub(/\s*\{(horodatage|lot)\}/, '')
+    "#{datadir}/#{instanciate(datafilename, fields)}.yml"
   end
 
   private
@@ -264,13 +282,14 @@ class Publipostage < FieldChecker
   end
 
   def same_document(fields)
-    datadir = "#{DATA_DIR}/#{@dossier.number}"
-    FileUtils.mkpath(datadir)
-    datafilename = @params[:nom_fichier].gsub(/\s*\{(horodatage|lot)\}/, '')
-    datafile = "#{datadir}/#{instanciate(datafilename, fields)}.yml"
+    datafile = data_filename(fields)
     fields['#checksum'] = FileUpload.checksum(@modele)
     same = File.exist?(datafile) && YAML.load_file(datafile) == fields
-    File.write(datafile, YAML.dump(fields)) unless same
+    if same
+      Rails.logger.info('Ignoring publipost as input data coming from dossier is the same as before')
+    else
+      File.write(datafile, YAML.dump(fields)) unless same
+    end
     same
   end
 
@@ -290,12 +309,15 @@ class Publipostage < FieldChecker
   def generate_doc(row)
     basename = output_basename(row)
     docx = "#{basename}.docx"
+    Rails.logger.info("Generating docx template #{@modele}")
     generate_docx(docx, row)
 
     return docx if @generate_docx
 
+    Rails.logger.info('Converting docx to pdf')
     stdout_str, stderr_str, status = Open3.capture3(ENV.fetch('OFFICE_PATH', nil), '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, docx)
-    throw "Unable to convert #{docx} to pdf\n#{stdout_str}#{stderr_str}" if status != 0
+    raise "Unable to convert #{docx} to pdf\n#{stdout_str}#{stderr_str}" if status != 0
+
     delete(docx)
 
     add_annexes("#{basename}.pdf")

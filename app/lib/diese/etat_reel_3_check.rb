@@ -29,7 +29,7 @@ module Diese
 
     def retrieve_initial_dossier
       initial_dossier_field = field(INITIAL_DOSSIER_FIELD_NAME)
-      throw "Impossible de trouver le dossier prévisionnel via le champ #{INITIAL_DOSSIER_FIELD_NAME}" if initial_dossier_field.nil?
+      raise "Impossible de trouver le dossier prévisionnel via le champ #{INITIAL_DOSSIER_FIELD_NAME}" if initial_dossier_field.nil?
 
       dossier_number = initial_dossier_field.string_value&.to_i
       result = nil
@@ -38,7 +38,8 @@ module Diese
           result = dossier
         end
       end
-      throw "Mes-Démarche n'a pas retourné le sous-dossier #{initial_dossier_field.string_value} à partir du dossier #{dossier.number}" if result.nil?
+      raise "Mes-Démarche n'a pas retourné le sous-dossier #{initial_dossier_field.string_value} à partir du dossier #{dossier.number}" if result.nil?
+
       result
     end
 
@@ -66,13 +67,13 @@ module Diese
           start_month = mois2.value.blank? ? 11 : 12
         end
       end
-      throw "Le dossier initial #{dossier.number} n'a pas de champ permettant de connaitre le mois de démarrage de la mesure. (champ mois_1?)" if start_month.nil?
+      raise "Le dossier initial #{dossier.number} n'a pas de champ permettant de connaitre le mois de démarrage de la mesure. (champ mois_1?)" if start_month.nil?
 
       start_month = MONTHS.index(start_month) if start_month.is_a?(String)
       current_month = MONTHS.index(month.downcase)
-      throw "Impossible de reconnaitre les mois de démarrage (#{start_month})" if start_month.nil?
+      raise "Impossible de reconnaitre les mois de démarrage (#{start_month})" if start_month.nil?
 
-      throw "Impossible de reconnaitre les mois de l'etat en cours (#{month})" if current_month.nil?
+      raise "Impossible de reconnaitre les mois de l'etat en cours (#{month})" if current_month.nil?
 
       current_month += 12 if current_month < start_month
       current_month - start_month

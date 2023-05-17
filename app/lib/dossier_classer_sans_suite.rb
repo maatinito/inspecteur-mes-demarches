@@ -9,7 +9,8 @@ class DossierClasserSansSuite < DossierChangerEtat
   end
 
   def motivation
-    throw StandardError.new 'Aucune motivation indiqué pour le classement sans suite' unless @motivation.present?
+    raise StandardError, 'Aucune motivation indiqué pour le classement sans suite' unless @motivation.present?
+
     @motivation
   end
 
@@ -23,7 +24,7 @@ class DossierClasserSansSuite < DossierChangerEtat
         instructeurId: instructeur_id_for(demarche, dossier),
         motivation:
       })
-    throw StandardError.new result.errors if result.errors.present?
+    raise StandardError, result.errors if result.errors.present?
   end
 
   def required_fields

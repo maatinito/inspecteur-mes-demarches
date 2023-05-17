@@ -44,7 +44,7 @@ module Daf
 
     def check_count
       repetition = field(@params[:champ])
-      throw "Impossible de trouver le champ #{@params[:champ]} sur le dossier #{@dossier&.number}" if repetition.blank?
+      raise "Impossible de trouver le champ #{@params[:champ]} sur le dossier #{@dossier&.number}" if repetition.blank?
 
       label = repetition&.champs&.first&.label
       count = repetition.champs&.reduce(0) { |c, champ| champ.label == label ? c + 1 : c }

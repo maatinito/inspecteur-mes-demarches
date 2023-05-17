@@ -58,7 +58,7 @@ class ExcelCheck < FieldChecker
       end
       check_file(champ)
     else
-      # throw StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
+      # raise StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
       add_message(champ.label, '', @params[:message_champ_non_renseigne])
     end
   end

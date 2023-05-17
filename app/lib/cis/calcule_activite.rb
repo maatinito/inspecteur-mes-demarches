@@ -42,7 +42,7 @@ module Cis
         return get_activite_from_candidats(xlsx_file, numero_dn)
       rescue Roo::HeaderRowNotFoundError => e
         columns = e.message.gsub(%r{[/\[\]]}, '')
-        throw "Colonne(s) manquante(s) dans les données de consolidation: #{columns}"
+        raise "Colonne(s) manquante(s) dans les données de consolidation: #{columns}"
       end
     end
 

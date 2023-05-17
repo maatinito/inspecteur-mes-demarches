@@ -111,7 +111,7 @@ module Cis
         end
       rescue Roo::HeaderRowNotFoundError => e
         columns = e.message.gsub(%r{[/\[\]]}, '')
-        throw "Colonne(s) manquante(s) dans #{champ_etat.label} sur dossier #{@dossier.number}: #{columns}"
+        raise "Colonne(s) manquante(s) dans #{champ_etat.label} sur dossier #{@dossier.number}: #{columns}"
       end
     end
 

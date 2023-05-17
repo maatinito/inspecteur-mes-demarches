@@ -9,7 +9,8 @@ class DossierRefuser < DossierChangerEtat
   end
 
   def motivation
-    throw StandardError.new 'Aucune motivation indiqué pour le classement sans suite' unless @motivation.present?
+    raise StandardError, 'Aucune motivation indiqué pour le classement sans suite' unless @motivation.present?
+
     @motivation
   end
 

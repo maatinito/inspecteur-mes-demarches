@@ -22,7 +22,8 @@ module Diese
 
     def check_sheet(champ, sheet, sheet_name, columns, checks)
       m = sheet_name.match(/([0-9])/)
-      throw 'Unable to find month number ' unless m
+      raise 'Unable to find month number ' unless m
+
       @month = m[1].to_i - 1
 
       super

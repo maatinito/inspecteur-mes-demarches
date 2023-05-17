@@ -63,7 +63,7 @@ module Cis
     def check_period(sheet)
       sheet_month = sheet.cell(3, 'C')&.to_s&.downcase
       month_champ = param_field(:champ_periode)
-      throw "Impossible de trouver le champ #{@params[:champ_periode]} sur le dossier #{@dossier.number}" if month_champ.blank?
+      raise "Impossible de trouver le champ #{@params[:champ_periode]} sur le dossier #{@dossier.number}" if month_champ.blank?
 
       file_month = "#{month_champ.secondary_value} #{month_champ.primary_value}".downcase
       return if file_month == sheet_month

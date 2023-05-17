@@ -5,7 +5,8 @@ class FileUpload
     slot = upload_slot(dossier_id, checksum, path, filename)
     params = slot.direct_upload
     response = Typhoeus.put(params.url, headers: JSON.parse(params.headers), body: File.read(path, mode: 'rb'))
-    throw response.response_body if response.code != 200
+    raise response.response_body if response.code != 200
+
     params.signed_blob_id
   end
 
@@ -20,7 +21,7 @@ class FileUpload
         client_mutation_id: 'upload'
       })
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
-    throw errors.join(';') if errors.present?
+    raise errors.join(';') if errors.present?
 
     result.data&.create_direct_upload
   end

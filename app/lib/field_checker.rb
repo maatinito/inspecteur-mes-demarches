@@ -173,7 +173,7 @@ class FieldChecker < InspectorTask
     when 'TitreIdentiteChamp'
       "Titre d'identité"
     else
-      throw "Unknown field type #{champ.label}:#{champ.__typename}"
+      raise "Unknown field type #{champ.label}:#{champ.__typename}"
     end
   end
 
@@ -207,7 +207,7 @@ class FieldChecker < InspectorTask
 
   def first_instructeur(dossier)
     d = MesDemarches::Client.query(MesDemarches::Queries::Instructeurs, variables: { number: dossier.number })
-    throw StandardError.new d.errors if d.errors.present?
+    raise StandardError, d.errors if d.errors.present?
 
     d.data.dossier.instructeurs.first&.id
   end

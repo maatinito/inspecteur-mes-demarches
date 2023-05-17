@@ -17,7 +17,7 @@ class DossierAccepter < DossierChangerEtat
         instructeurId: instructeur_id_for(demarche, dossier),
         motivation:
       })
-    throw StandardError.new result.errors if result.errors.present?
+    raise StandardError, result.errors if result.errors.present?
   end
 
   def authorized_fields

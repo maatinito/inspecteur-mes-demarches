@@ -14,7 +14,7 @@ class DossierActions
                                             })
 
       unless (data = response.data)
-        throw StandardError.new "La démarche #{demarche_id} est introuvable #{ENV.fetch('GRAPHQL_HOST', nil)}: #{response.errors.values.join(',')}"
+        raise StandardError, "La démarche #{demarche_id} est introuvable #{ENV.fetch('GRAPHQL_HOST', nil)}: #{response.errors.values.join(',')}"
       end
 
       dossiers = data.demarche.dossiers

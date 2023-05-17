@@ -43,7 +43,8 @@ module Deseti
       puts "-- dossier #{dossier_number} ok ==> automatic instruction --"
       dossier = pull_dossier(dossier_number)
       deseti_number = dossier_field(dossier, @champ)&.string_value
-      throw StandardError.new "Impossible de trouver le champ #{@champ} dans la démarche #{demarche.id}" unless deseti_number
+      raise StandardError, "Impossible de trouver le champ #{@champ} dans la démarche #{demarche.id}" unless deseti_number
+
       instruction(demarche, deseti_number, dossier, dossier_number) if deseti_number.present?
     end
 
@@ -72,7 +73,7 @@ module Deseti
 
     def instruction_on_activity(demarche, dossier, dossier_number)
       resumed = dossier_field(dossier, @champ_reprise)
-      throw StandardError.new "Le champ #{@champ_reprise} n'existe pas sur la démarche #{demarche.id}" unless resumed
+      raise StandardError, "Le champ #{@champ_reprise} n'existe pas sur la démarche #{demarche.id}" unless resumed
 
       if resumed.value
         close_dossier(demarche, dossier_number, @classer_sans_suite)

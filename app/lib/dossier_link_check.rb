@@ -21,7 +21,7 @@ class DossierLinkCheck < FieldChecker
   def check(dossier)
     champs = dossier_fields(dossier, @params[:champ])
     puts "Le champ #{@params[:champ]} n'existe pas sur le dossier #{dossier.number}" if champs.blank?
-    throw StandardError.new "Le champ #{@params[:champ]} n'existe pas sur le dossier #{dossier.number}" if champs.blank?
+    raise StandardError, "Le champ #{@params[:champ]} n'existe pas sur le dossier #{dossier.number}" if champs.blank?
 
     champs.each do |champ|
       label = champ.label
