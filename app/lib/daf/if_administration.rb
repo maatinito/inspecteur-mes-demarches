@@ -3,6 +3,7 @@
 module Daf
   class IfAdministration < FieldChecker
     DATA_DIR = 'storage/if_administration'
+    ADMINISTRATION_NAF = '84'
 
     def version
       super + 1
@@ -18,7 +19,6 @@ module Daf
 
     def initialize(params)
       super
-      @administration_naf = '8411Z'
       @check_validation = Set['oui', 'true', '1', 1].include?(@params[:confirmation]&.downcase)
       @tasks = InspectorTask.create_tasks(@params[:taches])
       FileUtils.mkdir_p(DATA_DIR)
@@ -29,6 +29,25 @@ module Daf
       return unless administration?
 
       process_tasks(demarche, dossier)
+    end
+
+    def administration_naf?
+      company = field('Numéro Tahiti')&.etablissement
+      administration = company.present? && company.naf.split(' | ').any? { |naf| naf&.start_with?(ADMINISTRATION_NAF) }
+      Rails.logger.info("Numéro Tahiti with naf #{company&.naf} designate administration : #{administration}")
+      administration
+    end
+
+    def daf?
+      daf = fields('Administration')&.any? { |champ| champ.value.present? }
+      Rails.logger.info("DAF : #{daf}")
+      daf
+    end
+
+    def verified?
+      administrative_agent = annotation('Agent administratif')&.value == 'Oui'
+      Rails.logger.info("Vérification Agent administratif ==> #{administrative_agent}")
+      administrative_agent
     end
 
     private
@@ -45,10 +64,9 @@ module Daf
     end
 
     def administration?
-      company = field('Numéro Tahiti')&.etablissement
-      return false unless company.present? && company.naf.split(' | ').any? { |naf| @administration_naf == naf }
+      return false unless administration_naf? || daf?
 
-      !@check_validation || annotation('Agent administratif')&.value == 'Oui'
+      !@check_validation || verified?
     end
   end
 end
