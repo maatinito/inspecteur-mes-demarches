@@ -45,7 +45,7 @@ module Daf
     end
 
     def exempted?
-      field('Administration')&.value.present?
+      fields('Administration')&.any? { |champ| champ.value.present? }
     end
 
     def ask_prepayment?
