@@ -48,12 +48,14 @@ class ConditionalField < FieldChecker
 
     controls.each do |task|
       Rails.logger.info("Applying task #{task.class.name}")
-      case method
-      when :control
-        task.control(@dossier)
-        @messages.push(*task.messages)
-      when :process
-        task.process(@demarche, @dossier)
+      Rails.logger.tagged(task.name) do
+        case method
+        when :control
+          task.control(@dossier)
+          @messages.push(*task.messages)
+        when :process
+          task.process(@demarche, @dossier)
+        end
       end
     end
   end
