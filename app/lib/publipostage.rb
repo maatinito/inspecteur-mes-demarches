@@ -22,6 +22,7 @@ class Publipostage < FieldChecker
     @generate_docx = @params[:type_de_document]&.match?(/\.?docx?/i)
     @if_field_set = @params[:si_presence_champ]
     @annexe_field = [*@params[:champ_annexe]]
+    @publiposts = {}
     raise "Modèle #{@modele} introuvable" unless File.exist?(@modele)
     raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
 
@@ -45,8 +46,8 @@ class Publipostage < FieldChecker
 
   def process(demarche, dossier)
     super
-    target = destination(dossier)
-    return unless dossiers_have_right_state?(dossier, target)
+    dossier_cible = destination(dossier)
+    return unless dossiers_have_right_state?(dossier, dossier_cible)
 
     init_calculs
 
@@ -62,10 +63,15 @@ class Publipostage < FieldChecker
     end
     return unless paths.present?
 
-    annotation = dossier_annotations(target, @champ_cible)&.first
+    send_documents(demarche, dossier_cible, paths)
+  end
+
+  def send_documents(demarche, dossier_cible, paths)
+    annotation = dossier_annotations(dossier_cible, @champ_cible)&.first
     combine(paths) do |file, batch_number|
-      send_document(demarche, target, annotation, file, batch_number)
+      send_document(demarche, dossier_cible, annotation, file, batch_number)
     end
+    save_posted
   end
 
   def trigger_field_set(row)
@@ -80,6 +86,8 @@ class Publipostage < FieldChecker
 
     # store generated document on current repetition
     send_document(demarche, dossier, annotation, path, 1)
+    save_posted
+    nil
   end
 
   def send_document(demarche, target, annotation, file, batch_number)
@@ -101,7 +109,6 @@ class Publipostage < FieldChecker
       SendMessage.send_with_file(target, instructeur_id_for(demarche, dossier), body, file, filename)
     end
     dossier_updated(@dossier) # to prevent infinite checks
-    nil
   end
 
   def output_basename(row)
@@ -286,11 +293,18 @@ class Publipostage < FieldChecker
     fields['#checksum'] = FileUpload.checksum(@modele)
     same = File.exist?(datafile) && YAML.load_file(datafile) == fields
     if same
-      Rails.logger.info('Ignoring publipost as input data coming from dossier is the same as before')
+      Rails.logger.info('Canceling publipost as input data coming from dossier is the same as before')
     else
-      File.write(datafile, YAML.dump(fields)) unless same
+      @publiposts[datafile] = fields
     end
     same
+  end
+
+  def save_posted
+    @publiposts.reject! do |filename, fields|
+      File.write(filename, YAML.dump(fields))
+      true
+    end
   end
 
   def instanciate(template, source = nil)
