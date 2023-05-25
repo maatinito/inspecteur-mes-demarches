@@ -30,7 +30,7 @@ RUN bundle config specific_platform x86_64-linux &&\
 FROM base
 ENV APP_PATH /imd
 #----- minimum set of packages including PostgreSQL client, yarn
-RUN apk add --no-cache --update tzdata libcurl postgresql-libs yarn build-base gcc libreoffice openjdk11-jre-headless
+RUN apk add --no-cache --update tzdata libcurl postgresql-libs yarn build-base gcc libreoffice openjdk11-jre-headless gdb
 
 WORKDIR ${APP_PATH}
 RUN adduser -Dh ${APP_PATH} userapp
