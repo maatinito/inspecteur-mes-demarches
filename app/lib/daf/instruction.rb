@@ -11,6 +11,9 @@ module Daf
     AUTOMATIC = 'Automatique'
     MANUAL = 'Manuel'
 
+    SEARCH_STEP = 'Recherche'
+    CURRENT_STEP = 'Etape en cours'
+
     def version
       super + 6
     end
@@ -39,6 +42,7 @@ module Daf
       return unless must_check?(dossier)
 
       set_certification_date(demarche, dossier)
+      set_current_step(demarche, dossier)
 
       payment1(demarche, dossier)
       payment2(demarche, dossier)
@@ -56,6 +60,11 @@ module Daf
     def set_certification_date(demarche, dossier)
       certification_date_blank = annotation('DATE DE CERTIFICATION')&.value.blank?
       SetAnnotationValue.set_value(dossier, demarche.instructeur, 'DATE DE CERTIFICATION', DateTime.iso8601(dossier.date_depot)) if certification_date_blank
+    end
+
+    def set_current_step(demarche, dossier)
+      current_step_blank = annotation(CURRENT_STEP)&.value.blank?
+      SetAnnotationValue.set_value(dossier, demarche.instructeur, CURRENT_STEP, SEARCH_STEP) if current_step_blank
     end
 
     def set_amount(demarche, dossier, champ_declencheur, champ_montant)
