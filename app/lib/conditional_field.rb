@@ -37,7 +37,7 @@ class ConditionalField < FieldChecker
         controls = @controls['par défaut']
         Rails.logger.info("Executing 'par défaut' tasks as #{@params[:champ]} : '#{value}'") if controls.present?
       end
-      raise "No task for value '#{field&.value}'" if controls.nil?
+      raise "No task for value '#{value}'" if controls.nil?
 
       run_controls(controls, method)
     end
