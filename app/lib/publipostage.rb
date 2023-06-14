@@ -136,17 +136,25 @@ class Publipostage < FieldChecker
     end.reduce(&:+)
   end
 
+  def annexe_checksums
+    annexe_champs.flat_map(&:file).map(&:checksum)
+  end
+
   def add_annexes(result_path)
-    annexes_champs = @annexe_field.flat_map { |name| object_field_values(@dossier, name, log_empty: false) }
-                                  .filter { |champ| champ.__typename == 'PieceJustificativeChamp' && champ.file.filename.end_with?('.pdf') }
-    pdfs = annexes_champs.flat_map(&method(:download))
+    champs = annexe_champs
+    pdfs = champs.flat_map(&method(:download))
     if pdfs.present?
-      Rails.logger.info("Adding annexes #{annexes_champs.flat_map(&:file).flat_map(&:filename).join(',')}")
+      Rails.logger.info("Adding annexes #{champs.flat_map(&:file).flat_map(&:filename).join(',')}")
       combine_pdf([result_path, *pdfs]) do |file|
         IO.copy_stream(file, result_path)
       end
     end
     result_path
+  end
+
+  def annexe_champs
+    @annexe_field.flat_map { |name| object_field_values(@dossier, name, log_empty: false) }
+                 .filter { |champ| champ.__typename == 'PieceJustificativeChamp' && champ&.file&.filename&.end_with?('.pdf') }
   end
 
   def download(champ)
@@ -291,6 +299,7 @@ class Publipostage < FieldChecker
   def same_document(fields)
     datafile = data_filename(fields)
     fields['#checksum'] = FileUpload.checksum(@modele)
+    fields['#annexes'] = annexe_checksums if @annexe_field.present?
     same = File.exist?(datafile) && YAML.load_file(datafile) == fields
     if same
       Rails.logger.info('Canceling publipost as input data coming from dossier is the same as before')
