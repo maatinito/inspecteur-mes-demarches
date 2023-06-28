@@ -30,13 +30,19 @@ RUN bundle config specific_platform x86_64-linux &&\
 FROM base
 ENV APP_PATH /imd
 #----- minimum set of packages including PostgreSQL client, yarn
-RUN apk add --no-cache --update tzdata libcurl postgresql-libs yarn build-base gcc libreoffice openjdk11-jre-headless gdb
+RUN apk add --no-cache --update ca-certificates tzdata libcurl postgresql-libs yarn build-base gcc libreoffice openjdk11-jre-headless gdb
 
+#----- Install DSI root certificates
+RUN wget -O /usr/local/share/ca-certificates/casit.crt https://bin.gov.pf/artifactory/ca/casit-prod2.crt \
+    && update-ca-certificates
+
+#----- user/install path setup
 WORKDIR ${APP_PATH}
 RUN adduser -Dh ${APP_PATH} userapp
+USER userapp
+RUN wget -O casit.crt https://bin.gov.pf/artifactory/ca/casit-prod2.crt
 
 #----- copy from previous container the dependency gems plus the current application files
-USER userapp
 
 COPY --chown=userapp:userapp --from=builder /app ${APP_PATH}/
 RUN bundle install --deployment --without development test && \
