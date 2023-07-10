@@ -87,7 +87,7 @@ class FieldChecker < InspectorTask
     return nil if dossier.nil? || path.blank?
 
     objects = [*dossier]
-    path.split(/\./).each do |name|
+    path.split('.').each do |name|
       objects = objects.flat_map { |object| object.champs.select { |champ| champ.label == name } }
       Rails.logger.warn("Sur le dossier #{dossier.number}, le champ #{name} est vide.") if warn_if_empty && objects.blank?
     end
@@ -97,7 +97,7 @@ class FieldChecker < InspectorTask
   def dossier_annotations(dossier, path, warn_if_empty: true)
     return nil if dossier.nil? || path.blank?
 
-    names = path.split(/\./)
+    names = path.split('.')
     objects = [*dossier]
     method = :annotations
     names.each do |name|
@@ -123,7 +123,7 @@ class FieldChecker < InspectorTask
     return [] if source.blank? || field.blank?
 
     objects = [*source]
-    field.split(/\./).each do |name|
+    field.split('.').each do |name|
       objects = objects.flat_map do |object|
         object = object.dossier if object.respond_to?(:dossier)
         r = []

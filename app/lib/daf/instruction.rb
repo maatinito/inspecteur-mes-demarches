@@ -88,7 +88,7 @@ module Daf
 
     def init_nafs
       nafs_without_prepayment = @params[:naf_sans_paiement1] || []
-      nafs_without_prepayment = nafs_without_prepayment.split(/,/) if nafs_without_prepayment.is_a?(String)
+      nafs_without_prepayment = nafs_without_prepayment.split(',') if nafs_without_prepayment.is_a?(String)
       @nafs_without_prepayment = Set.new(nafs_without_prepayment)
     end
 

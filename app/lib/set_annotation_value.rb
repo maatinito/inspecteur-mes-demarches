@@ -77,13 +77,13 @@ class SetAnnotationValue
   end
 
   def self.count_block_in(champs)
-    return 0 if champs.size.zero?
+    return 0 if champs.empty?
 
     label = champs.first.label
     champs.count { |c| c.label == label }
   end
 
-  Queries = MesDemarches::Client.parse <<-'GRAPHQL'
+  Queries = MesDemarches::Client.parse <<-GRAPHQL
     mutation SetCheckBox($dossier_id: ID!, $instructeur_id: ID!, $annotation_id: ID!, $value: Boolean!, $client_mutation_id: String!) {
       dossierModifierAnnotationCheckbox(input: {
         dossierId: $dossier_id,

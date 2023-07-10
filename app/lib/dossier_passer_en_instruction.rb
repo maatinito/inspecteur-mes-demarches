@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class DossierPasserEnInstruction < DossierChangerEtat
-  Queries = MesDemarches::Client.parse <<-'GRAPHQL'
+  Queries = MesDemarches::Client.parse <<-GRAPHQL
     mutation EnInstruction($dossierId: ID!, $instructeurId: ID!, $clientMutationId: String) {
       dossierPasserEnInstruction(input: {
         dossierId: $dossierId,

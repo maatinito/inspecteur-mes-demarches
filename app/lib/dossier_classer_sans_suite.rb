@@ -31,7 +31,7 @@ class DossierClasserSansSuite < DossierChangerEtat
     super + %i[motivation]
   end
 
-  Queries = MesDemarches::Client.parse <<-'GRAPHQL'
+  Queries = MesDemarches::Client.parse <<-GRAPHQL
     mutation ClasserSansSuite($dossierId: ID!, $instructeurId: ID!, $motivation: String!) {
       dossierClasserSansSuite(input: {
         dossierId: $dossierId,

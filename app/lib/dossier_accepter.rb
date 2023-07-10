@@ -24,7 +24,7 @@ class DossierAccepter < DossierChangerEtat
     super + %i[motivation]
   end
 
-  Queries = MesDemarches::Client.parse <<-'GRAPHQL'
+  Queries = MesDemarches::Client.parse <<-GRAPHQL
     mutation Accepter($dossierId: ID!, $instructeurId: ID!, $motivation: String!) {
       dossierAccepter(input: {
         dossierId: $dossierId,

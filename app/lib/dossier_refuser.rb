@@ -30,7 +30,7 @@ class DossierRefuser < DossierChangerEtat
     super + %i[motivation]
   end
 
-  Queries = MesDemarches::Client.parse <<-'GRAPHQL'
+  Queries = MesDemarches::Client.parse <<-GRAPHQL
     mutation Refuser($dossierId: ID!, $instructeurId: ID!, $motivation: String!) {
       dossierRefuser(input: {
         dossierId: $dossierId,

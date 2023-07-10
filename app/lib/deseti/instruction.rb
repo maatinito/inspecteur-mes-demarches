@@ -110,7 +110,7 @@ module Deseti
     def fields(dossier, field)
       @accessed_fields.add(field)
       objects = [*dossier]
-      field.split(/\./).each do |name|
+      field.split('.').each do |name|
         objects = objects.flat_map { |object| object.champs.select { |champ| champ.label == name } }
       end
       objects

@@ -17,7 +17,7 @@ class MemeDemandeur < FieldChecker
     %i[champ_cible message_mauvaise_demarche verifier_usager message_mauvais_usager]
   end
 
-  Queries = MesDemarches::Client.parse <<-'GRAPHQL'
+  Queries = MesDemarches::Client.parse <<-GRAPHQL
     query Instructeurs($demarche : Int!) {
       demarche(number: $demarche) {
         groupeInstructeurs {

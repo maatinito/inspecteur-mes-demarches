@@ -40,7 +40,7 @@ class SendMessage
     result.data&.dossier&.messages&.any? { |m| m&.body == body }
   end
 
-  Query = MesDemarches::Client.parse <<-'QUERY'
+  Query = MesDemarches::Client.parse <<-QUERY
     query Dossier($dossier: Int!) {
       dossier(number: $dossier) {
         messages {
@@ -50,7 +50,7 @@ class SendMessage
     }
   QUERY
 
-  Mutation = MesDemarches::Client.parse <<-'GRAPHQL'
+  Mutation = MesDemarches::Client.parse <<-GRAPHQL
     mutation EnvoyerMessage($dossierId: ID!, $instructeurId: ID!, $body: String!, $clientMutationId: String!) {
         dossierEnvoyerMessage(
             input: {

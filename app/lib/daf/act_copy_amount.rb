@@ -86,7 +86,7 @@ module Daf
       keyword_c = text.scan(/Count\s+(\d+)/).size
       keyword_t = text.scan(%r{/Type\s*/Page[^s]}).size
 
-      pages = keyword_c > keyword_t ? keyword_c : keyword_t
+      pages = [keyword_c, keyword_t].max
       raise "No page found in #{filename}" if pages.zero?
 
       pages

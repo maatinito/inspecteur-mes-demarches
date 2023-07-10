@@ -30,7 +30,7 @@ class FileUpload
     Digest::MD5.base64digest(File.read(file_path))
   end
 
-  Queries = MesDemarches::Client.parse <<-'GRAPHQL'
+  Queries = MesDemarches::Client.parse <<-GRAPHQL
     mutation CreateDirectUpload($dossier_id: ID!, $filename: String!, $byteSize: Int!, $checksum: String!, $contentType: String!) {
       createDirectUpload(input: {
         dossierId: $dossier_id,
