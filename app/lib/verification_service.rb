@@ -49,7 +49,7 @@ class VerificationService
   def self.config
     file_mtime = File.mtime(config_file_name)
     if @@config.nil? || @@config_time < file_mtime
-      @@config = YAML.load_file(config_file_name)
+      @@config = YAML.load_file(config_file_name, aliases: true)
       @@config_time = file_mtime
     end
     @@config
