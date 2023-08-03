@@ -24,8 +24,8 @@ class VerificationService
       Rails.logger.error(e.message)
       e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
       if Rails.env.production?
-        NotificationMailer.with(message: e.message, exception: e).report_error.deliver_later
         Sentry.capture_exception(e)
+        NotificationMailer.with(exception: e).report_error.deliver_later
       end
     end
   end

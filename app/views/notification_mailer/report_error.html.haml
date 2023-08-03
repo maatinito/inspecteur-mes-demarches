@@ -13,8 +13,18 @@
       Dossier:
       %a{ href: @dossier_url }
         = @dossier
-  - if @exception.present?
+  - if @tags.present?
+    %p
+      Etiquettes:
+      = @tags
+  - if @message.present?
+    %p
+      Message:
+      = @message
+  - if @backtrace.present?
     %pre
-      = @exception
+      - @backtrace.each do |trace|
+        &nbsp;&nbsp;&nbsp;
+        = trace
   %br/
   = SITE_NAME
