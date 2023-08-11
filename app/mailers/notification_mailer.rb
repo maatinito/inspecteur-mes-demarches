@@ -21,7 +21,7 @@ class NotificationMailer < ApplicationMailer
     @tags = Rails.logger.formatter.current_tags.join(',')
     @message = params[:message]
     exception = params[:exception]
-    if exception.present? then
+    if exception.present?
       @backtrace = exception.backtrace.select { |b| b.include?('/app/') }.first(7)
       @message += " : #{exception.message}"
     end

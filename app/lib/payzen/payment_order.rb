@@ -142,9 +142,9 @@ module Payzen
       rescue APIEntreprise::API::ServiceUnavailable => e
         Rails.logger.error("Erreur réseau lors de la lecture de l'ordre de paiement #{order_id}: #{e.message}")
         e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
-      rescue StandardError => exception
+      rescue StandardError => e
         message = "Erreur lors l'appel à PayZen"
-        NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:, exception:).report_error.deliver_later
+        NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:, e:).report_error.deliver_later
       ensure
         schedule_next_check unless order
       end
