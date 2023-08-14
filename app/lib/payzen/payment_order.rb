@@ -144,7 +144,7 @@ module Payzen
         e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
       rescue StandardError => e
         message = "Erreur lors l'appel à PayZen"
-        NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:, e:).report_error.deliver_later
+        NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:).report_error(e).deliver_later
       ensure
         schedule_next_check unless order
       end

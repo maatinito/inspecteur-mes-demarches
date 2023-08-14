@@ -57,9 +57,10 @@ module Daf
         task.process(demarche, dossier) if task.valid? && task.must_check?(dossier)
         dossier = DossierActions.on_dossier(dossier.number) if task.updated_dossiers.find { |d| d.number == dossier.number }.present?
       rescue StandardError => e
-        Sentry.capture_exception(e) if Rails.env.production?
-        Rails.logger.error(e)
-        e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
+        raise e unless Rails.env.production?
+
+        Sentry.capture_exception(e)
+        NotificationMailer.with(message: 'if_administration').report_error(e).deliver_later
       end
     end
 

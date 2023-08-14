@@ -29,8 +29,10 @@ module Cis
         return get_activite_from_oa(dossier_oa, numero_dn)
       end
     rescue StandardError => e
-      Rails.logger.error(e.message)
-      e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
+      begin
+        Sentry.capture_exception(e)
+        NotificationMailer.with(message: "Get activite from OA dossier=#{field.string_value}, numero_dn=#{numero_dn_field.numero_dn}").report_error(e).deliver_later
+      end
       UNKNOWN
     end
 

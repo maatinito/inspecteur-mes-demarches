@@ -137,9 +137,10 @@ module Daf
         task.process(demarche, dossier) if task.valid?
         dossier = DossierActions.on_dossier(dossier.number) if dossier_updated?(task, dossier)
       rescue StandardError => e
+        raise e unless Rails.env.production?
+
         Sentry.capture_exception(e)
-        Rails.logger.error(e)
-        e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
+        NotificationMailer.with(message: 'daf/instruction').report_error(e).deliver_later
       end
     end
 

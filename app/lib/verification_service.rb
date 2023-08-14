@@ -21,11 +21,11 @@ class VerificationService
         check_updated_controls(@controls)
       end
     rescue StandardError => e
-      Rails.logger.error(e.message)
-      e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
       if Rails.env.production?
         Sentry.capture_exception(e)
-        NotificationMailer.with(exception: e).report_error.deliver_later
+        NotificationMailer.report_error(e).deliver_later
+      else
+        raise e
       end
     end
   end
@@ -194,10 +194,12 @@ class VerificationService
   def affected?(controls, md_dossier)
     [*controls, *@ok_tasks].find { |c| c.must_check?(md_dossier) }
   rescue StandardError => e
-    Sentry.capture_exception(e)
-    Rails.logger.error(e)
-    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
-    true
+    if Rails.env.production?
+      Sentry.capture_exception(e)
+      NotificationMailer.with(message: 'if_administration').report_error(e).deliver_later
+    else
+      raise e
+    end
   end
 
   def apply_controls(controls, demarche, md_dossier)
@@ -306,9 +308,12 @@ class VerificationService
     task.process(demarche, md_dossier) if task.valid?
   rescue StandardError => e
     check.failed = true
-    Sentry.capture_exception(e) if Rails.env.production?
-    Rails.logger.error(e)
-    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
+    if Rails.env.production?
+      Sentry.capture_exception(e)
+      NotificationMailer.with(message: 'if_administration').report_error(e).deliver_later
+    else
+      raise e
+    end
   end
 
   def apply_control(control, md_dossier, check)
@@ -325,9 +330,10 @@ class VerificationService
     end
   rescue StandardError => e
     check.failed = true
+    raise e unless Rails.env.production?
+
     Sentry.capture_exception(e)
-    Rails.logger.error(e)
-    e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
+    NotificationMailer.with(message: "dossier #{md_dossier.number}, control: #{control.name}").report_error(e).deliver_later
   end
 
   NOMS_PIECES_MESSAGES = %i[debut_premier_mail debut_second_mail entete_anomalies entete_anomalie tout_va_bien fin_mail].freeze
