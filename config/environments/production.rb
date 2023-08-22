@@ -69,11 +69,11 @@ Rails.application.configure do
   config.action_mailer.perform_caching = false
   if ENV.fetch('SENDINBLUE_USER_NAME', '').present?
     config.action_mailer.delivery_method = :smtp
-    ActionMailer::Base.sendinblue_settings = {
+    ActionMailer::Base.smtp_settings = {
       user_name: Rails.application.secrets.sendinblue[:username],
       password: Rails.application.secrets.sendinblue[:smtp_key],
-      address: 'smtp-relay.sendinblue.com',
-      domain: 'smtp-relay.sendinblue.com',
+      address: 'smtp-relay.brevo.com',
+      domain: 'smtp-relay.brevo.com',
       port: '587',
       authentication: :cram_md5
     }
