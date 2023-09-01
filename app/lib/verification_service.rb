@@ -23,7 +23,7 @@ class VerificationService
     rescue StandardError => e
       if Rails.env.production?
         Sentry.capture_exception(e)
-        NotificationMailer.report_error(e).deliver_later
+        NotificationMailer.with(message: e.message, backtrace: e.backtrace).report_error.deliver_later
       else
         raise e
       end
@@ -196,7 +196,7 @@ class VerificationService
   rescue StandardError => e
     if Rails.env.production?
       Sentry.capture_exception(e)
-      NotificationMailer.with(message: 'if_administration').report_error(e).deliver_later
+      NotificationMailer.with(message: e.message, backtrace: e.backtrace).report_error.deliver_later
     else
       raise e
     end
@@ -310,7 +310,7 @@ class VerificationService
     check.failed = true
     if Rails.env.production?
       Sentry.capture_exception(e)
-      NotificationMailer.with(message: 'if_administration').report_error(e).deliver_later
+      NotificationMailer.with(message: e.message, backtrace: e.backtrace).report_error.deliver_later
     else
       raise e
     end
@@ -333,7 +333,7 @@ class VerificationService
     raise e unless Rails.env.production?
 
     Sentry.capture_exception(e)
-    NotificationMailer.with(message: "dossier #{md_dossier.number}, control: #{control.name}").report_error(e).deliver_later
+    NotificationMailer.with(message: e.message, backtrace: e.backtrace).report_error.deliver_later
   end
 
   NOMS_PIECES_MESSAGES = %i[debut_premier_mail debut_second_mail entete_anomalies entete_anomalie tout_va_bien fin_mail].freeze

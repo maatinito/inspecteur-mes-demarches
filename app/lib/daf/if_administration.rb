@@ -56,11 +56,6 @@ module Daf
       @tasks.each do |task|
         task.process(demarche, dossier) if task.valid? && task.must_check?(dossier)
         dossier = DossierActions.on_dossier(dossier.number) if task.updated_dossiers.find { |d| d.number == dossier.number }.present?
-      rescue StandardError => e
-        raise e unless Rails.env.production?
-
-        Sentry.capture_exception(e)
-        NotificationMailer.with(message: 'if_administration').report_error(e).deliver_later
       end
     end
 

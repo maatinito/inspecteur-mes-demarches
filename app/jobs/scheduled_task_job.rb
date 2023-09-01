@@ -16,7 +16,7 @@ class ScheduledTaskJob < CronJob
         scheduled.destroy
       rescue StandardError => e
         Sentry.capture_exception(e)
-        NotificationMailer.with(message: "Error processing #{scheduled.task}").report_error(e).deliver_later
+        NotificationMailer.with(message: "Error processing #{scheduled.task} : #{e.message}", backtrace: e.backtrace).report_error.deliver_later
       end
     end
   end

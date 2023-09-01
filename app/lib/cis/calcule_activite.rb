@@ -31,7 +31,7 @@ module Cis
     rescue StandardError => e
       begin
         Sentry.capture_exception(e)
-        NotificationMailer.with(message: "Get activite from OA dossier=#{field.string_value}, numero_dn=#{numero_dn_field.numero_dn}").report_error(e).deliver_later
+        NotificationMailer.with(message: e.message, backtrace: e.backtrace).report_error.deliver_later
       end
       UNKNOWN
     end

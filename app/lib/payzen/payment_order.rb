@@ -98,7 +98,8 @@ module Payzen
       else
         order = @api.create_url_order(amount, reference, return_url:, receipt_email:)
       end
-      report_error(order) if order[:errorCode].present?
+      raise StandardError, "Erreur PayZen en créant un ordre de paiement: #{order[:errorCode]} - #{order[:errorMessage]}" if order[:errorCode].present?
+
       order
     end
 
@@ -113,47 +114,22 @@ module Payzen
         return
       end
 
-      order = get_order(order_id)
+      order = @api.get_order(order_id)
       return unless order
 
-      if order[:errorCode].present?
-        report_error(order)
-        return
-      end
+      raise StandardError, "Erreur PayZen en vérifiant un ordre de paiement: #{order[:errorCode]} - #{order[:errorMessage]}" if order[:errorCode].present?
 
+      Rails.logger.info("Payzen order check for dossier #{@dossier.number}: #{order[:paymentOrderStatus]}")
       case order[:paymentOrderStatus]
       when 'RUNNING', 'REFUSED'
-        Rails.logger.info("Schedule payzen order check for dossier #{@dossier.number} field #{@params[:champ_montant]} at #{check_delay}")
         schedule_next_check
       when 'PAID'
-        Rails.logger.info("Payzen order for dossier #{@dossier.number} field #{@params[:champ_montant]} is paid")
         execute(@when_paid, order)
       when 'EXPIRED', 'CANCELLED'
-        Rails.logger.info("Payzen order for dossier #{@dossier.number} field #{@params[:champ_montant]} has expired")
         execute(@when_expired, order)
       else
         raise StandardError, "Payzen: Status inconnu de l'ordre de paiement: #{order['paymentOrderStatus']}"
       end
-    end
-
-    def get_order(order_id)
-      begin
-        order = @api.get_order(order_id)
-      rescue APIEntreprise::API::ServiceUnavailable => e
-        Rails.logger.error("Erreur réseau lors de la lecture de l'ordre de paiement #{order_id}: #{e.message}")
-        e.backtrace.select { |b| b.include?('/app/') }.first(7).each { |b| Rails.logger.error(b) }
-      rescue StandardError => e
-        message = "Erreur lors l'appel à PayZen"
-        NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:).report_error(e).deliver_later
-      ensure
-        schedule_next_check unless order
-      end
-      order
-    end
-
-    def report_error(order)
-      message = "Erreur PayZen en vérifiant un ordre de paiement: #{order[:errorCode]} - #{order[:errorMessage]}"
-      NotificationMailer.with(demarche: @demarche.id, dossier: @dossier.number, message:).report_error.deliver_later
     end
 
     DEFAULT_MESSAGE = <<~MSG

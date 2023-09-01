@@ -195,12 +195,7 @@ RSpec.describe Payzen::PaymentOrder do
           expect(SetAnnotationValue).not_to receive(:set_value)
           expect(ScheduledTask).not_to receive(:enqueue)
           expect(task).not_to receive(:process_order)
-          expect do
-            perform_enqueued_jobs do
-              # process mail job
-              subject
-            end
-          end.to change { ActionMailer::Base.deliveries.size }.by(1)
+          expect { subject }.to raise_error StandardError, 'Erreur PayZen en vérifiant un ordre de paiement: PSP_010 - transaction not found'
         end
       end
     end

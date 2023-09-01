@@ -136,11 +136,6 @@ module Daf
         Rails.logger.info("Applying task #{task.class.name}")
         task.process(demarche, dossier) if task.valid?
         dossier = DossierActions.on_dossier(dossier.number) if dossier_updated?(task, dossier)
-      rescue StandardError => e
-        raise e unless Rails.env.production?
-
-        Sentry.capture_exception(e)
-        NotificationMailer.with(message: 'daf/instruction').report_error(e).deliver_later
       end
     end
 
