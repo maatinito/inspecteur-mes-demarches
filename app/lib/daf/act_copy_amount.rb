@@ -56,7 +56,8 @@ module Daf
     end
 
     def annotation_present?(param)
-      annotation(@params[param])&.value.present?
+      annotation = annotation(@params[param])
+      annotation.present? && (annotation.respond_to?(:value) ? annotation.value : annotation.string_value).present?
     end
 
     def pages_count(bloc)
