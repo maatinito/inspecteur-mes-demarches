@@ -66,6 +66,19 @@ class Publipostage < FieldChecker
     send_documents(demarche, dossier_cible, paths)
   end
 
+  def normalized_fields(value)
+    case value
+    when Array
+      value.map(&method(:normalized_fields))
+    when Hash
+      value.transform_values(&method(:normalized_fields))
+    when String
+      value.gsub(/&X-Amz.*/, '')
+    else
+      value
+    end
+  end
+
   def send_documents(demarche, dossier_cible, paths)
     annotation = dossier_annotations(dossier_cible, @champ_cible)&.first
     combine(paths) do |file, batch_number|
@@ -298,13 +311,15 @@ class Publipostage < FieldChecker
 
   def same_document(fields)
     datafile = data_filename(fields)
-    fields['#checksum'] = FileUpload.checksum(@modele)
-    fields['#annexes'] = annexe_checksums if @annexe_field.present?
-    same = File.exist?(datafile) && YAML.load_file(datafile) == fields
+    stable_fields = normalized_fields(fields)
+    stable_fields['#checksum'] = FileUpload.checksum(@modele)
+    stable_fields['#annexes'] = annexe_checksums if @annexe_field.present?
+
+    same = File.exist?(datafile) && YAML.load_file(datafile) == stable_fields
     if same
       Rails.logger.info('Canceling publipost as input data coming from dossier is the same as before')
     else
-      @publiposts[datafile] = fields
+      @publiposts[datafile] = stable_fields
     end
     same
   end
