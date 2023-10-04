@@ -114,21 +114,24 @@ module Payzen
         return
       end
 
-      order = @api.get_order(order_id)
-      return unless order
+      begin
+        order = @api.get_order(order_id)
+        raise StandardError, "Erreur PayZen en vérifiant un ordre de paiement: #{order[:errorCode]} - #{order[:errorMessage]}" if order[:errorCode].present?
 
-      raise StandardError, "Erreur PayZen en vérifiant un ordre de paiement: #{order[:errorCode]} - #{order[:errorMessage]}" if order[:errorCode].present?
-
-      Rails.logger.info("Payzen order check for dossier #{@dossier.number}: #{order[:paymentOrderStatus]}")
-      case order[:paymentOrderStatus]
-      when 'RUNNING', 'REFUSED'
+        Rails.logger.info("Payzen order check for dossier #{@dossier.number}: #{order[:paymentOrderStatus]}")
+        case order[:paymentOrderStatus]
+        when 'RUNNING', 'REFUSED'
+          schedule_next_check
+        when 'PAID'
+          execute(@when_paid, order)
+        when 'EXPIRED', 'CANCELLED'
+          execute(@when_expired, order)
+        else
+          raise StandardError, "Payzen: Status inconnu de l'ordre de paiement: #{order['paymentOrderStatus']}"
+        end
+      rescue APIEntreprise::API::ServiceUnavailable => e
         schedule_next_check
-      when 'PAID'
-        execute(@when_paid, order)
-      when 'EXPIRED', 'CANCELLED'
-        execute(@when_expired, order)
-      else
-        raise StandardError, "Payzen: Status inconnu de l'ordre de paiement: #{order['paymentOrderStatus']}"
+        Rails.logger.error("Erreur réseau lors de la lecture de l'ordre de paiement #{order_id}: #{e.message}")
       end
     end
 
