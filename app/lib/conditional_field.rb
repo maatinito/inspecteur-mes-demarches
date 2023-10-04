@@ -56,6 +56,9 @@ class ConditionalField < FieldChecker
         when :process
           task.process(@demarche, @dossier)
         end
+        @updated_dossiers += task.updated_dossiers
+        @dossiers_to_recheck += task.dossiers_to_recheck
+        @dossier = DossierActions.on_dossier(@dossier.number) if task.dossier_updated?(@dossier)
       end
     end
   end

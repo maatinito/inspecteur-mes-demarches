@@ -212,16 +212,12 @@ class VerificationService
       check = check_control(control, demarche, md_dossier)
       checks << check
       failed_checks ||= check.failed
-      md_dossier = DossierActions.on_dossier(md_dossier.number) if dossier_updated?(control, md_dossier)
+      md_dossier = DossierActions.on_dossier(md_dossier.number) if control.dossier_updated?(md_dossier)
     end
     unless failed_checks
       inform(md_dossier, checks, send_message: @send_messages) if @dossier_has_different_messages
       when_ok(demarche, md_dossier, checks) if @ok_tasks.present?
     end
-  end
-
-  def dossier_updated?(control, md_dossier)
-    control.updated_dossiers.find { |d| d.number == md_dossier.number }.present?
   end
 
   def check_control(control, demarche, md_dossier)
@@ -292,7 +288,7 @@ class VerificationService
           check = Check.find_or_create_by(demarche:, dossier: md_dossier.number, checker: task.name)
           start_time = Time.zone.now
           apply_task(demarche, task, md_dossier, check)
-          md_dossier = DossierActions.on_dossier(md_dossier.number) if dossier_updated?(task, md_dossier)
+          md_dossier = DossierActions.on_dossier(md_dossier.number) if task.dossier_updated?(md_dossier)
           check.update(checked_at: start_time, version: task.version)
         end
       end

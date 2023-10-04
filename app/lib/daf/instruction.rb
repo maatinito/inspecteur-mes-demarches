@@ -135,12 +135,10 @@ module Daf
       tasks.each do |task|
         Rails.logger.info("Applying task #{task.class.name}")
         task.process(demarche, dossier) if task.valid?
-        dossier = DossierActions.on_dossier(dossier.number) if dossier_updated?(task, dossier)
+        @updated_dossiers += task.updated_dossiers
+        @dossiers_to_recheck += task.dossiers_to_recheck
+        dossier = DossierActions.on_dossier(dossier.number) if task.dossier_updated?(dossier)
       end
-    end
-
-    def dossier_updated?(task, md_dossier)
-      task.updated_dossiers.find { |d| d.number == md_dossier.number }.present?
     end
 
     def instruction?(dossier)

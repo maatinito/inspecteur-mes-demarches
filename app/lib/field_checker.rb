@@ -190,7 +190,11 @@ class FieldChecker < InspectorTask
   end
 
   def dossier_updated(dossier)
-    @updated_dossiers << dossier
+    @updated_dossiers << dossier.number
+  end
+
+  def dossier_updated?(dossier)
+    @updated_dossiers.include?(dossier.number)
   end
 
   def recheck(dossier)
