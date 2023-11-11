@@ -1,0 +1,110 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"fragment MesDemarches__Queries__ChampInfo on Champ {\n  __typename\n  id\n  label\n  ...
+        on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
+        on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
+        on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
+        {\n    stringValue\n    etablissement {\n      entreprise {\n        nomCommercial\n        raisonSociale\n      }\n      association
+        {\n        titre\n      }\n      libelleNaf\n      naf\n    }\n  }\n  ...
+        on CiviliteChamp {\n    value\n  }\n  ... on MultipleDropDownListChamp {\n    values\n  }\n  ...
+        on VisaChamp {\n    stringValue\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  dateDepot\n  motivation\n  usager
+        {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
+        {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
+        on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
+        {\n        siren\n        capitalSocial\n        numeroTvaIntracommunautaire\n        formeJuridique\n        formeJuridiqueCode\n        nomCommercial\n        raisonSociale\n        siretSiegeSocial\n        codeEffectifEntreprise\n        dateCreation\n        nom\n        prenom\n      }\n      association
+        {\n        rna\n        titre\n        objet\n        dateCreation\n        dateDeclaration\n        dateDeclaration\n      }\n    }\n  }\n}\n\nquery
+        MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
+        {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        rows {\n          champs {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n        }\n        champs
+        {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n    }\n    champs
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        rows {\n          champs {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n        }\n        champs
+        {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
+        {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
+        on RepetitionChamp {\n              rows {\n                champs {\n                  __typename\n                  ...MesDemarches__Queries__ChampInfo\n                }\n              }\n              champs
+        {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":376077},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx/1.18.0
+      Date:
+      - Mon, 13 Nov 2023 23:13:19 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Connection:
+      - keep-alive
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - '0'
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"8f3a40924658bc21a6db99a06a9beab8"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Content-Security-Policy:
+      - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
+        script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com unpkg.com beta.mes-demarches.gov.pf;
+        style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
+        maxcdn.bootstrapcdn.com unpkg.com; frame-src ''self''; connect-src ''self''
+        wss://*.crisp.chat *.crisp.chat app.franceconnect.gouv.fr openmaptiles.geo.data.gouv.fr
+        openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
+        sentry.io api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr
+        www.tefenua.gov.pf oos.eu-west-2.outscale.com oos.cloudgouv-eu-west-1.outscale.com;
+        default-src ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr *.crisp.chat crisp.chat *.crisp.help
+        *.sibautomation.com sibautomation.com data sentry.io oos.eu-west-2.outscale.com
+        oos.cloudgouv-eu-west-1.outscale.com'
+      X-Request-Id:
+      - 3c64dd0d-0fea-4232-879d-3a7c9abd74da
+      X-Runtime:
+      - '0.387227'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Set-Cookie:
+      - cookiesession1=678A3E1E8284D3EF1DA61B4E4E923AFA;Expires=Tue, 12 Nov 2024 23:13:16
+        GMT;Path=/;HttpOnly
+      Content-Length:
+      - '5779'
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjIyNjd9LCJpZCI6IlJHOXpjMmxsY2kwek56WXdOemM9IiwibnVtYmVyIjozNzYwNzcsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjMtMTEtMTNUMDk6MzM6NDYtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIzLTExLTEzVDA5OjQ2OjAzLTEwOjAwIiwiZGF0ZURlcG90IjoiMjAyMy0xMS0xM1QwOTozMzo0Ni0xMDowMCIsIm1vdGl2YXRpb24iOm51bGwsInVzYWdlciI6eyJlbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiJ9LCJ0cmFpdGVtZW50cyI6W3siaW5zdHJ1Y3RldXJFbWFpbCI6bnVsbCwicHJvY2Vzc2VkQXQiOiIyMDIzLTExLTEzVDA5OjMzOjQ2LTEwOjAwIiwic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24ifV0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVQaHlzaXF1ZSIsImNpdmlsaXRlIjoiTSIsImRhdGVEZU5haXNzYW5jZSI6bnVsbCwibm9tIjoiTEFVVElFUiIsInByZW5vbSI6IkNocmlzdGlhbiJ9LCJhbm5vdGF0aW9ucyI6W3siX190eXBlbmFtZSI6IkNoZWNrYm94Q2hhbXAiLCJpZCI6IlEyaGhiWEF0T1RRd01qaz0iLCJsYWJlbCI6IkNhc2UgcsOpc2VydsOpZSDDoCBsYSByw6lnaWUiLCJ2YWx1ZSI6ZmFsc2V9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE9UUTJPRGc9IiwibGFiZWwiOiJQcm9kdWl0cyIsImZpbGUiOnsiY29udGVudFR5cGUiOiJhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtb2ZmaWNlZG9jdW1lbnQuc3ByZWFkc2hlZXRtbC5zaGVldCIsImNoZWNrc3VtIjoid1BPTnl2WGJxU21wQXJVNjMyclA2dz09IiwiZmlsZW5hbWUiOiJzdG9yYWdlX2Ric19waHl0b19wZXJtaXMueGxzeC54bHN4IiwidXJsIjoiaHR0cHM6Ly9vb3MuY2xvdWRnb3V2LWV1LXdlc3QtMS5vdXRzY2FsZS5jb20vbWVzLWRlbWFyY2hlcy1wcm9kLzIwMjMvMTEvMTMvTWsvTWt4ZWJyam9ZVThRUlN6Rkpub0FmYWpEc3BlYj9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM0IlMjBmaWxlbmFtZSUzRCUyMnN0b3JhZ2VfZGJzX3BoeXRvX3Blcm1pcy54bHN4Lnhsc3glMjIlM0IlMjBmaWxlbmFtZSUyQSUzRFVURi04JTI3JTI3c3RvcmFnZV9kYnNfcGh5dG9fcGVybWlzLnhsc3gueGxzeFx1MDAyNnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1hcHBsaWNhdGlvbiUyRnZuZC5vcGVueG1sZm9ybWF0cy1vZmZpY2Vkb2N1bWVudC5zcHJlYWRzaGVldG1sLnNoZWV0XHUwMDI2WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTZcdTAwMjZYLUFtei1DcmVkZW50aWFsPUlHMUpZUDc0UUdXR0lZNzdJR083JTJGMjAyMzExMTMlMkZjbG91ZGdvdXYtZXUtd2VzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3RcdTAwMjZYLUFtei1EYXRlPTIwMjMxMTEzVDIzMTMxOVpcdTAwMjZYLUFtei1FeHBpcmVzPTM2MDBcdTAwMjZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3RcdTAwMjZYLUFtei1TaWduYXR1cmU9NjY4OTY5NjJiNmQwNTM0OWMwYzE5NzZjODIzZDY2NjY2YmFjNjFlYjJkYTc1OGI0MmE0MmNkNGJhNWEwMjZhYyJ9LCJzdHJpbmdWYWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IkRhdGVDaGFtcCIsImlkIjoiUTJoaGJYQXROalUxTVRrPSIsImxhYmVsIjoiRGF0ZSBkZSBwYWllbWVudCIsInZhbHVlIjpudWxsfV0sImNoYW1wcyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRPVE0xTWpnPSIsImxhYmVsIjoiUGVybWlzIDEyIG1vaXMiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UUTFOVGM9IiwibGFiZWwiOiJJbmZvcm1hdGlvbnMgc3VyIGxlcyBuYXR1cmVzIGRlIHByb2R1aXRzIiwidmFsdWUiOm51bGx9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRPVE0xTVRBPSIsImxhYmVsIjoiTmF0dXJlIGR1IHByb2R1aXQiLCJ2YWx1ZSI6IkJvaXMifSx7Il9fdHlwZW5hbWUiOiJSZXBldGl0aW9uQ2hhbXAiLCJpZCI6IlEyaGhiWEF0T1RNMU1UST0iLCJsYWJlbCI6Ikxpc3RlIGRlcyBwcm9kdWl0cyIsInJvd3MiOlt7ImNoYW1wcyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRPVE0xTWpWOE1ERklSalV5VWpoV1NFWkZXRWhFVWsxU01rRkVORXBaTWxFPSIsImxhYmVsIjoiTm9tIHNjaWVudGlmaXF1ZSAobm9tIGNvbW11bikiLCJ2YWx1ZSI6IkhldHJlIHBldHJ1cyJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRPVE0xTVRSOE1ERklSalV5VWpoV1NFWkZXRWhFVWsxU01rRkVORXBaTWxFPSIsImxhYmVsIjoiVHlwZSBkZSBib2lzIiwidmFsdWUiOiJCcnV0In0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNakI4TURGSVJqVXlVamhXU0VaRldFaEVVazFTTWtGRU5FcFpNbEU9IiwibGFiZWwiOiJVc3VyZSBkdSBib2lzIiwidmFsdWUiOiJCb2lzIHVzYWfDqSJ9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE9UUXhNVGg4TURGSVJqVXlVamhXU0VaRldFaEVVazFTTWtGRU5FcFpNbEU9IiwibGFiZWwiOiJGaWNoZSB0ZWNobmlxdWUgb3UgcGhvdG9ncmFwaGllIiwiZmlsZSI6bnVsbCwic3RyaW5nVmFsdWUiOiIifV19LHsiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNalY4TURGSVJqVXlVekZVUzBGSVZFaFhXalJRUjBoT1NFZFlVa0k9IiwibGFiZWwiOiJOb20gc2NpZW50aWZpcXVlIChub20gY29tbXVuKSIsInZhbHVlIjoiUGluIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNVFI4TURGSVJqVXlVekZVUzBGSVZFaFhXalJRUjBoT1NFZFlVa0k9IiwibGFiZWwiOiJUeXBlIGRlIGJvaXMiLCJ2YWx1ZSI6IkNvbnRyZXBsYXF1w6ksIGJvaXMgZGUgcGxhY2FnZSwgYm9pcyByZWNvbnN0aXR1w6kifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0T1RNMU1qQjhNREZJUmpVeVV6RlVTMEZJVkVoWFdqUlFSMGhPU0VkWVVrST0iLCJsYWJlbCI6IlVzdXJlIGR1IGJvaXMiLCJ2YWx1ZSI6IkJvaXMgbmV1ZiJ9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE9UUXhNVGg4TURGSVJqVXlVekZVUzBGSVZFaFhXalJRUjBoT1NFZFlVa0k9IiwibGFiZWwiOiJGaWNoZSB0ZWNobmlxdWUgb3UgcGhvdG9ncmFwaGllIiwiZmlsZSI6bnVsbCwic3RyaW5nVmFsdWUiOiIifV19LHsiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNalY4TURGSVJqVXlVMEZUVTFGS1dsZEhNMFZTUmpZMlVsSkJUalk9IiwibGFiZWwiOiJOb20gc2NpZW50aWZpcXVlIChub20gY29tbXVuKSIsInZhbHVlIjoiUGluIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNVFI4TURGSVJqVXlVMEZUVTFGS1dsZEhNMFZTUmpZMlVsSkJUalk9IiwibGFiZWwiOiJUeXBlIGRlIGJvaXMiLCJ2YWx1ZSI6IkJydXQifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0T1RNMU1qQjhNREZJUmpVeVUwRlRVMUZLV2xkSE0wVlNSalkyVWxKQlRqWT0iLCJsYWJlbCI6IlVzdXJlIGR1IGJvaXMiLCJ2YWx1ZSI6IkJvaXMgbmV1ZiJ9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE9UUXhNVGg4TURGSVJqVXlVMEZUVTFGS1dsZEhNMFZTUmpZMlVsSkJUalk9IiwibGFiZWwiOiJGaWNoZSB0ZWNobmlxdWUgb3UgcGhvdG9ncmFwaGllIiwiZmlsZSI6bnVsbCwic3RyaW5nVmFsdWUiOiIifV19XSwiY2hhbXBzIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNalY4TURGSVJqVXlVamhXU0VaRldFaEVVazFTTWtGRU5FcFpNbEU9IiwibGFiZWwiOiJOb20gc2NpZW50aWZpcXVlIChub20gY29tbXVuKSIsInZhbHVlIjoiSGV0cmUgcGV0cnVzIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNVFI4TURGSVJqVXlVamhXU0VaRldFaEVVazFTTWtGRU5FcFpNbEU9IiwibGFiZWwiOiJUeXBlIGRlIGJvaXMiLCJ2YWx1ZSI6IkJydXQifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0T1RNMU1qQjhNREZJUmpVeVVqaFdTRVpGV0VoRVVrMVNNa0ZFTkVwWk1sRT0iLCJsYWJlbCI6IlVzdXJlIGR1IGJvaXMiLCJ2YWx1ZSI6IkJvaXMgdXNhZ8OpIn0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0T1RReE1UaDhNREZJUmpVeVVqaFdTRVpGV0VoRVVrMVNNa0ZFTkVwWk1sRT0iLCJsYWJlbCI6IkZpY2hlIHRlY2huaXF1ZSBvdSBwaG90b2dyYXBoaWUiLCJmaWxlIjpudWxsLCJzdHJpbmdWYWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRPVE0xTWpWOE1ERklSalV5VXpGVVMwRklWRWhYV2pSUVIwaE9TRWRZVWtJPSIsImxhYmVsIjoiTm9tIHNjaWVudGlmaXF1ZSAobm9tIGNvbW11bikiLCJ2YWx1ZSI6IlBpbiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXRPVE0xTVRSOE1ERklSalV5VXpGVVMwRklWRWhYV2pSUVIwaE9TRWRZVWtJPSIsImxhYmVsIjoiVHlwZSBkZSBib2lzIiwidmFsdWUiOiJDb250cmVwbGFxdcOpLCBib2lzIGRlIHBsYWNhZ2UsIGJvaXMgcmVjb25zdGl0dcOpIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNakI4TURGSVJqVXlVekZVUzBGSVZFaFhXalJRUjBoT1NFZFlVa0k9IiwibGFiZWwiOiJVc3VyZSBkdSBib2lzIiwidmFsdWUiOiJCb2lzIG5ldWYifSx7Il9fdHlwZW5hbWUiOiJQaWVjZUp1c3RpZmljYXRpdmVDaGFtcCIsImlkIjoiUTJoaGJYQXRPVFF4TVRoOE1ERklSalV5VXpGVVMwRklWRWhYV2pSUVIwaE9TRWRZVWtJPSIsImxhYmVsIjoiRmljaGUgdGVjaG5pcXVlIG91IHBob3RvZ3JhcGhpZSIsImZpbGUiOm51bGwsInN0cmluZ1ZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNalY4TURGSVJqVXlVMEZUVTFGS1dsZEhNMFZTUmpZMlVsSkJUalk9IiwibGFiZWwiOiJOb20gc2NpZW50aWZpcXVlIChub20gY29tbXVuKSIsInZhbHVlIjoiUGluIn0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE9UTTFNVFI4TURGSVJqVXlVMEZUVTFGS1dsZEhNMFZTUmpZMlVsSkJUalk9IiwibGFiZWwiOiJUeXBlIGRlIGJvaXMiLCJ2YWx1ZSI6IkJydXQifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0T1RNMU1qQjhNREZJUmpVeVUwRlRVMUZLV2xkSE0wVlNSalkyVWxKQlRqWT0iLCJsYWJlbCI6IlVzdXJlIGR1IGJvaXMiLCJ2YWx1ZSI6IkJvaXMgbmV1ZiJ9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE9UUXhNVGg4TURGSVJqVXlVMEZUVTFGS1dsZEhNMFZTUmpZMlVsSkJUalk9IiwibGFiZWwiOiJGaWNoZSB0ZWNobmlxdWUgb3UgcGhvdG9ncmFwaGllIiwiZmlsZSI6bnVsbCwic3RyaW5nVmFsdWUiOiIifV19XX19fQ==
+  recorded_at: Mon, 13 Nov 2023 23:13:15 GMT
+recorded_with: VCR 6.2.0

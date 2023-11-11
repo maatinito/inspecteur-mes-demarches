@@ -209,6 +209,11 @@ module MesDemarches
             annotations {
               ...ChampInfo
                ... on RepetitionChamp {
+                  rows {
+                    champs {
+                      ...ChampInfo
+                    }
+                  }
                   champs {
                       ...ChampInfo
                   }
@@ -217,6 +222,11 @@ module MesDemarches
             champs {
               ...ChampInfo
               ... on RepetitionChamp {
+                  rows {
+                    champs {
+                      ...ChampInfo
+                    }
+                  }
                   champs {
                       ...ChampInfo
                   }
@@ -232,6 +242,11 @@ module MesDemarches
                   champs {
                       ...ChampInfo
                       ... on RepetitionChamp {
+                          rows {
+                            champs {
+                              ...ChampInfo
+                            }
+                          }
                           champs {
                               ...ChampInfo
                           }
@@ -252,6 +267,11 @@ module MesDemarches
           annotations {
             ...ChampInfo
               ... on RepetitionChamp {
+                  rows {
+                    champs {
+                      ...ChampInfo
+                    }
+                  }
                   champs {
                       ...ChampInfo
                   }
@@ -260,6 +280,11 @@ module MesDemarches
           champs {
             ...ChampInfo
             ... on RepetitionChamp {
+                  rows {
+                    champs {
+                      ...ChampInfo
+                    }
+                  }
                 champs {
                     ...ChampInfo
                 }
@@ -275,6 +300,11 @@ module MesDemarches
                 champs {
                     ...ChampInfo
                     ... on RepetitionChamp {
+                        rows {
+                          champs {
+                            ...ChampInfo
+                          }
+                        }
                         champs {
                             ...ChampInfo
                         }

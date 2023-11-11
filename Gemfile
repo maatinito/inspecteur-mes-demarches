@@ -61,6 +61,7 @@ gem 'net-pop', require: false
 gem 'net-smtp', require: false
 gem 'phonelib'
 gem 'roo-xls'
+gem 'rubyXL'
 gem 'sablon'
 gem 'sentry-delayed_job'
 gem 'sentry-rails'
