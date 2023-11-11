@@ -21,6 +21,10 @@ FactoryBot.define do
       modele { 'spec/fixtures/publipostage_v2_with_errors.docx' }
     end
 
+    trait :with_multiple_sheets do
+      calculs { [{ 'excel/get_sheets' => { 'champ' => 'Produits 1' } }] }
+    end
+
     initialize_with { PublipostageV2.new(attributes) }
   end
 end

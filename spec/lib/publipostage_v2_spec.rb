@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe PublipostageV2 do
-  let(:dossier_nb) { 338_356 }
+  let(:dossier_nb) { 373_443 }
   let(:dossier) { DossierActions.on_dossier(dossier_nb) }
   let(:demarche) { double(Demarche) }
   let(:instructeur) { 'instructeur' }
@@ -30,6 +30,16 @@ RSpec.describe PublipostageV2 do
 
   context 'store docx to root field' do
     let(:generated_path) { "tmp/publipost/publipostage v2 #{dossier_nb}.docx" }
+    let(:marchandises) do
+      [['Libellé des produits', 'Poids', 'Code'],
+       ['Saucisses lentilles, parmentier, foie gras', '20.312', '1601-1602'],
+       ['Aliments pour animaux', '6.942', '2309'],
+       ['Saucisses lentilles, choucroute, confit', '19.384', '1601-1602'],
+       ['Gâteau riz caramel, crème dessert', '9.216', '1901'],
+       ['Aliments pour animaux', '8556.368', '2309']]
+    end
+    let(:marchandises_etiquetees) { marchandises.map.with_index { |line, i| [i > 0 ? "Libellé : #{line[0]}" : line[0], line[1], line[2]] } }
+
     before do
       FileUtils.rm_f(generated_path)
       allow(controle).to receive(:delete)
@@ -45,16 +55,9 @@ RSpec.describe PublipostageV2 do
         doc = Docx::Document.open(generated_path)
         expect(doc.to_html).to include('NAVIRE')
         expect(doc.to_html).to include('05/05/2023')
-        expect(doc.tables.size).to eq(2)
-        expect(doc.tables[0].rows.map { |row| row.cells.map(&:text) })
-          .to eq([['Libellé des produits', 'Poids', 'Code'],
-                  ['Libellé : Ailes de poulet', '40.5', '1002'],
-                  ['Libellé : Cuisses de canard', '13.8', '3002'],
-                  ['Libellé : Bœuf', '555', '4005']])
-        expect(doc.tables[1].rows.map { |row| row.cells.map(&:text) })
-          .to eq([['Libellé des produits', 'Poids', 'Code'],
-                  ['Cuisses de poulets', '314.0', '2022'],
-                  ['Porc', '333.0', '3033']])
+        expect(doc.tables.size).to eq(4)
+        expect(doc.tables[0].rows.map { |row| row.cells.map(&:text) }).to eq(marchandises_etiquetees)
+        expect(doc.tables[1].rows.map { |row| row.cells.map(&:text) }).to eq(marchandises)
       end
     end
 
@@ -72,9 +75,27 @@ RSpec.describe PublipostageV2 do
           .to eq([[msg, 'Poids', 'Code'],
                   ['Libellé : --Libellé des produits--', '--Poids--', '--Mauvais Code--']])
         expect(doc.tables[1].rows.map { |row| row.cells.map(&:text) })
-          .to eq([['Libellé des produits', 'Poids', 'Code'],
-                  ['Cuisses de poulets', '314.0', '--Mauvais Code--'],
-                  ['Porc', '333.0', '--Mauvais Code--']])
+          .to eq(marchandises.map.with_index { |line, i| [line[0], line[1], i > 0 ? '--Mauvais Code--' : line[2]] })
+      end
+    end
+
+    context 'with multiple sheets' do
+      let(:controle) { FactoryBot.build :publipostage_v2, :docx, :store_to_field, :with_multiple_sheets }
+      it 'generate docx', vcr: { cassette_name: 'publipostage_v2-1' } do
+        subject
+
+        doc = Docx::Document.open(generated_path)
+        expect(doc.to_html).to include('NAVIRE')
+        expect(doc.to_html).to include('05/05/2023')
+        expect(doc.tables.size).to eq(4)
+        expect(doc.tables[2].rows.map { |row| row.cells.map(&:text) })
+          .to eq([['Libelle', 'Nom scientifique'],
+                  ['Hetre', 'Hetrus bordus'],
+                  ['Sapin', 'Sapinus']])
+        expect(doc.tables[3].rows.map { |row| row.cells.map(&:text) })
+          .to eq([['Libelle', 'Nom scientifique'],
+                  ['Cepes', 'Cepinusetbordus'],
+                  ['Truffe', 'TrouffiusLupinus']])
       end
     end
   end

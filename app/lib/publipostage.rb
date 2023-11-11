@@ -56,6 +56,7 @@ class Publipostage < FieldChecker
 
       compute_dynamic_fields(row)
       fields = get_fields(row, params[:champs])
+      fields.merge!(@computed) if @computed.present?
       next if same_document(fields)
 
       path = generate_doc(fields)
