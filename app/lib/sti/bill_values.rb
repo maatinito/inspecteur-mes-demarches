@@ -8,36 +8,26 @@ module Sti
 
     TYPES = %w[transcription inscription].freeze
 
-    def process_row(_row)
-      result = {}
-      total = line(result, 1500)
-      total += line(result, 6000)
+    def process_row(row, output)
+      bill = []
+      add_product(row, bill, 'Nombre de mots', 'Traductions au mot') { |count| (count / 100.0).ceil.to_i * 1500 }
+      add_product(row, bill, 'Traductions à 1500') { |count| count * 1500 }
+      add_product(row, bill, 'Traductions à 6000') { |count| count * 6000 }
+      add_product(row, bill, 'Traductions à 200') { |count| count * 200 }
+      add_product(row, bill, 'Pages de copies') { |count| count * 100 }
 
-      total += word_line(result)
-      result['Total'] = "#{total} XPF"
-      result
+      output['Lignes'] = bill
+
+      total = bill.reduce(0) { |sum, line| sum + line[:total] }
+      output['Total'] = total
+      output['Total en lettres'] = "#{total.humanize.capitalize} francs"
     end
 
     private
 
-    def word_line(result)
-      word_nb = annotation('Nombre de mots')&.value&.to_i || ''
-      total_words = (word_nb / 100.0).ceil.to_i * 1500
-      result['Total mots'] = word_nb.present? ? "#{total_words} XPF" : ''
-      total_words
-    end
-
-    def line(result, value)
-      docs = annotation("Documents à #{value}")&.value&.to_i || ''
-      total = 0
-      if docs.present?
-        result["Prix #{value}"] = "#{value} XPF"
-        total = docs * value
-        result["Total #{value}"] = "#{total} XPF"
-      else
-        result["Prix #{value}"] = result["Total #{value}"] = ''
-      end
-      total
+    def add_product(row, bill, annotation, produit = annotation)
+      quantite = dossier_annotations(row, annotation)&.first&.value&.to_i
+      bill << { produit:, quantite:, total: yield(quantite) } if quantite.positive?
     end
   end
 end

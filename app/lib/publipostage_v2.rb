@@ -21,6 +21,7 @@ class PublipostageV2 < Publipostage
         next unless tr.text.include?('--')
 
         [*fields].each do |k, v|
+          # ActiveSupport::NumberHelper.number_to_currency(123456789, unit: '', delimiter: ' ', precision: 0)
           tr.substitute("--#{k}--", [*v].map(&:to_s).join(','))
         end
         insert_line_breaks(tr)
