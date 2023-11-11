@@ -7,7 +7,7 @@ class PieceJustificativeCache
   class << self
     def get(md_file)
       pathname = pathname(md_file.filename, md_file.checksum)
-      unless pathname.exist?
+      unless pathname.size?
         File.open(pathname, 'wb') do |f|
           IO.copy_stream(URI.parse(md_file.url).open, f)
           f.close
