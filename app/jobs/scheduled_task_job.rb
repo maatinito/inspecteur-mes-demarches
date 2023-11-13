@@ -16,7 +16,7 @@ class ScheduledTaskJob < CronJob
         scheduled.destroy
       rescue StandardError => e
         Sentry.capture_exception(e)
-        NotificationMailer.with(message: "Error processing #{scheduled.task} : #{e.message}", backtrace: e.backtrace).report_error.deliver_later
+        NotificationMailer.with(error_params("Error processing #{scheduled.task}", e)).report_error.deliver_later
       end
     end
   end
@@ -26,6 +26,14 @@ class ScheduledTaskJob < CronJob
   end
 
   private
+
+  def error_params(message, exception)
+    {
+      message: "#{message} : #{exception.message}",
+      backtrace: exception.backtrace,
+      tags: Rails.logger.formatter.current_tags.join(',')
+    }
+  end
 
   def perform_task(scheduled, task)
     DossierActions.on_dossier(scheduled.dossier) do |dossier|

@@ -18,7 +18,7 @@ class NotificationMailer < ApplicationMailer
     @dossier = params[:dossier]
     @demarche = params[:demarche]
     @dossier_url = [ENV.fetch('GRAPHQL_HOST', nil), 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
-    @tags = Rails.logger.formatter.current_tags.join(',')
+    @tags = params[:tags]
     @message = params[:message]
     @backtrace = params[:backtrace]&.select { |b| b.include?('/app/') }&.first(7) || []
     Rails.logger.error(message)
