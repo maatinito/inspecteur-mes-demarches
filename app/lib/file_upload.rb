@@ -26,8 +26,8 @@ class FileUpload
     result.data&.create_direct_upload
   end
 
-  def self.checksum(file_path)
-    Digest::MD5.base64digest(File.read(file_path))
+  def self.checksum(file)
+    Digest::MD5.base64digest(file.is_a?(String) ? File.read(file) : file.read)
   end
 
   Queries = MesDemarches::Client.parse <<-GRAPHQL

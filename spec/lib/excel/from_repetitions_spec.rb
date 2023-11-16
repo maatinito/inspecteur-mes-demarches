@@ -22,12 +22,14 @@ describe 'Excel::FromRepetitions' do
   context 'valid control' do
     let(:controle) { FactoryBot.build :excel_from_repetitions }
     let(:generated) { 'generated.xlsx' }
+    let(:data_filename) { 'storage/from_repetition.yml' }
     let(:columns) { ['Nom fourni', 'Type', 'Complément'].to_h { |v| [v, Regexp.new(Regexp.quote(v), 'i')] } }
 
     before do
-      FileUtils.rm_f(generated)
       expect(SetAnnotationValue).to receive(:set_piece_justificative_on_annotation)
-      allow(Tempfile).to receive(:create).and_yield(File.open(generated, 'wb'))
+      allow(Tempfile).to receive(:create).and_yield(File.open(generated, 'w+'))
+      allow_any_instance_of(Excel::FromRepetitions).to receive(:data_filename).and_return(data_filename)
+      FileUtils.rm_f(data_filename)
     end
     after { FileUtils.rm_f(generated) }
 
@@ -44,6 +46,13 @@ describe 'Excel::FromRepetitions' do
         xlsx = Roo::Spreadsheet.open(generated)
         rows = xlsx.sheet(0).parse(columns)
         expect(rows).to match(result)
+        expect(File).to exist(data_filename)
+      end
+      it 'generate xlsx', vcr: 'from_repetition-1' do
+        subject
+        FileUtils.rm_f(generated)
+        expect(controle).not_to receive(:send_document)
+        controle.process(demarche, dossier) # 2nd time
       end
     end
   end

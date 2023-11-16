@@ -33,8 +33,10 @@ RSpec.describe PublipostageV2 do
     let(:marchandises) do
       [['Libellé des produits', 'Poids', 'Code'],
        ['Saucisses lentilles, parmentier, foie gras', '20.312', '1601-1602'],
+       ['Prép. Alimentaires "Poisson"', '', '1604'],
        ['Aliments pour animaux', '6.942', '2309'],
        ['Saucisses lentilles, choucroute, confit', '19.384', '1601-1602'],
+       ['Sauce nuoc mam', '', '2103'],
        ['Gâteau riz caramel, crème dessert', '9.216', '1901'],
        ['Aliments pour animaux', '8556.368', '2309']]
     end
@@ -56,8 +58,8 @@ RSpec.describe PublipostageV2 do
         expect(doc.to_html).to include('NAVIRE')
         expect(doc.to_html).to include('05/05/2023')
         expect(doc.tables.size).to eq(4)
-        expect(doc.tables[0].rows.map { |row| row.cells.map(&:text) }).to eq(marchandises_etiquetees)
-        expect(doc.tables[1].rows.map { |row| row.cells.map(&:text) }).to eq(marchandises)
+        expect(doc.tables[0].rows.map { |row| row.cells.map(&:text) }).to match(marchandises_etiquetees)
+        expect(doc.tables[1].rows.map { |row| row.cells.map(&:text) }).to match(marchandises)
       end
     end
 

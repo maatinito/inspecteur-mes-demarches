@@ -121,7 +121,7 @@ class Publipostage < FieldChecker
       Rails.logger.info("Sending file #{filename} to user using MD message system")
       SendMessage.send_with_file(target, instructeur_id_for(demarche, dossier), body, file, filename)
     end
-    dossier_updated(@dossier) # to prevent infinite checks
+    dossier_updated(@dossier)
   end
 
   def output_basename(row)

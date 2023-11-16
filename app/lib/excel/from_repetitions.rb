@@ -2,6 +2,8 @@
 
 module Excel
   class FromRepetitions < FieldChecker
+    DATA_DIR = 'storage/from_repetitions'
+
     FIELD_TYPES = Set.new(%w[TextChamp IntegerNumberChamp DecimalNumberChamp CheckboxChamp CiviliteChamp
                              MultipleDropDownListChamp LinkedDropDownListChamp DateTimeChamp DateChamp NumeroDnChamp])
 
@@ -27,6 +29,9 @@ module Excel
 
     def process(demarche, dossier)
       super
+      return unless must_check?(dossier)
+      return if same_document(dossier)
+
       workbook = RubyXL::Parser.parse(@modele)
       dossier.champs.each do |champ|
         next unless champ.__typename == 'RepetitionChamp' && (@champs_sources.empty? || @champs_sources.include?(champ.label))
@@ -44,6 +49,7 @@ module Excel
         end
       end
       save_excel(workbook) { send_document(@demarche, @dossier, _1) }
+      save_posted
     end
 
     def save_excel(workbook)
@@ -55,6 +61,41 @@ module Excel
       end
     end
 
+    def data_filename
+      datadir = "#{DATA_DIR}/#{@dossier.number}"
+      FileUtils.mkpath(datadir)
+      datafilename = @params[:nom_fichier].gsub(/\s*\{^\}*\}/, '')
+      "#{datadir}/#{datafilename}.yml"
+    end
+
+    def same_document(dossier)
+      datafile = data_filename
+      fields = repetition_to_array(dossier)
+      fields['modele_checksum'] = FileUpload.checksum(@modele)
+      @data = [datafile, fields]
+      same = File.exist?(datafile) && YAML.load_file(datafile) == fields
+      Rails.logger.info('Canceling Excel generation as input data coming from dossier is the same as before') if same
+      same
+    end
+
+    def repetition_to_array(dossier)
+      dossier.champs.each_with_object({}) do |champ, fields|
+        next unless champ.__typename == 'RepetitionChamp' && (@champs_sources.empty? || @champs_sources.include?(champ.label))
+
+        fields[champ.label] = champ.rows.each_with_object([]) do |repetition, table|
+          table << repetition.champs.each_with_object([]) do |sous_champ, row|
+            row << graphql_champ_value(sous_champ) if FIELD_TYPES.include?(sous_champ.__typename)
+          end
+        end
+      end
+    end
+
+    def save_posted
+      filename, fields = @data
+      File.write(filename, YAML.dump(fields))
+      @data = nil
+    end
+
     def send_document(demarche, target, file)
       timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
       filename = build_filename(@params[:nom_fichier] || @modele, { 'horodatage' => timestamp }) + File.extname(file)
@@ -64,7 +105,7 @@ module Excel
 
       Rails.logger.info("Storing file #{filename} to private annotation #{annotation.label}")
       SetAnnotationValue.set_piece_justificative_on_annotation(target, instructeur_id_for(demarche, target), annotation, file, filename)
-      dossier_updated(target) # to prevent infinite checks
+      dossier_updated(target)
     end
 
     def instanciate(template, source = nil)
