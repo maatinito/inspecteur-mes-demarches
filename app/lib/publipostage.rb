@@ -245,14 +245,13 @@ class Publipostage < FieldChecker
     end
   end
 
-  MAPPING = { 'Nom de famille' => 'Nom' }.freeze
-
   def sheet_rows(header_line, sheet)
     rows = []
     headers = sheet.row(header_line)
-    sheet.each_row_streaming do |row|
-      data_row = row.size.positive? && row[1].coordinate[0] > header_line && row[1].value.present?
-      rows << headers.map.with_index { |v, i| [MAPPING[v].presence || v, row[i].value] }.to_h if data_row
+    sheet.each_row_streaming(pad_cells: true, offset: header_line) do |row|
+      break unless row.any? { _1&.value.present? }
+
+      rows << headers.map.with_index { |v, i| [v, row[i]&.value || ''] }.to_h
     end
     rows
   end
