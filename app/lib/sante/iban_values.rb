@@ -6,24 +6,23 @@ module Sante
       super + 1
     end
 
-    def process_row(row)
-      result = {}
+    def process_row(row, output)
       champs = dossier.champs
-      add_rib_fields(champs, result)
-      add_rib_fields(row, result) if row.respond_to?(:champs) && row != dossier
-      result
+      add_rib_fields(champs, output)
+      add_rib_fields(row, output) if row.respond_to?(:champs) && row != dossier
+      output
     end
 
-    def add_rib_fields(champs, result)
+    def add_rib_fields(champs, output)
       champs.each do |champ|
         next unless champ.label.match?(/iban/i)
 
         iban = IBANTools::IBAN.new(champ.value).code
         label = champ.label
-        result["#{label}/Code banque"] = iban[4, 5]
-        result["#{label}/Code agence"] = iban[9, 5]
-        result["#{label}/Numéro de compte"] = iban[14, 11]
-        result["#{label}/Clé"] = iban[25, 2]
+        output["#{label}/Code banque"] = iban[4, 5]
+        output["#{label}/Code agence"] = iban[9, 5]
+        output["#{label}/Numéro de compte"] = iban[14, 11]
+        output["#{label}/Clé"] = iban[25, 2]
       end
     end
   end

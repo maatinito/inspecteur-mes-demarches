@@ -8,19 +8,18 @@ module Sante
 
     TYPES = %w[transcription inscription].freeze
 
-    def process_row(_row)
-      result = {}
+    def process_row(_row, output)
       asked_grant = field('Montant demandé')&.value&.to_f || 1
       project_amount = field('Montant total du projet')&.value&.to_f || 1
       given_grant = annotation('Montant en chiffres')&.value&.to_f || 1
-      result['Avance'] = (given_grant * 50 / 100).round
-      result['Acompte'] = (given_grant * 40 / 100).round
-      result['Solde'] = given_grant.round - result['Avance'] - result['Acompte']
-      %w[Avance Acompte Solde].each { |k| result["#{k} en lettres"] = result[k].humanize }
-      result['Pourcentage subvention'] = (given_grant / asked_grant * 100).round
-      result['Pourcentage total'] = (given_grant / project_amount * 100).round
+      output['Avance'] = (given_grant * 50 / 100).round
+      output['Acompte'] = (given_grant * 40 / 100).round
+      output['Solde'] = given_grant.round - output['Avance'] - output['Acompte']
+      %w[Avance Acompte Solde].each { |k| output["#{k} en lettres"] = output[k].humanize }
+      output['Pourcentage subvention'] = (given_grant / asked_grant * 100).round
+      output['Pourcentage total'] = (given_grant / project_amount * 100).round
 
-      result
+      output
     end
   end
 end

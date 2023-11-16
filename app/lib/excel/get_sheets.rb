@@ -10,8 +10,7 @@ module Excel
       super + %i[champ]
     end
 
-    def process_row(row)
-      result = {}
+    def process_row(row, output)
       champs = object_field_values(row, params[:champ])
       champs.each do |champ_source|
         if champ_source.__typename != 'PieceJustificativeChamp' || champ_source.file.blank? || File.extname(champ_source.file.filename) != '.xlsx'
@@ -23,13 +22,13 @@ module Excel
           xlsx.sheets.each do |name|
             sheet = xlsx.sheet(name)
             header_line = header_line(sheet)
-            result["#{params[:champ]}.#{name}"] = sheet_rows(header_line, sheet)
+            output["#{params[:champ]}.#{name}"] = sheet_rows(header_line, sheet)
           end
         ensure
           xlsx&.close
         end
       end
-      result
+      output
     end
 
     def sheet_rows(header_line, sheet)

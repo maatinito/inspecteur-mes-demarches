@@ -8,13 +8,12 @@ module Daf
 
     TYPES = %w[transcription inscription].freeze
 
-    def process_row(_row)
-      result = {}
+    def process_row(_row, output)
       TYPES.each do |type|
-        result[type.camelize] = annotation("Montant #{type}")&.value.to_i + annotation("Complément #{type}")&.value.to_i
+        output[type.camelize] = annotation("Montant #{type}")&.value.to_i + annotation("Complément #{type}")&.value.to_i
       end
-      result['Total'] = TYPES.map { |type| result[type.camelize] }.reduce(&:+)
-      result
+      output['Total'] = TYPES.map { |type| output[type.camelize] }.reduce(&:+)
+      output
     end
   end
 end

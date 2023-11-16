@@ -8,11 +8,11 @@ module Calculs
       super + 1
     end
 
-    def process_row(dossier)
-      [*dossier.champs, *dossier.annotations].each_with_object({}) do |champ, result|
+    def process_row(dossier, output)
+      [*dossier.champs, *dossier.annotations].each do |champ|
         if /Montant/.match(champ.label)
-          result["#{champ.label} en lettres"] = (champ.value || 0).to_i&.humanize&.to_s
-          result["#{champ.label} en chiffres"] = number_to_currency(champ.value || 0, unit: '', separator: ',', delimiter: ' ', precision: 0)
+          output["#{champ.label} en lettres"] = (champ.value || 0).to_i&.humanize&.to_s
+          output["#{champ.label} en chiffres"] = number_to_currency(champ.value || 0, unit: '', separator: ',', delimiter: ' ', precision: 0)
         end
       end
     end

@@ -54,9 +54,8 @@ class Publipostage < FieldChecker
     paths = rows.filter_map do |row|
       next unless trigger_field_set(row)
 
-      compute_dynamic_fields(row)
       fields = get_fields(row, params[:champs])
-      fields.merge!(@computed) if @computed.present?
+      compute_dynamic_fields(row, fields)
       next if same_document(fields)
 
       path = generate_doc(fields)
@@ -427,12 +426,10 @@ class Publipostage < FieldChecker
     field[(field.rindex('.') || -1) + 1..]
   end
 
-  def compute_dynamic_fields(row)
-    @computed = compute_cells(row) if @calculs.present?
-  end
+  def compute_dynamic_fields(row, fields)
+    return unless @calculs.present?
 
-  def compute_cells(row)
-    @calculs.map { |task| task.process_row(row) }.reduce(&:merge)
+    @calculs.each { |task| task.process_row(row, fields) }
   end
 
   def create_tasks
