@@ -23,7 +23,24 @@ class PublipostageV2 < Publipostage
         [*fields].each do |k, v|
           tr.substitute("--#{k}--", [*v].map(&:to_s).join(','))
         end
+        insert_line_breaks(tr)
       end
+    end
+  end
+
+  def insert_line_breaks(text_run)
+    xr = text_run.node
+    xt = xr.at_xpath('w:t')
+    segments = xt.content.split(/\r*\n\r*/)
+    return unless segments.present? && segments.size > 1
+
+    xt.content = segments.first
+    template = text_run.node.dup
+    template.prepend_child(Nokogiri::XML::Node.new('w:br', xr.document))
+    segments[1..].each do |segment|
+      new_r = template.dup
+      new_r.at_xpath('w:t').content = segment
+      xr = xr.add_next_sibling(new_r)
     end
   end
 

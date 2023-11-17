@@ -251,7 +251,11 @@ class Publipostage < FieldChecker
     sheet.each_row_streaming(pad_cells: true, offset: header_line) do |row|
       break unless row.any? { _1&.value.present? }
 
-      rows << headers.map.with_index { |v, i| [v, row[i]&.value || ''] }.to_h
+      rows << headers.each_with_object({}).with_index do |(k, h), i|
+        value = row[i]&.value
+        value = value.gsub('_x000D_', '') if value.is_a?(String)
+        h[k] = value || ''
+      end
     end
     rows
   end
