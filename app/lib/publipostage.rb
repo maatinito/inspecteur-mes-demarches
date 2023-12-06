@@ -23,6 +23,7 @@ class Publipostage < FieldChecker
     @if_field_set = @params[:si_presence_champ]
     @annexe_field = [*@params[:champ_annexe]]
     @publiposts = {}
+    @sender = @params[:expediteur]
     raise "Modèle #{@modele} introuvable" unless File.exist?(@modele)
     raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
 
@@ -36,7 +37,7 @@ class Publipostage < FieldChecker
   end
 
   def authorized_fields
-    super + %i[calculs dossier_cible champ_source nom_fichier_lot champ_force_publipost destinataires champ_cible champ_annexe type_de_document si_presence_champ]
+    super + %i[calculs expediteur dossier_cible champ_source nom_fichier_lot champ_force_publipost destinataires champ_cible champ_annexe type_de_document si_presence_champ]
   end
 
   def must_check?(dossier)
@@ -119,7 +120,7 @@ class Publipostage < FieldChecker
     end
     unless @champ_cible.present? || @mails.present?
       Rails.logger.info("Sending file #{filename} to user using MD message system")
-      SendMessage.send_with_file(target, instructeur_id_for(demarche, dossier), body, file, filename)
+      SendMessage.send_with_file(target, sender_id(demarche.id) || instructeur_id_for(demarche, dossier), body, file, filename)
     end
     dossier_updated(@dossier)
   end
@@ -474,5 +475,11 @@ class Publipostage < FieldChecker
       files.each { |path| delete(path) }
       yield f
     end
+  end
+
+  def sender_id(demarche_id)
+    return nil unless @sender
+
+    @sender_id ||= DemarcheActions.get_graphql_demarche(demarche_id).groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == @sender }&.id
   end
 end
