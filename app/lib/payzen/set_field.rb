@@ -15,7 +15,9 @@ module Payzen
     def handle_order(order)
       field = @params[:champ]
       template = @params[:valeur]
-      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, field, instanciate(template, order))
+      return unless SetAnnotationValue.set_value(@dossier, @demarche.instructeur, field, instanciate(template, order))
+
+      dossier_updated(@dossier)
     end
   end
 end
