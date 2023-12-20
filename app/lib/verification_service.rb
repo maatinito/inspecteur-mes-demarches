@@ -6,24 +6,28 @@ class VerificationService
   @@config = nil
 
   def check
-    VerificationService.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
-      Rails.logger.tagged(procedure_name) do
-        @pieces_messages = get_pieces_messages(procedure_name, procedure)
-        @instructeur_email = instructeur_email(procedure)
-        @send_messages = procedure['messages_automatiques']
-        @inform_annotation = procedure['annotation_information']
-        procedure['name'] = procedure_name
-        @procedure = procedure
-        create_controls
-        create_when_ok_tasks
-        check_updated_dossiers(@controls)
-        check_failed_dossiers(@controls)
-        check_updated_controls(@controls)
-      end
-    rescue StandardError => e
-      raise e unless Rails.env.production?
+    VerificationService.configs.each do |filename, data|
+      Rails.logger.tagged(File.basename(filename)) do
+        data.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
+          Rails.logger.tagged(procedure_name) do
+            @pieces_messages = get_pieces_messages(procedure_name, procedure)
+            @instructeur_email = instructeur_email(procedure)
+            @send_messages = procedure['messages_automatiques']
+            @inform_annotation = procedure['annotation_information']
+            procedure['name'] = procedure_name
+            @procedure = procedure
+            create_controls
+            create_when_ok_tasks
+            check_updated_dossiers(@controls)
+            check_failed_dossiers(@controls)
+            check_updated_controls(@controls)
+          end
+        rescue StandardError => e
+          raise e unless Rails.env.production?
 
-      report_error('Error processing demarche', e)
+          report_error('Error processing demarche', e)
+        end
+      end
     end
   end
 
@@ -48,7 +52,7 @@ class VerificationService
       checks = Check.where(dossier: dossier_number).all
       if checks.present? && md_dossier.present?
         demarche = checks.first.demarche_id
-        VerificationService.config.filter { |_k, d| (d.key? 'demarches') && d['demarches'].include?(demarche) }.each do |procedure_name, procedure|
+        VerificationService.configs.each_value.map(&:config).filter { |_k, d| (d.key? 'demarches') && d['demarches'].include?(demarche) }.each do |procedure_name, procedure|
           @pieces_messages = get_pieces_messages(procedure_name, procedure)
         end
         inform(md_dossier, checks)
@@ -56,17 +60,27 @@ class VerificationService
     end
   end
 
-  def self.config
-    file_mtime = File.mtime(config_file_name)
-    if @@config.nil? || @@config_time < file_mtime
-      @@config = YAML.load_file(config_file_name, aliases: true)
-      @@config_time = file_mtime
-    end
-    @@config
-  end
-
   def self.config_file_name
     @@config_file_name ||= Rails.root.join('storage', 'auto_instructeur.yml')
+  end
+
+  FileData = Struct.new(:filename, :filetime, :config)
+
+  def self.configs
+    @@configs ||= {}
+    files = [config_file_name] + Dir.glob(Rails.root.join('storage', 'configurations', '*.yml'))
+    @@configs.select! { |k, _| files.include?(k) }
+    files.each do |filename|
+      data = @@configs[filename]
+      if data.nil? || data.filetime < File.mtime(filename)
+        config = YAML.load_file(filename, aliases: true)
+        @@configs[filename] = FileData.new(filename, File.mtime(filename), config)
+      end
+    rescue StandardError => e
+      @@configs.delete(filename)
+      report_error("Unable to load #{filename} configuration file ==> File is ignored until file is corrected.", e)
+    end
+    @@configs
   end
 
   private
@@ -94,8 +108,10 @@ class VerificationService
 
   def check_updated_dossiers(controls)
     [*@procedure['demarches']].each do |demarche_number|
-      reset = reset?(demarche_number, controls)
-      check_demarche(controls, demarche_number, reset, @procedure['name'])
+      Rails.logger.tagged(demarche_number) do
+        reset = reset?(demarche_number, controls)
+        check_demarche(controls, demarche_number, reset, @procedure['name'])
+      end
     end
   end
 
@@ -107,16 +123,14 @@ class VerificationService
   def check_demarche(controls, demarche_number, reset, configuration_name)
     demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
     Rails.logger.info("Processing procedure #{demarche_number}")
-    Rails.logger.tagged(demarche_number) do
-      set_demarche(controls, demarche)
-      start_time = Time.zone.now
-      since = reset ? EPOCH : demarche.checked_at
-      DossierActions.on_dossiers(demarche.id, since) do |dossier|
-        check_dossier(demarche, dossier, controls)
-      end
-      demarche.checked_at = start_time
-      demarche.save
+    set_demarche(controls, demarche)
+    start_time = Time.zone.now
+    since = reset ? EPOCH : demarche.checked_at
+    DossierActions.on_dossiers(demarche.id, since) do |dossier|
+      check_dossier(demarche, dossier, controls)
     end
+    demarche.checked_at = start_time
+    demarche.save
   end
 
   def set_demarche(controls, demarche)
@@ -191,7 +205,7 @@ class VerificationService
 
   def check_dossier(demarche, md_dossier, controls)
     Rails.logger.info("Processing dossier #{md_dossier.number}")
-    Rails.logger.tagged("#{demarche.id},#{md_dossier.number}") do
+    Rails.logger.tagged(md_dossier.number) do
       affected = affected?(controls, md_dossier)
       if affected
         apply_controls(controls, demarche, md_dossier)
