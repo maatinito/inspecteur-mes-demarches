@@ -97,7 +97,7 @@ module MesDemarches
           secondaryValue
       }
       ... on PieceJustificativeChamp  {
-          file {
+          files {
               contentType
               checksum
               filename
