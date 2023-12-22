@@ -28,7 +28,7 @@ module Daf
     private
 
     def amount
-      raise NotImplementedError.new("Method should be redefined")
+      raise NotImplementedError, 'Method should be redefined'
     end
 
     def dossier_has_right_state

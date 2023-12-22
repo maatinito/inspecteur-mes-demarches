@@ -19,7 +19,7 @@ module Daf
     def sum_of(champs)
       names = @params[champs]
       source_champs_names = names.is_a?(Array) ? names : names&.split(',')
-      source_champs_names&.flat_map { |name| champs_to_values(annotations(name)) }&.map(&:to_i).reduce(&:+).to_i
+      source_champs_names&.flat_map { |name| champs_to_values(annotations(name)) }&.map(&:to_i)&.reduce(&:+).to_i
     end
   end
 end

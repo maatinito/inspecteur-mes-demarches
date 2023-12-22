@@ -8,7 +8,7 @@ module Daf
 
     private
 
-    def get_orders
+    def orders
       champ_source = param_field(:champ_source)
       return if champ_source.blank?
 

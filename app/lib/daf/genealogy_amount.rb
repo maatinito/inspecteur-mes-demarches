@@ -12,7 +12,7 @@ module Daf
       @source_champs_names = names.is_a?(Array) ? names : names&.split(',')
     end
 
-    def process_row(row, output)
+    def process_row(_row, output)
       output['fiches'] = count_files
     end
 
@@ -23,7 +23,7 @@ module Daf
     end
 
     def count_files
-  @source_champs_names&.flat_map { |name| annotations(name) }&.flat_map(&:files)&.size.to_i
+      @source_champs_names&.flat_map { |name| annotations(name) }&.flat_map(&:files)&.size.to_i
     end
   end
 end

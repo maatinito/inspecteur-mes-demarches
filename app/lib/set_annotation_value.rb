@@ -56,6 +56,7 @@ class SetAnnotationValue
       })
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
     raise errors.join(';') if errors.present?
+
     result
   end
 
