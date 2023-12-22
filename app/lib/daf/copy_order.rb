@@ -10,35 +10,37 @@ module Daf
       super + %i[champ_source bloc_destination champ_destination]
     end
 
+    def authorized_fields
+      super + %i[valeur]
+    end
+
     def process(demarche, dossier)
       super
-      champs = param_field(:champ_source)&.champs
-      return if champs.blank?
+      rows = param_field(:champ_source).rows
+      return if rows.blank?
 
-      orders = get_orders(champs)
+      orders = get_orders(rows)
       annotation = SetAnnotationValue.allocate_blocks(dossier, demarche.instructeur, @params[:bloc_destination], orders.size)
       champ_destination_label = @params[:champ_destination]
       champs = annotation.champs.filter { |c| c.label == champ_destination_label }
       raise StandardError, "Impossible de copier la demande dans les annotations (#{champs.size} champs != #{orders.size} demandes)" if orders.size != champs.size
 
+      changed = false
       orders.zip(champs).each do |order, champ|
         value = champ.respond_to?(:string_value) ? champ.string_value : champ.value
-        SetAnnotationValue.raw_set_value(dossier.id, demarche.instructeur, champ.id, order) unless order == value
+        if order != value
+          SetAnnotationValue.raw_set_value(dossier.id, demarche.instructeur, champ.id, order) unless order == value
+          changed = true
+        end
       end
+      dossier_updated(@dossier) if changed
     end
 
     private
 
-    def get_orders(champs)
-      get_repetitions(champs).map do |repetition|
-        repetition.map(&:value).select(&:present?).join('-')
-      end
-    end
-
-    def get_repetitions(champs)
-      champs.each_with_object([[]]) do |champ, result|
-        result << [] if result.last.first&.label == champ.label # next line/hash
-        result.last << champ
+    def get_orders(rows)
+      rows.map do |row|
+        @params[:valeur].present? ? instanciate(@params[:valeur], row) : champs_to_values(row.champs).join(', ')
       end
     end
   end
