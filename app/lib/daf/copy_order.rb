@@ -16,11 +16,15 @@ module Daf
 
     def process(demarche, dossier)
       super
-      rows = param_field(:champ_source).rows
-      return if rows.blank?
+      return unless must_check?(dossier)
 
-      orders = get_orders(rows)
-      annotation = SetAnnotationValue.allocate_blocks(dossier, demarche.instructeur, @params[:bloc_destination], orders.size)
+      create_orders(get_orders)
+    end
+
+    def create_orders(orders)
+      return if orders.blank?
+
+      annotation = SetAnnotationValue.allocate_blocks(@dossier,@demarche.instructeur, @params[:bloc_destination], orders.size)
       champ_destination_label = @params[:champ_destination]
       champs = annotation.champs.filter { |c| c.label == champ_destination_label }
       raise StandardError, "Impossible de copier la demande dans les annotations (#{champs.size} champs != #{orders.size} demandes)" if orders.size != champs.size
@@ -38,7 +42,10 @@ module Daf
 
     private
 
-    def get_orders(rows)
+    def get_orders
+      rows = param_field(:champ_source).rows
+      return if rows.blank?
+
       rows.map do |row|
         @params[:valeur].present? ? instanciate(@params[:valeur], row) : champs_to_values(row.champs).join(', ')
       end
