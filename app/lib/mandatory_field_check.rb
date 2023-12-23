@@ -16,7 +16,7 @@ class MandatoryFieldCheck < FieldChecker
       empty = fields.empty? || fields.any? do |field|
         case field.__typename
         when 'PieceJustificativeChamp'
-          field.file
+          field.files
         when 'DossierLinkChamp'
           field.string_value
         when 'RepetitionChamp'

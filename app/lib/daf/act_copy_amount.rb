@@ -67,16 +67,16 @@ module Daf
       return pages if pages.positive?
 
       file_field = champs.find { |champ| champ.__typename == 'PieceJustificativeChamp' }
-      return 0 if file_field&.file&.filename.blank?
+      return 0 if file_field&.files.blank?
 
-      PieceJustificativeCache.get(file_field.file) do |file|
-        pages = file_page_count(file)
-        if page_field
-          Rails.logger.info("Setting #{page_field.label} to #{pages}")
-          SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, page_field.id, pages)
-        end
-        return pages
+      pages = file_field.files.map do |field_file|
+        PieceJustificativeCache.get(field_file) { |file| file_page_count(file) }
+      end.reduce(&:+)
+      if page_field
+        Rails.logger.info("Setting #{page_field.label} to #{pages}")
+        SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, page_field.id, pages)
       end
+      pages
     end
 
     def file_page_count(filename)

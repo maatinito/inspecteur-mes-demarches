@@ -103,6 +103,12 @@ module MesDemarches
               filename
               url
           }
+          file {
+              contentType
+              checksum
+              filename
+              url
+          }
           stringValue
       }
       ... on NumeroDnChamp  {

@@ -9,10 +9,12 @@ http_interactions:
         on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
         on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
         on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
-        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    files {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
         on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
-        {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
-        MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        {\n    stringValue\n    etablissement {\n      entreprise {\n        nomCommercial\n        raisonSociale\n      }\n      association
+        {\n        titre\n      }\n      libelleNaf\n      naf\n    }\n  }\n  ...
+        on CiviliteChamp {\n    value\n  }\n  ... on MultipleDropDownListChamp {\n    values\n  }\n  ...
+        on VisaChamp {\n    stringValue\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
         on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  dateDepot\n  motivation\n  usager
         {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
         {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
@@ -22,14 +24,17 @@ http_interactions:
         MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
         {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
         {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
-        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n    }\n    champs
+        on RepetitionChamp {\n        rows {\n          champs {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n        }\n        champs
+        {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n    }\n    champs
         {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
-        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on RepetitionChamp {\n        rows {\n          champs {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n        }\n        champs
+        {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
         on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
         {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
         {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
         {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
-        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":308727},"operationName":"MesDemarches__Queries__Dossier"}'
+        on RepetitionChamp {\n              rows {\n                champs {\n                  __typename\n                  ...MesDemarches__Queries__ChampInfo\n                }\n              }\n              champs
+        {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":308727},"operationName":"MesDemarches__Queries__Dossier"}'
     headers:
       Accept-Encoding:
       - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
@@ -46,16 +51,18 @@ http_interactions:
       code: 200
       message: OK
     headers:
-      Date:
-      - Fri, 09 Sep 2022 02:48:43 GMT
       Server:
-      - nginx/1.10.3
+      - nginx/1.18.0
+      Date:
+      - Sat, 23 Dec 2023 01:21:27 GMT
       Content-Type:
       - application/json; charset=utf-8
+      Connection:
+      - keep-alive
       X-Frame-Options:
       - SAMEORIGIN
       X-Xss-Protection:
-      - 1; mode=block
+      - '0'
       X-Content-Type-Options:
       - nosniff
       X-Download-Options:
@@ -67,35 +74,38 @@ http_interactions:
       Vary:
       - Accept
       Etag:
-      - W/"faaf19dd851edc4d0f1cfdda050d050f"
+      - W/"b07953e9c1f17b5615970d15816df323"
       Cache-Control:
       - max-age=0, private, must-revalidate
       Content-Security-Policy:
       - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
         script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
-        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com unpkg.com beta.mes-demarches.gov.pf;
         style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
-        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
-        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        maxcdn.bootstrapcdn.com unpkg.com; frame-src ''self''; connect-src ''self''
+        wss://*.crisp.chat *.crisp.chat app.franceconnect.gouv.fr openmaptiles.geo.data.gouv.fr
         openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
-        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
-        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
-        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
-        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
-        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
-        osu.cloudgouv-eu-west-1.outscale.com'
+        sentry.io api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr
+        www.tefenua.gov.pf oos.eu-west-2.outscale.com oos.cloudgouv-eu-west-1.outscale.com;
+        default-src ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr *.crisp.chat crisp.chat *.crisp.help
+        *.sibautomation.com sibautomation.com data sentry.io oos.eu-west-2.outscale.com
+        oos.cloudgouv-eu-west-1.outscale.com'
       X-Request-Id:
-      - 470b097e-33f4-44a5-bbc4-fe3b8255fca2
+      - 51c5488d-7ada-4321-993c-9ae459a6e586
       X-Runtime:
-      - '0.383034'
+      - '0.377522'
       Strict-Transport-Security:
       - max-age=63072000; includeSubDomains
+      Set-Cookie:
+      - cookiesession1=678A3E1E8546CBB617795ADE01B005BA;Expires=Sun, 22 Dec 2024 01:21:23
+        GMT;Path=/;HttpOnly
       Content-Length:
-      - '1461'
+      - '3112'
     body:
       encoding: ASCII-8BIT
       string: !binary |-
-        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE0ODh9LCJpZCI6IlJHOXpjMmxsY2kwek1EZzNNamM9IiwibnVtYmVyIjozMDg3MjcsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDktMDhUMTY6NDc6MzQtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTA5LTA4VDE2OjQ4OjQyLTEwOjAwIiwiZGF0ZURlcG90IjoiMjAyMi0wOS0wOFQxNjo0NzozNC0xMDowMCIsIm1vdGl2YXRpb24iOm51bGwsInVzYWdlciI6eyJlbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiJ9LCJ0cmFpdGVtZW50cyI6W3siaW5zdHJ1Y3RldXJFbWFpbCI6bnVsbCwicHJvY2Vzc2VkQXQiOiIyMDIyLTA5LTA4VDE2OjQ3OjM0LTEwOjAwIiwic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24ifV0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVQaHlzaXF1ZSIsImNpdmlsaXRlIjoiTSIsImRhdGVEZU5haXNzYW5jZSI6bnVsbCwibm9tIjoiTEFVVElFUiIsInByZW5vbSI6IkNocmlzdGlhbiJ9LCJhbm5vdGF0aW9ucyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T0RnPSIsImxhYmVsIjoiQ2hhbXAgdGV4dGUiLCJ2YWx1ZSI6InYyIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPRGs9IiwibGFiZWwiOiJDaGFtcCBlbnRpZXIiLCJ2YWx1ZSI6IjIwIn0seyJfX3R5cGVuYW1lIjoiRGF0ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEk9IiwibGFiZWwiOiJDaGFtcCBkYXRlIiwidmFsdWUiOiIyMDIyLTAyLTEzVDAwOjAwOjAwLTEwOjAwIn0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T1RBPSIsImxhYmVsIjoiQ2hhbXAgY2hlY2tib3giLCJ2YWx1ZSI6ZmFsc2V9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEU9IiwibGFiZWwiOiJDaGFtcCBwaiIsImZpbGUiOm51bGwsInN0cmluZ1ZhbHVlIjoiIn1dLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJOdW1lcm9EbkNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVE09IiwibGFiZWwiOiJOdW3DqXJvIEROIiwiZGF0ZURlTmFpc3NhbmNlIjpudWxsLCJudW1lcm9EbiI6IiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROak15TXpRPSIsImxhYmVsIjoiQ29tbXVuZSBkZSByw6lzaWRlbmNlIiwidmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNeU16VT0iLCJsYWJlbCI6IkNhcGFjaXTDqSBkdSBiYXRlYXUiLCJ2YWx1ZSI6bnVsbH1dfX19
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9pbnN0cnVjdGlvbiIsImRlbWFyY2hlIjp7Im51bWJlciI6MTQ4OH0sImlkIjoiUkc5emMybGxjaTB6TURnM01qYz0iLCJudW1iZXIiOjMwODcyNywiYXJjaGl2ZWQiOmZhbHNlLCJkYXRlUGFzc2FnZUVuQ29uc3RydWN0aW9uIjoiMjAyMy0wOC0yMVQwOTozMzowNy0xMDowMCIsImRhdGVQYXNzYWdlRW5JbnN0cnVjdGlvbiI6IjIwMjMtMDgtMjFUMDk6MzQ6MzAtMTA6MDAiLCJkYXRlVHJhaXRlbWVudCI6bnVsbCwiZGF0ZURlcm5pZXJlTW9kaWZpY2F0aW9uIjoiMjAyMy0xMi0yMlQxNDoyMzo1NC0xMDowMCIsImRhdGVEZXBvdCI6IjIwMjItMDktMDhUMTY6NDc6MzQtMTA6MDAiLCJtb3RpdmF0aW9uIjpudWxsLCJ1c2FnZXIiOnsiZW1haWwiOiJjbGF1dGllckBpZHQucGYifSwidHJhaXRlbWVudHMiOlt7Imluc3RydWN0ZXVyRW1haWwiOm51bGwsInByb2Nlc3NlZEF0IjoiMjAyMi0wOS0wOFQxNjo0NzozNC0xMDowMCIsInN0YXRlIjoiZW5fY29uc3RydWN0aW9uIn0seyJpbnN0cnVjdGV1ckVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIiwicHJvY2Vzc2VkQXQiOiIyMDIzLTA4LTIxVDA5OjMyOjU5LTEwOjAwIiwic3RhdGUiOiJlbl9pbnN0cnVjdGlvbiJ9LHsiaW5zdHJ1Y3RldXJFbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiIsInByb2Nlc3NlZEF0IjoiMjAyMy0wOC0yMVQwOTozMzowNy0xMDowMCIsInN0YXRlIjoiZW5fY29uc3RydWN0aW9uIn0seyJpbnN0cnVjdGV1ckVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIiwicHJvY2Vzc2VkQXQiOiIyMDIzLTA4LTIxVDA5OjM0OjMwLTEwOjAwIiwic3RhdGUiOiJlbl9pbnN0cnVjdGlvbiJ9XSwiZGVtYW5kZXVyIjp7Il9fdHlwZW5hbWUiOiJQZXJzb25uZVBoeXNpcXVlIiwiY2l2aWxpdGUiOiJNIiwiZGF0ZURlTmFpc3NhbmNlIjpudWxsLCJub20iOiJMQVVUSUVSIiwicHJlbm9tIjoiQ2hyaXN0aWFuIn0sImFubm90YXRpb25zIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPRGc9IiwibGFiZWwiOiJDaGFtcCB0ZXh0ZSIsInZhbHVlIjoidjIifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09Eaz0iLCJsYWJlbCI6IkNoYW1wIGVudGllciIsInZhbHVlIjoiMjAifSx7Il9fdHlwZW5hbWUiOiJEYXRlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09UST0iLCJsYWJlbCI6IkNoYW1wIGRhdGUiLCJ2YWx1ZSI6IjIwMjItMDItMTNUMDA6MDA6MDAtMTA6MDAifSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEE9IiwibGFiZWwiOiJDaGFtcCBjaGVja2JveCIsInZhbHVlIjpmYWxzZX0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09URT0iLCJsYWJlbCI6IkNoYW1wIHBqIiwiZmlsZXMiOlt7ImNvbnRlbnRUeXBlIjoidGV4dC9wbGFpbiIsImNoZWNrc3VtIjoiUmphVWxxbit1bk1BOXJseE9LazlFQT09IiwiZmlsZW5hbWUiOiIucnNwZWMiLCJ1cmwiOiJodHRwczovL29vcy5jbG91ZGdvdXYtZXUtd2VzdC0xLm91dHNjYWxlLmNvbS9tZXMtZGVtYXJjaGVzLXByb2QvMjAyMi8wOS8wOC8ydC8ydGxlamY3c2xpa3V0MHJ3aXJkM2lwOGNvdGlkP3Jlc3BvbnNlLWNvbnRlbnQtZGlzcG9zaXRpb249YXR0YWNobWVudCUzQiUyMGZpbGVuYW1lJTNEJTIyLnJzcGVjJTIyJTNCJTIwZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyNy5yc3BlY1x1MDAyNnJlc3BvbnNlLWNvbnRlbnQtdHlwZT10ZXh0JTJGcGxhaW5cdTAwMjZYLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1Nlx1MDAyNlgtQW16LUNyZWRlbnRpYWw9SUcxSllQNzRRR1dHSVk3N0lHTzclMkYyMDIzMTIyMyUyRmNsb3VkZ291di1ldS13ZXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdFx1MDAyNlgtQW16LURhdGU9MjAyMzEyMjNUMDEyMTI3Wlx1MDAyNlgtQW16LUV4cGlyZXM9MzYwMFx1MDAyNlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdFx1MDAyNlgtQW16LVNpZ25hdHVyZT1mZGMxZjEwN2NjMzRkOTBiN2EzOTU2Yjc4ZjljMmExODJhYmRmNWVlZGZjNDM0NmVmNTQ2Njg3MzhhYjZkNzZiIn0seyJjb250ZW50VHlwZSI6InRleHQvcGxhaW4iLCJjaGVja3N1bSI6IlJqYVVscW4rdW5NQTlybHhPS2s5RUE9PSIsImZpbGVuYW1lIjoiLnJzcGVjIiwidXJsIjoiaHR0cHM6Ly9vb3MuY2xvdWRnb3V2LWV1LXdlc3QtMS5vdXRzY2FsZS5jb20vbWVzLWRlbWFyY2hlcy1wcm9kLzIwMjMvMTIvMjIvMzYvMzZGcFZyOGlySE0zcWJwM2V4U0VmTjU5d2p2Nz9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM0IlMjBmaWxlbmFtZSUzRCUyMi5yc3BlYyUyMiUzQiUyMGZpbGVuYW1lJTJBJTNEVVRGLTglMjclMjcucnNwZWNcdTAwMjZyZXNwb25zZS1jb250ZW50LXR5cGU9dGV4dCUyRnBsYWluXHUwMDI2WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTZcdTAwMjZYLUFtei1DcmVkZW50aWFsPUlHMUpZUDc0UUdXR0lZNzdJR083JTJGMjAyMzEyMjMlMkZjbG91ZGdvdXYtZXUtd2VzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3RcdTAwMjZYLUFtei1EYXRlPTIwMjMxMjIzVDAxMjEyN1pcdTAwMjZYLUFtei1FeHBpcmVzPTM2MDBcdTAwMjZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3RcdTAwMjZYLUFtei1TaWduYXR1cmU9MjI5MDg3MzJkYjViZjczODcwM2ZkOGIyZGUzOWU5ZGYwNzUzOTg2YThhYjk5YzE3N2RiYTliNzAxYmU4YzhiMyJ9XSwic3RyaW5nVmFsdWUiOiIifV0sImNoYW1wcyI6W3siX190eXBlbmFtZSI6Ik51bWVyb0RuQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09UTT0iLCJsYWJlbCI6Ik51bcOpcm8gRE4iLCJkYXRlRGVOYWlzc2FuY2UiOm51bGwsIm51bWVyb0RuIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNeU16UT0iLCJsYWJlbCI6IkNvbW11bmUgZGUgcsOpc2lkZW5jZSIsInZhbHVlIjoiIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwiaWQiOiJRMmhoYlhBdE5qTXlNelU9IiwibGFiZWwiOiJDYXBhY2l0w6kgZHUgYmF0ZWF1IiwidmFsdWUiOm51bGx9XX19fQ==
   recorded_at: Mon, 14 Feb 2022 10:00:00 GMT
 - request:
     method: post
@@ -121,16 +131,18 @@ http_interactions:
       code: 200
       message: OK
     headers:
-      Date:
-      - Fri, 09 Sep 2022 02:48:43 GMT
       Server:
-      - nginx/1.10.3
+      - nginx/1.18.0
+      Date:
+      - Sat, 23 Dec 2023 01:21:28 GMT
       Content-Type:
       - application/json; charset=utf-8
+      Connection:
+      - keep-alive
       X-Frame-Options:
       - SAMEORIGIN
       X-Xss-Protection:
-      - 1; mode=block
+      - '0'
       X-Content-Type-Options:
       - nosniff
       X-Download-Options:
@@ -148,23 +160,26 @@ http_interactions:
       Content-Security-Policy:
       - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
         script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
-        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com unpkg.com beta.mes-demarches.gov.pf;
         style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
-        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
-        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        maxcdn.bootstrapcdn.com unpkg.com; frame-src ''self''; connect-src ''self''
+        wss://*.crisp.chat *.crisp.chat app.franceconnect.gouv.fr openmaptiles.geo.data.gouv.fr
         openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
-        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
-        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
-        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
-        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
-        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
-        osu.cloudgouv-eu-west-1.outscale.com'
+        sentry.io api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr
+        www.tefenua.gov.pf oos.eu-west-2.outscale.com oos.cloudgouv-eu-west-1.outscale.com;
+        default-src ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr *.crisp.chat crisp.chat *.crisp.help
+        *.sibautomation.com sibautomation.com data sentry.io oos.eu-west-2.outscale.com
+        oos.cloudgouv-eu-west-1.outscale.com'
       X-Request-Id:
-      - eb992bf3-a892-4bf3-816b-fb54cb22f00f
+      - be5a778f-df53-4bd2-9207-38f68f02e7af
       X-Runtime:
-      - '0.312064'
+      - '0.328298'
       Strict-Transport-Security:
       - max-age=63072000; includeSubDomains
+      Set-Cookie:
+      - cookiesession1=678A3E1E1B2660C99E50B8E458A62861;Expires=Sun, 22 Dec 2024 01:21:23
+        GMT;Path=/;HttpOnly
       Content-Length:
       - '154'
     body:
@@ -197,16 +212,18 @@ http_interactions:
       code: 200
       message: OK
     headers:
-      Date:
-      - Fri, 09 Sep 2022 02:48:44 GMT
       Server:
-      - nginx/1.10.3
+      - nginx/1.18.0
+      Date:
+      - Sat, 23 Dec 2023 01:21:28 GMT
       Content-Type:
       - application/json; charset=utf-8
+      Connection:
+      - keep-alive
       X-Frame-Options:
       - SAMEORIGIN
       X-Xss-Protection:
-      - 1; mode=block
+      - '0'
       X-Content-Type-Options:
       - nosniff
       X-Download-Options:
@@ -218,39 +235,42 @@ http_interactions:
       Vary:
       - Accept
       Etag:
-      - W/"53eed44f5e8f731b369c4a52cc07a1c2"
+      - W/"3076b15199ed717ad8335a3f6474ab18"
       Cache-Control:
       - max-age=0, private, must-revalidate
       Content-Security-Policy:
       - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
         script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
-        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com unpkg.com beta.mes-demarches.gov.pf;
         style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
-        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
-        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        maxcdn.bootstrapcdn.com unpkg.com; frame-src ''self''; connect-src ''self''
+        wss://*.crisp.chat *.crisp.chat app.franceconnect.gouv.fr openmaptiles.geo.data.gouv.fr
         openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
-        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
-        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
-        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
-        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
-        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
-        osu.cloudgouv-eu-west-1.outscale.com'
+        sentry.io api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr
+        www.tefenua.gov.pf oos.eu-west-2.outscale.com oos.cloudgouv-eu-west-1.outscale.com;
+        default-src ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr *.crisp.chat crisp.chat *.crisp.help
+        *.sibautomation.com sibautomation.com data sentry.io oos.eu-west-2.outscale.com
+        oos.cloudgouv-eu-west-1.outscale.com'
       X-Request-Id:
-      - 18085e83-136a-4b48-a6c9-b72870fda007
+      - 675978ba-fc49-47d2-b473-708cfdf7bff0
       X-Runtime:
-      - '0.328559'
+      - '0.370622'
       Strict-Transport-Security:
       - max-age=63072000; includeSubDomains
+      Set-Cookie:
+      - cookiesession1=678A3E1EB59ED9FDE119B85E2ED4B443;Expires=Sun, 22 Dec 2024 01:21:24
+        GMT;Path=/;HttpOnly
       Content-Length:
-      - '874'
+      - '888'
     body:
       encoding: UTF-8
       string: '{"data":{"createDirectUpload":{"clientMutationId":"1","directUpload":{"headers":"{\"Content-Type\":\"text/plain\",\"Content-MD5\":\"RjaUlqn+unMA9rlxOKk9EA==\",\"Content-Disposition\":\"inline;
-        filename=\\\".rspec\\\"; filename*=UTF-8''''.rspec\"}","signedBlobId":"eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBeWM1SHc9PSIsImV4cCI6IjIwMjItMDktMDlUMDM6NDg6NDQuMjg2WiIsInB1ciI6ImJsb2JfaWQifX0=--3021dc73089f57028a4a9c76472038c6235957ab","url":"https://osu.cloudgouv-eu-west-1.outscale.com/mes-demarches-prod/2tlejf7slikut0rwird3ip8cotid?X-Amz-Algorithm=AWS4-HMAC-SHA256\u0026X-Amz-Credential=IG1JYP74QGWGIY77IGO7%2F20220909%2Fcloudgouv-eu-west-1%2Fs3%2Faws4_request\u0026X-Amz-Date=20220909T024844Z\u0026X-Amz-Expires=3600\u0026X-Amz-SignedHeaders=content-length%3Bcontent-md5%3Bcontent-type%3Bhost\u0026X-Amz-Signature=a4156b002cba983eba3c74cb8f764f24a1706475270ebae33402a3d43a1b4402"}}}}'
+        filename=\\\".rspec\\\"; filename*=UTF-8''''.rspec\"}","signedBlobId":"eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBK3BITUE9PSIsImV4cCI6IjIwMjMtMTItMjNUMDI6MjE6MjguNTYzWiIsInB1ciI6ImJsb2JfaWQifX0=--cc3cd4437fa7f3d50a4f1be3327ea97fd77e3df8","url":"https://oos.cloudgouv-eu-west-1.outscale.com/mes-demarches-prod/2023/12/22/pz/pz2SaYGWfvEjxyFoDkrAaSvexmt6?X-Amz-Algorithm=AWS4-HMAC-SHA256\u0026X-Amz-Credential=IG1JYP74QGWGIY77IGO7%2F20231223%2Fcloudgouv-eu-west-1%2Fs3%2Faws4_request\u0026X-Amz-Date=20231223T012128Z\u0026X-Amz-Expires=3600\u0026X-Amz-SignedHeaders=content-length%3Bcontent-md5%3Bcontent-type%3Bhost\u0026X-Amz-Signature=d60e98b89f924e4f73610414ffbb0bd8032774911543954e52a1f4da19d9ac12"}}}}'
   recorded_at: Mon, 14 Feb 2022 10:00:01 GMT
 - request:
     method: put
-    uri: https://osu.cloudgouv-eu-west-1.outscale.com/mes-demarches-prod/2tlejf7slikut0rwird3ip8cotid?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=IG1JYP74QGWGIY77IGO7/20220909/cloudgouv-eu-west-1/s3/aws4_request&X-Amz-Date=20220909T024844Z&X-Amz-Expires=3600&X-Amz-Signature=a4156b002cba983eba3c74cb8f764f24a1706475270ebae33402a3d43a1b4402&X-Amz-SignedHeaders=content-length%3Bcontent-md5%3Bcontent-type%3Bhost
+    uri: https://oos.cloudgouv-eu-west-1.outscale.com/mes-demarches-prod/2023/12/22/pz/pz2SaYGWfvEjxyFoDkrAaSvexmt6?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=IG1JYP74QGWGIY77IGO7/20231223/cloudgouv-eu-west-1/s3/aws4_request&X-Amz-Date=20231223T012128Z&X-Amz-Expires=3600&X-Amz-Signature=d60e98b89f924e4f73610414ffbb0bd8032774911543954e52a1f4da19d9ac12&X-Amz-SignedHeaders=content-length%3Bcontent-md5%3Bcontent-type%3Bhost
     body:
       encoding: ASCII-8BIT
       string: "--require spec_helper\n"
@@ -273,15 +293,15 @@ http_interactions:
       Server:
       - openresty
       Date:
-      - Fri, 09 Sep 2022 02:48:45 GMT
+      - Sat, 23 Dec 2023 01:21:31 GMT
       Transfer-Encoding:
       - chunked
       Etag:
       - '"46369496a9feba7300f6b97138a93d10"'
       X-Amz-Id-2:
-      - 06260f00be4f8878dfd7
+      - 40b94b723843a5ec986e
       X-Amz-Request-Id:
-      - 06260f00be4f8878dfd7
+      - 40b94b723843a5ec986e
       Strict-Transport-Security:
       - max-age=31536000; includeSubdomains; preload
       Content-Security-Policy:
@@ -299,7 +319,7 @@ http_interactions:
     body:
       encoding: ASCII-8BIT
       string: ''
-  recorded_at: Mon, 14 Feb 2022 10:00:02 GMT
+  recorded_at: Mon, 14 Feb 2022 10:00:05 GMT
 - request:
     method: post
     uri: https://www.mes-demarches.gov.pf/api/v2/graphql
@@ -310,7 +330,7 @@ http_interactions:
         String!) {\n  dossierModifierAnnotationPieceJustificative(input: {dossierId:
         $dossier_id, instructeurId: $instructeur_id, annotationId: $annotation_id,
         attachment: $attachment_id, clientMutationId: $client_mutation_id}) {\n    clientMutationId\n    errors
-        {\n      message\n    }\n  }\n}","variables":{"dossier_id":"RG9zc2llci0zMDg3Mjc=","instructeur_id":"SW5zdHJ1Y3RldXItMg==","annotation_id":"Q2hhbXAtNTcwOTE=","attachment_id":"eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBeWM1SHc9PSIsImV4cCI6IjIwMjItMDktMDlUMDM6NDg6NDQuMjg2WiIsInB1ciI6ImJsb2JfaWQifX0=--3021dc73089f57028a4a9c76472038c6235957ab","client_mutation_id":"set_value"},"operationName":"SetAnnotationValue__Queries__SetPieceJustificative"}'
+        {\n      message\n    }\n  }\n}","variables":{"dossier_id":"RG9zc2llci0zMDg3Mjc=","instructeur_id":"SW5zdHJ1Y3RldXItMg==","annotation_id":"Q2hhbXAtNTcwOTE=","attachment_id":"eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBK3BITUE9PSIsImV4cCI6IjIwMjMtMTItMjNUMDI6MjE6MjguNTYzWiIsInB1ciI6ImJsb2JfaWQifX0=--cc3cd4437fa7f3d50a4f1be3327ea97fd77e3df8","client_mutation_id":"set_value"},"operationName":"SetAnnotationValue__Queries__SetPieceJustificative"}'
     headers:
       Accept-Encoding:
       - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
@@ -327,16 +347,18 @@ http_interactions:
       code: 200
       message: OK
     headers:
-      Date:
-      - Fri, 09 Sep 2022 02:48:47 GMT
       Server:
-      - nginx/1.10.3
+      - nginx/1.18.0
+      Date:
+      - Sat, 23 Dec 2023 01:21:34 GMT
       Content-Type:
       - application/json; charset=utf-8
+      Connection:
+      - keep-alive
       X-Frame-Options:
       - SAMEORIGIN
       X-Xss-Protection:
-      - 1; mode=block
+      - '0'
       X-Content-Type-Options:
       - nosniff
       X-Download-Options:
@@ -354,29 +376,32 @@ http_interactions:
       Content-Security-Policy:
       - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
         script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
-        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com unpkg.com beta.mes-demarches.gov.pf;
         style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
-        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
-        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        maxcdn.bootstrapcdn.com unpkg.com; frame-src ''self''; connect-src ''self''
+        wss://*.crisp.chat *.crisp.chat app.franceconnect.gouv.fr openmaptiles.geo.data.gouv.fr
         openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
-        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
-        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
-        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
-        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
-        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
-        osu.cloudgouv-eu-west-1.outscale.com'
+        sentry.io api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr
+        www.tefenua.gov.pf oos.eu-west-2.outscale.com oos.cloudgouv-eu-west-1.outscale.com;
+        default-src ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr *.crisp.chat crisp.chat *.crisp.help
+        *.sibautomation.com sibautomation.com data sentry.io oos.eu-west-2.outscale.com
+        oos.cloudgouv-eu-west-1.outscale.com'
       X-Request-Id:
-      - 79546871-9874-4c9a-b2c7-5bd5362c011a
+      - 76d34e57-79b1-4734-9f31-83fbf7ccd2c2
       X-Runtime:
-      - '2.231071'
+      - '2.110718'
       Strict-Transport-Security:
       - max-age=63072000; includeSubDomains
+      Set-Cookie:
+      - cookiesession1=678A3E1EC5D89CC36D801EA3654412A5;Expires=Sun, 22 Dec 2024 01:21:29
+        GMT;Path=/;HttpOnly
       Content-Length:
       - '103'
     body:
       encoding: UTF-8
       string: '{"data":{"dossierModifierAnnotationPieceJustificative":{"clientMutationId":"set_value","errors":null}}}'
-  recorded_at: Mon, 14 Feb 2022 10:00:04 GMT
+  recorded_at: Mon, 14 Feb 2022 10:00:07 GMT
 - request:
     method: post
     uri: https://www.mes-demarches.gov.pf/api/v2/graphql
@@ -386,10 +411,12 @@ http_interactions:
         on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
         on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
         on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
-        on PieceJustificativeChamp {\n    file {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    files {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
         on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
-        {\n    stringValue\n  }\n  ... on CiviliteChamp {\n    value\n  }\n  ... on
-        MultipleDropDownListChamp {\n    values\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        {\n    stringValue\n    etablissement {\n      entreprise {\n        nomCommercial\n        raisonSociale\n      }\n      association
+        {\n        titre\n      }\n      libelleNaf\n      naf\n    }\n  }\n  ...
+        on CiviliteChamp {\n    value\n  }\n  ... on MultipleDropDownListChamp {\n    values\n  }\n  ...
+        on VisaChamp {\n    stringValue\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
         on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  dateDepot\n  motivation\n  usager
         {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
         {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
@@ -399,14 +426,17 @@ http_interactions:
         MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
         {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
         {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
-        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n    }\n    champs
+        on RepetitionChamp {\n        rows {\n          champs {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n        }\n        champs
+        {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n    }\n    champs
         {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
-        on RepetitionChamp {\n        champs {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on RepetitionChamp {\n        rows {\n          champs {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n        }\n        champs
+        {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
         on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
         {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
         {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
         {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
-        on RepetitionChamp {\n              champs {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":308727},"operationName":"MesDemarches__Queries__Dossier"}'
+        on RepetitionChamp {\n              rows {\n                champs {\n                  __typename\n                  ...MesDemarches__Queries__ChampInfo\n                }\n              }\n              champs
+        {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":308727},"operationName":"MesDemarches__Queries__Dossier"}'
     headers:
       Accept-Encoding:
       - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
@@ -423,16 +453,18 @@ http_interactions:
       code: 200
       message: OK
     headers:
-      Date:
-      - Fri, 09 Sep 2022 02:48:48 GMT
       Server:
-      - nginx/1.10.3
+      - nginx/1.18.0
+      Date:
+      - Sat, 23 Dec 2023 01:21:34 GMT
       Content-Type:
       - application/json; charset=utf-8
+      Connection:
+      - keep-alive
       X-Frame-Options:
       - SAMEORIGIN
       X-Xss-Protection:
-      - 1; mode=block
+      - '0'
       X-Content-Type-Options:
       - nosniff
       X-Download-Options:
@@ -444,34 +476,37 @@ http_interactions:
       Vary:
       - Accept
       Etag:
-      - W/"97c073379e2ce94bd8c0250fc3f2cb8b"
+      - W/"7f455b72362fd3a9707354b3617b8819"
       Cache-Control:
       - max-age=0, private, must-revalidate
       Content-Security-Policy:
       - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
         script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
-        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com beta.mes-demarches.gov.pf;
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com unpkg.com beta.mes-demarches.gov.pf;
         style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
-        maxcdn.bootstrapcdn.com; frame-src ''self''; connect-src ''self'' wss://*.crisp.chat
-        *.crisp.chat app.franceconnect.gouv.fr sentry.io openmaptiles.geo.data.gouv.fr
+        maxcdn.bootstrapcdn.com unpkg.com; frame-src ''self''; connect-src ''self''
+        wss://*.crisp.chat *.crisp.chat app.franceconnect.gouv.fr openmaptiles.geo.data.gouv.fr
         openmaptiles.github.io tiles.geo.api.gouv.fr wxs.ign.fr www.mes-demarches.gov.pf
-        api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr www.tefenua.gov.pf
-        oos.eu-west-2.outscale.com osu.cloudgouv-eu-west-1.outscale.com; default-src
-        ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
-        player.vimeo.com app.franceconnect.gouv.fr sentry.io *.crisp.chat crisp.chat
-        *.crisp.help *.sibautomation.com sibautomation.com data oos.eu-west-2.outscale.com
-        osu.cloudgouv-eu-west-1.outscale.com'
+        sentry.io api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr
+        www.tefenua.gov.pf oos.eu-west-2.outscale.com oos.cloudgouv-eu-west-1.outscale.com;
+        default-src ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr *.crisp.chat crisp.chat *.crisp.help
+        *.sibautomation.com sibautomation.com data sentry.io oos.eu-west-2.outscale.com
+        oos.cloudgouv-eu-west-1.outscale.com'
       X-Request-Id:
-      - b4546f13-cfa0-41e8-8f36-cbf9ca6997ed
+      - 6afab23c-aae7-49f8-8e5f-caa7df73135f
       X-Runtime:
-      - '0.381793'
+      - '0.390392'
       Strict-Transport-Security:
       - max-age=63072000; includeSubDomains
+      Set-Cookie:
+      - cookiesession1=678A3E1EBF00B1E2BE99C2786BC84EF9;Expires=Sun, 22 Dec 2024 01:21:30
+        GMT;Path=/;HttpOnly
       Content-Length:
-      - '2097'
+      - '3767'
     body:
       encoding: ASCII-8BIT
       string: !binary |-
-        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjE0ODh9LCJpZCI6IlJHOXpjMmxsY2kwek1EZzNNamM9IiwibnVtYmVyIjozMDg3MjcsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjItMDktMDhUMTY6NDc6MzQtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOm51bGwsImRhdGVUcmFpdGVtZW50IjpudWxsLCJkYXRlRGVybmllcmVNb2RpZmljYXRpb24iOiIyMDIyLTA5LTA4VDE2OjQ4OjQ3LTEwOjAwIiwiZGF0ZURlcG90IjoiMjAyMi0wOS0wOFQxNjo0NzozNC0xMDowMCIsIm1vdGl2YXRpb24iOm51bGwsInVzYWdlciI6eyJlbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiJ9LCJ0cmFpdGVtZW50cyI6W3siaW5zdHJ1Y3RldXJFbWFpbCI6bnVsbCwicHJvY2Vzc2VkQXQiOiIyMDIyLTA5LTA4VDE2OjQ3OjM0LTEwOjAwIiwic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24ifV0sImRlbWFuZGV1ciI6eyJfX3R5cGVuYW1lIjoiUGVyc29ubmVQaHlzaXF1ZSIsImNpdmlsaXRlIjoiTSIsImRhdGVEZU5haXNzYW5jZSI6bnVsbCwibm9tIjoiTEFVVElFUiIsInByZW5vbSI6IkNocmlzdGlhbiJ9LCJhbm5vdGF0aW9ucyI6W3siX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T0RnPSIsImxhYmVsIjoiQ2hhbXAgdGV4dGUiLCJ2YWx1ZSI6InYyIn0seyJfX3R5cGVuYW1lIjoiSW50ZWdlck51bWJlckNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPRGs9IiwibGFiZWwiOiJDaGFtcCBlbnRpZXIiLCJ2YWx1ZSI6IjIwIn0seyJfX3R5cGVuYW1lIjoiRGF0ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEk9IiwibGFiZWwiOiJDaGFtcCBkYXRlIiwidmFsdWUiOiIyMDIyLTAyLTEzVDAwOjAwOjAwLTEwOjAwIn0seyJfX3R5cGVuYW1lIjoiQ2hlY2tib3hDaGFtcCIsImlkIjoiUTJoaGJYQXROVGN3T1RBPSIsImxhYmVsIjoiQ2hhbXAgY2hlY2tib3giLCJ2YWx1ZSI6ZmFsc2V9LHsiX190eXBlbmFtZSI6IlBpZWNlSnVzdGlmaWNhdGl2ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEU9IiwibGFiZWwiOiJDaGFtcCBwaiIsImZpbGUiOnsiY29udGVudFR5cGUiOiJ0ZXh0L3BsYWluIiwiY2hlY2tzdW0iOiJSamFVbHFuK3VuTUE5cmx4T0trOUVBPT0iLCJmaWxlbmFtZSI6Ii5yc3BlYyIsInVybCI6Imh0dHBzOi8vb3N1LmNsb3VkZ291di1ldS13ZXN0LTEub3V0c2NhbGUuY29tL21lcy1kZW1hcmNoZXMtcHJvZC8ydGxlamY3c2xpa3V0MHJ3aXJkM2lwOGNvdGlkP3Jlc3BvbnNlLWNvbnRlbnQtZGlzcG9zaXRpb249YXR0YWNobWVudCUzQiUyMGZpbGVuYW1lJTNEJTIyLnJzcGVjJTIyJTNCJTIwZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyNy5yc3BlY1x1MDAyNnJlc3BvbnNlLWNvbnRlbnQtdHlwZT10ZXh0JTJGcGxhaW5cdTAwMjZYLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1Nlx1MDAyNlgtQW16LUNyZWRlbnRpYWw9SUcxSllQNzRRR1dHSVk3N0lHTzclMkYyMDIyMDkwOSUyRmNsb3VkZ291di1ldS13ZXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdFx1MDAyNlgtQW16LURhdGU9MjAyMjA5MDlUMDI0ODQ4Wlx1MDAyNlgtQW16LUV4cGlyZXM9MzYwMFx1MDAyNlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdFx1MDAyNlgtQW16LVNpZ25hdHVyZT03OGI3MjczODkzMmU4MDNkNDZhODZlOTYwNDljYzg3YWQxY2FkMWY3YzJmZDAxZmVjMmY3Y2I0MThkYjZiM2NjIn0sInN0cmluZ1ZhbHVlIjoiIn1dLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJOdW1lcm9EbkNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVE09IiwibGFiZWwiOiJOdW3DqXJvIEROIiwiZGF0ZURlTmFpc3NhbmNlIjpudWxsLCJudW1lcm9EbiI6IiJ9LHsiX190eXBlbmFtZSI6IlRleHRDaGFtcCIsImlkIjoiUTJoaGJYQXROak15TXpRPSIsImxhYmVsIjoiQ29tbXVuZSBkZSByw6lzaWRlbmNlIiwidmFsdWUiOiIifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TmpNeU16VT0iLCJsYWJlbCI6IkNhcGFjaXTDqSBkdSBiYXRlYXUiLCJ2YWx1ZSI6bnVsbH1dfX19
-  recorded_at: Mon, 14 Feb 2022 10:00:05 GMT
-recorded_with: VCR 6.1.0
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9pbnN0cnVjdGlvbiIsImRlbWFyY2hlIjp7Im51bWJlciI6MTQ4OH0sImlkIjoiUkc5emMybGxjaTB6TURnM01qYz0iLCJudW1iZXIiOjMwODcyNywiYXJjaGl2ZWQiOmZhbHNlLCJkYXRlUGFzc2FnZUVuQ29uc3RydWN0aW9uIjoiMjAyMy0wOC0yMVQwOTozMzowNy0xMDowMCIsImRhdGVQYXNzYWdlRW5JbnN0cnVjdGlvbiI6IjIwMjMtMDgtMjFUMDk6MzQ6MzAtMTA6MDAiLCJkYXRlVHJhaXRlbWVudCI6bnVsbCwiZGF0ZURlcm5pZXJlTW9kaWZpY2F0aW9uIjoiMjAyMy0xMi0yMlQxNToyMTozNC0xMDowMCIsImRhdGVEZXBvdCI6IjIwMjItMDktMDhUMTY6NDc6MzQtMTA6MDAiLCJtb3RpdmF0aW9uIjpudWxsLCJ1c2FnZXIiOnsiZW1haWwiOiJjbGF1dGllckBpZHQucGYifSwidHJhaXRlbWVudHMiOlt7Imluc3RydWN0ZXVyRW1haWwiOm51bGwsInByb2Nlc3NlZEF0IjoiMjAyMi0wOS0wOFQxNjo0NzozNC0xMDowMCIsInN0YXRlIjoiZW5fY29uc3RydWN0aW9uIn0seyJpbnN0cnVjdGV1ckVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIiwicHJvY2Vzc2VkQXQiOiIyMDIzLTA4LTIxVDA5OjMyOjU5LTEwOjAwIiwic3RhdGUiOiJlbl9pbnN0cnVjdGlvbiJ9LHsiaW5zdHJ1Y3RldXJFbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiIsInByb2Nlc3NlZEF0IjoiMjAyMy0wOC0yMVQwOTozMzowNy0xMDowMCIsInN0YXRlIjoiZW5fY29uc3RydWN0aW9uIn0seyJpbnN0cnVjdGV1ckVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIiwicHJvY2Vzc2VkQXQiOiIyMDIzLTA4LTIxVDA5OjM0OjMwLTEwOjAwIiwic3RhdGUiOiJlbl9pbnN0cnVjdGlvbiJ9XSwiZGVtYW5kZXVyIjp7Il9fdHlwZW5hbWUiOiJQZXJzb25uZVBoeXNpcXVlIiwiY2l2aWxpdGUiOiJNIiwiZGF0ZURlTmFpc3NhbmNlIjpudWxsLCJub20iOiJMQVVUSUVSIiwicHJlbm9tIjoiQ2hyaXN0aWFuIn0sImFubm90YXRpb25zIjpbeyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPRGc9IiwibGFiZWwiOiJDaGFtcCB0ZXh0ZSIsInZhbHVlIjoidjIifSx7Il9fdHlwZW5hbWUiOiJJbnRlZ2VyTnVtYmVyQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09Eaz0iLCJsYWJlbCI6IkNoYW1wIGVudGllciIsInZhbHVlIjoiMjAifSx7Il9fdHlwZW5hbWUiOiJEYXRlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09UST0iLCJsYWJlbCI6IkNoYW1wIGRhdGUiLCJ2YWx1ZSI6IjIwMjItMDItMTNUMDA6MDA6MDAtMTA6MDAifSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVEE9IiwibGFiZWwiOiJDaGFtcCBjaGVja2JveCIsInZhbHVlIjpmYWxzZX0seyJfX3R5cGVuYW1lIjoiUGllY2VKdXN0aWZpY2F0aXZlQ2hhbXAiLCJpZCI6IlEyaGhiWEF0TlRjd09URT0iLCJsYWJlbCI6IkNoYW1wIHBqIiwiZmlsZXMiOlt7ImNvbnRlbnRUeXBlIjoidGV4dC9wbGFpbiIsImNoZWNrc3VtIjoiUmphVWxxbit1bk1BOXJseE9LazlFQT09IiwiZmlsZW5hbWUiOiIucnNwZWMiLCJ1cmwiOiJodHRwczovL29vcy5jbG91ZGdvdXYtZXUtd2VzdC0xLm91dHNjYWxlLmNvbS9tZXMtZGVtYXJjaGVzLXByb2QvMjAyMi8wOS8wOC8ydC8ydGxlamY3c2xpa3V0MHJ3aXJkM2lwOGNvdGlkP3Jlc3BvbnNlLWNvbnRlbnQtZGlzcG9zaXRpb249YXR0YWNobWVudCUzQiUyMGZpbGVuYW1lJTNEJTIyLnJzcGVjJTIyJTNCJTIwZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyNy5yc3BlY1x1MDAyNnJlc3BvbnNlLWNvbnRlbnQtdHlwZT10ZXh0JTJGcGxhaW5cdTAwMjZYLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1Nlx1MDAyNlgtQW16LUNyZWRlbnRpYWw9SUcxSllQNzRRR1dHSVk3N0lHTzclMkYyMDIzMTIyMyUyRmNsb3VkZ291di1ldS13ZXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdFx1MDAyNlgtQW16LURhdGU9MjAyMzEyMjNUMDEyMTM0Wlx1MDAyNlgtQW16LUV4cGlyZXM9MzYwMFx1MDAyNlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdFx1MDAyNlgtQW16LVNpZ25hdHVyZT1mYjQ2NDUxNjQzYjMyMGI1MjA4MWQ5NGY4NTg4MjhmN2Q1MmQ2MzY3OTg4ZDZlMjQyNTg1NWJiOGRkODU4NjFkIn0seyJjb250ZW50VHlwZSI6InRleHQvcGxhaW4iLCJjaGVja3N1bSI6IlJqYVVscW4rdW5NQTlybHhPS2s5RUE9PSIsImZpbGVuYW1lIjoiLnJzcGVjIiwidXJsIjoiaHR0cHM6Ly9vb3MuY2xvdWRnb3V2LWV1LXdlc3QtMS5vdXRzY2FsZS5jb20vbWVzLWRlbWFyY2hlcy1wcm9kLzIwMjMvMTIvMjIvMzYvMzZGcFZyOGlySE0zcWJwM2V4U0VmTjU5d2p2Nz9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM0IlMjBmaWxlbmFtZSUzRCUyMi5yc3BlYyUyMiUzQiUyMGZpbGVuYW1lJTJBJTNEVVRGLTglMjclMjcucnNwZWNcdTAwMjZyZXNwb25zZS1jb250ZW50LXR5cGU9dGV4dCUyRnBsYWluXHUwMDI2WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTZcdTAwMjZYLUFtei1DcmVkZW50aWFsPUlHMUpZUDc0UUdXR0lZNzdJR083JTJGMjAyMzEyMjMlMkZjbG91ZGdvdXYtZXUtd2VzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3RcdTAwMjZYLUFtei1EYXRlPTIwMjMxMjIzVDAxMjEzNFpcdTAwMjZYLUFtei1FeHBpcmVzPTM2MDBcdTAwMjZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3RcdTAwMjZYLUFtei1TaWduYXR1cmU9NzJiMjQzMDk3NWQwMGFjY2Q0OTcxNmQzMmIyYmE1ZTEwMjIwZTkyYmYyZTk0M2I2ZGUzNDA2MjY2Mjk2YWU0MiJ9LHsiY29udGVudFR5cGUiOiJ0ZXh0L3BsYWluIiwiY2hlY2tzdW0iOiJSamFVbHFuK3VuTUE5cmx4T0trOUVBPT0iLCJmaWxlbmFtZSI6Ii5yc3BlYyIsInVybCI6Imh0dHBzOi8vb29zLmNsb3VkZ291di1ldS13ZXN0LTEub3V0c2NhbGUuY29tL21lcy1kZW1hcmNoZXMtcHJvZC8yMDIzLzEyLzIyL3B6L3B6MlNhWUdXZnZFanh5Rm9Ea3JBYVN2ZXhtdDY/cmVzcG9uc2UtY29udGVudC1kaXNwb3NpdGlvbj1hdHRhY2htZW50JTNCJTIwZmlsZW5hbWUlM0QlMjIucnNwZWMlMjIlM0IlMjBmaWxlbmFtZSUyQSUzRFVURi04JTI3JTI3LnJzcGVjXHUwMDI2cmVzcG9uc2UtY29udGVudC10eXBlPXRleHQlMkZwbGFpblx1MDAyNlgtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2XHUwMDI2WC1BbXotQ3JlZGVudGlhbD1JRzFKWVA3NFFHV0dJWTc3SUdPNyUyRjIwMjMxMjIzJTJGY2xvdWRnb3V2LWV1LXdlc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0XHUwMDI2WC1BbXotRGF0ZT0yMDIzMTIyM1QwMTIxMzRaXHUwMDI2WC1BbXotRXhwaXJlcz0zNjAwXHUwMDI2WC1BbXotU2lnbmVkSGVhZGVycz1ob3N0XHUwMDI2WC1BbXotU2lnbmF0dXJlPTMxZTBiNjUzYmE4ZmI5NGQyZmU0ZTFjMmFkYzY1OTJjYjE5NWIyNWI5NzgyYzVmYjQ4YmQwYjQ0NmE4NWFiYjIifV0sInN0cmluZ1ZhbHVlIjoiIn1dLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJOdW1lcm9EbkNoYW1wIiwiaWQiOiJRMmhoYlhBdE5UY3dPVE09IiwibGFiZWwiOiJOdW3DqXJvIEROIiwiZGF0ZURlTmFpc3NhbmNlIjpudWxsLCJudW1lcm9EbiI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE5qTXlNelE9IiwibGFiZWwiOiJDb21tdW5lIGRlIHLDqXNpZGVuY2UiLCJ2YWx1ZSI6IiJ9LHsiX190eXBlbmFtZSI6IkludGVnZXJOdW1iZXJDaGFtcCIsImlkIjoiUTJoaGJYQXROak15TXpVPSIsImxhYmVsIjoiQ2FwYWNpdMOpIGR1IGJhdGVhdSIsInZhbHVlIjpudWxsfV19fX0=
+  recorded_at: Mon, 14 Feb 2022 10:00:07 GMT
+recorded_with: VCR 6.2.0

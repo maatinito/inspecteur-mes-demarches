@@ -70,7 +70,7 @@ RSpec.describe SetAnnotationValue do
       let(:champ) { 'Champ pj' }
       it 'should set the value' do
         setpj(champ, '.rspec')
-        file = get(champ).file
+        file = get(champ).files.last
         expect(file.filename).to eq('.rspec')
         expect(file.url).to be_truthy
         expect(file.checksum).to be_truthy

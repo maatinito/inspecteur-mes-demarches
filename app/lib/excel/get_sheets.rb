@@ -13,11 +13,12 @@ module Excel
     def process_row(row, output)
       champs = object_field_values(row, params[:champ])
       champs.each do |champ_source|
-        if champ_source.__typename != 'PieceJustificativeChamp' || champ_source.file.blank? || File.extname(champ_source.file.filename) != '.xlsx'
-          Rails.logger.error("Le champ #{params[:champ]} n'est pas un fichier Excel .xlsx")
-          next
-        end
-        PieceJustificativeCache.get(champ_source.file) do |file|
+        raise "Le champ #{params[:champ]} n'est pas de type PieceJustificative" if champ_source.__typename != 'PieceJustificativeChamp'
+
+        source_file = champ_source.files.filter { File.extname(_1.filename) == '.xlsx' }.last
+        next unless source_file
+
+        PieceJustificativeCache.get(source_file) do |file|
           xlsx = Roo::Spreadsheet.open(file)
           xlsx.sheets.each do |name|
             sheet = xlsx.sheet(name)

@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Daf::ActCopyAmount do
-  let(:dossier_nb) { 338_613 }
+  let(:dossier_nb) { 383_486 }
   let(:dossier) { DossierActions.on_dossier(dossier_nb) }
   let(:demarche) do
     demarche = double(Demarche)
@@ -25,7 +25,7 @@ RSpec.describe Daf::ActCopyAmount do
     let(:page_field) { repetition.champs.find { |champ| champ.__typename == 'IntegerNumberChamp' } }
 
     it 'amount should be set' do
-      expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 2)
+      expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
 
       expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
       expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], amount)
@@ -36,7 +36,7 @@ RSpec.describe Daf::ActCopyAmount do
   context 'dossier not ready ', vcr: { cassette_name: 'daf_act_copy_amount_1' } do
     it 'amount should not be set' do
       field = controle.dossier_annotations(dossier, controle.params[:champ_commande_prete]).first
-      expect(field).to receive(:value).and_return(false)
+      expect(field).to receive(:string_value).and_return(false)
       expect(SetAnnotationValue).not_to receive(:set_value)
       subject
     end
@@ -53,8 +53,8 @@ RSpec.describe Daf::ActCopyAmount do
     end
   end
 
-  context 'dossier ready', vcr: { cassette_name: 'daf_act_copy_amount_2' } do
-    let(:dossier_nb) { 342_049 }
+  context 'dossier ready', vcr: { cassette_name: 'daf_act_copy_amount_1' } do
+    let(:dossier_nb) { 383_486 }
     let(:repetition) { dossier.annotations.find { |champ| champ.__typename == 'RepetitionChamp' } }
     let(:page_field) { repetition.champs.find { |champ| champ.__typename == 'IntegerNumberChamp' } }
 
@@ -65,7 +65,7 @@ RSpec.describe Daf::ActCopyAmount do
 
         expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
         expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], 0)
-        expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 2)
+        expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
         subject
       end
     end
@@ -75,7 +75,7 @@ RSpec.describe Daf::ActCopyAmount do
         it 'amount to pay should not be 0' do
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], amount)
-          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 2)
+          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
           subject
         end
       end
@@ -87,7 +87,7 @@ RSpec.describe Daf::ActCopyAmount do
 
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], 0)
-          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 2)
+          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
           subject
         end
       end

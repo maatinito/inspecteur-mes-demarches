@@ -50,23 +50,26 @@ class ExcelCheck < FieldChecker
     return if champs.blank?
 
     champ = champs.first
-    file = champ.file
-    if file.present?
+    champ_files = nil
+    begin
+      champ_files = champ.files
+    rescue GraphQL::Client::InvariantError
+      champ_files = [champ.file]
+    end
+    add_message(champ.label, '', @params[:message_champ_non_renseigne]) if champ_files.blank?
+    champ_files.each do |file|
       if bad_extension(File.extname(file.filename))
         add_message(champ.label, file.filename, @params[:message_type_de_fichier])
-        return
+        next
       end
-      check_file(champ)
-    else
-      # raise StandardError.new "Le champ #{@params[:champ]} n'est pas renseigné"
-      add_message(champ.label, '', @params[:message_champ_non_renseigne])
+      check_file(champ, file)
     end
   end
 
   private
 
-  def check_file(champ)
-    PieceJustificativeCache.get(champ.file) do |file|
+  def check_file(champ, champ_file)
+    PieceJustificativeCache.get(champ_file) do |file|
       case File.extname(file)
       when '.xls', '.xlsx'
         check_xlsx(champ, file)
