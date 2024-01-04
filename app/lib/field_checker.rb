@@ -217,9 +217,10 @@ class FieldChecker < InspectorTask
   end
 
   def instanciate(template, source = nil)
-    template.gsub(/{[^{}]+}/) do |matched|
-      variable = matched[1..-2]
-      get_values_of(source, variable, '-').join(', ')
+    template.gsub(/{(?:([^{};]*);)?([^{}]+?)(?:;([^{};]*))?}/) do |_matched|
+      m = ::Regexp.last_match # 3 matches : prefix, variable name to look for and postfix
+      value = get_values_of(source, m[2], '').join(', ')
+      value.present? ? "#{m[1]}#{value}#{m[3]}" : ''
     end
   end
 
