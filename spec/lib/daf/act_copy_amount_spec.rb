@@ -25,7 +25,7 @@ RSpec.describe Daf::ActCopyAmount do
     let(:page_field) { repetition.champs.find { |champ| champ.__typename == 'IntegerNumberChamp' } }
 
     it 'amount should be set' do
-      expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
+      expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 1)
 
       expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
       expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], amount)
@@ -65,7 +65,7 @@ RSpec.describe Daf::ActCopyAmount do
 
         expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
         expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], 0)
-        expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
+        expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 1)
         subject
       end
     end
@@ -75,7 +75,7 @@ RSpec.describe Daf::ActCopyAmount do
         it 'amount to pay should not be 0' do
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], amount)
-          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
+          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 1)
           subject
         end
       end
@@ -87,7 +87,7 @@ RSpec.describe Daf::ActCopyAmount do
 
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant_theorique], amount)
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_montant], 0)
-          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 3)
+          expect(SetAnnotationValue).to receive(:raw_set_value).with(dossier.id, instructeur, page_field.id, 1)
           subject
         end
       end

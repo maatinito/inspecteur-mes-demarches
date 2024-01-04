@@ -35,16 +35,7 @@ module Daf
     end
 
     def amount_for_repetition(repetition)
-      order = {}
-      amount = 0
-      repetition.champs.each do |champ|
-        if order[champ.label].present?
-          amount += amount_for(pages_count(order))
-          order = {}
-        end
-        order[champ.label] = champ
-      end
-      amount + amount_for(pages_count(order))
+      repetition.rows.map { amount_for(file_count(_1)) }.reduce(&:+)
     end
 
     def amount_already_set
@@ -60,45 +51,38 @@ module Daf
       annotation.present? && (annotation.respond_to?(:value) ? annotation.value : annotation.string_value).present?
     end
 
-    def pages_count(bloc)
-      champs = bloc.values
-      page_field = champs.find { |champ| champ.__typename == 'IntegerNumberChamp' }
-      pages = page_field&.value.to_i
-      return pages if pages.positive?
+    def file_count(row)
+      page_field = row.champs.find { |champ| champ.__typename == 'IntegerNumberChamp' }
+      count = page_field&.value.to_i
+      return count if count.positive?
 
-      file_field = champs.find { |champ| champ.__typename == 'PieceJustificativeChamp' }
-      return 0 if file_field&.files.blank?
+      file_field = row.champs.find { |champ| champ.__typename == 'PieceJustificativeChamp' }
+      count = file_field&.files&.size || 0
 
-      pages = file_field.files.map do |field_file|
-        PieceJustificativeCache.get(field_file) { |file| file_page_count(file) }
-      end.reduce(&:+)
       if page_field
-        Rails.logger.info("Setting #{page_field.label} to #{pages}")
-        SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, page_field.id, pages)
+        Rails.logger.info("Setting #{page_field.label} to #{count}")
+        SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, page_field.id, count)
       end
-      pages
+      count
     end
 
-    def file_page_count(filename)
-      file = File.open(filename, 'rb')
-      text = file.read
-      file.close
+    # compute number of pages of pdf
+    # def file_page_count(filename)
+    #   file = File.open(filename, 'rb')
+    #   text = file.read
+    #   file.close
+    #
+    #   keyword_c = text.scan(/Count\s+(\d+)/).size
+    #   keyword_t = text.scan(%r{/Type\s*/Page[^s]}).size
+    #
+    #   pages = [keyword_c, keyword_t].max
+    #   raise "No page found in #{filename}" if pages.zero?
+    #
+    #   pages
+    # end
 
-      keyword_c = text.scan(/Count\s+(\d+)/).size
-      keyword_t = text.scan(%r{/Type\s*/Page[^s]}).size
-
-      pages = [keyword_c, keyword_t].max
-      raise "No page found in #{filename}" if pages.zero?
-
-      pages
-    end
-
-    def amount_for(pages)
-      if pages.zero?
-        0
-      else
-        pages >= 25 ? 300 + ((pages - 25) * 30) : 300
-      end
+    def amount_for(count)
+      count * 300
     end
   end
 end
