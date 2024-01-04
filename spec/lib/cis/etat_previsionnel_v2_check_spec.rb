@@ -23,7 +23,7 @@ RSpec.describe Cis::EtatPrevisionnelV2Check do
         new_message(field, 'Mauvais DDN', :message_date_de_naissance, '2464292,1979-12-12'),
         new_message(field, 'Mauvais CiviliteVide', :message_colonnes_vides, 'Civilité'),
         new_message(field, 'Mauvais ActiviteVide', :message_colonnes_vides, 'Activité'),
-        new_message(field, 'Mauvais TropVieux', :message_age, '79'),
+        new_message(field, 'Mauvais TropVieux', :message_age, (Date.today.year - 1944).to_s),
         new_message('Nombre de CIS demandés', '15', :message_cis_demandes, '14')
       ]
     end
@@ -38,7 +38,7 @@ RSpec.describe Cis::EtatPrevisionnelV2Check do
     let(:field) { 'État nominatif des demandeurs' }
     let(:messages) do
       [
-        new_message(field, 'Erreur TropVieux', :message_age, '79'),
+        new_message(field, 'Erreur TropVieux', :message_age, (Date.today.year - 1944).to_s),
         new_message('Nombre de CIS demandés', '3', :message_cis_demandes, '2')
       ]
     end
