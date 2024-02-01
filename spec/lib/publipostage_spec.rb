@@ -12,8 +12,6 @@ RSpec.describe Publipostage do
     allow(demarche).to receive(:instructeur).and_return(instructeur)
     allow(SendMessage).to receive(:send)
     allow(controle).to receive(:instructeur_id_for).and_return(1)
-    file = "storage/publipost/#{dossier_nb}/publipostage #{dossier_nb}.yml"
-    FileUtils.rm_f(file)
   end
 
   subject do
@@ -30,9 +28,12 @@ RSpec.describe Publipostage do
 
   context 'generate docx' do
     let(:generated_path) { "tmp/publipost/publipostage #{dossier_nb}.docx" }
+    let(:data_path) { "storage/publipost/#{dossier_nb}/publipostage #{dossier_nb}.yml" }
     before do
       allow(controle).to receive(:delete)
       expect(SetAnnotationValue).to receive(:set_piece_justificative_on_annotation)
+      allow(controle).to receive(:delete)
+      FileUtils.rm_f(data_path)
     end
     after { FileUtils.rm_f(generated_path) }
 

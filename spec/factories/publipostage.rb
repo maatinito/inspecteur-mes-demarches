@@ -4,7 +4,7 @@ FactoryBot.define do
   factory :publipostage, class: Publipostage do
     etat_du_dossier { 'en_construction' }
     message { 'message {number}' }
-    modele { 'spec/fixtures/publipostage.docx' }
+    modele { 'spec/fixtures/publipostage{VAR}.docx' }
     nom_fichier_lot { 'publipostage {number} {horodatage}-{lot}' }
     nom_fichier { 'publipostage {number}' }
     champs { ['Navire', "Date d'arrivée"] }

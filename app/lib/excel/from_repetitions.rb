@@ -108,13 +108,6 @@ module Excel
       dossier_updated(target)
     end
 
-    def instanciate(template, source = nil)
-      template.gsub(/{[^{}]+}/) do |matched|
-        variable = matched[1..-2]
-        get_values_of(source, variable, variable, '').first
-      end
-    end
-
     def get_values_of(source, key, field, par_defaut = nil)
       return par_defaut unless field
 

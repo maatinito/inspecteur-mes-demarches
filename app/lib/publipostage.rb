@@ -14,7 +14,7 @@ class Publipostage < FieldChecker
   def initialize(params)
     super
     @calculs = create_tasks
-    @modele = @params[:modele]
+    @template_pattern = @params[:modele]
     @mails = @params[:destinataires]
     @mails = @mails.split(/\s*,\s*/) if @mails.is_a?(String)
     @champ_cible = @params[:champ_cible]
@@ -24,7 +24,6 @@ class Publipostage < FieldChecker
     @annexe_field = [*@params[:champ_annexe]]
     @publiposts = {}
     @sender = @params[:expediteur]
-    raise "Modèle #{@modele} introuvable" unless File.exist?(@modele)
     raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
 
     FileUtils.mkdir_p(OUTPUT_DIR)
@@ -57,6 +56,8 @@ class Publipostage < FieldChecker
 
       fields = get_fields(row, params[:champs])
       compute_dynamic_fields(row, fields)
+      @template = instanciate(@template_pattern)
+
       next if same_document(fields)
 
       path = generate_doc(fields)
@@ -89,7 +90,7 @@ class Publipostage < FieldChecker
   end
 
   def trigger_field_set(row)
-    @if_field_set.blank? || get_values_of(row, @if_field_set, @if_field_set)&.find(&:present?)
+    @if_field_set.blank? || get_values_of(row, @if_field_set)&.find(&:present?)
   end
 
   def send_if_target_field_is_in_current_row(demarche, dossier, row, path)
@@ -133,7 +134,7 @@ class Publipostage < FieldChecker
     context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[()]/, '') }
                  .transform_values { |v| [*v].map(&:to_s).join(',') }
 
-    template = Sablon.template(File.expand_path(@modele))
+    template = Sablon.template(File.expand_path(@template))
     template.render_to_file output_file, context
   end
 
@@ -318,7 +319,7 @@ class Publipostage < FieldChecker
   def same_document(fields)
     datafile = data_filename(fields)
     stable_fields = normalized_fields(fields)
-    stable_fields['#checksum'] = FileUpload.checksum(@modele)
+    stable_fields['#checksum'] = FileUpload.checksum(@template)
     stable_fields['#annexes'] = annexe_checksums if @annexe_field.present?
 
     same = File.exist?(datafile) && YAML.load_file(datafile) == stable_fields
@@ -337,13 +338,6 @@ class Publipostage < FieldChecker
     end
   end
 
-  def instanciate(template, source = nil)
-    template.gsub(/{[^{}]+}/) do |matched|
-      variable = matched[1..-2]
-      get_values_of(source, variable, variable, '').first
-    end
-  end
-
   def build_filename(template, source = nil)
     return 'document.pdf' if template.blank?
 
@@ -353,7 +347,7 @@ class Publipostage < FieldChecker
   def generate_doc(row)
     basename = output_basename(row)
     docx = "#{basename}.docx"
-    Rails.logger.info("Generating docx template #{@modele}")
+    Rails.logger.info("Generating docx with template #{@template}")
     generate_docx(docx, row)
 
     return docx if @generate_docx
@@ -371,7 +365,7 @@ class Publipostage < FieldChecker
     result = { 'Dossier' => @dossier.number }
     definitions.each do |definition|
       column, field, par_defaut = load_definition(definition)
-      result[column] = get_values_of(row, column, field, par_defaut)
+      result[column] = get_values_of(row, field, par_defaut)
     end
     result
   end
@@ -395,24 +389,14 @@ class Publipostage < FieldChecker
     end
   end
 
-  def get_values_of(source, key, field, par_defaut = nil)
+  def get_values_of(source, field, par_defaut = nil)
     return par_defaut unless field
 
     # from computed values
-    value = @computed[key] if @computed.is_a? Hash
+    value = @computed[field] if @computed.is_a? Hash
     return [*value] if value.present?
 
-    # from excel source
-    value = source[key] if source.is_a? Hash
-    return [*value] if value.present?
-
-    # from repetitive champs
-    champs = object_field_values(source, field, log_empty: false) if source.is_a? FieldList
-    return champs_to_values(champs) if champs.present?
-
-    # from dossier champs
-    champs = object_field_values(@dossier, field, log_empty: false)
-    champs_to_values(champs).presence || [par_defaut]
+    super
   end
 
   def load_definition(param)
