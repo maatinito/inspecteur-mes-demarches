@@ -69,9 +69,9 @@ RSpec.describe SetAnnotationValue do
     context 'champ piece justificative', vcr: { cassette_name: 'set_annotation_pj' } do
       let(:champ) { 'Champ pj' }
       it 'should set the value' do
-        setpj(champ, '.rspec')
+        setpj(champ, 'spec/fixtures/publipostage.docx')
         file = get(champ).files.last
-        expect(file.filename).to eq('.rspec')
+        expect(file.filename).to eq('publipostage.docx')
         expect(file.url).to be_truthy
         expect(file.checksum).to be_truthy
       end

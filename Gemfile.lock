@@ -93,7 +93,7 @@ GEM
     combine_pdf (1.0.23)
       matrix
       ruby-rc4 (>= 0.1.5)
-    concurrent-ruby (1.2.2)
+    concurrent-ruby (1.2.3)
     crack (0.4.5)
       rexml
     crass (1.0.6)
@@ -145,10 +145,10 @@ GEM
       raabro (~> 1.4)
     globalid (1.1.0)
       activesupport (>= 5.0)
-    graphql (1.13.19)
-    graphql-client (0.16.0)
+    graphql (2.2.7)
+    graphql-client (0.19.0)
       activesupport (>= 3.0)
-      graphql (~> 1.8)
+      graphql
     haml (6.1.1)
       temple (>= 0.8.2)
       thor
@@ -215,7 +215,7 @@ GEM
       mime-types-data (~> 3.2015)
     mime-types-data (3.2023.0218.1)
     mini_mime (1.1.2)
-    minitest (5.18.1)
+    minitest (5.22.1)
     mry (0.78.0.0)
       rubocop (>= 0.41.0)
     msgpack (1.7.1)
@@ -470,7 +470,7 @@ GEM
     websocket-driver (0.7.5)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
-    zeitwerk (2.6.8)
+    zeitwerk (2.6.13)
 
 PLATFORMS
   x86_64-linux
@@ -492,7 +492,7 @@ DEPENDENCIES
   dotenv-rails
   factory_bot_rails
   fugit
-  graphql-client (~> 0.16.0)
+  graphql-client
   haml-lint
   haml-rails
   humanize

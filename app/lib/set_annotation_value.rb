@@ -25,8 +25,8 @@ class SetAnnotationValue
 
   def self.set_piece_justificative_on_annotation(md_dossier, instructeur_id, annotation, path, filename)
     new_checksum = FileUpload.checksum(path)
-    different_file = annotation.files.find { _1.checksum == new_checksum }
-    return unless different_file
+    same_file = annotation.files.find { _1.checksum == new_checksum }
+    return if same_file
 
     attachment = FileUpload.upload_file(md_dossier.id, path, filename, new_checksum)
     raw_set_piece_justificative(md_dossier.id, instructeur_id, annotation.id, attachment)
@@ -208,6 +208,7 @@ class SetAnnotationValue
         attachment_id:,
         client_mutation_id: 'set_value'
       })
+    pp result
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
     raise errors.join(';') if errors.present?
 
