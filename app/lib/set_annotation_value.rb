@@ -216,15 +216,19 @@ class SetAnnotationValue
   end
 
   def self.value_of(annotation)
-    old_value = annotation.value
-    if old_value.present?
+    value = if annotation.respond_to?(:value)
+      annotation.value
+    else
+      annotation.string_value
+    end
+    if value.present?
       case annotation.__typename
       when 'DateChamp'
-        old_value = Date.iso8601(annotation.value)
+        value = Date.iso8601(annotation.value)
       when 'IntegerNumberChamp'
-        old_value = old_value.to_i
+        value = value.to_i
       end
     end
-    old_value
+    value
   end
 end
