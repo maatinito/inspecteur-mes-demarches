@@ -128,7 +128,7 @@ class ExcelCheck < FieldChecker
         method = "check_#{name.to_s.downcase}"
         v = send(method, row)
         unless [true, nil].include?(v)
-          message = v.is_a?(String) ? v : @params["message_#{name}".to_sym]
+          message = v.is_a?(String) ? v : @params[:"message_#{name}"]
           add_message(field_name, id, message)
         end
       end

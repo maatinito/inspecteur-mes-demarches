@@ -41,21 +41,21 @@ module Sti
     end
 
     def price_for_words
-      word_nb = annotation('Nombre de mots')&.value&.to_i || 0
+      word_nb = annotation('Nombre de mots')&.value.to_i
       return 0 if word_nb.zero?
 
       (word_nb / 100.0).ceil.to_i * 1500
     end
 
     def price_for_copies
-      page_nb = annotation('Pages de copies')&.value&.to_i || 0
+      page_nb = annotation('Pages de copies')&.value.to_i
       return 0 if page_nb.zero?
 
       page_nb * 100
     end
 
     def price_for(doc_type)
-      doc_count = annotation("Traductions à #{doc_type}")&.value&.to_i || 0
+      doc_count = annotation("Traductions à #{doc_type}")&.value.to_i
       doc_count * doc_type
     end
   end

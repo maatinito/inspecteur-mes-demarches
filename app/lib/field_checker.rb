@@ -24,6 +24,13 @@ class FieldChecker < InspectorTask
     @dossiers_to_recheck = Set.new
     @dossier = dossier
     @demarche = demarche
+    # MicrosoftGraphCore::Authentication::OAuthAuthenticationProvider.new(context, nil, ['https://graph.microsoft.com/.default'])
+    #
+    # context = MicrosoftKiotaAuthenticationOAuth::ClientCredentialContext.new(tenant_id, user, password)
+    # authentication_provider = MicrosoftGraphCore::Authentication::OAuthAuthenticationProvider.new(context, nil, ['https://graph.microsoft.com/.default'])
+    # adapter = MicrosoftGraph::GraphRequestAdapter.new(authentication_provider)
+    # client = MicrosoftGraph::GraphServiceClient.new(adapter)
+    # client.sites.get.resume
   end
 
   def control(dossier)
@@ -155,7 +162,7 @@ class FieldChecker < InspectorTask
     when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp', 'CheckboxChamp'
       champ.value || ''
     when 'CiviliteChamp'
-      champ.value&.to_s || ''
+      champ.value.to_s
     when 'MultipleDropDownListChamp'
       champ.values
     when 'LinkedDropDownListChamp'

@@ -304,7 +304,7 @@ class Publipostage < FieldChecker
   def dossiers_have_right_state?(dossier, target)
     return false unless @states.include?(dossier.state)
 
-    (target == dossier || @states.include?(target.state))
+    target == dossier || @states.include?(target.state)
   end
 
   def destination(dossier)

@@ -217,10 +217,10 @@ class SetAnnotationValue
 
   def self.value_of(annotation)
     value = if annotation.respond_to?(:value)
-      annotation.value
-    else
-      annotation.string_value
-    end
+              annotation.value
+            else
+              annotation.string_value
+            end
     if value.present?
       case annotation.__typename
       when 'DateChamp'

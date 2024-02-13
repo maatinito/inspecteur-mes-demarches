@@ -57,7 +57,7 @@ class ResExcel < FieldChecker
         method = "check_#{name.to_s.downcase}"
         v = send(method, line)
         unless v == true
-          message = v.is_a?(String) ? v : @params["message_#{name}".to_sym]
+          message = v.is_a?(String) ? v : @params[:"message_#{name}"]
           add_message(champ.label, "#{nom} #{prenoms}", message)
         end
       end
