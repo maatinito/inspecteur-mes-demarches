@@ -109,7 +109,7 @@ class Publipostage < FieldChecker
     body = instanciate(@params[:message])
     timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
     filename = build_filename(@params[:nom_fichier_lot] || @params[:nom_fichier],
-                              { 'lot' => batch_number, 'horodatage' => timestamp }) + File.extname(file)
+                              { lot: batch_number, horodatage: timestamp }) + File.extname(file)
 
     if @mails.present?
       Rails.logger.info("Sending file #{filename} by mail to #{@mails}")

@@ -154,6 +154,9 @@ module MesDemarches
       usager {
           email
       }
+      instructeurs {
+        email
+      }
       traitements {
         instructeurEmail
 			  processedAt

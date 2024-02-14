@@ -121,8 +121,8 @@ class VerificationService
   end
 
   def check_demarche(controls, demarche_number, reset, configuration_name)
-    demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
     Rails.logger.info("Processing procedure #{demarche_number}")
+    demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
     set_demarche(controls, demarche)
     start_time = Time.zone.now
     since = reset ? EPOCH : demarche.checked_at
