@@ -4,7 +4,7 @@ module Calculs
   class EmailToNames < FieldChecker
     include ActionView::Helpers::NumberHelper
 
-    MAIL_REGEX = /(?<name>[^.]+)@/
+    MAIL_REGEX = /(?<name>[^@]+)@/
     NAMES_REGEX = /(?<firstname>[^.]+)\.(?<lastname>.+)/
 
     def version
@@ -12,7 +12,7 @@ module Calculs
     end
 
     def authorized_fields
-      super + %i[mails]
+      super + %i[mails fonction_par_défaut]
     end
 
     def process_row(dossier, output)
@@ -28,16 +28,19 @@ module Calculs
 
       v1 = "#{variable}.prénom"
       v2 = "#{variable}.nom"
+      v3 = "#{variable}.fonction"
       name = match[:name].gsub(/[\p{L}\p{M}]+/u, &:capitalize)
       user_definition = @params[:mails]&.[](match[:name])
       if user_definition.present?
-        (output[v1], output[v2]) = user_definition.split(/\s*,\s*/)
+        (output[v1], output[v2], output[v3]) = user_definition.split(/\s*,\s*/)
       elsif (match = name.match(NAMES_REGEX))
         output[v1] = normalize(match[:firstname])
         output[v2] = normalize(match[:lastname])
+        output[v3] = @params[:fonction_par_défaut] || ''
       else
         output[v1] = normalize(name)
         output[v2] = ''
+        output[v3] = @params[:fonction_par_défaut] || ''
       end
     end
 
