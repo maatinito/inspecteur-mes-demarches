@@ -176,7 +176,7 @@ class FieldChecker < InspectorTask
     when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp'
       champ.string_value
     when 'PieceJustificativeChamp'
-      champ&.file&.filename
+      champ.files.map(&:filename).join(',')
     when 'TitreIdentiteChamp'
       "Titre d'identité"
     else
