@@ -52,10 +52,6 @@ module Daf
     end
 
     def file_count(row)
-      page_field = row.champs.find { |champ| champ.__typename == 'IntegerNumberChamp' }
-      count = page_field&.value.to_i
-      return count if count.positive?
-
       file_field = row.champs.find { |champ| champ.__typename == 'PieceJustificativeChamp' }
       file_field&.files&.size || 0
     end
