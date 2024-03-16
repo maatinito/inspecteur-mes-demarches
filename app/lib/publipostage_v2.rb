@@ -11,6 +11,7 @@ class PublipostageV2 < Publipostage
       process_table(table, fields)
     end
     paragraph_substitution(doc, fields)
+    paragraph_substitution_v2(doc, fields)
 
     doc.save(output_file)
   end
@@ -25,6 +26,49 @@ class PublipostageV2 < Publipostage
           tr.substitute("--#{k}--", [*v].map(&:to_s).join(','))
         end
         insert_line_breaks(tr)
+      end
+    end
+  end
+
+  def paragraph_substitution_v2(doc, fields)
+    doc.paragraphs.each do |p|
+      value = variable = nil
+      p.each_text_run do |tr|
+        nodeset = tr.xpath("w:instrText[starts-with(., ' MERGEFIELD')]")
+        if nodeset.size.positive? && (text = nodeset.text) && (match = text.match(/MERGEFIELD\s+(?:"([^"]+)"|([^" ]+))/))
+          value, variable = definition(fields, match, text)
+          next
+        end
+        next unless variable.present? && tr.text.match(/«#{variable}»/i)
+
+        tr.substitute(/«#{variable}»/i, value)
+        insert_line_breaks(tr)
+        variable = nil
+      end
+    end
+  end
+
+  def definition(fields, match, text)
+    variable = match[1].presence || match[2]
+    options = text.scan(/\\(. (?:\w+|"[^"]+"))/).flatten.to_set
+    value = [*fields[variable]].map(&:to_s).join(',')
+    value = normalize_value(value, options)
+    [value, variable]
+  end
+
+  def normalize_value(input, options)
+    options.reduce(input) do |value, option|
+      case option
+      when '* Lower'
+        value.downcase
+      when '* Upper'
+        value.upcase
+      when '* FirstCap'
+        value.capitalize
+      when '* Caps'
+        value.split.map(&:capitalize).join(' ')
+      else
+        value
       end
     end
   end
@@ -69,6 +113,7 @@ class PublipostageV2 < Publipostage
     table.rows.each do |row|
       row.cells.each do |cell|
         paragraph_substitution(cell, fields)
+        paragraph_substitution_v2(cell, fields)
       end
     end
   end
@@ -78,6 +123,7 @@ class PublipostageV2 < Publipostage
     row.insert_before(last_row)
     row.cells.each do |cell|
       paragraph_substitution(cell, sub_fields)
+      paragraph_substitution_v2(cell, sub_fields)
     end
   end
 

@@ -56,6 +56,10 @@ RSpec.describe PublipostageV2 do
 
         doc = Docx::Document.open(generated_path)
         expect(doc.to_html).to include('NAVIRE')
+        expect(doc.to_html).to include('UNAVIRE')
+        expect(doc.to_html).to include('dnavire')
+        expect(doc.to_html).to include('CNavire')
+        expect(doc.to_html).to include('CcNavire')
         expect(doc.to_html).to include('05/05/2023')
         expect(doc.tables.size).to eq(4)
         expect(doc.tables[0].rows.map { |row| row.cells.map(&:text) }).to match(marchandises_etiquetees)
