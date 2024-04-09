@@ -32,28 +32,49 @@ class PublipostageV2 < Publipostage
 
   def paragraph_substitution_v2(doc, fields)
     doc.paragraphs.each do |p|
-      value = variable = nil
-      p.each_text_run do |tr|
-        nodeset = tr.xpath("w:instrText[starts-with(., ' MERGEFIELD')]")
-        if nodeset.size.positive? && (text = nodeset.text) && (match = text.match(/MERGEFIELD\s+(?:"([^"]+)"|([^" ]+))/))
-          value, variable = definition(fields, match, text)
-          next
-        end
-        next unless variable.present? && tr.text.match(/«#{variable}»/i)
-
-        tr.substitute(/«#{variable}»/i, value)
-        insert_line_breaks(tr)
-        variable = nil
-      end
+      substitution_in_text_run(fields, p)
+      substitution_in_field_simple(fields, p)
     end
   end
 
-  def definition(fields, match, text)
+  def substitution_in_text_run(fields, paragraph)
+    variable, value = nil
+    paragraph.each_text_run do |tr|
+      nodeset = tr.xpath("w:instrText[starts-with(., ' MERGEFIELD')]")
+      if nodeset.size.positive? && (text = nodeset.text)
+        variable, value = definition(fields, text)
+        next
+      end
+      next unless variable.present? && tr.text.match(/«#{variable}»/i)
+
+      tr.substitute(/«#{variable}»/i, value)
+      insert_line_breaks(tr.node)
+      variable = nil
+    end
+  end
+
+  def substitution_in_field_simple(fields, paragraph)
+    paragraph.xpath('w:fldSimple').each do |node|
+      variable, value = definition(fields, node.attribute('instr').text)
+      w_r = node.at_xpath('w:r')
+      w_t = w_r.at_xpath('w:t')
+      w_t.content = w_t.content.gsub(/«#{variable}»/i, value)
+      insert_line_breaks(w_r)
+    end
+  end
+
+  def definition(fields, text)
+    match = text.match(/MERGEFIELD\s+(?:"([^"]+)"|([^" ]+))/)
     variable = match[1].presence || match[2]
-    options = text.scan(/\\(. (?:\w+|"[^"]+"))/).flatten.to_set
-    value = [*fields[variable]].map(&:to_s).join(',')
-    value = normalize_value(value, options)
-    [value, variable]
+    if variable
+      options = text.scan(/\\(. (?:\w+|"[^"]+"))/).flatten.to_set
+      value = [*fields[variable]].map(&:to_s).join(',')
+      value = normalize_value(value, options)
+      variable = Regexp.escape(variable)
+      [variable, value]
+    else
+      []
+    end
   end
 
   def normalize_value(input, options)
@@ -73,19 +94,18 @@ class PublipostageV2 < Publipostage
     end
   end
 
-  def insert_line_breaks(text_run)
-    xr = text_run.node
-    xt = xr.at_xpath('w:t')
+  def insert_line_breaks(r_node)
+    xt = r_node.at_xpath('w:t')
     segments = xt.content.split(/\r*\n\r*/)
     return unless segments.present? && segments.size > 1
 
     xt.content = segments.first
-    template = text_run.node.dup
-    template.prepend_child(Nokogiri::XML::Node.new('w:br', xr.document))
+    template = r_node.dup
+    template.prepend_child(Nokogiri::XML::Node.new('w:br', r_node.document))
     segments[1..].each do |segment|
       new_r = template.dup
       new_r.at_xpath('w:t').content = segment
-      xr = xr.add_next_sibling(new_r)
+      r_node = r_node.add_next_sibling(new_r)
     end
   end
 
