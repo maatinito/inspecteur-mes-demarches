@@ -57,13 +57,7 @@ module Daf
       return count if count.positive?
 
       file_field = row.champs.find { |champ| champ.__typename == 'PieceJustificativeChamp' }
-      count = file_field&.files&.size || 0
-
-      if page_field
-        Rails.logger.info("Setting #{page_field.label} to #{count}")
-        SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, page_field.id, count)
-      end
-      count
+      file_field&.files&.size || 0
     end
 
     # compute number of pages of pdf
