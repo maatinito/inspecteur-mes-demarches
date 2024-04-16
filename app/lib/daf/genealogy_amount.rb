@@ -19,7 +19,7 @@ module Daf
     private
 
     def amount
-      200 * count_files
+      100 * count_files
     end
 
     def count_files
