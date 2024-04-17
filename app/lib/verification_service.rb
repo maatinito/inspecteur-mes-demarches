@@ -6,6 +6,8 @@ class VerificationService
   @@config = nil
 
   def check
+    return unless DemarcheActions.ping
+
     VerificationService.configs.each do |filename, data|
       Rails.logger.tagged(File.basename(filename)) do
         data.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
@@ -183,7 +185,6 @@ class VerificationService
         .where.not(version: control.version)
         .where(checker: control.name)
         .where(demarche: [*@procedure['demarches']]).each do |check|
-        puts "#{check.demarche_id}\t#{check.dossier}\t#{check.checker}\t#{check.version}\t#{control.version}"
       end
     end
     conditions = controls.map do |control|
@@ -340,7 +341,8 @@ class VerificationService
       # send message if previous check failed and new one is Ok
       @dossier_has_different_messages ||= !check.failed && previous_failed
     else
-      puts "Task invalid #{control.name}"
+      puts "Task invalid #{control.name}: #{control.errors.join(',')}"
+      NotificationMailer.with(message: "Task invalid #{control.name}: #{control.errors.join(',')}", tags: Rails.logger.formatter.current_tags.join(',')).report_error.deliver_later
     end
   rescue StandardError => e
     check.failed = true

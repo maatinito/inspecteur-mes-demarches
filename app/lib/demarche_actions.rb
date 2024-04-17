@@ -10,6 +10,16 @@ class DemarcheActions
     demarche
   end
 
+  def self.ping
+    begin
+      MesDemarches::Client.query(MesDemarches::Queries::Ping)
+      true
+    rescue StandardError => e
+      Rails.logger.info("Mes-Démarche seems not accessible : #{e.message}")
+      false
+    end
+  end
+
   def self.get_graphql_demarche(demarche_number)
     result = MesDemarches::Client.query(MesDemarches::Queries::Demarche,
                                         variables: { demarche: demarche_number })

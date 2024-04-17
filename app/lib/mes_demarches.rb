@@ -39,6 +39,10 @@ module MesDemarches
   # list dossiers
 
   Queries = Client.parse <<-GRAPHQL
+    query Ping() {
+       demarche(number: 828) { id }
+    }
+
     query Demarche($demarche: Int!) {
       demarche(number: $demarche) {
         title
