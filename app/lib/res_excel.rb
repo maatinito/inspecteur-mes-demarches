@@ -6,7 +6,7 @@ require 'roo'
 
 class ResExcel < FieldChecker
   def initialize(params)
-    super(params)
+    super
     @cps = Cps::API.new
   end
 

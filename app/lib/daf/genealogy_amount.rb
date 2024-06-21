@@ -7,7 +7,7 @@ module Daf
     end
 
     def initialize(params)
-      super(params)
+      super
       names = @params[:champs_source]
       @source_champs_names = names.is_a?(Array) ? names : names&.split(',')
     end

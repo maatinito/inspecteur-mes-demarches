@@ -22,7 +22,7 @@ class ExcelCheck < FieldChecker
   # REQUIRED_COLUMNS = %i[heure_avant_convention brut_mensuel_moyen heures_a_realiser dmo].freeze
 
   def initialize(params)
-    super(params)
+    super
     @cps = Cps::API.new
   end
 

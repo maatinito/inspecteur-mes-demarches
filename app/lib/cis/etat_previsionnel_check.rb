@@ -38,7 +38,7 @@ module Cis
     end
 
     def check_sheet(champ, sheet, sheet_name, columns, checks)
-      super(champ, sheet, sheet_name, columns, checks)
+      super
       check_cis_demandes(cis_count(sheet))
     end
 

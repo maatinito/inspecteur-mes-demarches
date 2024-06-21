@@ -6,7 +6,7 @@ class RegexCheck < FieldChecker
   end
 
   def initialize(params)
-    super(params)
+    super
     @errors << 'regex_aide et regex_message doivent être tous les deux définis' if params.key?(:regex_aide) ^ params.key?(:message_aide)
   end
 

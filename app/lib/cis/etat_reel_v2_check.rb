@@ -35,7 +35,7 @@ module Cis
 
     def check_sheet(champ, sheet, sheet_name, columns, checks)
       @posted_dns = Set.new
-      super(champ, sheet, sheet_name, columns, checks)
+      super
       check_people_are_valid(champ, sheet)
       check_period(sheet)
     end

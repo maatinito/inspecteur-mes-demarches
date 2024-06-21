@@ -49,7 +49,7 @@ module Cis
     end
 
     def process(demarche, dossier)
-      super(demarche, dossier)
+      super
       champ = dossier_annotations(dossier, @params[:champ_candidats_admis])&.first
       return if champ&.file.nil?
 

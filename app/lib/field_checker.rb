@@ -9,7 +9,7 @@ class FieldChecker < InspectorTask
   attr_writer :demarche
 
   def initialize(params)
-    super(params)
+    super
     @messages = []
     @updated_dossiers = Set.new
     @dossiers_to_recheck = Set.new

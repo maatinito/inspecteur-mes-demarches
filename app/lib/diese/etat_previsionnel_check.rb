@@ -11,7 +11,7 @@ module Diese
     end
 
     def check_sheet(champ, sheet, sheet_name, columns, checks)
-      super(champ, sheet, sheet_name, columns, checks)
+      super
       check_dossier_numbers(sheet, sheet_name)
     end
 
