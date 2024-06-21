@@ -180,13 +180,6 @@ class VerificationService
   end
 
   def obsolete_checks(controls)
-    controls.each do |control|
-      Check
-        .where.not(version: control.version)
-        .where(checker: control.name)
-        .where(demarche: [*@procedure['demarches']]).each do |check|
-      end
-    end
     conditions = controls.map do |control|
       Check
         .where.not(version: control.version)
