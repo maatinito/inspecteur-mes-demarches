@@ -27,7 +27,10 @@ module Daf
       annotation = SetAnnotationValue.allocate_blocks(@dossier, @demarche.instructeur, @params[:bloc_destination], orders.size)
       champ_destination_label = @params[:champ_destination]
       champs = annotation.champs.filter { |c| c.label == champ_destination_label }
-      raise StandardError, "Impossible de copier la demande dans les annotations (#{champs.size} champs != #{orders.size} demandes)" if orders.size != champs.size
+      if orders.size != champs.size
+        Rails.logger.error("Impossible de copier la demande dans les annotations (#{champs.size} champs != #{orders.size} demandes)")
+        return
+      end
 
       changed = false
       orders.zip(champs).each do |order, champ|
