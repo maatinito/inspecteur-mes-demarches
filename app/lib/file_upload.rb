@@ -11,7 +11,7 @@ class FileUpload
   end
 
   def self.upload_slot(dossier_id, checksum, path, filename)
-    result = MesDemarches::Client.query(Queries::CreateDirectUpload, variables:
+    result = MesDemarches.query(Queries::CreateDirectUpload, variables:
       {
         dossier_id:,
         filename:,

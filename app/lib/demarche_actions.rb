@@ -11,7 +11,7 @@ class DemarcheActions
   end
 
   def self.ping
-    MesDemarches::Client.query(MesDemarches::Queries::Ping)
+    MesDemarches.query(MesDemarches::Queries::Ping)
     true
   rescue StandardError => e
     Rails.logger.info("Mes-Démarche seems not accessible : #{e.message}")
@@ -19,8 +19,8 @@ class DemarcheActions
   end
 
   def self.get_graphql_demarche(demarche_number)
-    result = MesDemarches::Client.query(MesDemarches::Queries::Demarche,
-                                        variables: { demarche: demarche_number })
+    result = MesDemarches.query(MesDemarches::Queries::Demarche,
+                                variables: { demarche: demarche_number })
 
     raise StandardError, result.errors.messages.values.join(',') if result.errors.present?
     raise StandardError, "La démarche #{demarche_number} n'existe pas" if result&.data&.demarche.nil?

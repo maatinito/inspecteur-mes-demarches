@@ -21,7 +21,7 @@ class DossierPasserEnInstruction < DossierChangerEtat
 
   def change_state(demarche, dossier)
     Rails.logger.info('Passage en instruction')
-    result = MesDemarches::Client.query(Queries::EnInstruction, variables:
+    result = MesDemarches.query(Queries::EnInstruction, variables:
       {
         dossierId: dossier.id,
         instructeurId: instructeur_id_for(demarche, dossier)

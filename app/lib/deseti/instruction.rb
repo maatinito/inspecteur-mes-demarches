@@ -117,7 +117,7 @@ module Deseti
     end
 
     def get_dossier(dossier_number, query)
-      response = MesDemarches::Client.query(query, variables: { dossier: dossier_number })
+      response = MesDemarches.query(query, variables: { dossier: dossier_number })
       data = response.data
       data&.dossier
     end

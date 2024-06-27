@@ -45,7 +45,7 @@ class SetAnnotationValue
   end
 
   def self.raw_set_value(dossier_id, instructeur_id, annotation_id, value)
-    result = MesDemarches::Client.query(typed_query(value), variables:
+    result = MesDemarches.query(typed_query(value), variables:
       {
         dossier_id:,
         instructeur_id:,
@@ -64,7 +64,7 @@ class SetAnnotationValue
   end
 
   def self.raw_add_block(dossier_id, instructeur_id, annotation_id)
-    result = MesDemarches::Client.query(Queries::AddBlock, variables:
+    result = MesDemarches.query(Queries::AddBlock, variables:
       {
         dossier_id:,
         instructeur_id:,
@@ -200,7 +200,7 @@ class SetAnnotationValue
   end
 
   def self.raw_set_piece_justificative(dossier_id, instructeur_id, annotation_id, attachment_id)
-    result = MesDemarches::Client.query(Queries::SetPieceJustificative, variables:
+    result = MesDemarches.query(Queries::SetPieceJustificative, variables:
       {
         dossier_id:,
         instructeur_id:,

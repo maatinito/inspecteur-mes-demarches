@@ -4,13 +4,13 @@ class SendMessage
   def self.send(dossier, instructeur_id, body, check_not_sent: false)
     return false if check_not_sent && already_posted(dossier.number, body)
 
-    handle_errors(MesDemarches::Client.query(Mutation::EnvoyerMessage,
-                                             variables: {
-                                               dossierId: dossier.id,
-                                               instructeurId: instructeur_id,
-                                               body:,
-                                               clientMutationId: 'foo'
-                                             }))
+    handle_errors(MesDemarches.query(Mutation::EnvoyerMessage,
+                                     variables: {
+                                       dossierId: dossier.id,
+                                       instructeurId: instructeur_id,
+                                       body:,
+                                       clientMutationId: 'foo'
+                                     }))
     true
   end
 
@@ -18,14 +18,14 @@ class SendMessage
     return false if check_not_sent && already_posted(dossier.number, body)
 
     attachment_id = FileUpload.upload_file(dossier.id, file_path, filename)
-    handle_errors(MesDemarches::Client.query(Mutation::EnvoyerMessageAvecFichier,
-                                             variables: {
-                                               dossierId: dossier.id,
-                                               instructeurId: instructeur_id,
-                                               body:,
-                                               attachmentId: attachment_id,
-                                               clientMutationId: 'foo'
-                                             }))
+    handle_errors(MesDemarches.query(Mutation::EnvoyerMessageAvecFichier,
+                                     variables: {
+                                       dossierId: dossier.id,
+                                       instructeurId: instructeur_id,
+                                       body:,
+                                       attachmentId: attachment_id,
+                                       clientMutationId: 'foo'
+                                     }))
     true
   end
 
@@ -34,7 +34,7 @@ class SendMessage
   end
 
   def self.already_posted(dossier_number, body)
-    result = MesDemarches::Client.query(Query::Dossier, variables: { dossier: dossier_number })
+    result = MesDemarches.query(Query::Dossier, variables: { dossier: dossier_number })
     raise "Unable to get dossier nb #{dossier_number}" if result.errors.present? || result.data.blank?
 
     result.data&.dossier&.messages&.any? { |m| m&.body == body }

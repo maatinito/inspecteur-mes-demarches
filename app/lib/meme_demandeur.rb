@@ -55,7 +55,7 @@ class MemeDemandeur < FieldChecker
   end
 
   def load_instructeurs
-    response = MesDemarches::Client.query(Queries::Instructeurs, variables: { demarche: @demarche.id })
+    response = MesDemarches.query(Queries::Instructeurs, variables: { demarche: @demarche.id })
     return Set[] unless (data = response.data)
 
     data.demarche.groupe_instructeurs.map do |group|
@@ -71,8 +71,8 @@ class MemeDemandeur < FieldChecker
     champs.each do |champ|
       dossier_siret = dossier&.demandeur&.siret
       dossier_number = champ.string_value&.to_i
-      response = MesDemarches::Client.query(Queries::Dossier,
-                                            variables: { dossier: dossier_number })
+      response = MesDemarches.query(Queries::Dossier,
+                                    variables: { dossier: dossier_number })
       unless (data = response.data)
         add_message(@params[:champ], dossier_siret, "Le dossier #{dossier_number} est introuvable")
         next

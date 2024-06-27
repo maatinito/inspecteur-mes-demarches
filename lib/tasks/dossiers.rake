@@ -108,18 +108,18 @@ namespace :dossiers do
   def send_close_message(demarche, dossier)
     message = DOUBLONS.include?(dossier.number) ? CLOSE_MESSAGE_DOUBLON : CLOSE_MESSAGE
     puts "#{dossier.number}: #{DOUBLONS.include?(dossier.number) ? 'CLOSE_MESSAGE_DOUBLON' : 'CLOSE_MESSAGE'}"
-    result = MesDemarches::Client.query(MesDemarches::Mutation::EnvoyerMessage,
-                                        variables: {
-                                          dossierId: dossier.id,
-                                          instructeurId: demarche.instructeur,
-                                          body: message,
-                                          clientMutationId: 'dededed'
-                                        })
+    result = MesDemarches.query(MesDemarches::Mutation::EnvoyerMessage,
+                                variables: {
+                                  dossierId: dossier.id,
+                                  instructeurId: demarche.instructeur,
+                                  body: message,
+                                  clientMutationId: 'dededed'
+                                })
     puts(result.errors.map(&:message).join(',')) if result.errors&.present?
   end
 
   def dossier_state(dossier)
-    MesDemarches::Client.query(MesDemarches::Queries::DossierState, variables: { number: dossier.number }).data.dossier.state
+    MesDemarches.query(MesDemarches::Queries::DossierState, variables: { number: dossier.number }).data.dossier.state
   end
 
   def close_dossier(demarche, dossier)

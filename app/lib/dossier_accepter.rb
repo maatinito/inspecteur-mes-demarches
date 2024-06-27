@@ -11,7 +11,7 @@ class DossierAccepter < DossierChangerEtat
   def change_state(demarche, dossier)
     passer_en_instruction(demarche, dossier) if dossier.state == 'en_construction'
     Rails.logger.info('Acceptation du dossier')
-    result = MesDemarches::Client.query(Queries::Accepter, variables:
+    result = MesDemarches.query(Queries::Accepter, variables:
       {
         dossierId: dossier.id,
         instructeurId: instructeur_id_for(demarche, dossier),

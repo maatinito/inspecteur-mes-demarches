@@ -17,7 +17,8 @@ module MesDemarches
     Rails.cache.fetch("#{host} http client") do
       graphql_url = "#{host}/api/v2/graphql"
       GraphQL::Client::HTTP.new(graphql_url) do
-        lambda do # headers
+        lambda do
+          # headers
           { Authorization: "Bearer #{ENV.fetch('GRAPHQL_BEARER', nil)}" }
         end
       end
@@ -35,6 +36,26 @@ module MesDemarches
   # Schema = GraphQL::Client.load_schema("path/to/schema.json")
 
   Client = GraphQL::Client.new(schema: Schema, execute: HTTP)
+
+  def self.query(definition, variables: {}, context: {})
+    max_retries = 10
+    retry_count = 0
+    success = false
+
+    until success
+      begin
+        result = Client.query(definition, variables:, context:)
+        success = true
+      rescue StandardError => e
+        retry_count += 1
+        raise e if retry_count >= max_retries
+
+        Rails.logger.warn("Attempt #{retry_count} failed querying Mes-Démarches: #{e.message}. Retrying in 1 second...")
+        sleep 1
+      end
+    end
+    result
+  end
 
   # list dossiers
 

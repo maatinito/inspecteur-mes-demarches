@@ -18,7 +18,7 @@ class DossierClasserSansSuite < DossierChangerEtat
     passer_en_instruction(demarche, dossier) if dossier.state == 'en_construction'
     Rails.logger.info('Classement sans suite du dossier')
 
-    result = MesDemarches::Client.query(Queries::ClasserSansSuite, variables:
+    result = MesDemarches.query(Queries::ClasserSansSuite, variables:
       {
         dossierId: dossier.id,
         instructeurId: instructeur_id_for(demarche, dossier),

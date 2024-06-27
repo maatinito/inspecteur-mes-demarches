@@ -6,12 +6,12 @@ class DossierActions
   def self.on_dossiers(demarche_id, since)
     cursor = nil
     loop do
-      response = MesDemarches::Client.query(MesDemarches::Queries::DossiersModifies,
-                                            variables: {
-                                              demarche: demarche_id,
-                                              since: since.iso8601,
-                                              cursor:
-                                            })
+      response = MesDemarches.query(MesDemarches::Queries::DossiersModifies,
+                                    variables: {
+                                      demarche: demarche_id,
+                                      since: since.iso8601,
+                                      cursor:
+                                    })
 
       unless (data = response.data)
         raise StandardError, "La démarche #{demarche_id} est introuvable #{ENV.fetch('GRAPHQL_HOST', nil)}: #{response.errors.values.join(',')}"
@@ -30,8 +30,8 @@ class DossierActions
   end
 
   def self.on_dossier(dossier_number)
-    response = MesDemarches::Client.query(MesDemarches::Queries::Dossier,
-                                          variables: { dossier: dossier_number })
+    response = MesDemarches.query(MesDemarches::Queries::Dossier,
+                                  variables: { dossier: dossier_number })
     result = response.data&.dossier
     Rails.logger.error(response.errors.values.join(',')) unless result
     result = yield result if result.present? && block_given?

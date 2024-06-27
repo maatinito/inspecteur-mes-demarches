@@ -47,8 +47,8 @@ class VerificationService
   end
 
   def post_message(dossier_number)
-    graphql = MesDemarches::Client.query(MesDemarches::Queries::DossierId,
-                                         variables: { number: dossier_number })
+    graphql = MesDemarches.query(MesDemarches::Queries::DossierId,
+                                 variables: { number: dossier_number })
     if graphql.data.dossier?
       md_dossier = graphql.data.dossier
       checks = Check.where(dossier: dossier_number).all
@@ -97,8 +97,8 @@ class VerificationService
   end
 
   def on_dossier(dossier_number)
-    result = MesDemarches::Client.query(MesDemarches::Queries::Dossier,
-                                        variables: { dossier: dossier_number })
+    result = MesDemarches.query(MesDemarches::Queries::Dossier,
+                                variables: { dossier: dossier_number })
     dossier = (data = result.data) ? data.dossier : nil
     yield dossier
     Rails.logger.error(result.errors.values.join(',')) unless data

@@ -217,7 +217,7 @@ class FieldChecker < InspectorTask
   end
 
   def first_instructeur(dossier)
-    d = MesDemarches::Client.query(MesDemarches::Queries::Instructeurs, variables: { number: dossier.number })
+    d = MesDemarches.query(MesDemarches::Queries::Instructeurs, variables: { number: dossier.number })
     raise StandardError, d.errors if d.errors.present?
 
     d.data.dossier.instructeurs.first&.id
