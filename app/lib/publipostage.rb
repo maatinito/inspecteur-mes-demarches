@@ -237,13 +237,27 @@ class Publipostage < FieldChecker
     return nil if champ_source.files.blank?
 
     champ_file = champ_source.files.last
-    return champ_file.url if File.extname(champ_file.filename) != '.xlsx'
+    file_ext = File.extname(champ_file.filename)
+    return [] unless ['.xlsx', '.csv'].include?(file_ext)
 
     PieceJustificativeCache.get(champ_file) do |file|
-      xlsx = Roo::Spreadsheet.open(file)
-      sheet = xlsx.sheet(0)
-      header_line = header_line(sheet)
-      sheet_rows(header_line, sheet)
+      case file_ext
+      when '.xlsx'
+        xlsx = Roo::Spreadsheet.open(file)
+        sheet = xlsx.sheet(0)
+        header_line = header_line(sheet)
+        sheet_rows(header_line, sheet)
+      when '.csv'
+        Roo::CSV.new(file).parse(headers: true)[1..].each do |row|
+          row.transform_values! do |v|
+            if v.match(/^\d+$/)
+              v.to_i
+            else
+              v.match(/^[\d.]+$/) ? v.to_f : v
+            end
+          end
+        end
+      end
     ensure
       xlsx&.close
     end
