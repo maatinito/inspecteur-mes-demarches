@@ -12,9 +12,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20_220_623_014_101) do
+ActiveRecord::Schema.define(version: 20_240_705_180_430) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
+
+  create_table 'bookings', force: :cascade do |t|
+    t.integer 'dossier'
+    t.string 'user'
+    t.bigint 'session_id'
+    t.datetime 'created_at', precision: 6, null: false
+    t.datetime 'updated_at', precision: 6, null: false
+    t.index %w[dossier user session_id], name: 'index_bookings_on_dossier_and_user_and_session_id', unique: true
+    t.index ['session_id'], name: 'index_bookings_on_session_id'
+  end
 
   create_table 'checks', force: :cascade do |t|
     t.integer 'dossier'
@@ -24,7 +34,7 @@ ActiveRecord::Schema.define(version: 20_220_623_014_101) do
     t.datetime 'checked_at'
     t.bigint 'version', default: 1
     t.integer 'demarche_id'
-    t.boolean 'failed'
+    t.boolean 'failed', default: false
     t.boolean 'posted', default: false
     t.index %w[dossier checker], name: 'unicity', unique: true
     t.index ['dossier'], name: 'by_dossier'
@@ -80,6 +90,16 @@ ActiveRecord::Schema.define(version: 20_220_623_014_101) do
     t.datetime 'updated_at', precision: 6, null: false
     t.index %w[dossier task run_at], name: 'st_unicity', unique: true
     t.index ['run_at'], name: 'by_date'
+  end
+
+  create_table 'sessions', force: :cascade do |t|
+    t.string 'name'
+    t.datetime 'date'
+    t.integer 'capacity'
+    t.integer 'bookings_count', default: 0, null: false
+    t.datetime 'created_at', precision: 6, null: false
+    t.datetime 'updated_at', precision: 6, null: false
+    t.index %w[name date], name: 'index_sessions_on_name_and_date', unique: true
   end
 
   create_table 'syncs', force: :cascade do |t|

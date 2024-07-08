@@ -1,0 +1,111 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://www.mes-demarches.gov.pf/api/v2/graphql
+    body:
+      encoding: UTF-8
+      string: '{"query":"fragment MesDemarches__Queries__ChampInfo on Champ {\n  __typename\n  id\n  label\n  ...
+        on TextChamp {\n    value\n  }\n  ... on CheckboxChamp {\n    value\n  }\n  ...
+        on IntegerNumberChamp {\n    value\n  }\n  ... on DecimalNumberChamp {\n    value\n  }\n  ...
+        on DateChamp {\n    value\n  }\n  ... on LinkedDropDownListChamp {\n    primaryValue\n    secondaryValue\n  }\n  ...
+        on PieceJustificativeChamp {\n    files {\n      contentType\n      checksum\n      filename\n      url\n    }\n    file
+        {\n      contentType\n      checksum\n      filename\n      url\n    }\n    stringValue\n  }\n  ...
+        on NumeroDnChamp {\n    dateDeNaissance\n    numeroDn\n  }\n  ... on SiretChamp
+        {\n    stringValue\n    etablissement {\n      entreprise {\n        nomCommercial\n        raisonSociale\n      }\n      association
+        {\n        titre\n      }\n      libelleNaf\n      naf\n    }\n  }\n  ...
+        on CiviliteChamp {\n    value\n  }\n  ... on MultipleDropDownListChamp {\n    values\n  }\n  ...
+        on VisaChamp {\n    stringValue\n  }\n}\n\nfragment MesDemarches__Queries__DossierInfo
+        on Dossier {\n  id\n  number\n  state\n  archived\n  datePassageEnConstruction\n  datePassageEnInstruction\n  dateTraitement\n  dateDerniereModification\n  dateDepot\n  motivation\n  usager
+        {\n    email\n  }\n  instructeurs {\n    email\n  }\n  traitements {\n    instructeurEmail\n    processedAt\n    state\n  }\n  demandeur
+        {\n    __typename\n    ... on PersonnePhysique {\n      civilite\n      dateDeNaissance\n      nom\n      prenom\n    }\n    ...
+        on PersonneMorale {\n      siret\n      naf\n      libelleNaf\n      adresse\n      numeroVoie\n      typeVoie\n      nomVoie\n      complementAdresse\n      codePostal\n      localite\n      entreprise
+        {\n        siren\n        capitalSocial\n        numeroTvaIntracommunautaire\n        formeJuridique\n        formeJuridiqueCode\n        nomCommercial\n        raisonSociale\n        siretSiegeSocial\n        codeEffectifEntreprise\n        dateCreation\n        nom\n        prenom\n      }\n      association
+        {\n        rna\n        titre\n        objet\n        dateCreation\n        dateDeclaration\n        dateDeclaration\n      }\n    }\n  }\n}\n\nquery
+        MesDemarches__Queries__Dossier($dossier: Int!) {\n  dossier(number: $dossier)
+        {\n    state\n    demarche {\n      number\n    }\n    ...MesDemarches__Queries__DossierInfo\n    annotations
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        rows {\n          champs {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n        }\n        champs
+        {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n    }\n    champs
+        {\n      __typename\n      ...MesDemarches__Queries__ChampInfo\n      ...
+        on RepetitionChamp {\n        rows {\n          champs {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n        }\n        champs
+        {\n          __typename\n          ...MesDemarches__Queries__ChampInfo\n        }\n      }\n      ...
+        on DossierLinkChamp {\n        stringValue\n        dossier {\n          demarche
+        {\n            number\n          }\n          ...MesDemarches__Queries__DossierInfo\n          annotations
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n          }\n          champs
+        {\n            __typename\n            ...MesDemarches__Queries__ChampInfo\n            ...
+        on RepetitionChamp {\n              rows {\n                champs {\n                  __typename\n                  ...MesDemarches__Queries__ChampInfo\n                }\n              }\n              champs
+        {\n                __typename\n                ...MesDemarches__Queries__ChampInfo\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}","variables":{"dossier":426838},"operationName":"MesDemarches__Queries__Dossier"}'
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - application/json
+      User-Agent:
+      - Ruby
+      Content-Type:
+      - application/json
+      Authorization:
+      - Bearer <BEARER_TOKEN>
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx/1.18.0
+      Date:
+      - Mon, 08 Jul 2024 19:50:14 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Content-Length:
+      - '1826'
+      Connection:
+      - keep-alive
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Xss-Protection:
+      - '0'
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Permitted-Cross-Domain-Policies:
+      - none
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Vary:
+      - Accept
+      Etag:
+      - W/"1a5e2cb65a82c7e3e67f98e9533fec40"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Content-Security-Policy:
+      - 'img-src ''self'' data: blob: *.openstreetmap.org *.cloud.ovh.net * beta.mes-demarches.gov.pf;
+        script-src ''self'' ''unsafe-eval'' ''unsafe-inline'' blob: *.crisp.chat crisp.chat
+        cdn.jsdelivr.net maxcdn.bootstrapcdn.com code.jquery.com unpkg.com beta.mes-demarches.gov.pf;
+        style-src ''self'' ''unsafe-inline'' *.crisp.chat crisp.chat cdn.jsdelivr.net
+        maxcdn.bootstrapcdn.com unpkg.com; frame-src ''self''; connect-src ''self''
+        wss://*.crisp.chat *.crisp.chat app.franceconnect.gouv.fr openmaptiles.geo.data.gouv.fr
+        openmaptiles.github.io tiles.geo.api.gouv.fr data.geopf.fr www.mes-demarches.gov.pf
+        sentry.io api-adresse.data.gouv.fr data.education.gouv.fr geo.api.gouv.fr
+        www.tefenua.gov.pf oos.eu-west-2.outscale.com oos.cloudgouv-eu-west-1.outscale.com;
+        default-src ''self'' data: blob: ''report-sample'' fonts.gstatic.com in-automate.sendinblue.com
+        player.vimeo.com app.franceconnect.gouv.fr *.crisp.chat crisp.chat *.crisp.help
+        *.sibautomation.com sibautomation.com data sentry.io oos.eu-west-2.outscale.com
+        oos.cloudgouv-eu-west-1.outscale.com'
+      X-Request-Id:
+      - aacfc088-b782-41e7-aaaa-4e95ec2e16f7
+      X-Runtime:
+      - '0.350609'
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Set-Cookie:
+      - cookiesession1=678A3E1ECDA4F17E76E4DF73923C79B5;Expires=Tue, 08 Jul 2025 19:50:11
+        GMT;Path=/;HttpOnly
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        eyJkYXRhIjp7ImRvc3NpZXIiOnsic3RhdGUiOiJlbl9jb25zdHJ1Y3Rpb24iLCJkZW1hcmNoZSI6eyJudW1iZXIiOjI2NTZ9LCJpZCI6IlJHOXpjMmxsY2kwME1qWTRNemc9IiwibnVtYmVyIjo0MjY4MzgsImFyY2hpdmVkIjpmYWxzZSwiZGF0ZVBhc3NhZ2VFbkNvbnN0cnVjdGlvbiI6IjIwMjQtMDctMDVUMTY6MTE6MzYtMTA6MDAiLCJkYXRlUGFzc2FnZUVuSW5zdHJ1Y3Rpb24iOiIyMDI0LTA3LTA1VDE0OjQyOjQ1LTEwOjAwIiwiZGF0ZVRyYWl0ZW1lbnQiOm51bGwsImRhdGVEZXJuaWVyZU1vZGlmaWNhdGlvbiI6IjIwMjQtMDctMDVUMTY6MTE6MzYtMTA6MDAiLCJkYXRlRGVwb3QiOiIyMDI0LTA3LTA1VDE0OjQwOjQyLTEwOjAwIiwibW90aXZhdGlvbiI6bnVsbCwidXNhZ2VyIjp7ImVtYWlsIjoiY2xhdXRpZXJAaWR0LnBmIn0sImluc3RydWN0ZXVycyI6W3siZW1haWwiOiJjbGF1dGllckBpZHQucGYifV0sInRyYWl0ZW1lbnRzIjpbeyJpbnN0cnVjdGV1ckVtYWlsIjpudWxsLCJwcm9jZXNzZWRBdCI6IjIwMjQtMDctMDVUMTQ6NDA6NDItMTA6MDAiLCJzdGF0ZSI6ImVuX2NvbnN0cnVjdGlvbiJ9LHsiaW5zdHJ1Y3RldXJFbWFpbCI6ImNsYXV0aWVyQGlkdC5wZiIsInByb2Nlc3NlZEF0IjoiMjAyNC0wNy0wNVQxNDo0Mjo0NS0xMDowMCIsInN0YXRlIjoiZW5faW5zdHJ1Y3Rpb24ifSx7Imluc3RydWN0ZXVyRW1haWwiOiJjbGF1dGllckBpZHQucGYiLCJwcm9jZXNzZWRBdCI6IjIwMjQtMDctMDVUMTY6MTE6MzYtMTA6MDAiLCJzdGF0ZSI6ImVuX2NvbnN0cnVjdGlvbiJ9XSwiZGVtYW5kZXVyIjp7Il9fdHlwZW5hbWUiOiJQZXJzb25uZVBoeXNpcXVlIiwiY2l2aWxpdGUiOiJNIiwiZGF0ZURlTmFpc3NhbmNlIjpudWxsLCJub20iOiJEVVJBTkQiLCJwcmVub20iOiJDaHJpc3RpYW4ifSwiYW5ub3RhdGlvbnMiOltdLCJjaGFtcHMiOlt7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TVRFek56STIiLCJsYWJlbCI6IlZvcyBpbmZvcm1hdGlvbnMiLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE1URXpOekkzIiwibGFiZWwiOiJUw6lsw6lwaG9uZSIsInZhbHVlIjoiODc1NDIxNTQifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TVRFek56STQiLCJsYWJlbCI6IlN0YXR1dCIsInZhbHVlIjoiUGF0ZW50w6kifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TVRFek56STUiLCJsYWJlbCI6IkNvbW11bmUgZGUgcsOpc2lkZW5jZSIsInZhbHVlIjoiTWFoaW5hIC0gVGFoaXRpIC0gOTg3MDkifSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TVRFek56TXciLCJsYWJlbCI6IkRhdGUgZGUgbGEgc2Vzc2lvbiIsInZhbHVlIjpudWxsfSx7Il9fdHlwZW5hbWUiOiJUZXh0Q2hhbXAiLCJpZCI6IlEyaGhiWEF0TVRFME56QXkiLCJsYWJlbCI6IkxhIGZvcm1hdGlvbiDDoCBsaWV1IHRvdXMgbGVzIHZlbmRyZWRpcyDDoCA4aC4iLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiVGV4dENoYW1wIiwiaWQiOiJRMmhoYlhBdE1URTBOekF4IiwibGFiZWwiOiJDb25maXJtYXRpb24iLCJ2YWx1ZSI6bnVsbH0seyJfX3R5cGVuYW1lIjoiRGF0ZUNoYW1wIiwiaWQiOiJRMmhoYlhBdE1URXpOek14IiwibGFiZWwiOiJEYXRlIGNob2lzaWUiLCJ2YWx1ZSI6IjIwMjQtMDctMjZUMDA6MDA6MDAtMTA6MDAifSx7Il9fdHlwZW5hbWUiOiJDaGVja2JveENoYW1wIiwiaWQiOiJRMmhoYlhBdE1URTBOVFF5IiwibGFiZWwiOiJJbmZvcm1lciBDQ0lTTSIsInZhbHVlIjp0cnVlfV19fX0=
+  recorded_at: Mon, 08 Jul 2024 19:50:14 GMT
+recorded_with: VCR 6.2.0
