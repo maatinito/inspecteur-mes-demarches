@@ -70,3 +70,10 @@ Style/SwapValues: # (new in 1.1)
 
 Metrics/ParameterLists:
   CountKeywordArgs: false
+
+Metrics/BlockLength:
+  Exclude:
+    - 'db/schema.rb'
+    - 'spec/lib/deseti/instruction_spec.rb'
+    - 'spec/lib/payzen/payment_order_spec.rb'
+  Max: 100
