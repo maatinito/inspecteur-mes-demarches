@@ -7,7 +7,7 @@ class ScheduledTaskJob < CronJob
   def perform
     datetime_arel = ScheduledTask.arel_table[:run_at]
     ScheduledTask.where(datetime_arel.lteq(Time.zone.now)).each do |scheduled|
-      Rails.logger.tagged(scheduled.task) do
+      Rails.logger.tagged("#{scheduled.dossier}:#{scheduled.task}") do
         task = InspectorTask.create_tasks([{ scheduled.task => JSON.parse(scheduled.parameters) }]).first
         raise "Impossible d'initialiser la tache #{scheduled.task}: #{task.errors.join(',')}" unless task.valid?
 
@@ -37,7 +37,7 @@ class ScheduledTaskJob < CronJob
 
   def perform_task(scheduled, task)
     DossierActions.on_dossier(scheduled.dossier) do |dossier|
-      Rails.logger.tagged("#{dossier.demarche.number},#{dossier.number}") do
+      Rails.logger.tagged(dossier.demarche.number) do
         demarche = Demarche.find(dossier.demarche.number)
         task.process(demarche, dossier)
       end

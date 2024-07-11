@@ -9,7 +9,7 @@ module Payzen
     GET_ORDER = 'Charge/PaymentOrder/Get'
 
     TIMEOUT = 30
-    CTIMEOUT = 5
+    CTIMEOUT = 20
 
     def initialize(store, password)
       @store = store
