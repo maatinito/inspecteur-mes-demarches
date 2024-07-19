@@ -66,7 +66,7 @@ RSpec.describe 'Reservation::Jentreprends' do
     context 'with availabity message' do
       let(:controle) { FactoryBot.build :reservation_jentreprends, :with_disponibilites }
       let(:unavailable_session) { FactoryBot.create :session, capacity: 0, date: Time.zone.parse('2024-08-09') }
-      let(:message) { 'disponibilites 02/08 (1 restants), 16/08 (1 restants), 23/08 (1 restants), 30/08 (1 restants), 06/09 (1 restants)' }
+      let(:message) { "disponibilites * 02/08 (1 restants)\n* 16/08 (1 restants)\n* 23/08 (1 restants)\n* 30/08 (1 restants)\n* 06/09 (1 restants)\n" }
       it 'cannot book and propose alternative dates', vcr: { cassette_name: 'booking-1' } do
         booking
         unavailable_session

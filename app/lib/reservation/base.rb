@@ -97,8 +97,8 @@ module Reservation
       dates = available_sessions.map do |session|
         date = session.date
         displayed_date = date.strftime(date.hour.zero? ? '%d/%m' : '%d/%m à %H:%M')
-        "#{displayed_date} (#{session.capacity - session.bookings.size} restants)"
-      end.join(', ')
+        "* #{displayed_date} (#{session.capacity - session.bookings.size} restants)\n"
+      end.join
       message = instanciate(@params[:message_disponibilites], { dates: })
       SendMessage.send(@dossier, instructeur_id_for(@demarche, @dossier), message, check_not_sent: true)
     end
