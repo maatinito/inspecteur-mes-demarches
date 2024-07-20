@@ -10,10 +10,15 @@ module Excel
       super + %i[variable colonne]
     end
 
+    def authorized_fields
+      super + %i[valeurs]
+    end
+
     def initialize(params)
       super
       @field_name = @params[:variable]
       @column_name = @params[:colonne]
+      @default_partitions = @params[:valeurs]&.each_with_object({}) { |str, h| h[str] = [] } || {}
     end
 
     def process_row(_row, output)
@@ -21,10 +26,13 @@ module Excel
       raise "La variable #{@field_name} n'est pas un tableau (#{output[@field_name]}" unless output[@field_name].is_a?(Array)
 
       set_fields(output, partition(output[@field_name], @column_name))
+      set_fields(output, @default_partitions)
     end
 
     def set_fields(output, partition)
-      partition.each { |k, v| output["#{@field_name}.#{k}"] = v }
+      partition.each do |k, v|
+        output["#{@field_name}.#{k}"] ||= v
+      end
       output
     end
 
