@@ -27,13 +27,14 @@ module Daf
       annotation = SetAnnotationValue.allocate_blocks(@dossier, @demarche.instructeur, @params[:bloc_destination], orders.size)
       champ_destination_label = @params[:champ_destination]
       champs = annotation.champs.filter { |c| c.label == champ_destination_label }
-      orders << '' while orders.size < champs.size
+      missing = champs.size - orders.size
+      orders = [*orders, *Array.new(missing, '')] if missing.positive?
 
       changed = false
       orders.zip(champs).each do |order, champ|
         value = champ.respond_to?(:string_value) ? champ.string_value : champ.value
         if order != value
-          SetAnnotationValue.raw_set_value(dossier.id, demarche.instructeur, champ.id, order) unless order == value
+          SetAnnotationValue.raw_set_value(dossier.id, demarche.instructeur, champ.id, order)
           changed = true
         end
       end
