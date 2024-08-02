@@ -4,7 +4,7 @@ class FileUpload
   def self.upload_file(dossier_id, path, filename, checksum = checksum(path))
     slot = upload_slot(dossier_id, checksum, path, filename)
     params = slot.direct_upload
-    response = Typhoeus.put(params.url, headers: JSON.parse(params.headers), body: File.read(path, mode: 'rb'))
+    response = upload_file_in_slot(params, path)
     raise response.response_body if response.code != 200
 
     params.signed_blob_id
@@ -30,6 +30,26 @@ class FileUpload
     Digest::MD5.base64digest(file.is_a?(String) ? File.read(file) : file.read)
   end
 
+  private
+
+  def self.upload_file_in_slot(params, path)
+    max_retries = 5
+    retry_count = 0
+
+    begin
+      return Typhoeus.put(params.url, headers: JSON.parse(params.headers), body: File.read(path, mode: 'rb'))
+    rescue StandardError => e
+      retry_count += 1
+      if retry_count < max_retries
+        Rails.logger.warn("Attempt #{retry_count} failed uploading file in Mes-Démarches: #{e.message}. Retrying in 2 second...")
+        sleep 2
+        retry
+      else
+        raise e
+      end
+    end
+  end
+
   Queries = MesDemarches::Client.parse <<-GRAPHQL
     mutation CreateDirectUpload($dossier_id: ID!, $filename: String!, $byteSize: Int!, $checksum: String!, $contentType: String!) {
       createDirectUpload(input: {
@@ -48,5 +68,7 @@ class FileUpload
         }
       }
     }
-  GRAPHQL
+  GRAPHQL 
+
+
 end
