@@ -32,32 +32,39 @@ module Reservation
 
     def remove_booking
       user_requests(@dossier).each do |user_request|
-        Booking.find_by(dossier: user_request.dossier, user: user_request.user)&.destroy
+        find_booking(user_request)&.destroy
       end
     end
 
+    def find_booking(user_request)
+      session = find_or_create_session(user_request.session_name, user_request.date)
+      Booking.find_by(dossier: user_request.dossier, user: user_request.user, session:)
+    end
+
     def book
+      bookings = []
       user_requests(@dossier).each do |user_request|
-        next if already_booked(user_request)
+        booking = find_booking(user_request)
+        if booking.present?
+          bookings << booking
+          next
+        end
 
         session = find_or_create_session(user_request.session_name, user_request.date)
         if session_available(session)
-          add_booking(session, user_request)
+          bookings << add_booking(session, user_request)
         elsif @params[:message_disponibilites]
           propose_alternatives(user_request)
         else
           send_not_available
         end
       end
+      Booking.where(dossier: @dossier.number).where.not(id: bookings.map(&:id)).destroy_all
+      # DossierPasserEnInstruction.new({}).process(@demarche, @dossier)
     end
 
     def session_available(session)
       session.present? && session.capacity - session.bookings.size - 1 >= 0
-    end
-
-    def already_booked(user_request)
-      existing_booking = Booking.find_by(dossier: user_request.dossier, user: user_request.user)
-      existing_booking.present? && existing_booking.session.date == user_request.date
     end
 
     def propose_alternatives(user_request)
@@ -70,10 +77,7 @@ module Reservation
     end
 
     def add_booking(session, user_request)
-      Booking.find_or_create_by(dossier: user_request.dossier, user: user_request.user) do |booking|
-        booking.session = session
-      end
-      DossierPasserEnInstruction.new({}).process(@demarche, @dossier)
+      Booking.find_or_create_by(dossier: user_request.dossier, user: user_request.user, session:)
     end
 
     def find_or_create_session(_name, _date)
