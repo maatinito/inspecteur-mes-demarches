@@ -11,7 +11,7 @@ module Daf
     end
 
     def authorized_fields
-      super + %i[champ_telephone sms destinataires]
+      super + %i[destinataires champ_envoi]
     end
 
     include Payzen::StringTemplate
@@ -20,6 +20,7 @@ module Daf
       super
       @mails = @params[:destinataires]
       @mails = @mails.split(/\s*,\s*/) if @mails.is_a?(String)
+      @timestamp_field = @params[:champ_envoi]
     end
 
     def process(demarche, dossier)
@@ -33,6 +34,13 @@ module Daf
     end
 
     def send_mail(demarche, dossier, message)
+      if @timestamp_field
+        last_sent = annotation(@timestamp_field)&.value
+        return if sent_less_than_one_day_ago(last_sent)
+
+        SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @timestamp_field, Time.zone.now.iso8601)
+        dossier_updated(dossier)
+      end
       params = {
         subject: demarche.libelle,
         demarche: demarche.id,
@@ -41,6 +49,14 @@ module Daf
         recipients: @mails
       }
       NotificationMailer.with(params).notify_user.deliver_later
+    end
+
+    private
+
+    def sent_less_than_one_day_ago(last_sent)
+      last_sent.present? && Time.zone.now - Time.zone.parse(last_sent) < 1.day
+    rescue StandardError
+      false
     end
   end
 end
