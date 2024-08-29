@@ -65,7 +65,7 @@ class PublipostageV2 < Publipostage
 
   def definition(fields, text)
     match = text.match(/MERGEFIELD\s+(?:"([^"]+)"|([^" ]+))/)
-    variable = match[1].presence || match[2]
+    variable = match[1].presence || match[2] if match
     if variable
       options = text.scan(/\\(. (?:\w+|"[^"]+"))/).flatten.to_set
       value = [*fields[variable]].map(&:to_s).join(',')
