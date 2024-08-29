@@ -152,12 +152,12 @@ class Publipostage < FieldChecker
   end
 
   def annexe_checksums
-    annexe_champs.flat_map(&:file).map(&:checksum)
+    annexe_champs.flat_map(&:files).map(&:checksum)
   end
 
   def add_annexes(result_path)
     champs = annexe_champs
-    pdfs = champs.flat_map(&method(:download))
+    pdfs = champs&.flat_map(&method(:download))&.flat_map(&method(:to_pdf))
     if pdfs.present?
       Rails.logger.info("Adding annexes #{champs.flat_map(&:file).flat_map(&:filename).join(',')}")
       combine_pdf([result_path, *pdfs]) do |file|
@@ -167,13 +167,21 @@ class Publipostage < FieldChecker
     result_path
   end
 
+  def to_pdf(file)
+    return file if File.extname(file)&.downcase == '.pdf'
+
+    convert_to_pdf(file)
+  end
+
   def annexe_champs
     @annexe_field.flat_map { |name| object_field_values(@dossier, name, log_empty: false) }
-                 .filter { |champ| champ.__typename == 'PieceJustificativeChamp' && champ&.file&.filename&.end_with?('.pdf') }
+                 .filter { |champ| champ.__typename == 'PieceJustificativeChamp' }
   end
 
   def download(champ)
-    PieceJustificativeCache.get(champ.file) if champ.__typename == 'PieceJustificativeChamp'
+    return unless champ.__typename == 'PieceJustificativeChamp'
+
+    champ.files.map { |f| PieceJustificativeCache.get(f) }
   end
 
   def data_filename(fields)
@@ -366,13 +374,21 @@ class Publipostage < FieldChecker
 
     return docx if @generate_docx
 
-    Rails.logger.info('Converting docx to pdf')
-    stdout_str, stderr_str, status = Open3.capture3(ENV.fetch('OFFICE_PATH', nil), '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, docx)
-    raise "Unable to convert #{docx} to pdf\n#{stdout_str}#{stderr_str}" if status != 0
+    pdf = convert_to_pdf(docx)
 
     delete(docx)
 
-    add_annexes("#{basename}.pdf")
+    add_annexes(pdf)
+  end
+
+  def convert_to_pdf(file)
+    Rails.logger.info("Converting #{file} to pdf")
+    stdout_str, stderr_str, status = Open3.capture3(ENV.fetch('OFFICE_PATH', nil), '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, file)
+    if status != 0
+      Rails.logger.error("Unable to convert #{file} to pdf\n#{stdout_str}#{stderr_str}")
+      return
+    end
+    File.join(OUTPUT_DIR, File.basename(file).sub(/\.\w+$/, '.pdf'))
   end
 
   def get_fields(row, definitions)
