@@ -53,6 +53,7 @@ module Reservation
         session = find_or_create_session(user_request.session_name, user_request.date)
         if session_available(session)
           bookings << add_booking(session, user_request)
+          DossierPasserEnInstruction.new({}).process(@demarche, @dossier)
         elsif @params[:message_disponibilites]
           propose_alternatives(user_request)
         else
@@ -60,7 +61,6 @@ module Reservation
         end
       end
       Booking.where(dossier: @dossier.number).where.not(id: bookings.map(&:id)).destroy_all
-      # DossierPasserEnInstruction.new({}).process(@demarche, @dossier)
     end
 
     def session_available(session)
