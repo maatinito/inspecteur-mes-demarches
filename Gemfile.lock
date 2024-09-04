@@ -1,6 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    Ascii85 (1.1.1)
     actioncable (6.1.7.8)
       actionpack (= 6.1.7.8)
       activesupport (= 6.1.7.8)
@@ -62,6 +63,7 @@ GEM
       zeitwerk (~> 2.3)
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
+    afm (0.2.2)
     annotate (3.2.0)
       activerecord (>= 3.2, < 8.0)
       rake (>= 10.4, < 14.0)
@@ -171,6 +173,7 @@ GEM
       rubocop (>= 1.0)
       sysexits (~> 1.1)
     hashdiff (1.1.0)
+    hashery (2.1.2)
     htmlentities (4.3.4)
     http-accept (1.7.0)
     http-cookie (1.0.6)
@@ -245,6 +248,12 @@ GEM
     parser (3.3.3.0)
       ast (~> 2.4.1)
       racc
+    pdf-reader (2.12.0)
+      Ascii85 (~> 1.0)
+      afm (~> 0.2.1)
+      hashery (~> 2.0)
+      ruby-rc4
+      ttfunk
     pg (1.5.6)
     phonelib (0.8.9)
     popper_js (1.16.1)
@@ -444,6 +453,8 @@ GEM
     tilt (2.3.0)
     timecop (0.9.10)
     timeout (0.4.1)
+    ttfunk (1.8.0)
+      bigdecimal (~> 3.1)
     turbolinks (5.2.1)
       turbolinks-source (~> 5.2)
     turbolinks-source (5.2.0)
@@ -512,6 +523,7 @@ DEPENDENCIES
   net-imap
   net-pop
   net-smtp
+  pdf-reader
   pg (>= 0.18, < 2.0)
   phonelib
   puma (>= 3.12.6)

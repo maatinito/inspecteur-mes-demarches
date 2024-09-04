@@ -74,6 +74,7 @@ group :development, :test do
   gem 'byebug', platforms: %i[mri mingw x64_mingw]
   gem 'dotenv-rails'
   gem 'factory_bot_rails'
+  gem 'pdf-reader'
   gem 'rspec'
   gem 'rspec_junit_formatter'
   gem 'rspec-rails'
