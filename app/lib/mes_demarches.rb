@@ -180,6 +180,9 @@ module MesDemarches
       usager {
           email
       }
+      groupeInstructeur {
+        label
+      }
       instructeurs {
         email
       }
