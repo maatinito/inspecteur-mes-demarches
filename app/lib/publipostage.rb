@@ -47,7 +47,10 @@ class Publipostage < FieldChecker
   def process(demarche, dossier)
     super
     dossier_cible = destination(dossier)
-    return unless dossiers_have_right_state?(dossier, dossier_cible)
+    unless dossiers_have_right_state?(dossier, dossier_cible)
+      Rails.logger.info("Dossier ignored as state #{dossier.state} is not in required states #{@states}")
+      return
+    end
 
     init_calculs
 
@@ -132,7 +135,7 @@ class Publipostage < FieldChecker
 
   def generate_docx(output_file, row)
     context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[()]/, '') }
-                 .transform_values { |v| [*v].map(&:to_s).join(',') }
+                 .transform_values { |v| [*v].map(&:to_s).join(', ') }
 
     template = Sablon.template(File.expand_path(@template))
     template.render_to_file output_file, context

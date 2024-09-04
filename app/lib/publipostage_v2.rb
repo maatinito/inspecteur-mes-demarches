@@ -23,7 +23,7 @@ class PublipostageV2 < Publipostage
 
         [*fields].each do |k, v|
           # ActiveSupport::NumberHelper.number_to_currency(123456789, unit: '', delimiter: ' ', precision: 0)
-          tr.substitute("--#{k}--", [*v].map(&:to_s).join(','))
+          tr.substitute("--#{k}--", [*v].map(&:to_s).join(', '))
         end
         insert_line_breaks(tr)
       end
@@ -68,7 +68,7 @@ class PublipostageV2 < Publipostage
     variable = match[1].presence || match[2] if match
     if variable
       options = text.scan(/\\(. (?:\w+|"[^"]+"))/).flatten.to_set
-      value = [*fields[variable]].map(&:to_s).join(',')
+      value = [*fields[variable]].map(&:to_s).join(', ')
       value = normalize_value(value, options)
       variable = Regexp.escape(variable)
       [variable, value]
@@ -123,7 +123,7 @@ class PublipostageV2 < Publipostage
       end
       last_row.remove!
     else
-      keys = fields.keys.join(',')
+      keys = fields.keys.join(', ')
       p = table.rows[0]&.cells&.[](0)&.paragraphs&.[](0)&.text_runs&.[](0)
       p&.text = "La table a pour titre #{field} mais aucun champ contenant une liste porte ce nom. Clés disponibles: #{keys}"
     end
