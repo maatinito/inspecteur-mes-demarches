@@ -42,7 +42,7 @@ class VerificationService
   end
 
   def report_error(message, exception)
-    Sentry.capture_exception(exception)
+    Sentry.capture_exception(exception) if
     NotificationMailer.with(error_params(message, exception)).report_error.deliver_later
   end
 
@@ -80,7 +80,9 @@ class VerificationService
       end
     rescue StandardError => e
       @@configs.delete(filename)
-      report_error("Unable to load #{filename} configuration file ==> File is ignored until file is corrected.", e)
+      Rails.logger.error("Unable to load #{filename} configuration file ==> File is ignored until file is corrected.")
+      Rails.logger.error(e)
+      raise e unless Rails.env.production?
     end
     @@configs
   end
