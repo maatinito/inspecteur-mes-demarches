@@ -29,7 +29,7 @@ RSpec.describe Publipostage do
       allow(controle).to receive(:instructeur_id_for).and_return(1)
     end
 
-    context 'on one field' do
+    context 'on one field', skip: 'waiting for Office suite' do
       let(:controle) { FactoryBot.build :copy_file_field }
       it 'store pdf', vcr: { cassette_name: 'copy_file_field-1' } do
         expect(SetAnnotationValue).to receive(:set_piece_justificative).with(dossier, 1, controle.params[:champ_cible], result_path)
@@ -42,7 +42,7 @@ RSpec.describe Publipostage do
       end
     end
 
-    context 'on two field' do
+    context 'on two field', skip: 'waiting for Office suite' do
       let(:controle) { FactoryBot.build :copy_file_field, :with_multiple_fields }
       it 'store pdf', vcr: { cassette_name: 'copy_file_field-2' } do
         expect(SetAnnotationValue).to receive(:set_piece_justificative).with(dossier, 1, controle.params[:champ_cible], result_path)
