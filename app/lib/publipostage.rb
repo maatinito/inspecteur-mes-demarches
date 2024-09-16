@@ -476,7 +476,7 @@ class Publipostage < FieldChecker
     Tempfile.create(['publipost', '.pdf']) do |f|
       f.binmode
       pdf = CombinePDF.new
-      files.each { |path| pdf << CombinePDF.load(path) }
+      files.each { |path| pdf << CombinePDF.load(path, allow_optional_content: true) }
       pdf.save f
       files.each { |path| delete(path) }
       f.rewind
