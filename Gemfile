@@ -39,7 +39,7 @@ gem 'jbuilder', '~> 2.5'
 
 # Reduces boot times through caching; required in config/boot.rb
 gem 'bootsnap', require: false
-gem 'bootstrap', '~> 4.6.0'
+gem 'bootstrap', '~> 4.6.2'
 gem 'caxlsx'
 gem 'combine_pdf'
 gem 'delayed_cron_job' # Cron jobs
