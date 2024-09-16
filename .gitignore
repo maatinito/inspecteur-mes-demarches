@@ -33,3 +33,6 @@ yarn-debug.log*
 /.env
 /.idea
 /remote_storage/
+
+/app/assets/builds/*
+!/app/assets/builds/.keep
