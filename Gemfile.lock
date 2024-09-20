@@ -263,7 +263,7 @@ GEM
     phonelib (0.8.9)
     popper_js (2.11.8)
     public_suffix (6.0.0)
-    puma (6.4.2)
+    puma (6.4.3)
       nio4r (~> 2.0)
     raabro (1.4.0)
     racc (1.8.1)
