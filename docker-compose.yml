@@ -51,6 +51,8 @@ services:
       - RAILS_ENV=${ENV:-production}
       - RAILS_RELATIVE_URL_ROOT
       - SCHEDULEDTASK_CRON
+      - SENDINBLUE_SMTP_KEY
+      - SENDINBLUE_USER_NAME
     volumes:
       - imd-data-files:/imd/storage
       - imd-fonts:/usr/share/fonts
