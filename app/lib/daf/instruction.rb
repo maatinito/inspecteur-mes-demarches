@@ -99,10 +99,14 @@ module Daf
     def payment1(demarche, dossier)
       return unless dossier.state == 'en_construction'
 
-      pp = payment_process
+      changed = set_amounts(demarche, dossier)
+
+      pp = annotation(PAYMENT_PROCESS_ATT)
+      if pp.value.blank?
+        pp = payment_process
+        changed |= SetAnnotationValue.set_value(dossier, demarche.instructeur, PAYMENT_PROCESS_ATT, pp)
+      end
       Rails.logger.info("Payment 1: #{pp}")
-      changed = SetAnnotationValue.set_value(dossier, demarche.instructeur, PAYMENT_PROCESS_ATT, pp)
-      changed |= set_amounts(demarche, dossier)
 
       dossier = @dossier = DossierActions.on_dossier(dossier.number) if changed
       payment_section = pp == WITH_PREPAYMENT ? :paiement1 : :sans_paiement1
