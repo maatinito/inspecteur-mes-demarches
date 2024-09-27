@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe 'Reservation::Jentreprends' do
+  include ActiveSupport::Testing::TimeHelpers
+
   let(:dossier_nb1) { 426_838 }
   let(:dossier1) { DossierActions.on_dossier(dossier_nb1) }
   let(:dossier_nb2) { 426_839 }
@@ -36,13 +38,15 @@ RSpec.describe 'Reservation::Jentreprends' do
     let(:controle) { FactoryBot.build :reservation_jentreprends }
     let(:dossier) { dossier1 }
     it 'books correctly', vcr: { cassette_name: 'booking-1' } do
-      subject
+      travel_to Time.new(2024, 7, 23, 12, 0, 0) do
+        subject
 
-      expect(Session.count).to eq(1)
-      expect(Booking.count).to eq(1)
-      booking = Booking.first
-      expect(booking.dossier).to eq(dossier.number)
-      expect(booking.session).to eq(Session.first)
+        expect(Session.count).to eq(1)
+        expect(Booking.count).to eq(1)
+        booking = Booking.first
+        expect(booking.dossier).to eq(dossier.number)
+        expect(booking.session).to eq(Session.first)
+      end
     end
   end
 
@@ -66,11 +70,13 @@ RSpec.describe 'Reservation::Jentreprends' do
     context 'with availabity message' do
       let(:controle) { FactoryBot.build :reservation_jentreprends, :with_disponibilites }
       let(:unavailable_session) { FactoryBot.create :session, capacity: 0, date: Time.zone.parse('2024-08-09') }
-      let(:message) { "disponibilites * 02/08 (1 restants)\n* 16/08 (1 restants)\n* 23/08 (1 restants)\n* 30/08 (1 restants)\n* 06/09 (1 restants)\n" }
+      let(:message) { "disponibilites * 02/08 (1 restants)\n" }
       it 'cannot book and propose alternative dates', vcr: { cassette_name: 'booking-1' } do
-        booking
-        unavailable_session
-        subject
+        travel_to Time.zone.local(2024, 8, 1, 12, 12, 0) do
+          booking
+          unavailable_session
+          subject
+        end
       end
     end
   end

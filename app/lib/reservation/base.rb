@@ -100,6 +100,7 @@ module Reservation
     def send_proposal_message(available_sessions)
       dates = available_sessions.map do |session|
         date = session.date
+        puts "Date de session possible #{date} #{date.class.name}"
         displayed_date = date.strftime(date.hour.zero? ? '%d/%m' : '%d/%m à %H:%M')
         "* #{displayed_date} (#{session.capacity - session.bookings.size} restants)\n"
       end.join

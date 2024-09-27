@@ -35,6 +35,14 @@ class NotificationMailer < ApplicationMailer
     mail(to: recipients, subject: "#{SITE_NAME}: #{params[:subject]}")
   end
 
+  def user_mail
+    @message = params[:message].gsub(/\n\r?/, "<br>\n")
+    attachments[params[:filename]] = params[:file] if params[:file] && params[:filename]
+    mail(to: recipients, subject: params[:subject]) do |format|
+      format.html { render layout: 'md_mailer' } # Layout spécifique pour ce mail
+    end
+  end
+
   private
 
   def recipients

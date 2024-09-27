@@ -177,6 +177,9 @@ module MesDemarches
       dateDerniereModification
       dateDepot
       motivation
+      prenomMandataire
+      nomMandataire
+      deposeParUnTiers
       usager {
           email
       }
@@ -194,9 +197,9 @@ module MesDemarches
       demandeur {
           ... on PersonnePhysique {
               civilite
-              dateDeNaissance
               nom
               prenom
+              email
           }
           ... on PersonneMorale {
               siret

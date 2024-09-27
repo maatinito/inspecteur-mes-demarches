@@ -1,0 +1,13 @@
+!!!
+%html
+  %head
+    %meta{:content => "text/html; charset=utf-8", "http-equiv" => "Content-Type"}/
+    = stylesheet_link_tag 'application'
+    :css
+      /* Email styles need to be inline */
+  %body
+    %p{ style: "text-align: center" }
+      = link_to 'https://www.mes-demarches.gov.pf' do
+        %img{ :src => image_url("logo-md-wide.svg"), alt: 'Mes-Démarches', width: '600px' }
+    = yield
+

@@ -16,19 +16,20 @@ module Reservation
     end
 
     def find_or_create_session(name, date)
-      return nil if date.wday != 5
+      return nil if date.wday != 5 || date < Date.today || date > 15.days.since
 
       Session.find_or_create_by(name:, date:) do |session|
         session.update(capacity: @params[:capacite])
       end
     end
 
-    def find_available_sessions(_name, date)
+    def find_available_sessions(_name, _date)
+      date = Time.zone.now.change(hour: 0, min: 0, sec: 0)
       days_until_next_friday = (12 - date.wday) % 7
       days_until_next_friday = 7 if days_until_next_friday.zero?
       date += days_until_next_friday.days
       sessions = []
-      while sessions.size < 5
+      2.times do
         session = find_or_create_session(SESSION_NAME, date)
         sessions << session if session.bookings.size < session.capacity
         date += 7.days
