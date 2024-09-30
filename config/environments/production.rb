@@ -92,7 +92,7 @@ Rails.application.configure do
   config.action_mailer.default_url_options = {
     protocol: :https,
     # port: ENV.fetch('PORT', nil),
-    host: ENV.fetch('APP_HOST', nil)
+    host: ENV.fetch('APP_HOST') + ENV.fetch('RAILS_RELATIVE_URL_ROOT', '')
   }
   config.action_mailer.asset_host = "https://#{ENV.fetch('APP_HOST', nil)}#{config.relative_url_root}"
 

@@ -75,7 +75,7 @@ namespace :dossiers do
     demarche_id = 1054 # 1155 # 1054,
     close_date = Date.new(2021, 7, 5)
     start_date = Date.new(2021, 6, 29)
-    demarche = DemarcheActions.get_demarche(demarche_id, 'cloture de dossier', 'clautier@idt.pf')
+    demarche = DemarcheActions.get_demarche(demarche_id, 'cloture de dossier', "clautier#{chr(64)}idt.pf")
     count = 0
     count_all = 0
     DossierActions.on_dossiers(demarche_id, since) do |dossier|
