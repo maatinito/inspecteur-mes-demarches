@@ -57,6 +57,7 @@ ENV \
     APP_HOST="localhost"\
     CAPYBARA_DRIVER="wsl"\
     CONTACT_EMAIL="mandalorian@lucasfilm.com"\
+    TECH_EMAIL="mandalorian@lucasfilm.com"\
     DB_DATABASE="rosso_development"\
     DB_HOST="db"\
     DB_PASSWORD="rosso"\

@@ -37,6 +37,7 @@ services:
       - APP_HOST
       - CAPYBARA_DRIVER
       - CONTACT_EMAIL
+      - TECH_EMAIL
       - DB_DATABASE
       - DB_HOST
       - DB_PASSWORD
@@ -72,6 +73,7 @@ services:
       - APP_HOST
       - CAPYBARA_DRIVER
       - CONTACT_EMAIL
+      - TECH_EMAIL
       - DB_DATABASE
       - DB_HOST
       - DB_PASSWORD

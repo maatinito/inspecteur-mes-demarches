@@ -23,7 +23,7 @@ class NotificationMailer < ApplicationMailer
     @backtrace = params[:backtrace]&.select { |b| b.include?('/app/') }&.first(7) || []
     Rails.logger.error(message)
     @backtrace.each { |b| Rails.logger.error(b) }
-    mail(to: CONTACT_EMAIL, subject: "#{SITE_NAME}: erreur à l'exécution")
+    mail(to: TECH_EMAIL, subject: "#{SITE_NAME}: erreur à l'exécution")
   end
 
   def notify_user
@@ -46,6 +46,6 @@ class NotificationMailer < ApplicationMailer
   private
 
   def recipients
-    params[:recipients] || CONTACT_EMAIL
+    params[:recipients] || TECH_EMAIL
   end
 end
