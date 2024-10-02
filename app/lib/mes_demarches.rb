@@ -194,6 +194,12 @@ module MesDemarches
 			  processedAt
         state
       }
+      demarche {
+        revision {
+          id
+          datePublication
+        }
+      }#{' '}
       demandeur {
           ... on PersonnePhysique {
               civilite
