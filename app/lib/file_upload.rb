@@ -4,9 +4,7 @@ class FileUpload
   def self.upload_file(dossier_id, path, filename, checksum = checksum(path))
     slot = upload_slot(dossier_id, checksum, path, filename)
     params = slot.direct_upload
-    response = upload_file_in_slot(params, path)
-    raise response.response_body if response.code != 200
-
+    upload_file_in_slot(params, path)
     params.signed_blob_id
   end
 
@@ -34,15 +32,15 @@ class FileUpload
     max_retries = 5
     retry_count = 0
 
-    begin
-      Typhoeus.put(params.url, headers: JSON.parse(params.headers), body: File.read(path, mode: 'rb'))
-    rescue StandardError => e
-      retry_count += 1
-      raise e unless retry_count < max_retries
+    loop do
+      response = Typhoeus.put(params.url, headers: JSON.parse(params.headers), body: File.read(path, mode: 'rb'))
+      return if response.code == 200
 
-      Rails.logger.warn("Attempt #{retry_count} failed uploading file in Mes-Démarches: #{e.message}. Retrying in 2 second...")
+      retry_count += 1
+      raise "Erreur #{response.code} when uploading file to Mes-Démarches : #{response.body}" unless retry_count < max_retries
+
+      Rails.logger.warn("Attempt #{retry_count} failed uploading file in Mes-Démarches: #{response.code}. Retrying in 2 second...")
       sleep 2
-      retry
     end
   end
 
