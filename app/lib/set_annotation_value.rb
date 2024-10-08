@@ -208,7 +208,7 @@ class SetAnnotationValue
         attachment_id:,
         client_mutation_id: 'set_value'
       })
-    pp result
+    # pp result
     errors = result.errors&.values&.flatten.presence || result.data.to_h.values.first['errors']
     raise errors.join(';') if errors.present?
 
