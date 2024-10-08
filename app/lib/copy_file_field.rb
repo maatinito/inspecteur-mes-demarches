@@ -36,14 +36,12 @@ class CopyFileField < FieldChecker
       return
     end
 
-    result_path = target_file
-    Rails.logger.info("Joining files #{champs.flat_map(&:file).flat_map(&:filename).join(',')} to #{result_path}")
-    combine_pdf(pdfs) do |file|
-      IO.copy_stream(file, result_path)
+    filename = target_filename
+    Rails.logger.info("Joining files #{champs.flat_map(&:files).flat_map(&:filename).join(',')} to #{filename}")
+    combine_pdf(pdfs, filename) do |pdf_file|
+      changed = SetAnnotationValue.set_piece_justificative(@dossier, instructeur_id_for(@demarche, @dossier), params[:champ_cible], pdf_file.path)
+      dossier_updated(@dossier) if changed
     end
-    changed = SetAnnotationValue.set_piece_justificative(@dossier, instructeur_id_for(@demarche, @dossier), params[:champ_cible], result_path)
-    delete(result_path)
-    dossier_updated(@dossier) if changed
   end
 
   private
@@ -52,10 +50,10 @@ class CopyFileField < FieldChecker
     File.delete(file)
   end
 
-  def target_file
+  def target_filename
     timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
     template = @params[:nom_fichier].presence || "#{@params[:champ_cible]} {horodatage}"
-    File.join(OUTPUT_DIR, "#{instanciate(template, { horodatage: timestamp })}.pdf")
+    "#{instanciate(template, { horodatage: timestamp })}.pdf"
   end
 
   def file_fields(field_names)
@@ -72,8 +70,8 @@ class CopyFileField < FieldChecker
     if File.extname(file)&.downcase == '.pdf'
       pdf = Tempfile.new(['In-', '.pdf'], OUTPUT_DIR, binmode: true)
       IO.copy_stream(file, pdf)
-      pdf.close
-      pdf.path
+      pdf.rewind
+      pdf
     else
       convert_to_pdf(file)
     end
@@ -86,18 +84,20 @@ class CopyFileField < FieldChecker
       Rails.logger.error("Unable to convert #{file} to pdf\n#{stdout_str}#{stderr_str}")
       return
     end
-    File.join(OUTPUT_DIR, File.basename(file).sub(/\.\w+$/, '.pdf'))
+    File.new(File.join(OUTPUT_DIR, File.basename(file).sub(/\.\w+$/, '.pdf')))
   end
 
-  def combine_pdf(files)
-    Tempfile.create(['publipost', '.pdf']) do |f|
-      f.binmode
+  def combine_pdf(files, filename)
+    File.open(File.join(OUTPUT_DIR, filename), 'wb') do |f|
       pdf = CombinePDF.new
-      files.each { |path| pdf << CombinePDF.load(path, allow_optional_content: true) }
+      files.each { |file| pdf << CombinePDF.load(file.path, allow_optional_content: true) }
       pdf.save f
-      files.each { |path| delete(path) }
+      files.each { |file| delete(file.path) }
       f.rewind
       yield f
+    ensure
+      f.close unless f.closed?
+      File.delete(f)
     end
   end
 end
