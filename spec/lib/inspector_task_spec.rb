@@ -43,7 +43,7 @@ RSpec.describe InspectorTask do
     it 'should be valid' do
       puts subject.errors
       expect(subject.valid?).to be false
-      expect(subject.errors).to include('Les champs required devrait être définis sur test_task')
+      expect(subject.errors).to include("Champ(s) manquant(s) 'required' sur test_task")
     end
   end
 end
