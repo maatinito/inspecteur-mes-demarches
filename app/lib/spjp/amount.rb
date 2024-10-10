@@ -8,12 +8,18 @@ module Spjp
     end
 
     def required_fields
-      super + %i[prix_avec_electricite prix_sans_electricite]
+      super + %i[prix_avec_electricite prix_sans_electricite champs_zones champ_electricite champ_non_lucratif]
     end
 
     def initialize(params)
       super
-      @source = @params[:champs_source]
+      @zone_fields = @params[:champs_zones]
+      @zone_fields = @zone_fields.split(',').map(&:strip) if @zone_fields.is_a?(String)
+
+      @duration_fields = @params[:champs_source]
+      @duration_fields = @duration_fields.split(',').map(&:strip) if @duration_fields.is_a?(String)
+      raise "l'attribut champs_durees doit définir trois noms de champs (Nombre de d'heures, Nombre de demi-journées, Nombre de jours)" if @duration_fields.size != 3
+
       prices_with_electricity = @params[:prix_avec_electricite]
       prices_with_electricity = prices_with_electricity.split(',').map(&:strip).map(&:to_i) if prices_with_electricity.is_a?(String)
       prices_without_electricity = @params[:prix_sans_electricite]
@@ -22,6 +28,8 @@ module Spjp
         true => prices_with_electricity,
         false => prices_without_electricity
       }
+      @champ_electricite = @params[:champ_electricite]
+      @champ_non_lucratif = @params[:champ_non_lucratif]
     end
 
     def process_row(_row, output)
@@ -33,59 +41,44 @@ module Spjp
     private
 
     def compute_bill
-      annotation(@source).rows.map do |order|
-        sites = object_field_values(order, 'Zone').first&.values || []
-        tables = object_field_values(order, 'Tables').first&.values || []
-        days = object_field_values(order, 'Nombre de jours').first&.value.to_i
-        half_days = object_field_values(order, 'Nombre de demi-journées').first&.value.to_i
-        hours = object_field_values(order, "Nombre d'heures").first&.value.to_i
-        electricity = object_field_values(order, 'Avec électricité').first&.value
-
-        prices = unit_prices(order)
-        amount = total(days, half_days, hours, prices, order)
-        durations = durations(days, half_days, hours)
-        label = bill_label(electricity, sites, tables)
-
-        bill_order(label, durations, amount)
+      durations = @duration_fields.map { |field| annotation(field).value.to_i }
+      electricity = field(@champ_electricite).value
+      prices = unit_prices(electricity)
+      @zone_fields.flat_map do |zone|
+        sites = field(zone, warn_if_empty: false)&.values || []
+        sites.map do |site|
+          bill_order(bill_label(electricity, site), duration_label(durations), total(site, durations, prices))
+        end
       end
     end
 
-    def total(days, half_days, hours, prices, order)
-      non_profit = object_field_values(order, 'Non lucratif').first&.value
-      rate = non_profit ? 0.2 : 1
+    def unit_prices(electricity)
+      non_lucrative = annotation(@champ_non_lucratif).value
+      @prices[electricity].map { |price| non_lucrative ? price * 0.2 : price }
+    end
+
+    def total(site, durations, prices)
+      hours, half_days, days = durations
       price_for_one_site = ((hours * prices[0]) + (half_days * prices[1]) + (days.positive? ? prices[2] + (prices[3] * (days - 1)) : 0))
-      sites = object_field_values(order, 'Zone').first&.values || []
-      (rate * sites.size * price_for_one_site).round
+      (site.include?('Table') ? (price_for_one_site / 3) : price_for_one_site).round
     end
 
-    def durations(days, half_days, hours)
-      [hours, half_days, days].zip(%w[heure demi-journée jour]).map { |nb, unit| "#{nb.humanize} #{unit}#{'s' if nb > 1}" if nb.positive? }
+    def duration_label(durations)
+      durations.zip(%w[heure demi-journée jour]).filter_map { |nb, unit| "#{nb.humanize} #{unit}#{'s' if nb > 1}" if nb.positive? }.join(', ')
     end
 
-    def bill_order(label, durations, amount)
+    def bill_order(label, duration_label, amount)
       {
         'libelle' => label,
-        'duree' => durations.filter(&:present?).join(', '),
+        'duree' => duration_label,
         'montant' => amount,
         'montant_en_chiffres' => number_to_currency(amount, unit: '', separator: ',', delimiter: ' ', precision: 0)
       }
     end
 
-    def bill_label(electricity, sites, tables)
+    def bill_label(electricity, site)
       electricity_s = electricity ? 'avec electricité' : 'sans electricité'
-      "#{sites.join(', ')} (#{tables.join(', ')}#{', ' if tables.size.positive?}#{electricity_s})"
-    end
-
-    # There's two set of prices, with and without eletricity
-    # One set of price includes price for hours, hald-days, first day, next days
-    # If there are tables on a particular site and only a subset of the three tables are reserved,
-    # price is proportional to number of reserved tables
-    def unit_prices(order)
-      # prices are different if electricity is provided or not
-      electricity = object_field_values(order, 'Avec électricité').first.value
-      # prices are for three tables and must be divided if only one or two tables are booked
-      tables_nb = object_field_values(order, 'Tables').first&.values&.size || 3
-      @prices[electricity].map { |price| (1..2).include?(tables_nb) ? (price / 3.0) * tables_nb : price }
+      "#{site}, #{electricity_s}"
     end
 
     def amount
