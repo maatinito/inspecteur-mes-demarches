@@ -101,14 +101,16 @@ module Daf
 
       changed = set_amounts(demarche, dossier)
 
-      pp = annotation(PAYMENT_PROCESS_ATT)
-      if pp.value.blank?
+      pp = annotation(PAYMENT_PROCESS_ATT).value
+      if pp.blank?
         pp = payment_process
         changed |= SetAnnotationValue.set_value(dossier, demarche.instructeur, PAYMENT_PROCESS_ATT, pp)
       end
       Rails.logger.info("Payment 1: #{pp}")
 
       dossier = @dossier = DossierActions.on_dossier(dossier.number) if changed
+      raise "Valeur non gérée de 'processus de paiement' #{pp}" unless [WITH_PREPAYMENT, WITHOUT_PREPAYMENT, EXEMPTED].include?(pp)
+
       payment_section = pp == WITH_PREPAYMENT ? :paiement1 : :sans_paiement1
       process_tasks(demarche, dossier, @tasks[payment_section])
     end

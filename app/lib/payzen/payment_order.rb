@@ -74,7 +74,7 @@ module Payzen
       end
     end
 
-    def check_delay = (@test_mode ? 1 : 5).minutes.since.end_of_minute
+    def check_delay = (@test_mode ? 1 : 6).minutes.since.end_of_minute
 
     private
 
