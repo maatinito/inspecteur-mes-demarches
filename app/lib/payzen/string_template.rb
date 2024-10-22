@@ -10,7 +10,7 @@ module Payzen
     end
 
     def get_values_of(source, field, par_defaut = nil)
-      return par_defaut unless field
+      return [par_defaut] unless field
 
       # from order
       value = humanize(source[field.to_sym]) if source.is_a? Hash
