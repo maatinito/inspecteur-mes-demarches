@@ -31,6 +31,7 @@ class ScheduledTask < ApplicationRecord
   end
 
   def self.clear(task:, dossier:)
+    task = task.is_a?(Class) ? task.name.underscore : task.to_s
     ScheduledTask.where(task:, dossier:).destroy_all
   end
 end
