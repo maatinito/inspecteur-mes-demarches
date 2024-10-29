@@ -45,6 +45,7 @@ class SetAnnotationValue
   end
 
   def self.raw_set_value(dossier_id, instructeur_id, annotation_id, value)
+    # value = value.iso8601 if value.is_a?(Time) || value.is_a?(Date) || value.is_a?(DateTime)
     result = MesDemarches.query(typed_query(value), variables:
       {
         dossier_id:,
@@ -102,6 +103,21 @@ class SetAnnotationValue
 
     mutation SetDate($dossier_id: ID!, $instructeur_id: ID!, $annotation_id: ID!, $value: ISO8601Date!, $client_mutation_id: String!) {
       dossierModifierAnnotationDate(input: {
+        dossierId: $dossier_id,
+        instructeurId: $instructeur_id,
+        annotationId: $annotation_id,
+        value: $value,
+        clientMutationId: $client_mutation_id
+	    }) {
+        clientMutationId
+        errors {
+            message
+        }
+      }
+    }
+
+    mutation SetDateTime($dossier_id: ID!, $instructeur_id: ID!, $annotation_id: ID!, $value: ISO8601DateTime!, $client_mutation_id: String!) {
+      dossierModifierAnnotationDatetime(input: {
         dossierId: $dossier_id,
         instructeurId: $instructeur_id,
         annotationId: $annotation_id,
@@ -190,6 +206,8 @@ class SetAnnotationValue
       Queries::SetText
     when Date
       Queries::SetDate
+    when Time, DateTime
+      Queries::SetDateTime
     when Integer
       Queries::SetInteger
     when TrueClass, FalseClass
