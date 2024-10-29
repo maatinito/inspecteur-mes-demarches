@@ -12,8 +12,9 @@ class SetField < FieldChecker
   def process(demarche, dossier)
     super
     field = @params[:champ]
-    template = @params[:valeur]
-    return unless SetAnnotationValue.set_value(@dossier, @demarche.instructeur, field, instanciate(template))
+    value = @params[:valeur]
+    value = instanciate(value) if value.is_a?(String)
+    return unless SetAnnotationValue.set_value(@dossier, @demarche.instructeur, field, value)
 
     dossier_updated(@dossier)
   end
