@@ -109,7 +109,7 @@ module Payzen
 
     def check_payment
       order_id = annotation(@params[:champ_ordre_de_paiement])&.value
-      unless order_id.present? && order_id.match(/[a-f0-9]{32}/)
+      unless order_id.present? && order_id.match(/^[a-f0-9]{32}$/)
         Rails.logger.warn("Vérification de l'état du paiement ignoré: L'id #{order_id} de la demande de paiement ne corresponds pas à une demande PayZen.")
         return
       end
