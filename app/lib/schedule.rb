@@ -10,7 +10,7 @@ class Schedule < FieldChecker
   end
 
   def authorized_fields
-    super + %i[decalage_jours decalage_heures heure champ_stockage]
+    super + %i[decalage_jours decalage_heures heure champ_stockage delai_max_heures]
   end
 
   def initialize(params)
@@ -26,10 +26,17 @@ class Schedule < FieldChecker
 
     when_time = run_at
     if Time.zone.now > when_time
-      if annotation(@params[:champ_stockage], warn_if_empty: false)&.value != when_time.to_s
-        run_controls(@controls, :process)
-        SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @params[:champ_stockage], when_time.to_s)
-        dossier_updated(dossier)
+      hours_delay = @params[:delai_max_heures]
+      if hours_delay.present? && Time.zone.now < when_time + hours_delay.hours
+        if annotation(@params[:champ_stockage], warn_if_empty: false)&.value == when_time.to_s
+          Rails.logger.info("Tache programmée à #{when_time} non exécutée car déjà effectuée.")
+        else
+          run_controls(@controls, :process)
+          SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @params[:champ_stockage], when_time.to_s)
+          dossier_updated(dossier)
+        end
+      else
+        Rails.logger.info("Tache programmée à #{when_time} non exécutée car trop en retard.")
       end
     else
       ScheduledTask.clear(dossier: @dossier.number, task: self.class)
