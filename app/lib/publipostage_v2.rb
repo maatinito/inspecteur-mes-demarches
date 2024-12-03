@@ -6,7 +6,7 @@ class PublipostageV2 < Publipostage
   end
 
   def generate_docx(output_file, fields)
-    doc = Docx::Document.open(@template)
+    doc = Docx::Document.open(VerificationService.file_manager.filepath(@template).to_s)
     doc.tables.each do |table|
       process_table(table, fields)
     end

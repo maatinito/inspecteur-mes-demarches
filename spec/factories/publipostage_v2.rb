@@ -4,7 +4,7 @@ FactoryBot.define do
   factory :publipostage_v2, class: PublipostageV2 do
     etat_du_dossier { 'en_construction' }
     message { 'message {number}' }
-    modele { 'spec/fixtures/publipostage_v2.docx' }
+    modele { 'publipostage_v2.docx' }
     nom_fichier_lot { 'publipostage {number} {horodatage}-{lot}' }
     nom_fichier { 'publipostage v2 {number}' }
     champs { ['Navire', "Date d'arrivée", 'Produits 1', 'Produits 2'] }
@@ -18,7 +18,7 @@ FactoryBot.define do
     end
 
     trait :model_with_errors do
-      modele { 'spec/fixtures/publipostage_v2_with_errors.docx' }
+      modele { 'publipostage_v2_with_errors.docx' }
     end
 
     trait :with_multiple_sheets do

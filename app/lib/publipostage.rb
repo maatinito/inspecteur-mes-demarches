@@ -4,7 +4,6 @@ require 'set'
 
 class Publipostage < FieldChecker
   OUTPUT_DIR = 'tmp/publipost'
-  DATA_DIR = 'storage/publipost'
   BATCH_SIZE = 2.5 * 1024 * 1024
 
   def version
@@ -27,8 +26,8 @@ class Publipostage < FieldChecker
     raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
 
     FileUtils.mkdir_p(OUTPUT_DIR)
-    FileUtils.mkdir_p(DATA_DIR)
     @states = Set.new([*(@params[:etat_du_dossier] || 'en_instruction')])
+    Tools::DossierDataMigration.new('storage/publipost').migrate_files
   end
 
   def required_fields
@@ -137,7 +136,7 @@ class Publipostage < FieldChecker
     context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[()]/, '') }
                  .transform_values { |v| [*v].map(&:to_s).join(', ') }
 
-    template = Sablon.template(File.expand_path(@template))
+    template = Sablon.template(VerificationService.file_manager.filepath(@template))
     template.render_to_file output_file, context
   end
 
@@ -187,11 +186,16 @@ class Publipostage < FieldChecker
     champ.files.map { |f| PieceJustificativeCache.get(f) }
   end
 
-  def data_filename(fields)
-    datadir = "#{DATA_DIR}/#{@dossier.number}"
-    FileUtils.mkpath(datadir)
-    datafilename = @params[:nom_fichier].gsub(/\s*\{(horodatage|lot)\}/, '')
-    "#{datadir}/#{instanciate(datafilename, fields)}.yml"
+  # def data_filename(fields)
+  #   datadir = "#{DATA_DIR}/#{@dossier.number}"
+  #   FileUtils.mkpath(datadir)
+  #   datafilename = @params[:nom_fichier].gsub(/\s*\{(horodatage|lot)\}/, '')
+  #   "#{datadir}/#{instanciate(datafilename, fields)}.yml"
+  # end
+
+  def label(fields)
+    template = @params[:nom_fichier].gsub(/\s*\{(horodatage|lot)\}/, '')
+    instanciate(template, fields)
   end
 
   private
@@ -342,23 +346,30 @@ class Publipostage < FieldChecker
   end
 
   def same_document(fields)
-    datafile = data_filename(fields)
+    # datafile = data_filename(fields)
     stable_fields = normalized_fields(fields)
-    stable_fields['#checksum'] = FileUpload.checksum(@template)
+    stable_fields['#checksum'] = FileUpload.checksum(VerificationService.file_manager.filepath(@template))
     stable_fields['#annexes'] = annexe_checksums if @annexe_field.present?
 
-    same = File.exist?(datafile) && YAML.load_file(datafile) == stable_fields
+    label = label(fields)
+    data = DossierData.find_by_folder_and_label(@dossier.number, label)
+    same = data.present? && data.data == stable_fields
+
+    # same = File.exist?(datafile) && YAML.load_file(datafile) == stable_fields
     if same
       Rails.logger.info('Canceling publipost as input data coming from dossier is the same as before')
     else
-      @publiposts[datafile] = stable_fields
+      # @publiposts[datafile] = stable_fields
+      @publiposts[label] = stable_fields
     end
     same
   end
 
   def save_posted
-    @publiposts.reject! do |filename, fields|
-      File.write(filename, YAML.dump(fields))
+    @publiposts.reject! do |label, fields|
+      # File.write(filename, YAML.dump(fields))
+      data = DossierData.find_or_initialize_by(dossier: @dossier.number, label:)
+      data.update!(data: fields)
       true
     end
   end

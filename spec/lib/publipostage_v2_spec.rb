@@ -12,8 +12,8 @@ RSpec.describe PublipostageV2 do
     allow(demarche).to receive(:instructeur).and_return(instructeur)
     allow(SendMessage).to receive(:send)
     allow(controle).to receive(:instructeur_id_for).and_return(1)
-    file = "storage/publipost/#{dossier_nb}/publipostage v2 #{dossier_nb}.yml"
-    FileUtils.rm_f(file)
+    DossierData.find_by_folder_and_label(dossier_nb, "publipostage v2 #{dossier_nb}")&.destroy
+    allow(VerificationService).to receive(:file_manager).and_return(Tools::DiskFileManager.new('spec/fixtures'))
   end
 
   subject do

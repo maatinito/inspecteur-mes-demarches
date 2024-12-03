@@ -28,12 +28,12 @@ RSpec.describe Publipostage do
 
   context 'generate docx' do
     let(:generated_path) { "tmp/publipost/publipostage #{dossier_nb}.docx" }
-    let(:data_path) { "storage/publipost/#{dossier_nb}/publipostage #{dossier_nb}.yml" }
     before do
       allow(controle).to receive(:delete)
       expect(SetAnnotationValue).to receive(:set_piece_justificative_on_annotation)
       allow(controle).to receive(:delete)
-      FileUtils.rm_f(data_path)
+      DossierData.find_by_folder_and_label(dossier_nb, "publipostage #{dossier_nb}")&.destroy
+      allow(VerificationService).to receive(:file_manager).and_return(Tools::DiskFileManager.new('spec/fixtures'))
     end
     after { FileUtils.rm_f(generated_path) }
 

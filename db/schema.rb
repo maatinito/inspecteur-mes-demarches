@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20_240_705_180_430) do
+ActiveRecord::Schema.define(version: 20_241_203_163_430) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -34,7 +34,7 @@ ActiveRecord::Schema.define(version: 20_240_705_180_430) do
     t.datetime 'checked_at'
     t.bigint 'version', default: 1
     t.integer 'demarche_id'
-    t.boolean 'failed'
+    t.boolean 'failed', default: false
     t.boolean 'posted', default: false
     t.index %w[dossier checker], name: 'unicity', unique: true
     t.index ['dossier'], name: 'by_dossier'
@@ -69,6 +69,15 @@ ActiveRecord::Schema.define(version: 20_240_705_180_430) do
     t.bigint 'demarche_id', null: false
     t.bigint 'user_id', null: false
     t.index %w[user_id demarche_id], name: 'index_demarches_users_on_user_id_and_demarche_id'
+  end
+
+  create_table 'dossier_data', force: :cascade do |t|
+    t.integer 'dossier', null: false
+    t.string 'label', null: false
+    t.jsonb 'data', null: false
+    t.datetime 'created_at', precision: 6, null: false
+    t.datetime 'updated_at', precision: 6, null: false
+    t.index %w[dossier label], name: 'index_dossier_data_on_dossier_and_label', unique: true
   end
 
   create_table 'messages', force: :cascade do |t|
