@@ -143,8 +143,10 @@ module MesDemarches
       ... on SiretChamp {
           stringValue
           etablissement {
+             siret
              address { label }
              entreprise {
+               siren
                nomCommercial
                raisonSociale
              }
