@@ -10,7 +10,7 @@ class VerificationService
 
     VerificationService.configs.each do |filename, data|
       Rails.logger.tagged(File.basename(filename)) do
-        data.config.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
+        data.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
           Rails.logger.tagged(procedure_name) do
             @pieces_messages = get_pieces_messages(procedure_name, procedure)
             @instructeur_email = instructeur_email(procedure)
@@ -42,7 +42,6 @@ class VerificationService
   end
 
   def report_error(message, exception)
-    Sentry.capture_exception(exception) if
     NotificationMailer.with(error_params(message, exception)).report_error.deliver_later
   end
 
@@ -54,7 +53,7 @@ class VerificationService
       checks = Check.where(dossier: dossier_number).all
       if checks.present? && md_dossier.present?
         demarche = checks.first.demarche_id
-        VerificationService.configs.each_value.map(&:config).filter { |_k, d| (d.key? 'demarches') && d['demarches'].include?(demarche) }.each do |procedure_name, procedure|
+        VerificationService.configs.each_value.filter { |_k, d| (d.key? 'demarches') && d['demarches'].include?(demarche) }.each do |procedure_name, procedure|
           @pieces_messages = get_pieces_messages(procedure_name, procedure)
         end
         inform(md_dossier, checks)
@@ -66,25 +65,22 @@ class VerificationService
     @@config_file_name ||= Rails.root.join('storage', 'auto_instructeur.yml')
   end
 
-  FileData = Struct.new(:filename, :filetime, :config)
+  def self.file_manager
+    @@files ||= if Rails.env.production? && ENV.fetch('FILE_MANAGER', 'S3') == 'S3'
+                  Tools::S3FileManager.new(
+                    ENV.fetch('S3_BUCKET', nil),
+                    access_key_id: Rails.application.secrets.s3[:access_key_id],
+                    secret_access_key: Rails.application.secrets.s3[:secret_access_key],
+                    endpoint: ENV.fetch('S3_ENDPOINT', nil),
+                    region: ENV.fetch('S3_REGION', nil)
+                  )
+                else
+                  Tools::DiskFileManager.new('storage')
+                end
+  end
 
   def self.configs
-    @@configs ||= {}
-    files = [config_file_name] + Dir.glob(Rails.root.join('storage', 'configurations', '*.yml'))
-    @@configs.select! { |k, _| files.include?(k) }
-    files.each do |filename|
-      data = @@configs[filename]
-      if data.nil? || data.filetime < File.mtime(filename)
-        config = YAML.load_file(filename, aliases: true)
-        @@configs[filename] = FileData.new(filename, File.mtime(filename), config)
-      end
-    rescue StandardError => e
-      @@configs.delete(filename)
-      Rails.logger.error("Unable to load #{filename} configuration file ==> File is ignored until file is corrected.")
-      Rails.logger.error(e)
-      raise e unless Rails.env.production?
-    end
-    @@configs
+    file_manager.configurations
   end
 
   private
