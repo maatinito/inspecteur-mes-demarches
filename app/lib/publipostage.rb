@@ -27,7 +27,6 @@ class Publipostage < FieldChecker
 
     FileUtils.mkdir_p(OUTPUT_DIR)
     @states = Set.new([*(@params[:etat_du_dossier] || 'en_instruction')])
-    Tools::DossierDataMigration.new('storage/publipost').migrate_files
   end
 
   def required_fields

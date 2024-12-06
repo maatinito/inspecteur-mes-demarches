@@ -31,6 +31,7 @@ module Tools
         ActiveRecord::Base.transaction do
           batch.each do |file|
             label = File.basename(file, '.yml')
+            Rails.logger.info("Migrating #{dossier_number}/#{label}")
             file_path = File.join(dossier_path, file)
             data = YAML.safe_load_file(file_path, permitted_classes: [Symbol]) # Conversion YAML en Ruby hash
             DossierData.find_or_initialize_by(
