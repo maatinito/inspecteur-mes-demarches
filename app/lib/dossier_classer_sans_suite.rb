@@ -15,16 +15,22 @@ class DossierClasserSansSuite < DossierChangerEtat
   end
 
   def change_state(demarche, dossier)
-    passer_en_instruction(demarche, dossier) if dossier.state == 'en_construction'
-    Rails.logger.info('Classement sans suite du dossier')
-
-    result = MesDemarches.query(Queries::ClasserSansSuite, variables:
-      {
-        dossierId: dossier.id,
-        instructeurId: instructeur_id_for(demarche, dossier),
-        motivation:
-      })
-    raise StandardError, result.errors if result.errors.present?
+    case dossier.state
+    when 'en_instruction', 'en_construction'
+      passer_en_instruction(demarche, dossier) if dossier.state == 'en_construction'
+      Rails.logger.info('Classement sans suite du dossier')
+      result = MesDemarches.query(Queries::ClasserSansSuite, variables:
+        {
+          dossierId: dossier.id,
+          instructeurId: instructeur_id_for(demarche, dossier),
+          motivation:
+        })
+      raise StandardError, result.errors if result.errors.present?
+    when 'sans_suite'
+      Rails.logger.info('Dossier ignoré car déjà classé sans suite')
+    else
+      Rails.logger.info("Impossible d'accepter un dossier déjà cloturé #{dossier.state}")
+    end
   end
 
   def required_fields
