@@ -15,15 +15,22 @@ class DossierRefuser < DossierChangerEtat
   end
 
   def change_state(demarche, dossier)
-    passer_en_instruction(demarche, dossier) if dossier.state == 'en_construction'
-    Rails.logger.info('Refus du dossier')
-    result = MesDemarches.query(Queries::Refuser, variables:
-      {
-        dossierId: dossier.id,
-        instructeurId: instructeur_id_for(demarche, dossier),
-        motivation:
-      })
-    pp result.errors
+    case dossier.state
+    when 'en_instruction', 'en_construction'
+      passer_en_instruction(demarche, dossier) if dossier.state == 'en_construction'
+      Rails.logger.info('Refus du dossier')
+      result = MesDemarches.query(Queries::Refuser, variables:
+        {
+          dossierId: dossier.id,
+          instructeurId: instructeur_id_for(demarche, dossier),
+          motivation:
+        })
+      raise StandardError, result.errors if result.errors.present?
+    when 'refuse'
+      Rails.logger.info('Dossier ignoré car déjà classé sans suite')
+    else
+      Rails.logger.info("Impossible de refuser un dossier déjà cloturé #{dossier.state}")
+    end
   end
 
   def required_fields
