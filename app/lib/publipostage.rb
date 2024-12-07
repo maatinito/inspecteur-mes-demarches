@@ -82,6 +82,21 @@ class Publipostage < FieldChecker
     end
   end
 
+  def deep_transform_keys(value, &block)
+    case value
+    when Hash
+      value.each_with_object({}) do |(key, value), result|
+        new_key = yield(key)
+        new_value = deep_transform_keys(value, &block)
+        result[new_key] = new_value
+      end
+    when Array
+      value.map { |v| deep_transform_keys(v, &block) }
+    else
+      value
+    end
+  end
+
   def send_documents(demarche, dossier_cible, paths)
     annotation = dossier_annotations(dossier_cible, @champ_cible)&.first
     combine(paths) do |file, batch_number|
@@ -345,20 +360,21 @@ class Publipostage < FieldChecker
   end
 
   def same_document(fields)
-    # datafile = data_filename(fields)
-    stable_fields = normalized_fields(fields)
-    stable_fields['#checksum'] = FileUpload.checksum(VerificationService.file_manager.filepath(@template))
+    stable_fields = normalized_fields(deep_transform_keys(fields, &:to_s))
+    # publipost no longer generate new document when docx template is modified
+    # Else this may generate bills or official documents each time the template is modified.
+    # stable_fields['#checksum'] = FileUpload.checksum(VerificationService.file_manager.filepath(@template))
     stable_fields['#annexes'] = annexe_checksums if @annexe_field.present?
 
     label = label(fields)
     data = DossierData.find_by_folder_and_label(@dossier.number, label)
-    same = data.present? && data.data == stable_fields
+    # migrate data to ignore #checksum
+    data.save if data.present? && data.data.delete('#checksum').present?
 
-    # same = File.exist?(datafile) && YAML.load_file(datafile) == stable_fields
+    same = data.present? && data.data == stable_fields
     if same
       Rails.logger.info('Canceling publipost as input data coming from dossier is the same as before')
     else
-      # @publiposts[datafile] = stable_fields
       @publiposts[label] = stable_fields
     end
     same

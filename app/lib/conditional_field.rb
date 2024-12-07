@@ -11,11 +11,16 @@ class ConditionalField < FieldChecker
 
   def initialize(params)
     super
+    etat_du_dossier = @params[:etat_du_dossier].presence || %w[en_construction en_instruction accepte sans_suite refuse]
+    etat_du_dossier = etat_du_dossier.split(/\s*,\s*/) if etat_du_dossier.is_a?(String)
+    @states = Set.new(etat_du_dossier)
     init_controls if valid?
   end
 
   def process(demarche, dossier)
     super
+    return unless must_check?(dossier)
+
     process_condition(:process)
   end
 
