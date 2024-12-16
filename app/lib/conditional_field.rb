@@ -28,6 +28,12 @@ class ConditionalField < FieldChecker
     process_condition(:control)
   end
 
+  def process_row(row, fields)
+    @fields = fields
+    @dossier = row
+    process_condition(:calcul)
+  end
+
   private
 
   def process_condition(method)
@@ -60,6 +66,8 @@ class ConditionalField < FieldChecker
           @messages.push(*task.messages)
         when :process
           task.process(@demarche, @dossier)
+        when :calcul
+          task.process_row(@dossier, @fields)
         end
         @updated_dossiers += task.updated_dossiers
         @dossiers_to_recheck += task.dossiers_to_recheck

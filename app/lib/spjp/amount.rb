@@ -32,7 +32,8 @@ module Spjp
       @champ_non_lucratif = @params[:champ_non_lucratif]
     end
 
-    def process_row(_row, output)
+    def process_row(row, output)
+      @dossier = row
       bill = compute_bill
       output['Commandes'] = bill
       output['Montant HT'] = bill.map { |line| line['montant'] }.sum

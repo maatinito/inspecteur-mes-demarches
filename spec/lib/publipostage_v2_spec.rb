@@ -104,5 +104,15 @@ RSpec.describe PublipostageV2 do
                   ['Truffe', 'TrouffiusLupinus']])
       end
     end
+
+    # context 'spjp_convention' do
+    #   let(:dossier_nb) { 481_349  }
+    #   let(:controle) { FactoryBot.build :publipostage_v2, :docx, :store_to_field, :model_spjp }
+    #   it 'generate docx', vcr: { cassette_name: 'publipostage_v2-2' } do
+    #     subject
+    #
+    #     doc = Docx::Document.open(generated_path)
+    #   end
+    # end
   end
 end
