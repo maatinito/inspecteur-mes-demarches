@@ -32,11 +32,10 @@ module Daf
 
       changed = false
       orders.zip(champs).each do |order, champ|
-        value = champ.respond_to?(:string_value) ? champ.string_value : champ.value
-        if order != value
-          SetAnnotationValue.raw_set_value(dossier.id, demarche.instructeur, champ.id, order)
-          changed = true
-        end
+        next unless order.present? && order != champ.respond_to?(:string_value) ? champ.string_value : champ.value
+
+        SetAnnotationValue.raw_set_value(dossier.id, demarche.instructeur, champ.id, order)
+        changed = true
       end
       dossier_updated(@dossier) if changed
     end
