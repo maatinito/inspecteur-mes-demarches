@@ -21,9 +21,10 @@ class DemarcheActions
   def self.get_graphql_demarche(demarche_number)
     result = MesDemarches.query(MesDemarches::Queries::Demarche,
                                 variables: { demarche: demarche_number })
-
-    raise StandardError, result.errors.messages.values.join(',') if result.errors.present?
-    raise StandardError, "La démarche #{demarche_number} n'existe pas" if result&.data&.demarche.nil?
+    if result.errors.present?
+      Rails.logger.info("Impossible d'accéder à la dmarche #{demarche_number} : " + result.errors.messages.values.join(','))
+      raise StandardError, result.errors.messages.values.join(',') if result.errors.present?
+    end
 
     result.data.demarche
   end
