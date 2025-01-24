@@ -68,7 +68,8 @@ class PublipostageV2 < Publipostage
     variable = match[1].presence || match[2] if match
     if variable
       options = text.scan(/\\(. (?:\w+|"[^"]+"))/).flatten.to_set
-      value = [*fields[variable]].map(&:to_s).join(', ')
+      value = fields.key?(variable) ? fields[variable] : "[#{variable} inconnue]"
+      value = Array(value).map(&:to_s).join(', ')
       value = normalize_value(value, options)
       variable = Regexp.escape(variable)
       [variable, value]
