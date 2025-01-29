@@ -120,7 +120,7 @@ class PublipostageV2 < Publipostage
     last_row = table.rows.last
     if fields.key?(field) && fields[field].is_a?(Array)
       fields[field].each do |sub_fields|
-        insert_row_before(last_row, sub_fields)
+        insert_row_before(last_row, sub_fields.presence || {})
       end
       last_row.remove!
     else
