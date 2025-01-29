@@ -38,3 +38,4 @@ yarn-debug.log*
 !/app/assets/builds/.keep
 /mes-demarches-robot/
 /mes-demarches-robot-staging/
+/remote/
