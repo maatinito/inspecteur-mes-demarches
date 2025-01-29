@@ -12,9 +12,9 @@ module Travail
     FTE = 'ETP'
     OUTSOURCING = 'Sous-traitance'
     YEAR = 'Année'
-    LATE_FEE = "Montant de la pénalité"
-    SURCHARGE = "Montant de la majoration"
-    TOTAL = "Montant total"
+    LATE_FEE = 'Montant de la pénalité'
+    SURCHARGE = 'Montant de la majoration'
+    TOTAL = 'Montant total'
 
     def version
       super + 1

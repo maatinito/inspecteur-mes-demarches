@@ -10,7 +10,7 @@ RSpec.describe Travail::Daeth do
     allow(demarche).to receive(:instructeur).and_return(instructeur)
     demarche
   end
-  let(:dossier) { OpenStruct.new(number: 438_520, state: 'en_instruction') }
+  let(:dossier) { Struct.new(:number, :state).new(438_520, 'en_instruction') }
 
   let(:controle) { FactoryBot.build :daeth }
   let(:instructeur) { 'instructeur' }

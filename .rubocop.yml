@@ -76,4 +76,5 @@ Metrics/BlockLength:
     - 'db/schema.rb'
     - 'spec/lib/deseti/instruction_spec.rb'
     - 'spec/lib/payzen/payment_order_spec.rb'
+    - 'spec/lib/travail/daeth_spec.rb'
   Max: 100
