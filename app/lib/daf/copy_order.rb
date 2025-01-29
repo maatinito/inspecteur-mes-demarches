@@ -24,17 +24,17 @@ module Daf
     def create_orders(orders)
       return if orders.blank?
 
-      annotation = SetAnnotationValue.allocate_blocks(@dossier, @demarche.instructeur, @params[:bloc_destination], orders.size)
+      target_repetition = SetAnnotationValue.allocate_blocks(@dossier, @demarche.instructeur, @params[:bloc_destination], orders.size)
       champ_destination_label = @params[:champ_destination]
-      champs = annotation.champs.filter { |c| c.label == champ_destination_label }
-      missing = champs.size - orders.size
+      annotations = target_repetition.champs.filter { |c| c.label == champ_destination_label }
+      missing = annotations.size - orders.size
       orders = [*orders, *Array.new(missing, '')] if missing.positive?
 
       changed = false
-      orders.zip(champs).each do |order, champ|
-        next unless order.present? && order != champ.respond_to?(:string_value) ? champ.string_value : champ.value
+      orders.zip(annotations).each do |order, annotation|
+        next if order.blank? || order == SetAnnotationValue.value_of(annotation)
 
-        SetAnnotationValue.raw_set_value(dossier.id, demarche.instructeur, champ.id, order)
+        SetAnnotationValue.raw_set_value(dossier.id, demarche.instructeur, annotation.id, order)
         changed = true
       end
       dossier_updated(@dossier) if changed
