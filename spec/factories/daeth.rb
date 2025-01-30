@@ -11,6 +11,7 @@ FactoryBot.define do
     cellule_licenciement { 'D9' }
     champ_prestations { "Nombre d'unités d'équivalence" }
     champ_travailleurs { 'Travailleurs handicapés' }
+    smig { 1111 }
     champs_par_travailleur do
       'Situation, Type de contrat, Date de début du contrat, Date de fin du contrat, Heures par semaine, ' \
         "Catégorie d'handicap, Date de début des droits COTOREP, Date de fin des droits COTOREP, Taux d'IPP, Rente ?"

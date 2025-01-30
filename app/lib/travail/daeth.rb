@@ -25,7 +25,7 @@ module Travail
     end
 
     def authorized_fields
-      super + %i[ratio_paiement]
+      super + %i[smig]
     end
 
     def initialize(params)
@@ -38,8 +38,8 @@ module Travail
       end
       (@status, @contract_type, @contract_begin, @contract_end, @contract_hours, @cotorep_category, @cotorep_begin, @cotorep_end, @pdd_rate, @annuity) = champs
 
-      @duty_rate = @params[:ratio_paiement]
-      @duty_rate = 1_024_740 if @params[:ratio].blank?
+      @smig = @params[:smig].presence || 1024.74
+      @duty_rate = (1000 * @smig).round
     end
 
     def in_excel(&)
@@ -134,11 +134,12 @@ module Travail
 
       @msgs = []
       @numbers = default_numbers
-      return unless @numbers[DEFAULT_DUTY]
+      return unless @numbers[DEFAULT_DUTY] >= 0
 
       @numbers[DISABLED_WORKER_FTE] = disabled_worker_fte
       @numbers[FINAL_DUTY] = duty = final_duty
       @numbers[DUE_AMOUNT] = levy(duty)
+      @numbers[LATE_FEE] = (@smig * 200).round unless @numbers[LATE_FEE].positive? || dossier.date_depot < Time.zone.local(Date.today.year, 4, 1)
       @numbers[TOTAL] = @numbers[LATE_FEE] + @numbers[SURCHARGE] + @numbers[DUE_AMOUNT]
 
       save_results(@numbers)
