@@ -295,7 +295,7 @@ class Publipostage < FieldChecker
   def sheet_rows(header_line, sheet)
     rows = []
     headers = sheet.row(header_line)
-    sheet.each_row_streaming(pad_cells: true, offset: header_line - 1) do |row|
+    sheet.each_row_streaming(pad_cells: true, offset: header_line) do |row|
       break unless row.any? { _1&.value.present? }
 
       rows << headers.each_with_object({}).with_index do |(k, h), i|
