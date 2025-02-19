@@ -21,7 +21,7 @@ module Travail
     end
 
     def required_fields
-      super + %i[champ_effectifs cellule_ETP cellule_ETP_ECAP cellule_assiette cellule_obligation cellule_licenciement champ_prestations champ_travailleurs champs_par_travailleur]
+      super + %i[champ_effectifs champ_effectif cellule_ETP cellule_ETP_ECAP cellule_assiette cellule_obligation cellule_licenciement champ_prestations champ_travailleurs champs_par_travailleur]
     end
 
     def authorized_fields
@@ -155,19 +155,37 @@ module Travail
     end
 
     def default_numbers
+      base = {
+        YEAR => declaration_year,
+        LATE_FEE => annotation(LATE_FEE, warn_if_empty: false)&.value.to_i,
+        SURCHARGE => annotation(SURCHARGE, warn_if_empty: false)&.value.to_i,
+        OUTSOURCING => param_field(:champ_prestations, warn_if_empty: false)&.value.presence || 0.0
+      }
+      effectif = param_field(:champ_effectif, warn_if_empty: false)
+      base.merge!(effectif.present? ? default_numbers_based_on_size(effectif) : default_numbers_based_on_excel)
+    end
+
+    def default_numbers_based_on_excel
       in_excel do |sheet|
         {
-          YEAR => declaration_year,
-          FTE => cell(sheet, @params[:cellule_ETP]),
-          ECAP_FTE => cell(sheet, @params[:cellule_ETP_ECAP]),
-          ASSESSMENT_BASE => cell(sheet, @params[:cellule_assiette]),
-          DEFAULT_DUTY => cell(sheet, @params[:cellule_obligation]),
-          DISMISSED_FTE => cell(sheet, @params[:cellule_licenciement]),
-          OUTSOURCING => param_field(:champ_prestations, warn_if_empty: false)&.value.presence || 0.0,
-          LATE_FEE => annotation(LATE_FEE, warn_if_empty: false)&.value.to_i,
-          SURCHARGE => annotation(SURCHARGE, warn_if_empty: false)&.value.to_i
+          FTE => cell(sheet, @params[:cellule_ETP]).to_f,
+          ECAP_FTE => cell(sheet, @params[:cellule_ETP_ECAP]).to_f,
+          ASSESSMENT_BASE => cell(sheet, @params[:cellule_assiette]).to_f,
+          DEFAULT_DUTY => cell(sheet, @params[:cellule_obligation]).to_f,
+          DISMISSED_FTE => cell(sheet, @params[:cellule_licenciement]).to_f
         }
       end
+    end
+
+    def default_numbers_based_on_size(effectif)
+      effectif = effectif&.value&.to_f
+      {
+        FTE => effectif,
+        ECAP_FTE => 0.0,
+        ASSESSMENT_BASE => effectif,
+        DEFAULT_DUTY => effectif < 25 ? 0 : (effectif * 0.02 / 0.5).floor * 0.5,
+        DISMISSED_FTE => 0.0
+      }
     end
 
     def disabled_worker_attributes(fields)
