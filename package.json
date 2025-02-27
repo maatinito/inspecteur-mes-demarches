@@ -11,6 +11,7 @@
     "webpack-dev-server": "^4.6.0"
   },
   "scripts": {
+    "build": "NODE_OPTIONS=--openssl-legacy-provider bin/webpack",
     "lint": "sass-lint -v",
     "lint:fix": "sass-lint-auto-fix"
   }
