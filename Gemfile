@@ -80,7 +80,7 @@ group :development, :test do
   gem 'rspec'
   gem 'rspec_junit_formatter'
   gem 'rspec-rails'
-  gem 'spring'
+  gem 'spring', '~> 4.0'
   gem 'spring-commands-rspec'
   gem 'spring-watcher-listen', '~> 2.0'
   gem 'timecop'
