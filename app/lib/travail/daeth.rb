@@ -42,7 +42,7 @@ module Travail
       @duty_rate = (1000 * @smig).round
     end
 
-    def in_excel(&)
+    def in_excel(&block)
       champ = param_field(:champ_effectifs)
       begin
         champ_files = champ.files
@@ -51,14 +51,14 @@ module Travail
       end
       if champ.blank? || champ.files.blank?
         @msgs << "Champ #{@params[:champ_effectifs]} vide."
-        return
+        return block.call(nil)
       end
       file = champ_files.last
       if bad_extension(File.extname(file.filename))
         @msgs << "Le fichier #{file.filename} n'est pas un fichier Excel"
-        return
+        return block.call(nil)
       end
-      read_file(file, &)
+      read_file(file, block)
     end
 
     def bad_extension(extension)
@@ -71,9 +71,10 @@ module Travail
       PieceJustificativeCache.get(champ_file) do |file|
         excel = Roo::Spreadsheet.open(file)
         sheet = excel.sheet(0)
-        r = block.call(sheet) if block_given?
+        block.call(sheet) if block_given?
       rescue RangeError
         @msgs << "Impossible de lire les valeurs en D8 et D9 dans le fichier #{file.filename}"
+        r = block.call(nil) if block_given?
       ensure
         excel&.close
       end
@@ -134,7 +135,7 @@ module Travail
 
       @msgs = []
       @numbers = default_numbers
-      return unless @numbers[DEFAULT_DUTY] >= 0
+      # return unless @numbers[DEFAULT_DUTY] >= 0
 
       @numbers[DISABLED_WORKER_FTE] = disabled_worker_fte
       @numbers[FINAL_DUTY] = duty = final_duty
@@ -168,11 +169,11 @@ module Travail
     def default_numbers_based_on_excel
       in_excel do |sheet|
         {
-          FTE => cell(sheet, @params[:cellule_ETP]).to_f,
-          ECAP_FTE => cell(sheet, @params[:cellule_ETP_ECAP]).to_f,
-          ASSESSMENT_BASE => cell(sheet, @params[:cellule_assiette]).to_f,
-          DEFAULT_DUTY => cell(sheet, @params[:cellule_obligation]).to_f,
-          DISMISSED_FTE => cell(sheet, @params[:cellule_licenciement]).to_f
+          FTE => cell(sheet, @params[:cellule_ETP], 0.0).to_f,
+          ECAP_FTE => cell(sheet, @params[:cellule_ETP_ECAP], 0.0).to_f,
+          ASSESSMENT_BASE => cell(sheet, @params[:cellule_assiette], 0.0).to_f,
+          DEFAULT_DUTY => cell(sheet, @params[:cellule_obligation], 0.0).to_f,
+          DISMISSED_FTE => cell(sheet, @params[:cellule_licenciement], 0.0).to_f
         }
       end
     end
@@ -216,7 +217,9 @@ module Travail
       end
     end
 
-    def cell(sheet, var)
+    def cell(sheet, var, default)
+      return default unless sheet
+
       column, line = var.match(/^([A-Z]+)(\d+)$/).captures
       sheet.cell(line.to_i, column)
     end

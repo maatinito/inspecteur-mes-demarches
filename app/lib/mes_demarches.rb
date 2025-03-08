@@ -69,6 +69,7 @@ module MesDemarches
         title
         number
         groupeInstructeurs {
+          label
           instructeurs {
             id
             email
