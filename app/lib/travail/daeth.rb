@@ -58,7 +58,7 @@ module Travail
         @msgs << "Le fichier #{file.filename} n'est pas un fichier Excel"
         return block.call(nil)
       end
-      read_file(file, block)
+      read_file(file, &block)
     end
 
     def bad_extension(extension)
@@ -71,7 +71,7 @@ module Travail
       PieceJustificativeCache.get(champ_file) do |file|
         excel = Roo::Spreadsheet.open(file)
         sheet = excel.sheet(0)
-        block.call(sheet) if block_given?
+        r = block.call(sheet) if block_given?
       rescue RangeError
         @msgs << "Impossible de lire les valeurs en D8 et D9 dans le fichier #{file.filename}"
         r = block.call(nil) if block_given?
