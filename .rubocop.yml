@@ -77,4 +77,17 @@ Metrics/BlockLength:
     - 'spec/lib/deseti/instruction_spec.rb'
     - 'spec/lib/payzen/payment_order_spec.rb'
     - 'spec/lib/travail/daeth_spec.rb'
+    - 'lib/lppr.rb'
   Max: 100
+
+Metrics/MethodLength:
+  Exclude:
+    - 'lib/lppr.rb'
+
+Metrics/AbcSize:
+  Exclude:
+    - 'lib/lppr.rb'
+
+Metrics/BlockNesting:
+  Exclude:
+    - 'lib/lppr.rb'

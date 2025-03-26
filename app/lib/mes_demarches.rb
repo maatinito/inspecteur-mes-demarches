@@ -202,7 +202,7 @@ module MesDemarches
           id
           datePublication
         }
-      }#{' '}
+      }
       demandeur {
           ... on PersonnePhysique {
               civilite
