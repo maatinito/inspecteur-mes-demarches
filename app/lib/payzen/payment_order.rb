@@ -74,14 +74,30 @@ module Payzen
       end
     end
 
+    def interval_minutes(t_minutes)
+      min = 2.0
+      max = 30.0
+      scale = 100.0
+      delta = max - min
+
+      interval = min + (delta * Math.log(1 + (t_minutes / scale)) / Math.log(1 + (4320.0 / scale)))
+      interval.round(1)
+    end
+
     def check_delay = (@test_mode ? 1 : 15).minutes.since.end_of_minute
 
     private
 
     def ask_for_payment(amount)
       order = create_order(amount)
-      notify_user(order)
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @params[:champ_ordre_de_paiement], order[:paymentOrderId])
+      begin
+        notify_user(order)
+      rescue StandardError => e
+        # forget about order if message not sent
+        SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @params[:champ_ordre_de_paiement], '')
+        raise e
+      end
       dossier_updated(@dossier)
       schedule_next_check
       execute(@when_asked, order)
@@ -121,7 +137,6 @@ module Payzen
         Rails.logger.info("Payzen order check for dossier #{@dossier.number}: #{order[:paymentOrderStatus]}")
         case order[:paymentOrderStatus]
         when 'RUNNING', 'REFUSED'
-          notify_user(order)
           schedule_next_check
         when 'PAID'
           execute(@when_paid, order)
@@ -145,7 +160,7 @@ module Payzen
     def notify_user(order)
       template = @params[:message].presence || DEFAULT_MESSAGE
       body = instanciate(template, order)
-      SendMessage.send(@dossier, @demarche.instructeur, body, check_not_sent: true)
+      SendMessage.send(@dossier, @demarche.instructeur, body)
     end
 
     def execute(tasks, order)
