@@ -8,7 +8,7 @@ class SetAnnotationValue
     old_value = value_of(annotation)
     different_value = old_value != value
     if different_value
-      Rails.logger.info("Setting private annotation #{annotation_name} with #{value}")
+      Rails.logger.info("Setting private annotation #{annotation_name} with #{value.to_s.gsub("\n", '\\n')}")
       raw_set_value(md_dossier.id, instructeur_id, annotation.id, value)
     else
       Rails.logger.info("Private annotation #{annotation_name} already set to #{value}")
