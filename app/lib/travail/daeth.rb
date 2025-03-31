@@ -184,7 +184,7 @@ module Travail
         FTE => effectif,
         ECAP_FTE => 0.0,
         ASSESSMENT_BASE => effectif,
-        DEFAULT_DUTY => effectif < 25 ? 0 : (effectif * 0.02 / 0.5).floor * 0.5,
+        DEFAULT_DUTY => effectif < 25 ? 0.0 : (effectif * 0.02 / 0.5).floor * 0.5,
         DISMISSED_FTE => 0.0
       }
     end

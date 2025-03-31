@@ -44,6 +44,7 @@ RSpec.describe Travail::Daeth do
     let(:disabled_worker_log) { '' }
     let(:levy) { 8_888_000 }
     let(:duty) { default_duty - disabled_worker_fte - outsourcing - dismissed }
+    let(:disabled_workers) { [] }
     let(:default_numbers) do
       {
         Travail::Daeth::FTE => fte,
@@ -99,6 +100,31 @@ RSpec.describe Travail::Daeth do
         end
       end
     end
+
+    context 'with small set of salaries' do
+      let(:fte) { 15.0 }
+      let(:ecap_fte) { 0 }
+      let(:default_duty) { 0.0 }
+      let(:levy) { 0.0 }
+
+      let(:default_numbers) do
+        {
+          Travail::Daeth::FTE => fte,
+          Travail::Daeth::ECAP_FTE => ecap_fte,
+          Travail::Daeth::ASSESSMENT_BASE => fte - ecap_fte,
+          Travail::Daeth::DEFAULT_DUTY => default_duty,
+          Travail::Daeth::DISMISSED_FTE => dismissed,
+          Travail::Daeth::SURCHARGE => surcharge,
+          Travail::Daeth::LATE_FEE => source_late_fee,
+          Travail::Daeth::OUTSOURCING => outsourcing
+
+        }
+      end
+      it "doesn't trigger late_fee" do
+        subject
+      end
+    end
+
     context 'with disabled_workers' do
       before do
         expect(controle).to receive(:declaration_year).at_least(:once).and_return(2024)
