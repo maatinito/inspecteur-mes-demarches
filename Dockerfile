@@ -53,18 +53,20 @@ RUN echo "deb http://deb.debian.org/debian bullseye main contrib" > /etc/apt/sou
     echo "deb http://deb.debian.org/debian-security bullseye-security main contrib" >> /etc/apt/sources.list && \
     echo "deb http://deb.debian.org/debian bullseye-updates main contrib" >> /etc/apt/sources.list && \
     apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    yarn \
-    libreoffice \
+    curl \
     default-jre-headless \
     fontconfig \
-    ttf-mscorefonts-installer \
     fonts-crosextra-carlito \
     fonts-crosextra-caladea \
     fonts-liberation \
     fonts-dejavu \
     fonts-freefont-ttf \
+    libpq5 \
+    libreoffice \
+    nodejs \
+    ttf-mscorefonts-installer \
     tzdata \
+    yarn \
     && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 
@@ -77,6 +79,7 @@ WORKDIR $APP_PATH
 
 # Copy from builder
 COPY --chown=userapp:userapp --from=builder /app /app
+COPY --chown=userapp:userapp --from=builder /usr/local/bundle /usr/local/bundle
 
 # Set env variables
 ENV RAILS_SERVE_STATIC_FILES="true" \
