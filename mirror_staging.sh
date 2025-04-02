@@ -1,1 +1,1 @@
-mc mirror --overwrite --remove --exclude '*.Identifier' mes-demarches-robot-staging/ robot/mes-demarches-robot-staging
+mc mirror --overwrite --remove --exclude '*.Identifier' robot-mes-demarches-staging rmds/robot-mes-demarches-staging
