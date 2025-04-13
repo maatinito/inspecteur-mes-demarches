@@ -64,8 +64,9 @@ module Tools
         end
 
         cache_file_path
-      rescue Aws::S3::Errors::NoSuchKey
-        nil # Retourne `nil` si le fichier n'existe pas dans le bucket
+      rescue Aws::S3::Errors::NoSuchKey, Aws::S3::Errors::NotFound => e
+        Rails.logger.error("Unable to find #{file_key} in #{bucket_name}")
+        raise e
       end
     end
 
