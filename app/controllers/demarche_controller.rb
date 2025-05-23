@@ -4,9 +4,8 @@ class DemarcheController < ApplicationController
   before_action :authenticate_user!
 
   def verify
-    InspectJob.run
-    # @verification_service = VerificationService.new
-    # @verification_service.check
+    # Lancer la vérification via le job, qui recevra l'utilisateur courant
+    InspectJob.run(current_user)
     redirect_to configuration_path
   end
 

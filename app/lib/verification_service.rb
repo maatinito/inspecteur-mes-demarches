@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
 class VerificationService
-  attr_reader :messages
+  attr_reader :messages, :user_email
 
   @@config = nil
+
+  def initialize(user_email = nil)
+    @user_email = user_email
+  end
 
   def check
     return unless DemarcheActions.ping
@@ -123,6 +127,13 @@ class VerificationService
   def check_demarche(controls, demarche_number, reset, configuration_name)
     Rails.logger.info("Processing procedure #{demarche_number}")
     demarche = DemarcheActions.get_demarche(demarche_number, configuration_name, @instructeur_email)
+
+    # Vérifier si l'utilisateur courant est autorisé à traiter cette démarche
+    unless current_user_has_access_to?(demarche)
+      Rails.logger.info("Procedure #{demarche_number} ignored as user #{@user_email} doesn't handle it.")
+      return
+    end
+
     set_demarche(controls, demarche)
     start_time = Time.zone.now
     since = reset ? EPOCH : demarche.checked_at
@@ -133,6 +144,13 @@ class VerificationService
     demarche.save
   end
 
+  def current_user_has_access_to?(demarche)
+    # Vérifier si l'utilisateur est un instructeur de la démarche par son email
+    return true if @user_email.blank?
+
+    demarche.instructeurs.exists?(email: @user_email)
+  end
+
   def set_demarche(controls, demarche)
     controls.each { |c| c.demarche = demarche }
   end
@@ -140,6 +158,12 @@ class VerificationService
   def check_failed_dossiers(controls)
     Rails.logger.tagged('failed') do
       failed_checks.each do |check|
+        # Vérifier si l'utilisateur est autorisé à traiter cette démarche
+        unless current_user_has_access_to?(check.demarche)
+          Rails.logger.info("User #{@user_email} is not authorized to process failed dossier #{check.dossier}")
+          next
+        end
+
         on_dossier(check.dossier) do |md_dossier|
           if md_dossier.present?
             check_dossier(check.demarche, md_dossier, controls)
@@ -166,6 +190,12 @@ class VerificationService
   def check_updated_controls(controls)
     Rails.logger.tagged('updated control') do
       obsolete_checks(controls + @ok_tasks).each do |check|
+        # Vérifier si l'utilisateur est autorisé à traiter cette démarche
+        unless current_user_has_access_to?(check.demarche)
+          Rails.logger.info("User #{@user_email} is not authorized to process updated control for dossier #{check.dossier}")
+          next
+        end
+
         on_dossier(check.dossier) do |dossier|
           if dossier.present?
             check_dossier(check.demarche, dossier, controls)
