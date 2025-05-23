@@ -23,6 +23,44 @@ version: '3.3'
 #
 # SENTRY variables to logs exception on the SEntry platform
 #-------------------------------------------------------------
+x-common-env: &common-env
+  API_CPS_CLIENT_ID: ${API_CPS_CLIENT_ID}
+  API_CPS_CLIENT_SECRET: ${API_CPS_CLIENT_SECRET}
+  API_CPS_PASSWORD: ${API_CPS_PASSWORD}
+  API_CPS_USERNAME: ${API_CPS_USERNAME}
+  APP_HOST: ${APP_HOST}
+  BASEROW_API_TOKEN: ${BASEROW_API_TOKEN}
+  BASEROW_TOKEN_TABLE: ${BASEROW_TOKEN_TABLE}
+  BASEROW_URL: ${BASEROW_URL:-https://api-baserow.mes-demarches.gov.pf}
+  CAPYBARA_DRIVER: ${CAPYBARA_DRIVER}
+  CONTACT_EMAIL: ${CONTACT_EMAIL}
+  TECH_EMAIL: ${TECH_EMAIL}
+  DB_DATABASE: ${DB_DATABASE}
+  DB_HOST: ${DB_HOST}
+  DB_PASSWORD: ${DB_PASSWORD}
+  DB_POOL: ${DB_POOL}
+  DB_USERNAME: ${DB_USERNAME}
+  GRAPHQL_BEARER: ${GRAPHQL_BEARER}
+  GRAPHQL_HOST: ${GRAPHQL_HOST}
+  MAILJET_API_KEY: ${MAILJET_API_KEY}
+  MAILJET_SECRET_KEY: ${MAILJET_SECRET_KEY}
+  OFFICE_PATH: ${OFFICE_PATH}
+  PAYZEN_TEST_LOGIN: ${PAYZEN_TEST_LOGIN}
+  PAYZEN_TEST_PASSWORD: ${PAYZEN_TEST_PASSWORD}
+  PAYZEN_PROD_LOGIN: ${PAYZEN_PROD_LOGIN}
+  PAYZEN_PROD_PASSWORD: ${PAYZEN_PROD_PASSWORD}
+  RAILS_ENV: ${ENV:-production}
+  FILE_MANAGER: ${FILE_MANAGER}
+  S3_ENDPOINT: ${S3_ENDPOINT}
+  S3_BUCKET: ${S3_BUCKET}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY}
+  S3_REGION: ${S3_REGION}
+  SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+  SCHEDULEDTASK_CRON: ${SCHEDULEDTASK_CRON}
+  SENDINBLUE_SMTP_KEY: ${SENDINBLUE_SMTP_KEY}
+  SENDINBLUE_USER_NAME: ${SENDINBLUE_USER_NAME}
+
 services:
   app:
     image: ${IMAGE}:${TAG:-latest}
@@ -30,37 +68,9 @@ services:
     ports:
       - ${PORT}:${PORT}
     environment:
-      - API_CPS_CLIENT_ID
-      - API_CPS_CLIENT_SECRET
-      - API_CPS_PASSWORD
-      - API_CPS_USERNAME
-      - APP_HOST
-      - CAPYBARA_DRIVER
-      - CONTACT_EMAIL
-      - TECH_EMAIL
-      - DB_DATABASE
-      - DB_HOST
-      - DB_PASSWORD
-      - DB_POOL
-      - DB_USERNAME
-      - GRAPHQL_BEARER
-      - GRAPHQL_HOST
-      - MAILJET_API_KEY
-      - MAILJET_SECRET_KEY
-      - OFFICE_PATH
-      - PORT
-      - RAILS_ENV=${ENV:-production}
-      - RAILS_RELATIVE_URL_ROOT
-      - FILE_MANAGER
-      - S3_ENDPOINT
-      - S3_BUCKET
-      - S3_ACCESS_KEY
-      - S3_SECRET_KEY
-      - S3_REGION
-      - SECRET_KEY_BASE
-      - SCHEDULEDTASK_CRON
-      - SENDINBLUE_SMTP_KEY
-      - SENDINBLUE_USER_NAME
+      <<: *common-env
+      PORT: ${PORT}
+      RAILS_RELATIVE_URL_ROOT: ${RAILS_RELATIVE_URL_ROOT}
     volumes:
       - imd-data-files:/imd/storage
       - imd-fonts:/usr/share/fonts
@@ -73,39 +83,7 @@ services:
     command: rails jobs:work
     restart: always
     environment:
-      - API_CPS_CLIENT_ID
-      - API_CPS_CLIENT_SECRET
-      - API_CPS_PASSWORD
-      - API_CPS_USERNAME
-      - APP_HOST
-      - CAPYBARA_DRIVER
-      - CONTACT_EMAIL
-      - TECH_EMAIL
-      - DB_DATABASE
-      - DB_HOST
-      - DB_PASSWORD
-      - DB_POOL
-      - DB_USERNAME
-      - GRAPHQL_BEARER
-      - GRAPHQL_HOST
-      - MAILJET_API_KEY
-      - MAILJET_SECRET_KEY
-      - OFFICE_PATH
-      - PAYZEN_TEST_LOGIN
-      - PAYZEN_TEST_PASSWORD
-      - PAYZEN_PROD_LOGIN
-      - PAYZEN_PROD_PASSWORD
-      - RAILS_ENV=${ENV:-production}
-      - FILE_MANAGER
-      - S3_ENDPOINT
-      - S3_BUCKET
-      - S3_ACCESS_KEY
-      - S3_SECRET_KEY
-      - S3_REGION
-      - SECRET_KEY_BASE
-      - SCHEDULEDTASK_CRON
-      - SENDINBLUE_SMTP_KEY
-      - SENDINBLUE_USER_NAME
+      <<: *common-env
     volumes:
       - imd-data-files:/imd/storage
       - imd-fonts:/usr/share/fonts
