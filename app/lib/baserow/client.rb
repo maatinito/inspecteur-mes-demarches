@@ -105,6 +105,7 @@ module Baserow
       return '' if params.empty?
 
       query_string = params.map do |key, value|
+        value = value.to_json if value.is_a? Hash
         "#{key}=#{CGI.escape(value.to_s)}"
       end.join('&')
       puts query_string

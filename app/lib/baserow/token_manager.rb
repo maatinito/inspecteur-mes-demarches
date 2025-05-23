@@ -73,7 +73,7 @@ module Baserow
 
           # Retourner le token s'il est trouvé
           if (results['count']).positive?
-            token = results['results'][0][token_field['name']]
+            token = results['results'][0]["field_#{token_field['id']}"]
             return token if token.present?
           end
 

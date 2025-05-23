@@ -98,14 +98,14 @@ module Baserow
       end
 
       def authorized_fields
-        super + %i[config_baserow]
+        super + %i[acces_baserow]
       end
 
       def process(demarche, dossier)
         super
 
         # Connexion à la table Baserow avec la configuration spécifiée
-        config_name = @params[:config_baserow]
+        config_name = @params[:acces_baserow]
         table = Baserow::Config.table(@params[:baserow_table_id], config_name)
 
         # Recherche de l'enregistrement correspondant

@@ -6,18 +6,19 @@ RSpec.describe Baserow::Table do
   let(:client) { instance_double(Baserow::Client) }
   let(:table_id) { '42' }
   let(:table_name) { 'Test Table' }
+
+  before do
+    allow(client).to receive(:list_fields).with(table_id).and_return([
+                                                                       { 'id' => 1, 'name' => 'Name', 'type' => 'text', 'primary' => true },
+                                                                       { 'id' => 2, 'name' => 'Description', 'type' => 'long_text', 'primary' => false }
+                                                                     ])
+  end
+
   let(:table) { described_class.new(client, table_id, table_name) }
 
   describe '#initialize' do
     context 'when a table_id is provided' do
       it 'loads the fields for the table' do
-        expect(client).to receive(:list_fields).with(table_id).and_return([
-                                                                            { 'id' => 1, 'name' => 'Name', 'type' => 'text', 'primary' => true },
-                                                                            { 'id' => 2, 'name' => 'Description', 'type' => 'long_text', 'primary' => false }
-                                                                          ])
-
-        table = described_class.new(client, table_id, table_name)
-
         expect(table.fields).to eq({
                                      'Name' => { id: 1, type: 'text', primary: true },
                                      'Description' => { id: 2, type: 'long_text', primary: false }
@@ -73,14 +74,6 @@ RSpec.describe Baserow::Table do
   end
 
   describe '#find_by' do
-    before do
-      allow(client).to receive(:list_fields).with(table_id).and_return([
-                                                                         { 'id' => 1, 'name' => 'Name', 'type' => 'text', 'primary' => true }
-                                                                       ])
-
-      table.load_fields
-    end
-
     it 'searches by field equality' do
       expect(client).to receive(:list_rows).with(
         table_id,
@@ -93,24 +86,12 @@ RSpec.describe Baserow::Table do
 
     context 'when the field does not exist' do
       it 'raises an ArgumentError' do
-        expect(client).to receive(:list_fields).with(table_id).and_return([
-                                                                            { 'id' => 1, 'name' => 'Name', 'type' => 'text', 'primary' => true }
-                                                                          ])
-
         expect { table.find_by('NonExistentField', 'Test') }.to raise_error(ArgumentError)
       end
     end
   end
 
   describe '#search' do
-    before do
-      allow(client).to receive(:list_fields).with(table_id).and_return([
-                                                                         { 'id' => 1, 'name' => 'Name', 'type' => 'text', 'primary' => true }
-                                                                       ])
-
-      table.load_fields
-    end
-
     it 'searches by partial text match' do
       expect(client).to receive(:list_rows).with(
         table_id,
