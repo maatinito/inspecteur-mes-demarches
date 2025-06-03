@@ -37,6 +37,8 @@ jobs:
           yarn install --pure-lockfile
 
       - name: Run linters
+        env:
+          GRAPHQL_BEARER: ${{ secrets.GRAPHQL_BEARER }}
         run: |
           bundle exec rake lint
           bundle exec rake zeitwerk:check
