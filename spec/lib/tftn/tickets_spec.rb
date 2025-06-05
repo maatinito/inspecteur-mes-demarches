@@ -16,9 +16,10 @@ RSpec.describe Tftn::Tickets do
 
   let(:params) do
     {
-      id_table_cours: '42',
       champ_cours: 'cours',
+      champ_nb_tickets: "nb tickets'",
       prix_seance: '1500',
+      annotation_quota: 'Quota manuel',
       annotation_montant: 'Montant à payer',
       annotation_message_usager: 'Message explicatif'
     }
@@ -26,16 +27,22 @@ RSpec.describe Tftn::Tickets do
 
   let(:controle) { described_class.new(params) }
 
-  let(:cours_field) { { 'id' => 1, 'name' => 'Label du cours', 'type' => 'text' } }
-  let(:date_field) { { 'id' => 2, 'name' => 'Date du cours', 'type' => 'date' } }
-  let(:actif_field) { { 'id' => 3, 'name' => 'Actif', 'type' => 'boolean' } }
-  let(:baserow_fields) { [cours_field, date_field, actif_field].to_h { |field| [field['name'], field] } }
+  let(:cours_field) { { id: 1, name: 'Label du cours', type: 'text' } }
+  let(:date_field) { { id: 2, name: 'Date du cours', type: 'date' } }
+  let(:actif_field) { { id: 3, name: 'Actif', type: 'boolean' } }
+  let(:session_fields) { [cours_field, date_field, actif_field].to_h { |field| [field[:name], field] } }
 
-  let(:baserow_results) { { 'count' => 5, 'results' => Array.new(5) { |i| { 'id' => i } } } }
+  # Champs pour la table des cours
+  let(:label_cours_field) { { id: 10, name: 'Label du cours', type: 'text' } }
+  let(:quota_manuel_field) { { id: 11, name: 'Quota manuel', type: 'boolean' } }
+  let(:cours_table_fields) { [label_cours_field, quota_manuel_field].to_h { |field| [field[:name], field] } }
 
-  let(:champ_cours) do
-    double('ChampCours', value: nom_cours, blank?: false)
-  end
+  let(:cours_results) { { 'results' => [{ 'field_11' => true }] } }
+
+  let(:session_results) { { 'count' => 5, 'results' => Array.new(5) { |i| { 'id' => i } } } }
+
+  let(:champ_cours) { double('ChampCours', value: nom_cours, blank?: false) }
+  let(:champ_nb_tickets) { double('ChampNbTickets', value: 5, blank?: false) }
 
   subject do
     controle.process(demarche, dossier)
@@ -45,17 +52,15 @@ RSpec.describe Tftn::Tickets do
   before do
     # Mock param_field pour retourner le champ avec le nom du cours
     allow(controle).to receive(:param_field).with(:champ_cours).and_return(champ_cours)
+    allow(controle).to receive(:param_field).with(:champ_nb_tickets).and_return(champ_nb_tickets)
 
-    # Mock Baserow::Config.table pour retourner un mock de table
-    mock_table = double('BaserowTable')
-    mock_client = double('BaserowClient')
-    allow(mock_table).to receive(:client).and_return(mock_client)
-    allow(mock_table).to receive(:table_id).and_return(params[:id_table_cours])
-    allow(Baserow::Config).to receive(:table).with(params[:id_table_cours], nil).and_return(mock_table)
+    # Mock pour la table des sessions
+    mock_table = double('BaserowSessionsTable', fields: session_fields, list_rows: session_results)
+    allow(controle).to receive(:get_baserow_table).with(Tftn::Tickets::SESSION_TABLE_ID).and_return(mock_table)
 
-    # Mock pour les appels à Baserow
-    allow(mock_table).to receive(:fields).and_return(baserow_fields)
-    allow(mock_client).to receive(:list_rows).and_return(baserow_results)
+    # Mock pour l atable des cours
+    mock_cours_table = double('BaserowCoursTable', fields: cours_table_fields, list_rows: cours_results)
+    allow(controle).to receive(:get_baserow_table).with(Tftn::Tickets::COURS_TABLE_ID).and_return(mock_cours_table)
 
     # Mock pour save_annotation et save_messages
     allow(controle).to receive(:save_annotation).and_return(nil)
@@ -74,9 +79,10 @@ RSpec.describe Tftn::Tickets do
     it 'calcule le prix total et le stocke dans l\'annotation privée' do
       # Le prix total attendu est le nombre de séances (5) x prix par séance (1500) = 7500
       expect(controle).to receive(:save_annotation).with('Montant à payer', 7500)
+      expect(controle).to receive(:save_annotation).with('Quota manuel', true)
 
       # Vérifier que le message usager est également stocké
-      message_attendu = 'Il y a 5 séances disponibles pour le cours Aquarelle. Le montant à payer est de 7500 XPF (5 séances à 1500 XPF).'
+      message_attendu = 'Vous avez demandé 5 tickets pour le cours Aquarelle. Le montant à payer est de 7500 XPF (5 séances à 1500 XPF).'
       expect(controle).to receive(:save_annotation).with('Message explicatif', message_attendu)
 
       subject
@@ -86,11 +92,10 @@ RSpec.describe Tftn::Tickets do
   context 'avec limitation par nombre de tickets désirés' do
     let(:params) do
       {
-        id_table_cours: '42',
         champ_cours: 'cours',
         prix_seance: '1500',
-        annotation_montant: 'Montant à payer',
         champ_nb_tickets: 'nb_tickets',
+        annotation_montant: 'Montant à payer',
         annotation_message_usager: 'Message explicatif'
       }
     end
@@ -118,7 +123,6 @@ RSpec.describe Tftn::Tickets do
   context 'avec la demande de toutes les séances restantes' do
     let(:params) do
       {
-        id_table_cours: '42',
         champ_cours: 'cours',
         prix_seance: '1500',
         annotation_montant: 'Montant à payer',

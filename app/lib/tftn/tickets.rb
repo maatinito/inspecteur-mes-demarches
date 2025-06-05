@@ -2,16 +2,20 @@
 
 module Tftn
   class Tickets < FieldChecker
+    BASEROW_CONNEXION = 'TFTN'
+    COURS_TABLE_ID = 633
+    SESSION_TABLE_ID = 634
+
     def version
       super + 1
     end
 
     def required_fields
-      super + %i[id_table_cours champ_cours prix_seance annotation_montant]
+      super + %i[champ_cours prix_seance annotation_montant]
     end
 
     def authorized_fields
-      super + %i[champ_nb_tickets annotation_message_usager acces_baserow]
+      super + %i[champ_nb_tickets annotation_message_usager acces_baserow annotation_quota]
     end
 
     def process(demarche, dossier)
@@ -28,7 +32,7 @@ module Tftn
 
       # Obtenir le nombre de séances disponibles
       nb_seances = get_remaining_sessions(nom_cours)
-      return unless nb_seances
+      return unless nb_seances&.positive?
 
       # Limiter au nombre de tickets demandés si spécifié
       nb_seances = [nb_seances, nb_tickets_max].min if nb_tickets_max.present? && nb_tickets_max.positive?
@@ -75,6 +79,9 @@ module Tftn
       message_usager = construire_message_usager(nom_cours, nb_seances, prix_seance, prix_total, nb_tickets_max)
       save_annotation(@params[:annotation_message_usager], message_usager) if @params[:annotation_message_usager].present?
 
+      # Récupérer le quota manuel depuis la table des cours
+      retrieve_quota_manuel_from_cours_table(nom_cours) if @params[:annotation_quota].present?
+
       # Ajouter les informations au journal
       add_message("Nombre de séances possibles: #{nb_seances}, Prix unitaire: #{prix_seance} XPF")
     end
@@ -82,17 +89,13 @@ module Tftn
     private
 
     def get_remaining_sessions(nom_cours)
-      # Récupérer les paramètres Baserow
-      table_id = @params[:id_table_cours]
-      config_name = @params[:acces_baserow]
-
       # Créer un client Baserow avec la configuration spécifiée
-      table = Baserow::Config.table(table_id, config_name)
+      table = get_baserow_table(SESSION_TABLE_ID)
 
       # requete baserow pour selectionner les séances du cours donné après aujourd'hui
       params = query_params(table, nom_cours)
       # Faire la requête
-      results = table.client.list_rows(table_id, params)
+      results = table.list_rows(params)
 
       # Retourner le nombre de séances
       results['count']
@@ -104,9 +107,9 @@ module Tftn
 
     def query_params(table, nom_cours)
       # Trouver les IDs des champs qui nous intéressent
-      cours_field = table.fields.find { |k, _v| k =~ /label/i }&.second
-      active_field = table.fields.find { |k, _v| k =~ /actif/i }&.second
-      date_field = table.fields.find { |k, _v| k =~ /date/i }&.second
+      cours_field = find_field_by_pattern(table, /label/i)
+      active_field = find_field_by_pattern(table, /actif/i)
+      date_field = find_field_by_pattern(table, /date/i)
       raise "Impossible de trouver les champs 'cours' et/ou 'date' dans la table Baserow" if cours_field.nil? || date_field.nil?
 
       {
@@ -128,6 +131,61 @@ module Tftn
       }
     end
 
+    def retrieve_quota_manuel_from_cours_table(nom_cours)
+      cours_table = get_baserow_table(COURS_TABLE_ID)
+      label_cours_field, quota_manuel_field = find_cours_table_fields(cours_table)
+
+      cours_row = find_cours_by_name(cours_table, label_cours_field, nom_cours)
+      extract_and_save_quota_manuel(cours_row, quota_manuel_field) if cours_row
+    rescue StandardError => e
+      add_message("Erreur lors de la récupération du quota manuel: #{e.message}")
+    end
+
+    def get_baserow_table(table_id)
+      Baserow::Config.table(table_id, BASEROW_CONNEXION)
+    end
+
+    def find_cours_table_fields(cours_table)
+      label_cours_field = find_field_by_pattern(cours_table, /label.*cours/i)
+      quota_manuel_field = find_field_by_pattern(cours_table, /quota.*manuel/i)
+
+      raise "Impossible de trouver le champ 'Label du cours' dans la table des cours" unless label_cours_field
+      raise "Impossible de trouver le champ 'Quota manuel' dans la table des cours" unless quota_manuel_field
+
+      [label_cours_field, quota_manuel_field]
+    end
+
+    def find_cours_by_name(cours_table, label_cours_field, nom_cours)
+      params = build_cours_search_params(label_cours_field, nom_cours)
+      results = cours_table.list_rows(params)
+
+      results['results']&.first
+    end
+
+    def build_cours_search_params(label_cours_field, nom_cours)
+      {
+        filters: {
+          filter_type: 'AND',
+          filters: [
+            { type: 'equal',
+              field: label_cours_field[:id],
+              value: nom_cours }
+          ]
+        }
+      }
+    end
+
+    def extract_and_save_quota_manuel(cours_row, quota_manuel_field)
+      quota_manuel_field_name = "field_#{quota_manuel_field[:id]}"
+      quota_manuel_value = cours_row[quota_manuel_field_name]
+
+      save_annotation(@params[:annotation_quota], quota_manuel_value) if quota_manuel_value.present?
+    end
+
+    def find_field_by_pattern(table, pattern)
+      table.fields.find { |k, _v| k =~ pattern }&.second
+    end
+
     def add_message(message)
       @msgs ||= []
       @msgs << message
@@ -136,14 +194,7 @@ module Tftn
     def save_messages
       return if @msgs.blank?
 
-      message = @msgs.join("\n")
-      old_messages = annotation('Messages du robot')&.value
-      return if old_messages&.include?(message)
-
-      date = Time.now.strftime('%Y-%m-%d %H:%M')
-      messages = "#{date} :\n#{message}"
-      save_annotation('Messages du robot', messages)
-      messages
+      save_annotation('Messages du robot', @msgs.join("\n"))
     end
 
     def save_annotation(field, value)
