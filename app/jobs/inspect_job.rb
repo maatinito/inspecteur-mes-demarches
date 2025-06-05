@@ -5,10 +5,10 @@ class InspectJob < CronJob
 
   MANUAL_SYNC = 'ManualSync'
 
-  def perform
+  def perform(user = nil)
     Sync.find_or_create_by(job: MANUAL_SYNC)
     Sync.find_or_create_by(job: self.class.name) do
-      VerificationService.new.check
+      VerificationService.new(user&.email).check
     end
   ensure
     Sync.where(job: self.class.name).destroy_all
@@ -19,9 +19,9 @@ class InspectJob < CronJob
     1
   end
 
-  def self.run
+  def self.run(current_user = nil)
     Sync.find_or_create_by(job: MANUAL_SYNC) do
-      InspectJob.perform_later
+      InspectJob.perform_later(current_user)
     end
   end
 

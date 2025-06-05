@@ -9,6 +9,10 @@ runs:
       with:
         bundler-cache: true
 
+    - name: Update RubyGems
+      run: gem update --system
+      shell: bash
+
     - name: Setup Node
       uses: actions/setup-node@v3
       with:
