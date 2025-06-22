@@ -4,6 +4,8 @@ class VerificationService
   attr_reader :messages, :user_email
 
   @@config = nil
+  @@network_error_notified = {}
+  NETWORK_ERROR_COOLDOWN = 1.hour
 
   def initialize(user_email = nil)
     @user_email = user_email
@@ -46,7 +48,50 @@ class VerificationService
   end
 
   def report_error(message, exception)
+    return unless should_notify_error?(message, exception)
+
     NotificationMailer.with(error_params(message, exception)).report_error.deliver_later
+    mark_error_notified(message, exception)
+  end
+
+  def should_notify_error?(message, exception)
+    return true unless network_error?(exception)
+
+    error_key = network_error_key(message, exception)
+    last_notification = @@network_error_notified[error_key]
+
+    last_notification.nil? || last_notification < NETWORK_ERROR_COOLDOWN.ago
+  end
+
+  def mark_error_notified(message, exception)
+    return unless network_error?(exception)
+
+    error_key = network_error_key(message, exception)
+    @@network_error_notified[error_key] = Time.current
+  end
+
+  def network_error?(exception)
+    network_error_patterns = [
+      /connection/i,
+      /timeout/i,
+      /network/i,
+      /host/i,
+      /resolve/i,
+      /refused/i,
+      /unreachable/i,
+      /socket/i
+    ]
+
+    error_message = exception.message.to_s
+    network_error_patterns.any? { |pattern| error_message.match?(pattern) }
+  end
+
+  def network_error_key(message, exception)
+    "#{message}_#{exception.class.name}".downcase.gsub(/[^a-z0-9_]/, '_')
+  end
+
+  def self.clear_network_error_notifications
+    @@network_error_notified.clear
   end
 
   def post_message(dossier_number)
