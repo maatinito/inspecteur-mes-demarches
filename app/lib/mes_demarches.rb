@@ -262,6 +262,9 @@ module MesDemarches
                   rows {
                     champs {
                       ...ChampInfo
+                      ... on DossierLinkChamp {
+                          stringValue
+                      }
                     }
                   }
                   champs {
@@ -275,6 +278,9 @@ module MesDemarches
                   rows {
                     champs {
                       ...ChampInfo
+                      ... on DossierLinkChamp {
+                          stringValue
+                      }
                     }
                   }
                   champs {
@@ -320,6 +326,9 @@ module MesDemarches
                   rows {
                     champs {
                       ...ChampInfo
+                      ... on DossierLinkChamp {
+                          stringValue
+                      }
                     }
                   }
                   champs {
@@ -333,6 +342,9 @@ module MesDemarches
                   rows {
                     champs {
                       ...ChampInfo
+                      ... on DossierLinkChamp {
+                          stringValue
+                      }
                     }
                   }
                 champs {
