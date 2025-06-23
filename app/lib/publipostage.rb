@@ -44,6 +44,8 @@ class Publipostage < FieldChecker
 
   def process(demarche, dossier)
     super
+    return unless must_check?(dossier)
+
     dossier_cible = destination(dossier)
     unless dossiers_have_right_state?(dossier, dossier_cible)
       Rails.logger.info("Dossier ignored as state #{dossier.state} is not in required states #{@states}")
@@ -52,10 +54,10 @@ class Publipostage < FieldChecker
 
     init_calculs
 
-    paths = rows.filter_map do |row|
+    paths = rows.filter_map.with_index do |row, i|
       next unless trigger_field_set(row)
 
-      fields = get_fields(row, params[:champs])
+      fields = get_fields(row, params[:champs], i)
       compute_dynamic_fields(row, fields)
       @template = instanciate(@template_pattern)
 
@@ -325,17 +327,9 @@ class Publipostage < FieldChecker
   end
 
   def bloc_to_rows(champ_source)
-    champs = champ_source.champs
-    rows = []
-    bloc = FieldList.new
-    champs.each do |champ|
-      if bloc[champ.label].present?
-        rows << bloc
-        bloc = FieldList.new
-      end
-      bloc << champ
+    champ_source.rows.map do |row|
+      FieldList.new(row.champs)
     end
-    rows << bloc
   end
 
   def rows
@@ -420,8 +414,8 @@ class Publipostage < FieldChecker
     File.join(OUTPUT_DIR, File.basename(file).sub(/\.\w+$/, '.pdf'))
   end
 
-  def get_fields(row, definitions)
-    result = { 'Dossier' => @dossier.number }
+  def get_fields(row, definitions, index)
+    result = { 'Dossier' => @dossier.number, '#index' => index + 1 }
     definitions.each do |definition|
       column, field, par_defaut = load_definition(definition)
       result[column] = get_values_of(row, field, par_defaut)
@@ -431,8 +425,8 @@ class Publipostage < FieldChecker
 
   # FieldList acts as a dossier allowing looking for champs
   class FieldList
-    def initialize
-      @champs = {}
+    def initialize(champs = [])
+      @champs = champs.index_by(&:label)
     end
 
     def <<(champ)
