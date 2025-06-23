@@ -36,7 +36,7 @@ module Excel
       rows = []
       headers = sheet.row(header_line)
       sheet.each_row_streaming do |row|
-        data_row = row.size.positive? && row[1].coordinate[0] > header_line && row[1].value.present?
+        data_row = row.size >= headers.size && row[1].coordinate[0] > header_line && row[1].value.present?
         rows << headers.map.with_index { |v, i| [v, row[i].value] }.to_h if data_row
       end
       rows

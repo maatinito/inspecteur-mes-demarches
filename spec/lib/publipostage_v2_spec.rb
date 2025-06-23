@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe PublipostageV2 do
-  let(:dossier_nb) { 373_443 }
+  let(:dossier_nb) { 537_491 }
   let(:dossier) { DossierActions.on_dossier(dossier_nb) }
   let(:demarche) { double(Demarche) }
   let(:instructeur) { 'instructeur' }
@@ -76,10 +76,10 @@ RSpec.describe PublipostageV2 do
         expect(doc.to_html).to include('NAVIRE')
         expect(doc.to_html).to include('05/05/2023')
         expect(doc.tables.size).to eq(2)
-        msg = "La table a pour titre Produits mais aucun champ contenant une liste porte ce nom. Clés disponibles: Dossier, Navire, Date d'arrivée, Produits 1, Produits 2"
+        msg = "La table a pour titre Produits mais aucun champ contenant une liste porte ce nom. Clés disponibles: Dossier, #index, Navire, Date d'arrivée, Produits 1, Produits 2"
         expect(doc.tables[0].rows.map { |row| row.cells.map(&:text) })
-          .to eq([[msg, 'Poids', 'Code'],
-                  ['Libellé : --Libellé des produits--', '--Poids--', '--Mauvais Code--']])
+          .to match([[msg, 'Poids', 'Code'],
+                     ['Libellé : --Libellé des produits--', '--Poids--', '--Mauvais Code--']])
         expect(doc.tables[1].rows.map { |row| row.cells.map(&:text) })
           .to eq(marchandises.map.with_index { |line, i| [line[0], line[1], i > 0 ? '--Mauvais Code--' : line[2]] })
       end

@@ -45,7 +45,7 @@ FactoryBot.define do
     # end
 
     trait :with_multiple_sheets do
-      calculs { [{ 'excel/get_sheets' => { 'champ' => 'Produits 1' } }] }
+      calculs { [{ 'excel/get_sheets' => { 'champ' => 'Produits 2' } }] }
     end
 
     initialize_with { PublipostageV2.new(attributes) }

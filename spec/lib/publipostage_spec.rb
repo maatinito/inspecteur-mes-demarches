@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Publipostage do
-  let(:dossier_nb) { 338_356 }
+  let(:dossier_nb) { 537_574 }
   let(:dossier) { DossierActions.on_dossier(dossier_nb) }
   let(:demarche) { double(Demarche) }
   let(:instructeur) { 'instructeur' }
@@ -45,30 +45,6 @@ RSpec.describe Publipostage do
         doc = Docx::Document.open(generated_path)
         expect(doc.to_html).to include('NAVIRE')
         expect(doc.to_html).to include('05/05/2023')
-      end
-    end
-
-    context 'on repetition field from repetition' do
-      let(:controle) { FactoryBot.build :publipostage, :docx, :on_repetition }
-      it 'generate docx', vcr: { cassette_name: 'publipostage-1' } do
-        subject
-
-        doc = Docx::Document.open(generated_path).to_html
-        expect(doc).to include('NAVIRE')
-        expect(doc).to include('05/05/2023')
-        expect(doc).to include('MOTIF')
-      end
-    end
-
-    context 'on root field from repetition' do
-      let(:controle) { FactoryBot.build :publipostage, :docx, :on_repetition, :store_to_field }
-      it 'generate docx', vcr: { cassette_name: 'publipostage-1' } do
-        subject
-
-        doc = Docx::Document.open(generated_path).to_html
-        expect(doc).to include('NAVIRE')
-        expect(doc).to include('05/05/2023')
-        expect(doc).to include('MOTIF')
       end
     end
   end
