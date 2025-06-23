@@ -235,7 +235,7 @@ class FieldChecker < InspectorTask
     return par_defaut unless field
 
     # if source is a Hash
-    value = humanize(source[field.to_sym]) if source.is_a? Hash
+    value = humanize(source[field.to_sym] || source[field]) if source.is_a? Hash
     return [*value] if value.present?
 
     # if source has champs
