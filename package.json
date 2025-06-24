@@ -8,7 +8,7 @@
     "websocket-extensions": "^0.1.4"
   },
   "devDependencies": {
-    "webpack-dev-server": "^4.6.0"
+    "webpack-dev-server": "^5.2.1"
   },
   "scripts": {
     "build": "NODE_OPTIONS=--openssl-legacy-provider bin/webpack",
