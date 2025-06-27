@@ -196,3 +196,52 @@ contacts_table.delete_row(record_id)
 ```
 
 See `app/lib/baserow/examples.rb` for more examples of how to use the Baserow integration.
+
+## YAML Configuration Files Analysis
+
+When analyzing YAML configuration files in this project, follow these important rules:
+
+### Loading YAML Files with Aliases
+Always use the `aliases: true` parameter when loading YAML files to properly resolve YAML references (`&name` and `*name`):
+
+```ruby
+# Correct way to load YAML files in this project
+content = YAML.load_file(file_path, aliases: true)
+```
+
+Without this parameter, you will get "Unknown alias" errors when the YAML contains references.
+
+### Configuration Entry Points
+The configuration system uses a specific structure where only certain blocks are actual entry points:
+
+- **Entry points**: Blocks that contain a `demarches` attribute are the real configuration entry points that will be executed by VerificationService
+- **Templates/References**: All other blocks (like `publipostage: &template_name`) are reusable templates that are never executed directly
+
+### Example Structure
+```yaml
+# This is a TEMPLATE - not executed directly
+template_publipostage: &template_publipostage
+  champs: [...]
+  calculs: [...]
+  # No need for etat_du_dossier here
+
+poster_facture: &poster_facture
+  etat_du_dossier: en_instruction  # Required here
+  message: "..."
+  <<: *template_publipostage       # Inherits from template
+
+# This is an ENTRY POINT - will be executed
+my_configuration:
+  demarches: [1234, 5678]           # This identifies an entry point
+  email_instructeur: test@example.com
+  when_ok:
+    - publipostage: *poster_facture # Real usage with etat_du_dossier
+```
+
+### Analysis Rules
+When analyzing publipostage/publipostage_v2 tasks:
+1. Only analyze tasks within blocks that have `demarches` attribute
+2. Ignore template definitions (blocks without `demarches`)
+3. Check that each actual task usage has `etat_du_dossier` either directly or inherited via `<<:`
+
+This approach avoids false positives when checking for missing `etat_du_dossier` attributes.
