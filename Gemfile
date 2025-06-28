@@ -13,6 +13,8 @@ gem 'pg', '>= 0.18', '< 2.0'
 gem 'puma', '>= 3.12.6'
 # Use SCSS for stylesheets
 gem 'dartsass-rails', '~> 0.5.1'
+gem 'json', '>= 2.10.0'
+gem 'sass-embedded', '~> 1.83.0'
 # Use Uglifier as compressor for JavaScript assets
 gem 'uglifier', '>= 1.3.0'
 # Transpile app-like JavaScript. Read more: https://github.com/rails/webpacker
