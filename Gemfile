@@ -41,7 +41,6 @@ gem 'jbuilder', '~> 2.5'
 # Reduces boot times through caching; required in config/boot.rb
 gem 'aws-sdk-s3'
 gem 'bootsnap', require: false
-gem 'bootstrap', '~> 5.3.3'
 gem 'caxlsx'
 gem 'combine_pdf'
 gem 'delayed_cron_job' # Cron jobs
