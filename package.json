@@ -2,9 +2,16 @@
   "name": "rosso",
   "private": true,
   "dependencies": {
+    "@popperjs/core": "^2.11.8",
     "@rails/webpacker": "5.4.4",
+    "autoprefixer": "^10.4.21",
+    "bootstrap": "^5.3.7",
+    "bootstrap-icons": "^1.13.1",
     "elliptic": "^6.5.7",
     "lodash": "^4.17.19",
+    "nodemon": "^3.1.10",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
     "sass": "^1.89.2",
     "websocket-extensions": "^0.1.4"
   },
@@ -15,6 +22,9 @@
     "build": "NODE_OPTIONS=--openssl-legacy-provider bin/webpack",
     "lint": "sass-lint -v",
     "lint:fix": "sass-lint-auto-fix",
-    "build:css": "node -e \"const path = require('fs').existsSync('/usr/local/bundle') ? '/usr/local/bundle/gems/bootstrap-5.3.3/assets/stylesheets' : require('child_process').execSync('bundle show bootstrap', {encoding: 'utf8'}).trim() + '/assets/stylesheets'; require('child_process').execSync('sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules --load-path=' + path, {stdio: 'inherit'});\""
+    "build:css": "bun run build:css:compile && bun run build:css:prefix",
+    "build:css:compile": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules",
+    "build:css:prefix": "postcss ./app/assets/builds/application.css --use=autoprefixer --output=./app/assets/builds/application.css",
+    "watch:css": "nodemon --watch ./app/assets/stylesheets/ --ext scss --exec \"bun run build:css\""
   }
 }

@@ -8,18 +8,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     gnupg \
     libpq-dev \
-    nodejs \
     ca-certificates \
     tzdata \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install bun
-RUN curl -fsSL https://bun.sh/install | bash
-
+# Install newer Node.js (18.x LTS) and Yarn
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g yarn
 
 # Add app user
 ENV APP_PATH=/app
 RUN useradd -m -d $APP_PATH userapp
+
+# Install bun as root and make it globally available
+RUN curl -fsSL https://bun.sh/install | bash && \
+    mv /root/.bun/bin/bun /usr/local/bin/bun && \
+    chmod +x /usr/local/bin/bun
+
 USER userapp
 WORKDIR $APP_PATH
 
@@ -33,7 +40,6 @@ RUN bundle config specific_platform x86_64-linux &&\
     bundle install
 
 # Install JS dependencies with bun
-ENV PATH="/app/.bun/bin:$PATH"
 RUN bun install
 
 # Copy rest of the application and precompile assets
@@ -42,8 +48,8 @@ COPY --chown=userapp:userapp . .
 ENV APP_HOST="localhost"\
     SECRET_KEY_BASE="bcab70b0157b199a918f0a7f1177e5995d085a919dfb0cc6b2a92dc30877f99dbad5144fe5f64e2a22da70161e6c9a39ede54b54a21a4fc4b78fdf3de55088b2"
 
-RUN RAILS_ENV=production bundle exec rails assets:precompile && \
-    bun run build:css
+# Build assets with CSS compilation using legacy OpenSSL for Node.js 18 compatibility
+RUN NODE_OPTIONS="--openssl-legacy-provider" RAILS_ENV=production bundle exec rails assets:precompile
 
 ### ---------- STAGE 2: Final image ----------
 FROM ruby:3.1.2-slim
@@ -62,11 +68,18 @@ RUN echo "deb http://deb.debian.org/debian bullseye main contrib" > /etc/apt/sou
     fonts-liberation \
     fonts-dejavu \
     fonts-freefont-ttf \
+    gnupg \
     libpq5 \
     libreoffice \
-    nodejs \
     ttf-mscorefonts-installer \
     tzdata \
+    unzip \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g yarn \
+    && curl -fsSL https://bun.sh/install | bash \
+    && mv /root/.bun/bin/bun /usr/local/bin/bun \
+    && chmod +x /usr/local/bin/bun \
     && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 

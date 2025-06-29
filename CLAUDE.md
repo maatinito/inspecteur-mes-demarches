@@ -245,3 +245,11 @@ When analyzing publipostage/publipostage_v2 tasks:
 3. Check that each actual task usage has `etat_du_dossier` either directly or inherited via `<<:`
 
 This approach avoids false positives when checking for missing `etat_du_dossier` attributes.
+
+## Project Guidelines
+
+### Commit Guidelines
+- Dans ce projet, les commits ne doivent ABSOLUMENT PAS mentionner Claude
+- Avant chaque commit, il est OBLIGATOIRE de :
+  * Exécuter un rubocop
+  * Exécuter un lint
