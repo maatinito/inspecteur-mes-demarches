@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Inspecteur Mes-Démarches is a Ruby on Rails application that validates and processes files uploaded to the "mes-démarches.gov.pf" platform, which is a government platform for French Polynesia. The application performs various checks and automated tasks on dossiers (application files) submitted through the platform.
 
+## RÈGLES CRITIQUES - À RESPECTER ABSOLUMENT
+
+### Commit Guidelines
+- Dans ce projet, les commits ne doivent ABSOLUMENT PAS mentionner Claude
+- Avant chaque commit, il est OBLIGATOIRE de :
+  * Exécuter un rubocop -A (pour corriger automatiquement)
+  * Exécuter un lint
+
 ## Development Commands
 
 ### Setup
@@ -247,9 +255,4 @@ When analyzing publipostage/publipostage_v2 tasks:
 This approach avoids false positives when checking for missing `etat_du_dossier` attributes.
 
 ## Project Guidelines
-
-### Commit Guidelines
-- Dans ce projet, les commits ne doivent ABSOLUMENT PAS mentionner Claude
-- Avant chaque commit, il est OBLIGATOIRE de :
-  * Exécuter un rubocop
-  * Exécuter un lint
+```
