@@ -45,11 +45,15 @@ RUN bun install
 # Copy rest of the application and precompile assets
 COPY --chown=userapp:userapp . .
 
-ENV APP_HOST="localhost"\
-    SECRET_KEY_BASE="bcab70b0157b199a918f0a7f1177e5995d085a919dfb0cc6b2a92dc30877f99dbad5144fe5f64e2a22da70161e6c9a39ede54b54a21a4fc4b78fdf3de55088b2"
+ENV APP_HOST="localhost"
+# SECRET_KEY_BASE should be provided at runtime via environment variables
 
 # Build assets with CSS compilation using legacy OpenSSL for Node.js 18 compatibility
-RUN NODE_OPTIONS="--openssl-legacy-provider" RAILS_ENV=production bundle exec rails assets:precompile
+# Use temporary SECRET_KEY_BASE for asset compilation only
+RUN NODE_OPTIONS="--openssl-legacy-provider" \
+    SECRET_KEY_BASE="temp-key-for-asset-compilation-only" \
+    RAILS_ENV=production \
+    bundle exec rails assets:precompile
 
 ### ---------- STAGE 2: Final image ----------
 FROM ruby:3.1.2-slim
