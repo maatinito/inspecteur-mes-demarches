@@ -5,6 +5,7 @@
     "@rails/webpacker": "5.4.4",
     "elliptic": "^6.5.7",
     "lodash": "^4.17.19",
+    "sass": "^1.89.2",
     "websocket-extensions": "^0.1.4"
   },
   "devDependencies": {
@@ -13,6 +14,7 @@
   "scripts": {
     "build": "NODE_OPTIONS=--openssl-legacy-provider bin/webpack",
     "lint": "sass-lint -v",
-    "lint:fix": "sass-lint-auto-fix"
+    "lint:fix": "sass-lint-auto-fix",
+    "build:css": "node -e \"const path = require('fs').existsSync('/usr/local/bundle') ? '/usr/local/bundle/gems/bootstrap-5.3.3/assets/stylesheets' : require('child_process').execSync('bundle show bootstrap', {encoding: 'utf8'}).trim() + '/assets/stylesheets'; require('child_process').execSync('sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules --load-path=' + path, {stdio: 'inherit'});\""
   }
 }

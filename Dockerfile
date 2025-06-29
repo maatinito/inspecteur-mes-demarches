@@ -13,9 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-    apt-get update && apt-get install -y --no-install-recommends yarn
+# Install bun
+RUN curl -fsSL https://bun.sh/install | bash
 
 
 # Add app user
@@ -25,16 +24,17 @@ USER userapp
 WORKDIR $APP_PATH
 
 # Copy app files and install dependencies
-COPY --chown=userapp:userapp Gemfile Gemfile.lock package.json yarn.lock ./
+COPY --chown=userapp:userapp Gemfile Gemfile.lock package.json bun.lock ./
 
-# sassc https://github.com/sass/sassc-ruby/issues/146#issuecomment-608489863
+# Install Ruby gems
 RUN bundle config specific_platform x86_64-linux &&\
-    bundle config build.sassc --disable-march-tune-native &&\
     bundle config deployment true &&\
     bundle config without "development test" &&\
     bundle install
 
-RUN yarn install
+# Install JS dependencies with bun
+ENV PATH="/app/.bun/bin:$PATH"
+RUN bun install
 
 # Copy rest of the application and precompile assets
 COPY --chown=userapp:userapp . .
@@ -42,7 +42,8 @@ COPY --chown=userapp:userapp . .
 ENV APP_HOST="localhost"\
     SECRET_KEY_BASE="bcab70b0157b199a918f0a7f1177e5995d085a919dfb0cc6b2a92dc30877f99dbad5144fe5f64e2a22da70161e6c9a39ede54b54a21a4fc4b78fdf3de55088b2"
 
-RUN RAILS_ENV=production bundle exec rails assets:precompile
+RUN RAILS_ENV=production bundle exec rails assets:precompile && \
+    bun run build:css
 
 ### ---------- STAGE 2: Final image ----------
 FROM ruby:3.1.2-slim
@@ -66,7 +67,6 @@ RUN echo "deb http://deb.debian.org/debian bullseye main contrib" > /etc/apt/sou
     nodejs \
     ttf-mscorefonts-installer \
     tzdata \
-    yarn \
     && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 
