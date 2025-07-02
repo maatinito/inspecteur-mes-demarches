@@ -63,7 +63,7 @@ module Spjp
     end
 
     def unit_prices
-      non_lucrative = annotation(@champ_non_lucratif).value
+      non_lucrative = annotation(@champ_non_lucratif)&.value || false
       non_lucrative ? @prices.transform_values { |v| v.map { |p| p * 0.2 } } : @prices
     end
 
