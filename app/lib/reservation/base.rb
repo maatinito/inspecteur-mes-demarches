@@ -94,7 +94,8 @@ module Reservation
     end
 
     def send_not_available
-      SendMessage.send(@dossier, instructeur_id_for(@demarche, @dossier), @params[:message_indisponible], check_not_sent: true)
+      message = instanciate(@params[:message_indisponible])
+      SendMessage.send(@dossier, instructeur_id_for(@demarche, @dossier), message, check_not_sent: true)
     end
 
     def send_proposal_message(available_sessions)
