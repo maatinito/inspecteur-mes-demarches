@@ -133,10 +133,10 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         cache-from: type=registry,ref=${{ env.repo }}:buildcache
         cache-to:   type=registry,ref=${{ env.repo }}:buildcache,mode=max
-    - name: Update repo description
-      uses: peter-evans/dockerhub-description@v4
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
-        # sets to github.repository when getting back to maatinito dockerhub account
-        repository: "${{ env.repo }}"
+#    - name: Update repo description
+#      uses: peter-evans/dockerhub-description@v4
+#      with:
+#        username: ${{ secrets.DOCKERHUB_USERNAME }}
+#        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+#         sets to github.repository when getting back to maatinito dockerhub account
+#        repository: "${{ env.repo }}"
