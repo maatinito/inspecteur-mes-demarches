@@ -122,7 +122,3 @@ end
 def field_name(base, index)
   index > 0 ? "#{base} #{index}" : base
 end
-
-VCR.use_cassette('mes_demarches') do
-  DemarcheActions.get_demarche(217, 'DESETI')
-end

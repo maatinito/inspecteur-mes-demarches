@@ -28,12 +28,16 @@ module Reservation
       days_until_next_friday = (12 - date.wday) % 7
       days_until_next_friday = 7 if days_until_next_friday.zero?
       date += days_until_next_friday.days
+
+      end_date = 2.months.since
       sessions = []
-      2.times do
+
+      while sessions.size < 2 && date <= end_date
         session = find_or_create_session(SESSION_NAME, date)
-        sessions << session if session.bookings.size < session.capacity
+        sessions << session if session&.bookings&.size&.< session&.capacity
         date += 7.days
       end
+
       sessions
     end
   end

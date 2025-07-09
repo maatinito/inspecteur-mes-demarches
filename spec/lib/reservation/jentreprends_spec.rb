@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+require File.expand_path('../../../app/lib/dossier_actions', __dir__)
 
 RSpec.describe 'Reservation::Jentreprends' do
   include ActiveSupport::Testing::TimeHelpers
@@ -70,7 +71,7 @@ RSpec.describe 'Reservation::Jentreprends' do
     context 'with availabity message' do
       let(:controle) { FactoryBot.build :reservation_jentreprends, :with_disponibilites }
       let(:unavailable_session) { FactoryBot.create :session, capacity: 0, date: Time.zone.parse('2024-08-09') }
-      let(:message) { "disponibilites * 02/08 (1 restants)\n" }
+      let(:message) { "disponibilites * 02/08 (1 restants)\n* 16/08 (1 restants)\n" }
       it 'cannot book and propose alternative dates', vcr: { cassette_name: 'booking-1' } do
         travel_to Time.zone.local(2024, 8, 1, 12, 12, 0) do
           booking

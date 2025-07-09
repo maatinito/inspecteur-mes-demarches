@@ -73,6 +73,10 @@ RSpec.configure do |config|
   # config.filter_gems_from_backtrace("gem name")
 end
 
+VCR.use_cassette('mes_demarches') do
+  DemarcheActions.get_demarche(217, 'DESETI')
+end
+
 class WhenTask < InspectorTask
   def process(_demarche, _dossier); end
 end
