@@ -16,7 +16,7 @@ module Reservation
     end
 
     def find_or_create_session(name, date)
-      return nil if date.wday != 5 || date < Date.today || date > 15.days.since
+      return nil if date.wday != 5 || date < Date.today
 
       Session.find_or_create_by(name:, date:) do |session|
         session.update(capacity: @params[:capacite])
