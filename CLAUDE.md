@@ -255,4 +255,13 @@ When analyzing publipostage/publipostage_v2 tasks:
 This approach avoids false positives when checking for missing `etat_du_dossier` attributes.
 
 ## Project Guidelines
-```
+
+## Terminologie et Clarifications
+
+### Distinction entre 'champ' et 'annotation'
+- Le terme 'champ' du dossier est ambigu car il désigne parfois des annotations privées
+- Les champs correspondent aux valeurs entrées par l'usager
+- Les annotations privées correspondent aux informations données par les agents
+- Par abus de langage, on utilise souvent 'champ' pour les deux, ce qui peut fausser les spécifications
+- Il faut toujours savoir où se situe la donnée pour utiliser soit `param_field`, soit `param_annotation`
+- Seules les annotations privées peuvent être modifiées à travers la classe `SetAnnotationValue`

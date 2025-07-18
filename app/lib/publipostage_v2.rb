@@ -19,7 +19,7 @@ class PublipostageV2 < Publipostage
   def paragraph_substitution(doc, fields)
     doc.paragraphs.each do |p|
       p.each_text_run do |tr|
-        next unless tr.text.include?('--')
+        next unless tr.text.include?('-sabl-')
 
         [*fields].each do |k, v|
           # ActiveSupport::NumberHelper.number_to_currency(123456789, unit: '', delimiter: ' ', precision: 0)
