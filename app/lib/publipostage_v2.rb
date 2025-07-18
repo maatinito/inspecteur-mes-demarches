@@ -68,7 +68,7 @@ class PublipostageV2 < Publipostage
     variable = match[1].presence || match[2] if match
     if variable
       options = text.scan(/\\(. (?:\w+|"[^"]+"))/).flatten.to_set
-      value = fields.key?(variable) ? fields[variable] : "[#{variable} inconnue]"
+      value = fields.fetch(variable) { Rails.env.development? || Rails.env.test? ? "[#{variable} inconnue]" : '' }
       value = Array(value).map(&:to_s).join(', ')
       value = normalize_value(value, options)
       variable = Regexp.escape(variable)
@@ -123,7 +123,7 @@ class PublipostageV2 < Publipostage
         insert_row_before(last_row, sub_fields.presence || {})
       end
       last_row.remove!
-    else
+    elsif Rails.env.development? || Rails.env.test?
       keys = fields.keys.join(', ')
       p = table.rows[0]&.cells&.[](0)&.paragraphs&.[](0)&.text_runs&.[](0)
       p&.text = "La table a pour titre #{field} mais aucun champ contenant une liste porte ce nom. Clés disponibles: #{keys}"
