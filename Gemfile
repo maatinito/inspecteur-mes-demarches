@@ -55,7 +55,7 @@ gem 'iban-tools'
 gem 'jquery-rails'
 gem 'mailjet'
 gem 'mime-types'
-gem 'net-imap', require: false
+gem 'net-imap', '>= 0.5.7', require: false
 gem 'net-pop', require: false
 gem 'net-smtp', require: false
 gem 'phonelib'
@@ -92,6 +92,7 @@ group :development do
   gem 'listen', '~> 3.7'
   gem 'web-console', '>= 3.3.0'
   # Spring speeds up development by keeping your application running in the background. Read more: https://github.com/rails/spring
+  gem 'bundler-audit', require: false
   gem 'haml-lint'
   gem 'letter_opener_web'
   gem 'mry'
