@@ -157,7 +157,7 @@ class PublipostageV2 < Publipostage
     when 'PieceJustificativeChamp'
       excel_to_rows(champ)
     when 'RepetitionChamp'
-      champ.rows.map { |repetition| repetition.champs.each_with_object({}) { |sous_champ, hash| hash[sous_champ.label] = champ_value(sous_champ) } }
+      bloc_to_rows(champ).map { |repetition| repetition.champs.each_with_object({}) { |sous_champ, hash| hash[sous_champ.label] = champ_value(sous_champ) } }
     else
       super
     end

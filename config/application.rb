@@ -29,7 +29,7 @@ Bundler.require(*Rails.groups)
 module Rosso
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
-    config.load_defaults 6.0
+    config.load_defaults 7.0
 
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration can go into files in config/initializers
@@ -38,6 +38,9 @@ module Rosso
     config.time_zone = 'Pacific/Tahiti'
 
     config.active_job.queue_adapter = :delayed_job
+
+    # Disable legacy connection handling (Rails 7.0+ recommendation)
+    config.active_record.legacy_connection_handling = false
 
     I18n.available_locales = %i[en fr]
     I18n.default_locale = :fr
