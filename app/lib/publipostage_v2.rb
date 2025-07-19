@@ -19,7 +19,7 @@ class PublipostageV2 < Publipostage
   def paragraph_substitution(doc, fields)
     doc.paragraphs.each do |p|
       p.each_text_run do |tr|
-        next unless tr.text.include?('-sabl-')
+        next unless tr.text.include?('--')
 
         [*fields].each do |k, v|
           # ActiveSupport::NumberHelper.number_to_currency(123456789, unit: '', delimiter: ' ', precision: 0)
@@ -157,7 +157,7 @@ class PublipostageV2 < Publipostage
     when 'PieceJustificativeChamp'
       excel_to_rows(champ)
     when 'RepetitionChamp'
-      champ.rows.map { |repetition| repetition.champs.each_with_object({}) { |sous_champ, hash| hash[sous_champ.label] = champ_value(sous_champ) } }
+      bloc_to_rows(champ).map { |repetition| repetition.champs.each_with_object({}) { |sous_champ, hash| hash[sous_champ.label] = champ_value(sous_champ) } }
     else
       super
     end
