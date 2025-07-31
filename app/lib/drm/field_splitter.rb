@@ -18,8 +18,8 @@ module Drm
       super + %i[champ_source attributs_cibles]
     end
 
-    def process_row(_row, output)
-      source_field = field(params[:champ_source])
+    def process_row(row, output)
+      source_field = dossier_field(row, params[:champ_source])
       return unless source_field&.value
 
       values = source_field.value.split(SEPARATOR_REGEX)
