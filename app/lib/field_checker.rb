@@ -173,7 +173,7 @@ class FieldChecker < InspectorTask
       date_value(champ, '%d/%m/%Y')
     when 'NumeroDnChamp'
       "#{champ.numero_dn}|#{champ.date_de_naissance}"
-    when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp'
+    when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp', 'ReferentielDePolynesieChamp'
       champ.string_value
     when 'PieceJustificativeChamp'
       champ.files.map(&:filename).join(',')

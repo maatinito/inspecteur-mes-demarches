@@ -167,6 +167,10 @@ module MesDemarches
       ... on VisaChamp {
           stringValue
       }
+      ... on ReferentielDePolynesieChamp {
+          stringValue
+          columns { name value }
+      }
     }
 
     fragment DossierInfo on Dossier {
