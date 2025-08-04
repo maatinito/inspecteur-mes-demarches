@@ -165,7 +165,8 @@ GEM
     factory_bot_rails (6.4.3)
       factory_bot (~> 6.4)
       railties (>= 5.0.0)
-    ffi (1.17.1)
+    ffi (1.17.1-x86_64-darwin)
+    ffi (1.17.1-x86_64-linux-gnu)
     fiber-storage (1.0.1)
     fugit (1.11.1)
       et-orbi (~> 1, >= 1.2.11)
@@ -561,7 +562,7 @@ DEPENDENCIES
   webmock
 
 RUBY VERSION
-   ruby 3.1.2p20
+   ruby 3.3.1p55
 
 BUNDLED WITH
    2.3.23

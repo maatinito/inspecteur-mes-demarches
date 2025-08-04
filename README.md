@@ -16,7 +16,7 @@
 
 ## Technologies
 
-- **Ruby** 3.1.2
+- **Ruby** 3.3.1
 - **Rails** 7.0.4
 - **PostgreSQL** 16.9
 - **Docker** pour le déploiement
@@ -25,7 +25,7 @@
 
 ### Prérequis
 
-- Ruby 3.1.2
+- Ruby 3.3.1
 - PostgreSQL 16.9
 - Bundle
 

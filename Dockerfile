@@ -1,5 +1,5 @@
 ### ---------- STAGE 1: Builder ----------
-FROM ruby:3.1.2-slim AS builder
+FROM ruby:3.3.1-slim AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -56,7 +56,7 @@ RUN NODE_OPTIONS="--openssl-legacy-provider" \
     bundle exec rails assets:precompile
 
 ### ---------- STAGE 2: Final image ----------
-FROM ruby:3.1.2-slim
+FROM ruby:3.3.1-slim
 
 # Install runtime dependencies + LibreOffice + Fonts
 ENV DEBIAN_FRONTEND=noninteractive
