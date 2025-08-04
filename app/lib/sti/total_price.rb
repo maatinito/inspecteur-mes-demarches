@@ -33,6 +33,7 @@ module Sti
 
     def set_total_price
       total = price_for(1500)
+      total += price_for(2000)
       total += price_for(6000)
       total += price_for(200)
       total += price_for_words
