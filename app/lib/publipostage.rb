@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'set'
-
 class Publipostage < FieldChecker
   OUTPUT_DIR = 'tmp/publipost'
   BATCH_SIZE = 2.5 * 1024 * 1024

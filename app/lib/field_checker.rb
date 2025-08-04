@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'set'
-
 class FieldChecker < InspectorTask
   attr_accessor :dossier
   attr_reader :messages, :accessed_fields, :updated_dossiers, :dossiers_to_recheck
