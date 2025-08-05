@@ -15,12 +15,9 @@ class NumeroDn < FieldChecker
   end
 
   def check(dossier)
-    puts "Dossier #{dossier.number}"
     champs = dossier_fields(dossier, @params[:champ])
-    puts "#{dossier.number} #{champs}"
     if champs.present?
       champs.map do |champ|
-        puts "#{champ.numero_dn}:#{champ.date_de_naissance}"
         status = verify(champ.numero_dn, champ.date_de_naissance)
         add_message(@params[:champ], "#{champ.numero_dn}:#{champ.date_de_naissance}", @params[status]) if status != :good_dn
       end
@@ -38,8 +35,6 @@ class NumeroDn < FieldChecker
       return :message_format_ddn
     end
     result = @cps.verify({ dn => date })
-    puts result
-    puts '--------------------------'
     case result[dn]
     when 'true'
       :good_dn

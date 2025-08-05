@@ -79,12 +79,10 @@ module Baserow
       }
 
       request_options.merge!(options)
-      puts "url=#{url}, headers=#{@headers}"
       Typhoeus::Request.new(url, request_options).run
     end
 
     def handle_response(response)
-      pp response
       case response.code
       when 200, 201, 202
         JSON.parse(response.body)
@@ -108,7 +106,6 @@ module Baserow
         value = value.to_json if value.is_a? Hash
         "#{key}=#{CGI.escape(value.to_s)}"
       end.join('&')
-      puts query_string
       "?#{query_string}"
     end
 

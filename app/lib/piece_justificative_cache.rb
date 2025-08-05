@@ -23,7 +23,6 @@ class PieceJustificativeCache
 
     def put(src)
       dst = pathname(src, FileUpload.checksum(src))
-      puts "#{src} ==> #{dst}"
       FileUtils.cp(src, dst)
       maintenance
     end
