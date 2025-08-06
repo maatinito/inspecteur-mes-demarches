@@ -12,6 +12,7 @@ module Sti
       bill = []
       add_product(row, bill, 'Nombre de mots', 'Traductions au mot') { |count| (count / 100.0).ceil.to_i * 1500 }
       add_product(row, bill, 'Traductions à 1500') { |count| count * 1500 }
+      add_product(row, bill, 'Traductions à 2000') { |count| count * 2000 }
       add_product(row, bill, 'Traductions à 6000') { |count| count * 6000 }
       add_product(row, bill, 'Traductions à 200') { |count| count * 200 }
       add_product(row, bill, 'Pages de copies') { |count| count * 100 }
