@@ -4,24 +4,31 @@ require 'graphql/client'
 require 'graphql/client/http'
 
 module MesDemarches
-  # Configure GraphQL endpoint using the basic HTTP network adapter.
-  host = ENV.fetch('GRAPHQL_HOST', 'https://www.mes-demarches.gov.pf')
-  graphql_url = "#{host}/api/v2/graphql"
-  HTTP = GraphQL::Client::HTTP.new(graphql_url) do
+  # Custom HTTP adapter class to avoid nested method definitions
+  class CustomHTTPAdapter < GraphQL::Client::HTTP
     def headers(_context)
       { Authorization: "Bearer #{ENV.fetch('GRAPHQL_BEARER', nil)}" }
     end
+
+    def connection
+      @connection ||= begin
+        conn = super
+        conn.read_timeout = 60
+        conn.open_timeout = 60
+        conn
+      end
+    end
   end
+
+  # Configure GraphQL endpoint using the custom HTTP network adapter.
+  host = ENV.fetch('GRAPHQL_HOST', 'https://www.mes-demarches.gov.pf')
+  graphql_url = "#{host}/api/v2/graphql"
+  HTTP = CustomHTTPAdapter.new(graphql_url)
 
   def self.http(host)
     Rails.cache.fetch("#{host} http client") do
       graphql_url = "#{host}/api/v2/graphql"
-      GraphQL::Client::HTTP.new(graphql_url) do
-        lambda do
-          # headers
-          { Authorization: "Bearer #{ENV.fetch('GRAPHQL_BEARER', nil)}" }
-        end
-      end
+      CustomHTTPAdapter.new(graphql_url)
     end
   end
 
@@ -38,7 +45,7 @@ module MesDemarches
   Client = GraphQL::Client.new(schema: Schema, execute: HTTP)
 
   def self.query(definition, variables: {}, context: {})
-    max_retries = 10
+    max_retries = 3
     retry_count = 0
     success = false
 
