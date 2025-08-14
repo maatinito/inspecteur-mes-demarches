@@ -46,12 +46,12 @@ module Tftn
 
     def fetch_course_name
       champ_cours = param_field(:champ_cours)
-      if champ_cours.blank? || champ_cours.value.blank?
+      if champ_cours.blank? || champ_cours.string_value.blank?
         add_message("Champ #{@params[:champ_cours]} vide.")
         save_messages
         return nil
       end
-      champ_cours.value
+      champ_cours.string_value
     end
 
     def fetch_nb_tickets_max

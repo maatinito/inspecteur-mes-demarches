@@ -41,7 +41,7 @@ RSpec.describe Tftn::Tickets do
 
   let(:session_results) { { 'count' => 5, 'results' => Array.new(5) { |i| { 'id' => i } } } }
 
-  let(:champ_cours) { double('ChampCours', value: nom_cours, blank?: false) }
+  let(:champ_cours) { double('ChampCours', string_value: nom_cours, blank?: false) }
   let(:champ_nb_tickets) { double('ChampNbTickets', value: 5, blank?: false) }
 
   subject do
