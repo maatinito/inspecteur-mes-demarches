@@ -135,6 +135,7 @@ class FieldChecker < InspectorTask
         r += select_champ(object.champs, name) if object.respond_to?(:champs)
         r += select_champ(object.annotations, name) if object.respond_to?(:annotations)
         r += attributes(object, name) if object.respond_to?(name)
+        r += select_referentiel_column(object, name) if referentiel_de_polynesie?(object)
         r
       end
       Rails.logger.warn("Sur le dossier #{@dossier.number}, le champ #{field} est vide.") if log_empty && objects.blank?
@@ -188,6 +189,49 @@ class FieldChecker < InspectorTask
     else
       ''
     end
+  end
+
+  def referentiel_de_polynesie?(object)
+    object.respond_to?(:__typename) && object.__typename == 'ReferentielDePolynesieChamp'
+  end
+
+  def select_referentiel_column(champ, column_name)
+    return [] unless champ.respond_to?(:columns)
+
+    column = champ.columns.find { |c| c.name == column_name }
+    return [] unless column
+
+    [convert_column_value(column.value)]
+  end
+
+  def convert_column_value(value)
+    return nil if value.nil? || value == ''
+
+    # Try to parse as boolean
+    return true if value.downcase == 'true' || value.downcase == 'vrai'
+    return false if value.downcase == 'false' || value.downcase == 'faux'
+
+    # Try to parse as date
+    if value.match?(%r{^\d{1,4}[-/\.]\d{1,2}[-/\.]\d{1,4}$})
+      begin
+        # Force French format for dates with slashes (dd/mm/yyyy)
+        return Date.strptime(value, '%d/%m/%Y') if value.match?(%r{^\d{1,2}/\d{1,2}/\d{4}$})
+
+        return Date.parse(value)
+      rescue Date::Error
+        # Not a valid date, continue
+      end
+    end
+
+    # Try to parse as number
+    if value.match?(/^-?\d+$/)
+      return value.to_i
+    elsif value.match?(/^-?\d+\.\d+$/)
+      return value.to_f
+    end
+
+    # Return as string by default
+    value
   end
 
   def add_message(champ, valeur, message)
