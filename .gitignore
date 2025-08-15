@@ -39,3 +39,4 @@ yarn-debug.log*
 /remote/
 /robot-mes-demarches-production/
 /robot-mes-demarches-staging/
+schema.json

@@ -178,6 +178,24 @@ module MesDemarches
           stringValue
           columns { name value }
       }
+      ... on CommuneDePolynesieChamp {
+          stringValue
+          commune {
+              name
+              postalCode
+              island
+              archipelago
+          }
+      }
+      ... on CodePostalDePolynesieChamp {
+          stringValue
+          commune {
+              name
+              postalCode
+              island
+              archipelago
+          }
+      }
     }
 
     fragment DossierInfo on Dossier {
