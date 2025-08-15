@@ -266,10 +266,58 @@ class FieldChecker < InspectorTask
   end
 
   def instanciate(template, source = nil)
+    # Traiter les expressions ternaires en premier
+    template = process_ternary_expressions(template, source)
+
+    # Ensuite traiter les expressions normales
     template.gsub(/{(?:([^{};]*);)?([^{}]+?)(?:;([^{};]*))?}/) do |_matched|
       m = ::Regexp.last_match # 3 matches : prefix, variable name to look for and postfix
       value = get_values_of(source, m[2], '').join(', ')
       value.present? ? "#{m[1]}#{value}#{m[3]}" : ''
+    end
+  end
+
+  def process_ternary_expressions(template, source)
+    # Syntaxes supportées: {field?yes:no}, {field ? yes : no}, {field ? "yes text" : "no text"}
+    template.gsub(/{([^{}]+\?[^{}]+:[^{}]+)}/) do |_matched|
+      expression = ::Regexp.last_match(1)
+      parse_and_evaluate_ternary(expression, source)
+    end
+  end
+
+  private
+
+  def parse_and_evaluate_ternary(expression, source)
+    question_pos = expression.index('?')
+    colon_pos = expression.rindex(':')
+
+    return "{#{expression}}" unless question_pos && colon_pos && question_pos < colon_pos
+
+    condition_field = expression[0...question_pos].strip
+    true_value = expression[(question_pos + 1)...colon_pos].strip.gsub(/^["']|["']$/, '')
+    false_value = expression[(colon_pos + 1)..].strip.gsub(/^["']|["']$/, '')
+
+    value = get_values_of(source, condition_field, nil).first
+    evaluate_ternary_condition(value, true_value, false_value)
+  end
+
+  def evaluate_ternary_condition(value, true_value, false_value)
+    case value
+    when TrueClass then true_value
+    when FalseClass, nil then false_value
+    when String then evaluate_string_condition(value, true_value, false_value)
+    when Numeric then value.zero? ? false_value : true_value
+    else value.present? ? true_value : false_value
+    end
+  end
+
+  def evaluate_string_condition(value, true_value, false_value)
+    if %w[true oui yes vrai t o y v 1].include?(value.downcase)
+      true_value
+    elsif %w[false non no faux f n 0].include?(value.downcase)
+      false_value
+    else
+      value.present? ? true_value : false_value
     end
   end
 

@@ -86,5 +86,58 @@ RSpec.describe FieldChecker do
         expect(subject).to eq('--(Arue)--')
       end
     end
+
+    context 'ternary expressions' do
+      let(:source) { { validated: true, status: false, name: 'John', empty: nil } }
+
+      context 'simple ternary with boolean true' do
+        let(:template) { '{validated?Approved:Rejected}' }
+        it 'returns true value' do
+          expect(subject).to eq('Approved')
+        end
+      end
+
+      context 'simple ternary with boolean false' do
+        let(:template) { '{status?Active:Inactive}' }
+        it 'returns false value' do
+          expect(subject).to eq('Inactive')
+        end
+      end
+
+      context 'ternary with spaces' do
+        let(:template) { '{validated ? Yes : No}' }
+        it 'handles spaces correctly' do
+          expect(subject).to eq('Yes')
+        end
+      end
+
+      context 'ternary with quoted values' do
+        let(:template) { '{validated ? "Avis favorable" : "Avis défavorable"}' }
+        it 'removes quotes from values' do
+          expect(subject).to eq('Avis favorable')
+        end
+      end
+
+      context 'ternary with nil value' do
+        let(:template) { '{empty?Present:Missing}' }
+        it 'returns false value for nil' do
+          expect(subject).to eq('Missing')
+        end
+      end
+
+      context 'ternary with non-empty string' do
+        let(:template) { '{name?HasName:NoName}' }
+        it 'returns true value for present string' do
+          expect(subject).to eq('HasName')
+        end
+      end
+
+      context 'combined with regular template' do
+        let(:template) { 'Status: {validated?Approved:Rejected} for {name}' }
+        it 'processes both ternary and regular expressions' do
+          expect(subject).to eq('Status: Approved for John')
+        end
+      end
+    end
   end
 end
