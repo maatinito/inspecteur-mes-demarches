@@ -1,0 +1,142 @@
+# Exemple de configuration pour AvisToBlocRepetable
+# Copie les avis d'un dossier dans un bloc répétable d'annotations privées
+#
+# IMPORTANT: Ce plugin fait une requête GraphQL dédiée pour récupérer les avis
+# car ils ne sont pas inclus dans les requêtes standard des dossiers (lazy loading)
+
+# Configuration basique
+avis_consolidation_simple:
+  demarches: [1234, 5678]
+  email_instructeur: instructeur@gov.pf
+  when_ok:
+    - avis_to_bloc_repetable:
+        etat_du_dossier: en_instruction
+        bloc_destination: "Synthèse des avis"
+        attributs:
+          'Expert': '{expert.email}'
+          'Question': '{question}'
+          'Réponse': '{reponse}'
+          'Avis': '{question_answer?Favorable:Défavorable}'  # snake_case recommandé
+          'Date': '{date_reponse}'
+
+# Configuration avec intégration Baserow
+avis_consolidation_avec_baserow:
+  demarches: [1234, 5678]
+  email_instructeur: instructeur@gov.pf
+  when_ok:
+    - avis_to_bloc_repetable:
+        etat_du_dossier: en_instruction
+        bloc_destination: "Avis experts consolidés"
+        
+        # Configuration Baserow pour enrichir les données experts
+        baserow:
+          table_id: 12345
+          config_name: 'tftn'  # optionnel, utilise le token par défaut si absent
+          table_name: 'Experts'  # optionnel, par défaut 'Experts'
+          match_column: 'email'  # colonne pour matcher l'expert
+        
+        # Mapping des colonnes du bloc vers les données
+        attributs:
+          # Données de l'avis (syntax {field} - snake_case recommandé)
+          'Question posée': '{question}'
+          'Réponse fournie': '{reponse}'
+          'Date de l'avis': '{date_reponse}'
+          
+          # Données expert avec notation pointée
+          'Email expert': '{expert.email}'
+          
+          # Données Baserow fusionnées
+          'Service': '{organisation}'
+          'Fonction': '{fonction}'
+          'Téléphone': '{telephone}'
+          
+          # Expressions ternaires pour la logique métier (snake_case)
+          'Avis favorable': '{question_answer?Oui:Non}'
+          'Statut': '{question_answer?"Avis favorable":"Avis défavorable"}'
+          'Expert renseigné': '{expert.email?Oui:Non}'
+          
+          # Combinaisons complexes
+          'Référence': 'Avis de {organisation} - {question_answer?Favorable:Défavorable}'
+          'Résumé': '{question_label} : {question_answer?Oui:Non}'
+          
+
+# Configuration avec filtres
+avis_consolidation_avec_filtres:
+  demarches: [1234]
+  email_instructeur: instructeur@gov.pf
+  when_ok:
+    - avis_to_bloc_repetable:
+        etat_du_dossier: en_instruction
+        bloc_destination: "Avis filtrés"
+        
+        # Filtres pour sélectionner les avis à inclure
+        filtres:
+          # Inclure seulement ces experts
+          expert_emails: 
+            - 'expert1@gov.pf'
+            - 'expert2@gov.pf'
+          # Inclure seulement les avis avec réponse
+          avec_reponse: true
+          # Inclure seulement les avis avec question fermée répondue
+          avec_question_fermee: true
+        
+        attributs:
+          'Expert': '{expert.email}'
+          'Avis': '{question_answer?Favorable:Défavorable}'
+          'Réponse': '{reponse}'
+
+# Configuration avancée avec expressions ternaires complexes
+avis_consolidation_avancee:
+  demarches: [1234]
+  email_instructeur: instructeur@gov.pf
+  when_ok:
+    - avis_to_bloc_repetable:
+        etat_du_dossier: en_instruction
+        bloc_destination: "Tableau de bord avis"
+        
+        baserow:
+          table_id: 12345
+          match_column: 'email'
+        
+        attributs:
+          # Informations expert enrichies
+          'Identité': '{nom_complet ? nom_complet : expert.email}'
+          'Organisation': '{organisation ? organisation : "Non renseignée"}'
+          'Contact': '{telephone ? telephone : email}'
+          
+          # Analyse de l'avis avec logique métier (snake_case)
+          'Type avis': '{question_label ? "Question fermée" : "Question ouverte"}'
+          'Répondu': '{date_reponse ? "Oui" : "En attente"}'
+          'Favorable': '{question_answer ? "✓" : "✗"}'
+          'Délai réponse': '{date_reponse ? "Dans les délais" : "En attente"}'
+          
+          # Synthèse pour publipostage
+          'Mention avis': '{question_answer ? "après avis favorable" : "malgré avis défavorable"}'
+          'Décision': 'Avis {question_answer ? "favorable" : "défavorable"} de {organisation}'
+          
+          # Données techniques
+          'ID Avis': '{id}'
+          'Expert ID': '{expert.id}'
+          'Timestamp': '{date_reponse}'
+
+# Cas d'usage spécifique : Génération d'arrêtés avec avis
+arrete_avec_avis:
+  demarches: [9999]
+  email_instructeur: secretariat@gov.pf
+  when_ok:
+    # D'abord consolider les avis
+    - avis_to_bloc_repetable:
+        bloc_destination: "Avis pour arrêté"
+        baserow:
+          table_id: 12345
+          match_column: 'email'
+        attributs:
+          'Service consultante': '{organisation}'
+          'Avis': '{question_answer ? "favorable" : "défavorable"}'
+          'Commentaire': '{reponse ? reponse : "Pas de commentaire"}'
+    
+    # Puis générer l'arrêté
+    - publipostage_v2:
+        modele: "arrete_avec_avis.docx"
+        champ_cible: "Arrêté final"
+        # Le template peut utiliser le bloc "Avis pour arrêté" généré ci-dessus

@@ -83,6 +83,7 @@ Metrics/BlockLength:
     - 'spec/lib/field_checker_referentiel_spec.rb'
     - 'spec/lib/publipostage_v2_expansion_spec.rb'
     - 'spec/lib/field_checker_spec.rb'
+    - 'spec/lib/avis_to_bloc_repetable_spec.rb'
     - 'lib/lppr.rb'
   Max: 100
 

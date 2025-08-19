@@ -65,6 +65,40 @@ module Baserow
       results['results']
     end
 
+    # Search rows with human-readable column names using user_field_names parameter
+    def search_normalized(field_name, query)
+      params = {
+        'filters' => {
+          'filter_type' => 'AND',
+          'filters' => [{
+            'field' => field_name,
+            'type' => 'contains',
+            'value' => query
+          }]
+        }.to_json,
+        'user_field_names' => true
+      }
+      results = client.list_rows(table_id, params)
+      results['results']
+    end
+
+    # Find rows with human-readable column names using user_field_names parameter
+    def find_by_normalized(field_name, value)
+      params = {
+        'filters' => {
+          'filter_type' => 'AND',
+          'filters' => [{
+            'field' => field_name,
+            'type' => 'equal',
+            'value' => value
+          }]
+        }.to_json,
+        'user_field_names' => true
+      }
+      results = client.list_rows(table_id, params)
+      results['results']
+    end
+
     # Get all rows in the table (paginated)
     def all(page = 1, size = 100)
       params = {
