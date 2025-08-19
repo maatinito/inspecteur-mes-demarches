@@ -76,16 +76,42 @@ RSpec.describe Tftn::Tickets do
   after { travel_back }
 
   context 'lorsque tous les champs sont correctement renseignés' do
-    it 'calcule le prix total et le stocke dans l\'annotation privée' do
-      # Le prix total attendu est le nombre de séances (5) x prix par séance (1500) = 7500
-      expect(controle).to receive(:save_annotation).with('Montant à payer', 7500)
-      expect(controle).to receive(:save_annotation).with('Quota manuel', true)
+    context 'sans quota manuel' do
+      let(:cours_results) { { 'results' => [{ 'field_11' => false }] } }
 
-      # Vérifier que le message usager est également stocké
-      message_attendu = 'Vous avez demandé 5 tickets pour le cours Aquarelle. Le montant à payer est de 7500 XPF (5 séances à 1500 XPF).'
-      expect(controle).to receive(:save_annotation).with('Message explicatif', message_attendu)
+      it 'calcule le prix total et le stocke dans l\'annotation privée' do
+        # Le prix total attendu est le nombre de séances (5) x prix par séance (1500) = 7500
+        expect(controle).to receive(:save_annotation).with('Montant à payer', 7500)
+        expect(controle).to receive(:save_annotation).with('Quota manuel', false)
 
-      subject
+        # Vérifier que le message usager est également stocké
+        message_attendu = 'Vous avez demandé 5 tickets pour le cours Aquarelle. Le montant à payer est de 7500 XPF (5 séances à 1500 XPF).'
+        expect(controle).to receive(:save_annotation).with('Message explicatif', message_attendu)
+
+        subject
+      end
+    end
+
+    context 'avec quota manuel' do
+      let(:cours_results) { { 'results' => [{ 'field_11' => true }] } }
+
+      it 'ne stocke pas le montant dans l\'annotation privée mais calcule et affiche le prix' do
+        # Le montant ne doit PAS être stocké si quota manuel est true
+        expect(controle).not_to receive(:save_annotation).with('Montant à payer', 7500)
+
+        # Le quota manuel doit être sauvegardé
+        expect(controle).to receive(:save_annotation).with('Quota manuel', true)
+
+        # Le message usager doit toujours être stocké
+        message_attendu = 'Vous avez demandé 5 tickets pour le cours Aquarelle. Le montant à payer est de 7500 XPF (5 séances à 1500 XPF).'
+        expect(controle).to receive(:save_annotation).with('Message explicatif', message_attendu)
+
+        subject
+
+        # Vérifier que le message du journal contient le prix total
+        messages = controle.instance_variable_get(:@msgs)
+        expect(messages).to include('Nombre de séances possibles: 5, Prix unitaire: 1500 XPF, Prix total: 7500')
+      end
     end
   end
 
@@ -96,13 +122,16 @@ RSpec.describe Tftn::Tickets do
         prix_seance: '1500',
         champ_nb_tickets: 'nb_tickets',
         annotation_montant: 'Montant à payer',
-        annotation_message_usager: 'Message explicatif'
+        annotation_message_usager: 'Message explicatif',
+        annotation_quota: 'Quota manuel'
       }
     end
 
     let(:champ_nb_tickets) do
       double('ChampNbTickets', value: '3', blank?: false)
     end
+
+    let(:cours_results) { { 'results' => [{ 'field_11' => false }] } }
 
     before do
       allow(controle).to receive(:param_field).with(:champ_nb_tickets).and_return(champ_nb_tickets)
@@ -111,6 +140,7 @@ RSpec.describe Tftn::Tickets do
     it 'limite le nombre de séances au nombre de tickets désirés' do
       # Le prix total attendu est le nombre de tickets (3) x prix par séance (1500) = 4500
       expect(controle).to receive(:save_annotation).with('Montant à payer', 4500)
+      expect(controle).to receive(:save_annotation).with('Quota manuel', false)
 
       # Vérifier que le message usager est également stocké
       message_attendu = 'Vous avez demandé 3 tickets pour le cours Aquarelle. Le montant à payer est de 4500 XPF (3 séances à 1500 XPF).'
@@ -127,13 +157,16 @@ RSpec.describe Tftn::Tickets do
         prix_seance: '1500',
         annotation_montant: 'Montant à payer',
         champ_nb_tickets: 'nb_tickets',
-        annotation_message_usager: 'Message explicatif'
+        annotation_message_usager: 'Message explicatif',
+        annotation_quota: 'Quota manuel'
       }
     end
 
     let(:champ_nb_tickets) do
       double('ChampNbTickets', value: 'Toutes les séances restantes', blank?: false)
     end
+
+    let(:cours_results) { { 'results' => [{ 'field_11' => false }] } }
 
     before do
       allow(controle).to receive(:param_field).with(:champ_nb_tickets).and_return(champ_nb_tickets)
@@ -142,6 +175,7 @@ RSpec.describe Tftn::Tickets do
     it 'utilise toutes les séances disponibles' do
       # Le prix total attendu est le nombre de séances (5) x prix par séance (1500) = 7500
       expect(controle).to receive(:save_annotation).with('Montant à payer', 7500)
+      expect(controle).to receive(:save_annotation).with('Quota manuel', false)
 
       # Vérifier que le message usager est également stocké
       message_attendu = 'Vous avez demandé toutes les séances disponibles pour le cours Aquarelle. Le montant à payer est de 7500 XPF (5 séances à 1500 XPF).'

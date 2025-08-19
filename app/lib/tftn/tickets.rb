@@ -25,7 +25,8 @@ module Tftn
       @msgs = []
 
       # Récupérer et valider les données d'entrée
-      nom_cours = fetch_course_name
+      champ_cours = fetch_course_champ
+      nom_cours = champ_cours&.string_value
       return unless nom_cours
 
       nb_tickets_max = fetch_nb_tickets_max
@@ -44,14 +45,14 @@ module Tftn
       save_messages
     end
 
-    def fetch_course_name
+    def fetch_course_champ
       champ_cours = param_field(:champ_cours)
       if champ_cours.blank? || champ_cours.string_value.blank?
         add_message("Champ #{@params[:champ_cours]} vide.")
         save_messages
         return nil
       end
-      champ_cours.string_value
+      champ_cours
     end
 
     def fetch_nb_tickets_max
@@ -72,18 +73,18 @@ module Tftn
       prix_seance = @params[:prix_seance].to_i
       prix_total = nb_seances * prix_seance
 
+      # Récupérer le quota manuel depuis la table des cours
+      manual_quota = retrieve_quota_manuel_from_cours_table(nom_cours)
+
       # Stocker le prix dans l'annotation privée
-      save_annotation(@params[:annotation_montant], prix_total)
+      save_annotation(@params[:annotation_montant], prix_total) unless manual_quota
 
       # Créer et stocker un message explicatif pour l'usager
       message_usager = construire_message_usager(nom_cours, nb_seances, prix_seance, prix_total, nb_tickets_max)
       save_annotation(@params[:annotation_message_usager], message_usager) if @params[:annotation_message_usager].present?
 
-      # Récupérer le quota manuel depuis la table des cours
-      retrieve_quota_manuel_from_cours_table(nom_cours) if @params[:annotation_quota].present?
-
       # Ajouter les informations au journal
-      add_message("Nombre de séances possibles: #{nb_seances}, Prix unitaire: #{prix_seance} XPF")
+      add_message("Nombre de séances possibles: #{nb_seances}, Prix unitaire: #{prix_seance} XPF, Prix total: #{prix_total}")
     end
 
     private
@@ -139,6 +140,7 @@ module Tftn
       extract_and_save_quota_manuel(cours_row, quota_manuel_field) if cours_row
     rescue StandardError => e
       add_message("Erreur lors de la récupération du quota manuel: #{e.message}")
+      true
     end
 
     def get_baserow_table(table_id)
@@ -179,16 +181,18 @@ module Tftn
       quota_manuel_field_name = "field_#{quota_manuel_field[:id]}"
       quota_manuel_value = cours_row[quota_manuel_field_name]
 
-      save_annotation(@params[:annotation_quota], quota_manuel_value) if quota_manuel_value.present?
+      save_annotation(@params[:annotation_quota], quota_manuel_value)
+      quota_manuel_value
     end
 
     def find_field_by_pattern(table, pattern)
       table.fields.find { |k, _v| k =~ pattern }&.second
     end
 
-    def add_message(message)
+    def add_message(message, save = nil)
       @msgs ||= []
       @msgs << message
+      save_messages if save
     end
 
     def save_messages
