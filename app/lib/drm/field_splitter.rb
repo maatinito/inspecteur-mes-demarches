@@ -7,7 +7,7 @@ module Drm
     end
 
     UNKNOWN = 'Unknown'
-    SEPARATOR_REGEX = %r{\s*/\s*}
+    SEPARATOR_REGEX = %r{\s+/\s+}
 
     def initialize(params)
       super
