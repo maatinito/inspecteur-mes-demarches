@@ -406,5 +406,48 @@ module MesDemarches
           }
         }
       }
+
+    query DemarcheRevision($demarche: Int!) {
+      demarche(number: $demarche) {
+        title
+        number
+        publishedRevision {
+          id
+          datePublication
+          champDescriptors {
+            id
+            label
+            description
+            required
+            __typename
+            ... on RepetitionChampDescriptor {
+              champDescriptors {
+                id
+                label
+                description
+                required
+                __typename
+              }
+            }
+          }
+          annotationDescriptors {
+            id
+            label
+            description
+            required
+            __typename
+            ... on RepetitionChampDescriptor {
+              champDescriptors {
+                id
+                label
+                description
+                required
+                __typename
+              }
+            }
+          }
+        }
+      }
+    }
   GRAPHQL
 end
