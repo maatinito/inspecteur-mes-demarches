@@ -149,6 +149,7 @@ class FieldChecker < InspectorTask
 
   def champ_value(champ)
     return nil unless champ
+    return champ.strftime('%d/%m/%Y à %Hh%M') if champ.is_a?(DateTime)
     return champ.strftime('%d/%m/%Y') if champ.is_a?(Date)
     return champ.to_s if champ.is_a? GraphQL::Client::Schema::EnumType::EnumValue
     return champ unless champ.respond_to?(:__typename) # direct value
@@ -158,17 +159,17 @@ class FieldChecker < InspectorTask
 
   def graphql_champ_value(champ)
     case champ.__typename
-    when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp', 'CheckboxChamp'
+    when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp'
       champ.value || ''
+    when 'CheckboxChamp', 'YesNoChamp'
+      champ.value ? 'Oui' : 'Non'
     when 'CiviliteChamp'
       champ.value.to_s
     when 'MultipleDropDownListChamp'
       champ.values
     when 'LinkedDropDownListChamp'
       "#{champ.primary_value}/#{champ.secondary_value}"
-    when 'DateTimeChamp'
-      date_value(champ, '%d/%m/%Y %H:%M')
-    when 'DateChamp'
+    when 'DatetimeChamp', 'DateChamp'
       date_value(champ, '%d/%m/%Y')
     when 'NumeroDnChamp'
       "#{champ.numero_dn}|#{champ.date_de_naissance}"

@@ -41,14 +41,15 @@ class ConditionalField < FieldChecker
     values = [''] if values.blank?
     values.each do |value|
       value = value&.to_s
-      if @controls.key?(value)
-        controls = @controls[value]
-        Rails.logger.info("Executing tasks for #{@params[:champ]} : '#{value}'")
+      normalized_value = normalize_boolean_value(value)
+      if @controls.key?(normalized_value)
+        controls = @controls[normalized_value]
+        Rails.logger.info("Executing tasks for #{@params[:champ]} : '#{normalized_value}'")
       else
         controls = @controls['par défaut']
-        Rails.logger.info("Executing 'par défaut' tasks as #{@params[:champ]} : '#{value}'") if controls.present?
+        Rails.logger.info("Executing 'par défaut' tasks as #{@params[:champ]} : '#{normalized_value}'") if controls.present?
       end
-      raise "No task for value '#{value}'" if controls.nil?
+      raise "No task for value '#{normalized_value}'" if controls.nil?
 
       run_controls(controls, method)
     end
@@ -94,6 +95,17 @@ class ConditionalField < FieldChecker
     else
       # hash
       description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).tap_name("#{index}:#{taskname}") }
+    end
+  end
+
+  def normalize_boolean_value(value)
+    case value
+    when 'true'
+      'Oui'
+    when 'false'
+      'Non'
+    else
+      value
     end
   end
 end
