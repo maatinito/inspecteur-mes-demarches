@@ -39,8 +39,7 @@ module Rosso
 
     config.active_job.queue_adapter = :delayed_job
 
-    # Disable legacy connection handling (Rails 7.0+ recommendation)
-    config.active_record.legacy_connection_handling = false
+    # Legacy connection handling was removed in Rails 7.1
 
     I18n.available_locales = %i[en fr]
     I18n.default_locale = :fr
