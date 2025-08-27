@@ -38,41 +38,50 @@ class WordDemarcheValidator
     puts '=' * 60
 
     if @demarche_fields.any? || @demarche_repetition_fields.any?
-
-      # Ajouter les champs simples
-      all_fields = @demarche_fields.to_a.sort.map do |field|
-        { name: field, type: :simple }
-      end
-
-      # Ajouter les champs répétables
-      @demarche_repetition_fields.keys.sort.each do |repetition_name|
-        all_fields << { name: repetition_name, type: :repetition, sub_fields: @demarche_repetition_fields[repetition_name].to_a.sort }
-      end
-
-      # Trier tous les champs par nom
-      all_fields.sort_by! { |f| f[:name] }
-
-      # Afficher avec format YAML-like
-      all_fields.each do |field|
-        if field[:type] == :simple
-          puts "- #{field[:name]}"
-        else
-          puts "- #{field[:name]} (bloc répétable):"
-          field[:sub_fields].each do |sub_field|
-            puts "  - #{sub_field}"
-          end
-        end
-      end
-
-      puts "\n#{'=' * 60}"
-      puts 'RÉSUMÉ:'
-      puts "- #{@demarche_fields.size} champ(s) simple(s)"
-      puts "- #{@demarche_repetition_fields.size} bloc(s) répétable(s)"
-      total_sub_fields = @demarche_repetition_fields.values.map(&:size).sum
-      puts "- #{total_sub_fields} sous-champ(s) dans les blocs répétables"
+      all_fields = build_demarche_fields_structure
+      display_fields_structure(all_fields)
+      display_demarche_summary
     else
       puts 'Aucun champ trouvé pour cette démarche.'
     end
+  end
+
+  def build_demarche_fields_structure
+    all_fields = @demarche_fields.to_a.sort.map do |field|
+      { name: field, type: :simple }
+    end
+
+    @demarche_repetition_fields.keys.sort.each do |repetition_name|
+      all_fields << {
+        name: repetition_name,
+        type: :repetition,
+        sub_fields: @demarche_repetition_fields[repetition_name].to_a.sort
+      }
+    end
+
+    all_fields.sort_by { |f| f[:name] }
+  end
+
+  def display_fields_structure(all_fields)
+    all_fields.each do |field|
+      if field[:type] == :simple
+        puts "- #{field[:name]}"
+      else
+        puts "- #{field[:name]} (bloc répétable):"
+        field[:sub_fields].each do |sub_field|
+          puts "  - #{sub_field}"
+        end
+      end
+    end
+  end
+
+  def display_demarche_summary
+    puts "\n#{'=' * 60}"
+    puts 'RÉSUMÉ:'
+    puts "- #{@demarche_fields.size} champ(s) simple(s)"
+    puts "- #{@demarche_repetition_fields.size} bloc(s) répétable(s)"
+    total_sub_fields = @demarche_repetition_fields.values.map(&:size).sum
+    puts "- #{total_sub_fields} sous-champ(s) dans les blocs répétables"
   end
 
   def list_word_fields
@@ -85,41 +94,50 @@ class WordDemarcheValidator
     puts '=' * 60
 
     if @word_fields.any? || @table_fields.any?
-
-      # Ajouter les champs simples
-      all_fields = @word_fields.to_a.sort.map do |field|
-        { name: field, type: :simple }
-      end
-
-      # Ajouter les tables avec leurs champs
-      @table_fields.keys.sort.each do |table_name|
-        all_fields << { name: table_name, type: :table, sub_fields: @table_fields[table_name].to_a.sort }
-      end
-
-      # Trier tous les champs par nom
-      all_fields.sort_by! { |f| f[:name] }
-
-      # Afficher avec format YAML-like
-      all_fields.each do |field|
-        if field[:type] == :simple
-          puts "- #{field[:name]}"
-        else
-          puts "- #{field[:name]} (table):"
-          field[:sub_fields].each do |sub_field|
-            puts "  - #{sub_field}"
-          end
-        end
-      end
-
-      puts "\n#{'=' * 60}"
-      puts 'RÉSUMÉ:'
-      puts "- #{@word_fields.size} variable(s) simple(s)"
-      puts "- #{@table_fields.size} table(s)"
-      total_sub_fields = @table_fields.values.map(&:size).sum
-      puts "- #{total_sub_fields} variable(s) dans les tables"
+      all_fields = build_word_fields_structure
+      display_word_fields(all_fields)
+      display_word_summary
     else
       puts 'Aucune variable trouvée dans le document.'
     end
+  end
+
+  def build_word_fields_structure
+    all_fields = @word_fields.to_a.sort.map do |field|
+      { name: field, type: :simple }
+    end
+
+    @table_fields.keys.sort.each do |table_name|
+      all_fields << {
+        name: table_name,
+        type: :table,
+        sub_fields: @table_fields[table_name].to_a.sort
+      }
+    end
+
+    all_fields.sort_by { |f| f[:name] }
+  end
+
+  def display_word_fields(all_fields)
+    all_fields.each do |field|
+      if field[:type] == :simple
+        puts "- #{field[:name]}"
+      else
+        puts "- #{field[:name]} (table):"
+        field[:sub_fields].each do |sub_field|
+          puts "  - #{sub_field}"
+        end
+      end
+    end
+  end
+
+  def display_word_summary
+    puts "\n#{'=' * 60}"
+    puts 'RÉSUMÉ:'
+    puts "- #{@word_fields.size} variable(s) simple(s)"
+    puts "- #{@table_fields.size} table(s)"
+    total_sub_fields = @table_fields.values.map(&:size).sum
+    puts "- #{total_sub_fields} variable(s) dans les tables"
   end
 
   private
@@ -305,13 +323,23 @@ class WordDemarcheValidator
   end
 
   def display_report
+    display_report_header
+    display_word_fields_report
+    display_demarche_fields_report
+    display_problems
+    display_report_summary
+  end
+
+  def display_report_header
     puts "\n#{'=' * 60}"
     puts "RAPPORT D'ANALYSE"
     puts '=' * 60
+  end
 
-    # Afficher les champs trouvés dans Word
+  def display_word_fields_report
     puts "\n📄 CHAMPS TROUVÉS DANS LE DOCUMENT WORD:"
     puts '-' * 40
+
     if @word_fields.empty?
       puts 'Aucun champ simple trouvé'
     else
@@ -319,59 +347,76 @@ class WordDemarcheValidator
       @word_fields.to_a.sort.each { |field| puts "  • #{field}" }
     end
 
-    if @table_fields.any?
-      puts "\n#{@table_fields.size} table(s) avec champs:"
-      @table_fields.each do |table_name, fields|
-        puts "  📊 Table '#{table_name}':"
-        fields.to_a.sort.each { |field| puts "    • #{field}" }
-      end
-    end
+    return unless @table_fields.any?
 
-    # Afficher les champs de la démarche
+    puts "\n#{@table_fields.size} table(s) avec champs:"
+    @table_fields.each do |table_name, fields|
+      puts "  📊 Table '#{table_name}':"
+      fields.to_a.sort.each { |field| puts "    • #{field}" }
+    end
+  end
+
+  def display_demarche_fields_report
     puts "\n🌐 CHAMPS DÉFINIS DANS LA DÉMARCHE:"
     puts '-' * 40
     puts "#{@demarche_fields.size} champ(s) simple(s)"
     puts "#{@demarche_repetition_fields.size} champ(s) répétable(s)"
+  end
 
-    # Afficher les problèmes
+  def display_problems
     puts "\n⚠️  PROBLÈMES DÉTECTÉS:"
     puts '-' * 40
 
-    if @missing_in_demarche.empty? && @missing_table_definitions.empty? && @table_field_issues.empty?
+    if no_problems?
       puts '✅ Aucun problème détecté - tous les champs du document correspondent à la démarche'
     else
-      if @missing_in_demarche.any?
-        puts "\n❌ Champs utilisés dans Word mais absents de la démarche:"
-        @missing_in_demarche.to_a.sort.each do |field|
-          puts "  • #{field}"
-        end
-      end
-
-      if @missing_table_definitions.any?
-        puts "\n❌ Tables définies dans Word mais absentes de la démarche:"
-        @missing_table_definitions.each do |table_name, fields|
-          puts "  • Table '#{table_name}' (non définie comme champ répétable)"
-          puts '    Champs utilisés dans cette table:'
-          fields.to_a.sort.each { |field| puts "      - #{field}" }
-        end
-      end
-
-      if @table_field_issues.any?
-        puts "\n❌ Tables avec champs manquants dans la démarche:"
-        @table_field_issues.each do |table_name, missing_fields|
-          puts "  • Table '#{table_name}':"
-          puts '    Champs manquants dans le champ répétable:'
-          missing_fields.each { |field| puts "      - #{field}" }
-        end
-      end
+      display_missing_fields_problems
+      display_missing_table_problems
+      display_table_field_issues
     end
+  end
 
-    # Résumé
+  def no_problems?
+    @missing_in_demarche.empty? &&
+      @missing_table_definitions.empty? &&
+      @table_field_issues.empty?
+  end
+
+  def display_missing_fields_problems
+    return unless @missing_in_demarche.any?
+
+    puts "\n❌ Champs utilisés dans Word mais absents de la démarche:"
+    @missing_in_demarche.to_a.sort.each do |field|
+      puts "  • #{field}"
+    end
+  end
+
+  def display_missing_table_problems
+    return unless @missing_table_definitions.any?
+
+    puts "\n❌ Tables définies dans Word mais absentes de la démarche:"
+    @missing_table_definitions.each do |table_name, fields|
+      puts "  • Table '#{table_name}' (non définie comme champ répétable)"
+      puts '    Champs utilisés dans cette table:'
+      fields.to_a.sort.each { |field| puts "      - #{field}" }
+    end
+  end
+
+  def display_table_field_issues
+    return unless @table_field_issues.any?
+
+    puts "\n❌ Tables avec champs manquants dans la démarche:"
+    @table_field_issues.each do |table_name, missing_fields|
+      puts "  • Table '#{table_name}':"
+      puts '    Champs manquants dans le champ répétable:'
+      missing_fields.each { |field| puts "      - #{field}" }
+    end
+  end
+
+  def display_report_summary
     puts "\n#{'=' * 60}"
     puts 'RÉSUMÉ:'
-    total_issues = @missing_in_demarche.size +
-                   @missing_table_definitions.values.map(&:size).sum +
-                   @table_field_issues.values.map(&:size).sum
+    total_issues = calculate_total_issues
 
     if total_issues.zero?
       puts '✅ Document valide - tous les champs correspondent'
@@ -381,81 +426,93 @@ class WordDemarcheValidator
       puts "sont bien définis dans la démarche n°#{@demarche_number}"
     end
   end
+
+  def calculate_total_issues
+    @missing_in_demarche.size +
+      @missing_table_definitions.values.map(&:size).sum +
+      @table_field_issues.values.map(&:size).sum
+  end
+end
+
+def process_single_argument(arg)
+  if arg.downcase.end_with?('.docx')
+    process_word_file(arg)
+  elsif arg.match?(/^\d+$/)
+    process_demarche_number(arg.to_i)
+  else
+    puts "Erreur: L'argument doit être soit un fichier .docx, soit un numéro de démarche"
+    exit 1
+  end
+end
+
+def process_word_file(doc_path)
+  unless File.exist?(doc_path)
+    puts "Erreur: Fichier '#{doc_path}' introuvable"
+    exit 1
+  end
+
+  validator = WordDemarcheValidator.new(doc_path, nil)
+  validator.list_word_fields
+rescue StandardError => e
+  handle_error(e)
+end
+
+def process_demarche_number(demarche_number)
+  validator = WordDemarcheValidator.new(nil, demarche_number)
+  validator.list_demarche_fields
+rescue StandardError => e
+  handle_error(e)
+end
+
+def process_two_arguments(doc_path, demarche_number)
+  validate_docx_file(doc_path)
+
+  validator = WordDemarcheValidator.new(doc_path, demarche_number.to_i)
+  validator.validate
+rescue StandardError => e
+  handle_error(e)
+end
+
+def validate_docx_file(doc_path)
+  unless File.exist?(doc_path)
+    puts "Erreur: Fichier '#{doc_path}' introuvable"
+    exit 1
+  end
+
+  return if doc_path.downcase.end_with?('.docx')
+
+  puts 'Erreur: Le fichier doit être un .docx'
+  exit 1
+end
+
+def handle_error(error)
+  puts "Erreur: #{error.message}"
+  puts error.backtrace if ENV['DEBUG']
+  exit 1
+end
+
+def display_usage
+  puts 'Usage:'
+  puts "  #{__FILE__} <path_to_docx_file>                  # Liste les variables du document Word"
+  puts "  #{__FILE__} <demarche_number>                    # Liste les champs de la démarche"
+  puts "  #{__FILE__} <path_to_docx_file> <demarche_number> # Compare le document avec la démarche"
+  puts "\nExemples:"
+  puts "  ruby #{__FILE__} document.docx                   # Liste les variables de document.docx"
+  puts "  ruby #{__FILE__} 3111                            # Liste les champs de la démarche 3111"
+  puts "  ruby #{__FILE__} document.docx 1234              # Compare document.docx avec la démarche 1234"
 end
 
 if __FILE__ == $PROGRAM_NAME
   if ARGV.empty?
-    puts 'Usage:'
-    puts "  #{__FILE__} <path_to_docx_file>                  # Liste les variables du document Word"
-    puts "  #{__FILE__} <demarche_number>                    # Liste les champs de la démarche"
-    puts "  #{__FILE__} <path_to_docx_file> <demarche_number> # Compare le document avec la démarche"
-    puts "\nExemples:"
-    puts "  ruby #{__FILE__} document.docx                   # Liste les variables de document.docx"
-    puts "  ruby #{__FILE__} 3111                            # Liste les champs de la démarche 3111"
-    puts "  ruby #{__FILE__} document.docx 1234              # Compare document.docx avec la démarche 1234"
+    display_usage
     exit 1
   end
 
-  if ARGV.length == 1
-    arg = ARGV[0]
-
-    # Déterminer si c'est un fichier ou un numéro
-    if arg.downcase.end_with?('.docx')
-      # Mode liste des variables Word
-      doc_path = arg
-
-      unless File.exist?(doc_path)
-        puts "Erreur: Fichier '#{doc_path}' introuvable"
-        exit 1
-      end
-
-      begin
-        validator = WordDemarcheValidator.new(doc_path, nil)
-        validator.list_word_fields
-      rescue StandardError => e
-        puts "Erreur: #{e.message}"
-        puts e.backtrace if ENV['DEBUG']
-        exit 1
-      end
-    elsif arg.match?(/^\d+$/)
-      # Mode liste des champs de démarche
-      demarche_number = arg.to_i
-
-      begin
-        validator = WordDemarcheValidator.new(nil, demarche_number)
-        validator.list_demarche_fields
-      rescue StandardError => e
-        puts "Erreur: #{e.message}"
-        puts e.backtrace if ENV['DEBUG']
-        exit 1
-      end
-    else
-      puts "Erreur: L'argument doit être soit un fichier .docx, soit un numéro de démarche"
-      exit 1
-    end
-  elsif ARGV.length == 2
-    # Mode validation
-    doc_path = ARGV[0]
-    demarche_number = ARGV[1].to_i
-
-    unless File.exist?(doc_path)
-      puts "Erreur: Fichier '#{doc_path}' introuvable"
-      exit 1
-    end
-
-    unless doc_path.downcase.end_with?('.docx')
-      puts 'Erreur: Le fichier doit être un .docx'
-      exit 1
-    end
-
-    begin
-      validator = WordDemarcheValidator.new(doc_path, demarche_number)
-      validator.validate
-    rescue StandardError => e
-      puts "Erreur: #{e.message}"
-      puts e.backtrace if ENV['DEBUG']
-      exit 1
-    end
+  case ARGV.length
+  when 1
+    process_single_argument(ARGV[0])
+  when 2
+    process_two_arguments(ARGV[0], ARGV[1])
   else
     puts "Erreur: Nombre d'arguments invalide"
     puts "Utilisez '#{__FILE__}' sans arguments pour voir l'aide"
