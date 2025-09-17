@@ -48,8 +48,6 @@ module Deseti
       instruction(demarche, deseti_number, dossier, dossier_number) if deseti_number.present?
     end
 
-    private
-
     RESUMED_ACTIVITY_FIELD = "Reprise d'activité"
     DESETI_FIELD = 'Numéro dossier DESETI'
 
@@ -60,6 +58,8 @@ module Deseti
       motivation_deseti_sans_suite: 'Votre précédent dossier DESETI a été classé sans suite',
       motivation_reprise: 'Vous avez repris votre activité'
     }.freeze
+
+    private
 
     def instruction(demarche, deseti_number, dossier, dossier_number)
       deseti = pull_deseti(deseti_number.to_i)

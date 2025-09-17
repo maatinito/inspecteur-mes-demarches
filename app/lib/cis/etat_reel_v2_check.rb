@@ -25,6 +25,8 @@ module Cis
 
     REQUIRED_COLUMNS = %i[numero_dn absences].freeze
 
+    CSV_COLUMNS = ['DN', 'NOM PATRONYMIQUE', "NOM D'EPOUSE", 'PRENOM', 'DATE NAISSANCE', 'MONTANT', 'PERIODE', 'N° CONVENTION'].to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
+
     def sheets_to_control
       ['Personnes']
     end
@@ -40,7 +42,7 @@ module Cis
       check_period(sheet)
     end
 
-    def check_absence(line)
+    def check_absence?(line)
       @posted_dns << "#{line[:prenoms]} #{line[:nom]}"
 
       absence = line[:absences]
@@ -48,8 +50,6 @@ module Cis
     end
 
     private
-
-    CSV_COLUMNS = ['DN', 'NOM PATRONYMIQUE', "NOM D'EPOUSE", 'PRENOM', 'DATE NAISSANCE', 'MONTANT', 'PERIODE', 'N° CONVENTION'].to_h { |c| [c, Regexp.new(Regexp.quote(c), 'i')] }.freeze
 
     def check_people_are_valid(champ, sheet)
       dossier_nb = sheet.cell(4, 'C')&.to_i

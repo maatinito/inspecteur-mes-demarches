@@ -132,9 +132,10 @@ class VerificationService
     file_manager.configurations
   end
 
-  private
-
   EPOCH = Time.zone.parse('2000-01-01 00:00')
+  NOMS_PIECES_MESSAGES = %i[debut_premier_mail debut_second_mail entete_anomalies entete_anomalie tout_va_bien fin_mail].freeze
+
+  private
 
   def instructeur_email(procedure)
     result = procedure['email_instructeur']
@@ -417,8 +418,6 @@ class VerificationService
     report_error('Error applying control', e)
   end
 
-  NOMS_PIECES_MESSAGES = %i[debut_premier_mail debut_second_mail entete_anomalies entete_anomalie tout_va_bien fin_mail].freeze
-
   def get_pieces_messages(procedure_name, procedure)
     result = procedure['pieces_messages']
     raise ArgumentError, "#{procedure_name} devrait définir une section pieces_messages" if result.empty?
@@ -471,7 +470,7 @@ class VerificationService
     anomalies = liste_anomalies(md_dossier, messages)
     fin_mail = "<p>#{@pieces_messages[:fin_mail]}</p>"
     body = debut_mail + anomalies + fin_mail
-    SendMessage.send(md_dossier, instructeur_id, body)
+    SendMessage.deliver_message(md_dossier, instructeur_id, body)
   end
 
   def get_annotation(md_dossier, name)

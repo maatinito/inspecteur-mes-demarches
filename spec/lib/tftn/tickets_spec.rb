@@ -67,7 +67,7 @@ RSpec.describe Tftn::Tickets do
     allow(controle).to receive(:save_messages).and_return(nil)
 
     # Mock pour dossier_has_right_state
-    allow(controle).to receive(:dossier_has_right_state).and_return(true)
+    allow(controle).to receive(:dossier_has_right_state?).and_return(true)
 
     # Fixer la date du jour pour les tests
     travel_to Time.zone.local(2025, 4, 10, 12, 0, 0)

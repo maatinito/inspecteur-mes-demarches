@@ -17,8 +17,21 @@ module Cis
     end
 
     def must_check?(md_dossier)
-      md_dossier&.state == 'en_construction' || md_dossier&.state == 'en_instruction'
+      %w[en_construction en_instruction].include?(md_dossier&.state)
     end
+
+    DEMANDEUR = ['Civilité', 'Nom', 'Prénom(s)'].freeze
+    CHAMPS_DE = ["Niveau d'études", "Nombre d'enfants", 'Téléphone', 'IBAN'].freeze
+    ROME = 'Code ROME'
+    ACTIVITE = 'Activité'
+    AIDE = 'Aide'
+    CHAMPS_OA = [ACTIVITE, ROME, AIDE].freeze
+
+    COLUMN_REGEXPS = (
+      DEMANDEUR + dn_fields('') + CHAMPS_OA + CHAMPS_DE + dn_fields(' du conjoint')
+    ).to_h { |v| [v, Regexp.new(Regexp.quote(v), 'i')] }.freeze
+
+    OLD_COLUMN_REGEXPS = COLUMN_REGEXPS.except(ROME)
 
     private
 
@@ -35,19 +48,6 @@ module Cis
         yield f
       end
     end
-
-    DEMANDEUR = ['Civilité', 'Nom', 'Prénom(s)'].freeze
-    CHAMPS_DE = ["Niveau d'études", "Nombre d'enfants", 'Téléphone', 'IBAN'].freeze
-    ROME = 'Code ROME'
-    ACTIVITE = 'Activité'
-    AIDE = 'Aide'
-    CHAMPS_OA = [ACTIVITE, ROME, AIDE].freeze
-
-    COLUMN_REGEXPS = (
-      DEMANDEUR + dn_fields('') + CHAMPS_OA + CHAMPS_DE + dn_fields(' du conjoint')
-    ).to_h { |v| [v, Regexp.new(Regexp.quote(v), 'i')] }.freeze
-
-    OLD_COLUMN_REGEXPS = COLUMN_REGEXPS.except(ROME)
 
     def bad_extension(extension)
       extension = extension&.downcase

@@ -71,6 +71,7 @@ namespace :dossiers do
   desc 'close dossiers where arrival date is after June 23'
   task close_obsolete: :environment do
     include Utils
+
     since = 10.days.ago
     demarche_id = 1054 # 1155 # 1054,
     close_date = Date.new(2021, 7, 5)

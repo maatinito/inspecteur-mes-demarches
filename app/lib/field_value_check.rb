@@ -27,6 +27,6 @@ class FieldValueCheck < FieldChecker
   private
 
   def normalize(value)
-    value&.to_s&.parameterize&.delete('-')
+    value&.to_s&.parameterize&.delete('-') # rubocop:disable Style/SafeNavigationChainLength
   end
 end

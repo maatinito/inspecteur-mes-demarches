@@ -54,14 +54,14 @@ module Travail
         return block.call(nil)
       end
       file = champ_files.last
-      if bad_extension(File.extname(file.filename))
+      if bad_extension?(File.extname(file.filename))
         @msgs << "Le fichier #{file.filename} n'est pas un fichier Excel"
         return block.call(nil)
       end
       read_file(file, &block)
     end
 
-    def bad_extension(extension)
+    def bad_extension?(extension)
       extension = extension&.downcase
       extension.nil? || !extension.end_with?('.xlsx')
     end
@@ -131,7 +131,7 @@ module Travail
 
     def process(demarche, dossier)
       super
-      return unless dossier_has_right_state
+      return unless dossier_has_right_state?
 
       @msgs = []
       @numbers = default_numbers
@@ -328,7 +328,7 @@ module Travail
       value
     end
 
-    def dossier_has_right_state
+    def dossier_has_right_state?
       @states.include?(@dossier.state)
     end
   end

@@ -137,7 +137,7 @@ class Publipostage < FieldChecker
     end
     unless @champ_cible.present? || @mails.present?
       Rails.logger.info("Sending file #{filename} to user using MD message system")
-      SendMessage.send_with_file(target, sender_id(demarche.id) || instructeur_id_for(demarche, dossier), body, file, filename)
+      SendMessage.deliver_message_with_file(target, sender_id(demarche.id) || instructeur_id_for(demarche, dossier), body, file, filename)
     end
     dossier_updated(@dossier)
   end
@@ -464,7 +464,7 @@ class Publipostage < FieldChecker
   end
 
   def last_name(field)
-    field[(field.rindex('.') || -1) + 1..]
+    field[((field.rindex('.') || -1) + 1)..]
   end
 
   def compute_dynamic_fields(row, fields)

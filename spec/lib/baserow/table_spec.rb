@@ -67,7 +67,7 @@ RSpec.describe Baserow::Table do
   describe '#delete_row' do
     it 'delegates to the client' do
       row_id = '123'
-      expect(client).to receive(:delete_row).with(table_id, row_id)
+      expect(client).to receive(:delete_row?).with(table_id, row_id)
 
       table.delete_row(row_id)
     end

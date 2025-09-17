@@ -51,7 +51,7 @@ module Reservation
         end
 
         session = find_or_create_session(user_request.session_name, user_request.date)
-        if session_available(session)
+        if session_available?(session)
           bookings << add_booking(session, user_request)
           DossierPasserEnInstruction.new({}).process(@demarche, @dossier)
         elsif @params[:message_disponibilites]
@@ -63,7 +63,7 @@ module Reservation
       Booking.where(dossier: @dossier.number).where.not(id: bookings.map(&:id)).destroy_all
     end
 
-    def session_available(session)
+    def session_available?(session)
       session.present? && session.capacity - session.bookings.size - 1 >= 0
     end
 
@@ -95,7 +95,7 @@ module Reservation
 
     def send_not_available
       message = instanciate(@params[:message_indisponible])
-      SendMessage.send(@dossier, instructeur_id_for(@demarche, @dossier), message, check_not_sent: true)
+      SendMessage.deliver_message(@dossier, instructeur_id_for(@demarche, @dossier), message, check_not_sent: true)
     end
 
     def send_proposal_message(available_sessions)
@@ -106,7 +106,7 @@ module Reservation
         "* #{displayed_date} (#{session.capacity - session.bookings.size} restants)\n"
       end.join
       message = instanciate(@params[:message_disponibilites], { dates: })
-      SendMessage.send(@dossier, instructeur_id_for(@demarche, @dossier), message, check_not_sent: true)
+      SendMessage.deliver_message(@dossier, instructeur_id_for(@demarche, @dossier), message, check_not_sent: true)
     end
   end
 end

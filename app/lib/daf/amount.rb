@@ -16,7 +16,7 @@ module Daf
 
     def process(demarche, dossier)
       super
-      return unless dossier_has_right_state && trigger_field_set
+      return unless dossier_has_right_state? && trigger_field_set?
 
       amount_value = amount
       return if amount_value.nil?
@@ -31,11 +31,11 @@ module Daf
       raise NotImplementedError, 'Method should be redefined'
     end
 
-    def dossier_has_right_state
+    def dossier_has_right_state?
       @states.include?(@dossier.state)
     end
 
-    def trigger_field_set
+    def trigger_field_set?
       @params[:champ_declencheur].blank? || annotation(@params[:champ_declencheur])&.string_value.present?
     end
   end

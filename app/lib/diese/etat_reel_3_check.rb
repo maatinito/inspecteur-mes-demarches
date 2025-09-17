@@ -21,9 +21,12 @@ module Diese
       @initial_dossier ||= retrieve_initial_dossier
     end
 
+    MONTHS = %w[zero janvier février mars avril mai juin juillet août septembre octobre novembre décembre].freeze
+    MONTH_FIELD_NAME = 'Année / Mois'
+
     private
 
-    def must_check_rate
+    def must_check_rate?
       dossier_annotations(initial_dossier, 'En erreur').present?
     end
 
@@ -42,10 +45,6 @@ module Diese
 
       result
     end
-
-    MONTHS = %w[zero janvier février mars avril mai juin juillet août septembre octobre novembre décembre].freeze
-
-    MONTH_FIELD_NAME = 'Année / Mois'
 
     def month
       @month ||= report_index(initial_dossier, field(MONTH_FIELD_NAME)&.secondary_value)

@@ -2,6 +2,8 @@
 
 module Cis
   module Shared
+    CIS_DEMANDES_FIELD = 'Nombre de CIS demandés'
+
     private
 
     def check_employee_age(line)
@@ -15,8 +17,6 @@ module Cis
 
       "#{@params[:message_age]}: #{age}"
     end
-
-    CIS_DEMANDES_FIELD = 'Nombre de CIS demandés'
 
     def check_cis_demandes(cis_nb)
       in_dossier = field(CIS_DEMANDES_FIELD)&.value&.to_i

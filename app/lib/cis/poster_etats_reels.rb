@@ -35,17 +35,16 @@ module Cis
       schedule_task(dossier, task_name, scheduled_dates, theoric_dates)
     end
 
-    private
-
     START_DATE = Date.new(2022, 11, 30)
+    MONTHS = %w[Janvier Février Mars Avril Mai Juin Juillet Août Septembre Octobre Novembre Décembre].freeze
+
+    private
 
     def theoric_dates(start)
       start = start.at_beginning_of_month.next_month
       next_month = start.next_month
       [start, next_month, next_month.next_month]
     end
-
-    MONTHS = %w[Janvier Février Mars Avril Mai Juin Juillet Août Septembre Octobre Novembre Décembre].freeze
 
     def scheduled_dates(dossier)
       filename = scheduled_filename(dossier)

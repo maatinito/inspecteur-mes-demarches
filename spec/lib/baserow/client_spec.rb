@@ -105,7 +105,7 @@ RSpec.describe Baserow::Client do
           hash_including(method: :delete)
         ).and_return(instance_double(Typhoeus::Request, run: delete_response))
 
-        result = client.delete_row(table_id, row_id)
+        result = client.delete_row?(table_id, row_id)
         expect(result).to be true
       end
     end

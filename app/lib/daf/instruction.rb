@@ -34,7 +34,7 @@ module Daf
     end
 
     def must_check?(md_dossier)
-      md_dossier&.state == 'en_construction' || md_dossier&.state == 'en_instruction'
+      %w[en_construction en_instruction].include?(md_dossier&.state)
     end
 
     def process(demarche, dossier)

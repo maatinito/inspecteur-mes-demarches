@@ -29,7 +29,7 @@ module Daf
       if @mails.present?
         send_mail(demarche, dossier, message)
       else
-        SendMessage.send(dossier, instructeur_id_for(demarche, dossier), message, check_not_sent: true)
+        SendMessage.deliver_message(dossier, instructeur_id_for(demarche, dossier), message, check_not_sent: true)
       end
     end
 

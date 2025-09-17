@@ -45,6 +45,31 @@ class AvisToBlocRepetable < FieldChecker
     update_repetition_block(rows_data)
   end
 
+  # Requête GraphQL pour récupérer les avis d'un dossier
+  Query = MesDemarches::Client.parse <<-QUERY
+    query DossierAvis($dossier: Int!) {
+      dossier(number: $dossier) {
+        avis {
+          id
+          question
+          reponse
+          questionLabel
+          questionAnswer
+          dateQuestion
+          dateReponse
+          expert {
+            id
+            email
+          }
+          claimant {
+            id
+            email
+          }
+        }
+      }
+    }
+  QUERY
+
   private
 
   def fetch_avis(dossier)
@@ -178,29 +203,4 @@ class AvisToBlocRepetable < FieldChecker
 
     changed
   end
-
-  # Requête GraphQL pour récupérer les avis d'un dossier
-  Query = MesDemarches::Client.parse <<-QUERY
-    query DossierAvis($dossier: Int!) {
-      dossier(number: $dossier) {
-        avis {
-          id
-          question
-          reponse
-          questionLabel
-          questionAnswer
-          dateQuestion
-          dateReponse
-          expert {
-            id
-            email
-          }
-          claimant {
-            id
-            email
-          }
-        }
-      }
-    }
-  QUERY
 end

@@ -72,7 +72,7 @@ module Baserow
           results = client.list_rows(table_id, params)
 
           # Retourner le token s'il est trouvé
-          if (results['count']).positive?
+          if results['count'].positive?
             token = results['results'][0]["field_#{token_field['id']}"]
             return token if token.present?
           end

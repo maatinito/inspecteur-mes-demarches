@@ -10,14 +10,14 @@ class DossierChangerEtat < FieldChecker
 
   def process(demarche, dossier)
     super
-    change_state(demarche, dossier) if conditions_ok(demarche, dossier)
+    change_state(demarche, dossier) if conditions_ok?(demarche, dossier)
   end
 
   private
 
   def change_state(demarche, dossier) end
 
-  def conditions_ok(_demarche, _dossier)
+  def conditions_ok?(_demarche, _dossier)
     true
   end
 

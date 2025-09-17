@@ -12,7 +12,7 @@ module Sti
       super
       return unless must_check?(dossier)
 
-      if annotation_already_set(TOTAL_PRICE)
+      if annotation_already_set?(TOTAL_PRICE)
         Rails.logger.info("Dossier ignored as #{name} is already set")
         return
       end
@@ -26,7 +26,7 @@ module Sti
 
     private
 
-    def annotation_already_set(name)
+    def annotation_already_set?(name)
       field = annotation(name)
       field.present? && field.value.present?
     end

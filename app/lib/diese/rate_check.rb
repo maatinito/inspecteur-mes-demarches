@@ -20,8 +20,6 @@ module Diese
       super
     end
 
-    private
-
     CHECKS = (EtatPrevisionnelCheck::CHECKS + %i[max_rate]).freeze
 
     RATES = {
@@ -43,6 +41,8 @@ module Diese
         "Prestataires dans le domaine de l'évènementiel (foires, expositions, évènements sportifs, etc.)" => [90, 90, 90]
       }
     }.freeze
+
+    private
 
     def check_max_rate(line)
       return unless @must_check_rate

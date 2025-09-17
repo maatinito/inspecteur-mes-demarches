@@ -38,14 +38,14 @@ class DossierLinkCheck < FieldChecker
 
       next if champ.dossier.state != 'en_construction'
 
-      if on_error(champ.string_value.to_i)
+      if on_error?(champ.string_value.to_i)
         message = "Pour pouvoir traiter ce dossier, le dossier '#{label}' doit être corrigé."
         add_message(label, champ.string_value, message)
       end
     end
   end
 
-  def on_error(dossier_number)
-    Message.joins(:check).where(checks: { dossier: dossier_number }).count.positive?
+  def on_error?(dossier_number)
+    Message.joins(:check).where(checks: { dossier: dossier_number }).any?
   end
 end

@@ -3,6 +3,7 @@
 module Spjp
   class Amount < Daf::Amount
     include ActionView::Helpers::NumberHelper
+
     def version
       super + 1
     end

@@ -34,7 +34,7 @@ module Reservation
 
       while sessions.size < 2 && date <= end_date
         session = find_or_create_session(SESSION_NAME, date)
-        sessions << session if session&.bookings&.size&.< session&.capacity
+        sessions << session if session&.bookings&.size&.< session&.capacity # rubocop:disable Style/SafeNavigationChainLength
         date += 7.days
       end
 

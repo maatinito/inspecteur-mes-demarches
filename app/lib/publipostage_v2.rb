@@ -125,7 +125,7 @@ class PublipostageV2 < Publipostage
       last_row.remove!
     elsif Rails.env.development? || Rails.env.test?
       keys = fields.keys.join(', ')
-      p = table.rows[0]&.cells&.[](0)&.paragraphs&.[](0)&.text_runs&.[](0)
+      p = table.rows[0]&.cells&.[](0)&.paragraphs&.[](0)&.text_runs&.[](0) # rubocop:disable Style/SafeNavigationChainLength
       p&.text = "La table a pour titre #{field} mais aucun champ contenant une liste porte ce nom. Clés disponibles: #{keys}"
     end
   end

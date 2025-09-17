@@ -20,7 +20,7 @@ module Tftn
 
     def process(demarche, dossier)
       super
-      return unless dossier_has_right_state
+      return unless dossier_has_right_state?
 
       @msgs = []
 
@@ -207,7 +207,7 @@ module Tftn
       value
     end
 
-    def dossier_has_right_state
+    def dossier_has_right_state?
       @states.include?(@dossier.state)
     end
 

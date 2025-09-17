@@ -216,9 +216,9 @@ class WordDemarcheValidator
     extract_mergefield_from_field_simple(paragraph, target_set)
   end
 
-  def extract_mergefield_from_text_run(tr, target_set)
+  def extract_mergefield_from_text_run(text_run, target_set)
     # Chercher les instructions MERGEFIELD dans w:instrText, comme dans publipostage_v2
-    nodeset = tr.xpath("w:instrText[starts-with(., ' MERGEFIELD')]")
+    nodeset = text_run.xpath("w:instrText[starts-with(., ' MERGEFIELD')]")
     return unless nodeset.size.positive?
 
     field_name = extract_field_name_from_instruction(nodeset.text)

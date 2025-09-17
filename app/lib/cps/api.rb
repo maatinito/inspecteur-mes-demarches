@@ -8,6 +8,7 @@ module Cps
     API_CPS_URL = ENV.fetch('API_CPS_URL', 'https://tatouapi.cps.pf')
 
     TIMEOUT = 3
+    TWO_DIGIT_YEAR = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d\d?)\s*$/
 
     # dn_pairs must be of the form { DN ==> BirthDate }
     def verify(dn_pairs)
@@ -36,8 +37,6 @@ module Cps
     def url(resource_name)
       [API_CPS_URL, resource_name].join('/')
     end
-
-    TWO_DIGIT_YEAR = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d\d?)\s*$/
 
     def json_dn(dn_pairs)
       dn_pairs = dn_pairs.to_h do |dn, date|

@@ -157,7 +157,7 @@ class FieldChecker < InspectorTask
     graphql_champ_value(champ)
   end
 
-  def graphql_champ_value(champ)
+  def graphql_champ_value(champ) # rubocop:disable Metrics/MethodLength
     case champ.__typename
     when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp'
       champ.value || ''
@@ -174,12 +174,7 @@ class FieldChecker < InspectorTask
     when 'NumeroDnChamp'
       "#{champ.numero_dn}|#{champ.date_de_naissance}"
     when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp', 'ReferentielDePolynesieChamp'
-      begin
-        champ.string_value
-      rescue StandardError => e
-        Rails.logger.error "Error on #{champ.to_h} : #{champ.class} => (#{champ.class.ancestors.first(5)}): #{e.message}"
-        raise e
-      end
+      string_value_of(champ)
     when 'PieceJustificativeChamp'
       champ.files.map(&:filename).join(',')
     when 'TitreIdentiteChamp'
@@ -216,11 +211,11 @@ class FieldChecker < InspectorTask
     return nil if value.nil? || value == ''
 
     # Try to parse as boolean
-    return true if value.downcase == 'true' || value.downcase == 'vrai'
-    return false if value.downcase == 'false' || value.downcase == 'faux'
+    return true if %w[true vrai].include?(value.downcase)
+    return false if %w[false faux].include?(value.downcase)
 
     # Try to parse as date
-    if value.match?(%r{^\d{1,4}[-/\.]\d{1,2}[-/\.]\d{1,4}$})
+    if value.match?(%r{^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}$})
       begin
         # Force French format for dates with slashes (dd/mm/yyyy)
         return Date.strptime(value, '%d/%m/%Y') if value.match?(%r{^\d{1,2}/\d{1,2}/\d{4}$})
@@ -294,6 +289,13 @@ class FieldChecker < InspectorTask
   end
 
   private
+
+  def string_value_of(champ)
+    champ.string_value
+  rescue StandardError => e
+    Rails.logger.error "Error on #{champ.to_h} : #{champ.class} => (#{champ.class.ancestors.first(5)}): #{e.message}"
+    raise e
+  end
 
   def parse_and_evaluate_ternary(expression, source)
     question_pos = expression.index('?')

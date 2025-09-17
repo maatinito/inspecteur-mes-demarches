@@ -66,6 +66,8 @@ class ExcelCheck < FieldChecker
     end
   end
 
+  DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/
+
   private
 
   def check_file(champ, champ_file)
@@ -126,7 +128,11 @@ class ExcelCheck < FieldChecker
       id = id_of(row)
       checks.each do |name|
         method = "check_#{name.to_s.downcase}"
-        v = send(method, row)
+        predicate_method = "#{method}?"
+
+        # Try predicate method first (check_xxx?), then fallback to original (check_xxx)
+        method_to_call = respond_to?(predicate_method, true) ? predicate_method : method
+        v = send(method_to_call, row)
         unless [true, nil].include?(v)
           message = v.is_a?(String) ? v : @params[:"message_#{name}"]
           add_message(field_name, id, message)
@@ -148,8 +154,6 @@ class ExcelCheck < FieldChecker
 
     "#{@params[:message_format_dn]}: #{dn}" if dn.present?
   end
-
-  DATE = /^\s*(?<day>\d\d?)\D(?<month>\d\d?)\D(?<year>\d{2,4})\s*$/
 
   def check_format_date_de_naissance(line)
     ddn = normalize_date_de_naissance(line)

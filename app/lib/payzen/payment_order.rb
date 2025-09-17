@@ -3,6 +3,7 @@
 module Payzen
   class PaymentOrder < FieldChecker
     include Payzen::StringTemplate
+
     attr_reader :when_asked, :when_paid, :when_expired
 
     def version
@@ -86,6 +87,12 @@ module Payzen
 
     def check_delay = (@test_mode ? 1 : 15).minutes.since.end_of_minute
 
+    DEFAULT_MESSAGE = <<~MSG
+      Bonjour,
+      Pour obtenir le résultat de votre demande, vous devez effectuer le paiement d'un montant de {amount} Fcp en cliquant sur ce lien {paymentURL}.
+      Ce lien est valide jusqu'au {expirationDate}."
+    MSG
+
     private
 
     def ask_for_payment(amount)
@@ -151,16 +158,10 @@ module Payzen
       end
     end
 
-    DEFAULT_MESSAGE = <<~MSG
-      Bonjour,
-      Pour obtenir le résultat de votre demande, vous devez effectuer le paiement d'un montant de {amount} Fcp en cliquant sur ce lien {paymentURL}.
-      Ce lien est valide jusqu'au {expirationDate}."
-    MSG
-
     def notify_user(order)
       template = @params[:message].presence || DEFAULT_MESSAGE
       body = instanciate(template, order)
-      SendMessage.send(@dossier, @demarche.instructeur, body)
+      SendMessage.deliver_message(@dossier, @demarche.instructeur, body)
     end
 
     def execute(tasks, order)

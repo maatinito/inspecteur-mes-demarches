@@ -58,7 +58,7 @@ RSpec.describe 'Reservation::Jentreprends' do
     let(:booking) { create :booking, session: }
 
     before do
-      expect(SendMessage).to receive(:send).with(dossier, instructeur, message, check_not_sent: true)
+      expect(SendMessage).to receive(:deliver_message).with(dossier, instructeur, message, check_not_sent: true)
     end
 
     context 'without availabity message' do

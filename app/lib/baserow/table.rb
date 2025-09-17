@@ -45,8 +45,8 @@ module Baserow
     end
 
     # Delete a row
-    def delete_row(row_id)
-      client.delete_row(table_id, row_id)
+    def delete_row(row_id) # rubocop:disable Naming/PredicateMethod
+      client.delete_row?(table_id, row_id)
     end
 
     # Find rows by field value

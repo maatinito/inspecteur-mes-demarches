@@ -20,7 +20,7 @@ module Daf
     end
 
     def must_check?(md_dossier)
-      md_dossier&.state == 'en_construction' || md_dossier&.state == 'en_instruction'
+      %w[en_construction en_instruction].include?(md_dossier&.state)
     end
 
     def process(demarche, dossier)
@@ -46,7 +46,7 @@ module Daf
       repetition = field(@params[:champ])
       raise "Impossible de trouver le champ #{@params[:champ]} sur le dossier #{@dossier&.number}" if repetition.blank?
 
-      label = repetition&.champs&.first&.label
+      label = repetition&.champs&.first&.label # rubocop:disable Style/SafeNavigationChainLength
       count = repetition.champs&.reduce(0) { |c, champ| champ.label == label ? c + 1 : c }
       max = @params[:max].to_i
       yield count if count > max

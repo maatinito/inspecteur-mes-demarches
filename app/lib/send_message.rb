@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class SendMessage
-  def self.send(dossier, instructeur_id, body, check_not_sent: false)
+  def self.deliver_message(dossier, instructeur_id, body, check_not_sent: false) # rubocop:disable Naming/PredicateMethod
     return false if check_not_sent && already_posted(dossier.number, body)
 
     handle_errors(MesDemarches.query(Mutation::EnvoyerMessage,
@@ -14,7 +14,7 @@ class SendMessage
     true
   end
 
-  def self.send_with_file(dossier, instructeur_id, body, file_path, filename, check_not_sent: false)
+  def self.deliver_message_with_file(dossier, instructeur_id, body, file_path, filename, check_not_sent: false) # rubocop:disable Naming/PredicateMethod
     return false if check_not_sent && already_posted(dossier.number, body)
 
     attachment_id = FileUpload.upload_file(dossier.id, file_path, filename)
@@ -37,7 +37,7 @@ class SendMessage
     result = MesDemarches.query(Query::Dossier, variables: { dossier: dossier_number })
     raise "Unable to get dossier nb #{dossier_number}" if result.errors.present? || result.data.blank?
 
-    result.data&.dossier&.messages&.any? { |m| m&.body == body }
+    result.data&.dossier&.messages&.any? { |m| m&.body == body } # rubocop:disable Style/SafeNavigationChainLength
   end
 
   Query = MesDemarches::Client.parse <<-QUERY

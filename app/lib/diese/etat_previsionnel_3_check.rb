@@ -14,7 +14,7 @@ module Diese
 
     private
 
-    def must_check_rate
+    def must_check_rate?
       annotations('En erreur').present?
     end
 

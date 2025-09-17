@@ -62,7 +62,7 @@ RSpec.describe Payzen::PaymentOrder do
 
   before do
     allow(demarche).to receive(:instructeur).and_return(instructeur)
-    allow(SendMessage).to receive(:send)
+    allow(SendMessage).to receive(:deliver_message)
   end
 
   subject do
@@ -115,7 +115,7 @@ RSpec.describe Payzen::PaymentOrder do
           allow(task).to receive(:process_order).with(demarche, dossier, order)
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_ordre_de_paiement], order_id)
           expect(ScheduledTask).to receive(:enqueue).with(dossier.number, Payzen::PaymentOrder, controle.params, controle.check_delay)
-          expect(SendMessage).to receive(:send).with(dossier, instructeur, controle.params[:message])
+          expect(SendMessage).to receive(:deliver_message).with(dossier, instructeur, controle.params[:message])
           subject
         end
       end
@@ -130,7 +130,7 @@ RSpec.describe Payzen::PaymentOrder do
 
           expect(SetAnnotationValue).not_to receive(:set_value)
           expect(ScheduledTask).to receive(:enqueue).with(dossier.number, Payzen::PaymentOrder, controle.params, controle.check_delay)
-          expect(SendMessage).not_to receive(:send)
+          expect(SendMessage).not_to receive(:deliver_message)
           expect(task).not_to receive(:process_order)
           subject
         end
@@ -146,7 +146,7 @@ RSpec.describe Payzen::PaymentOrder do
 
           expect(SetAnnotationValue).not_to receive(:set_value)
           expect(ScheduledTask).to receive(:enqueue).with(dossier.number, Payzen::PaymentOrder, controle.params, controle.check_delay)
-          expect(SendMessage).not_to receive(:send)
+          expect(SendMessage).not_to receive(:deliver_message)
           expect(task).not_to receive(:process_order)
           subject
         end
@@ -215,7 +215,7 @@ RSpec.describe Payzen::PaymentOrder do
           allow(task).to receive(:process_order)
           expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_ordre_de_paiement], order_id)
           expect(ScheduledTask).to receive(:enqueue).with(dossier.number, Payzen::PaymentOrder, controle.params, controle.check_delay)
-          expect(SendMessage).to receive(:send).with(dossier, instructeur, controle.params[:message])
+          expect(SendMessage).to receive(:deliver_message).with(dossier, instructeur, controle.params[:message])
           expect(task).to receive(:process_order).with(demarche, dossier, order)
           subject
         end

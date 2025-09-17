@@ -56,7 +56,7 @@ module Baserow
     end
 
     # Delete a row
-    def delete_row(table_id, row_id)
+    def delete_row?(table_id, row_id)
       response = make_request(:delete, "/api/database/rows/table/#{table_id}/#{row_id}/")
       response.code == 204
     end

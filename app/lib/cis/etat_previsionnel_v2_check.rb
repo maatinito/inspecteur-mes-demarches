@@ -67,11 +67,11 @@ module Cis
       rows << bloc
     end
 
-    def check_iban(line)
+    def check_iban?(line)
       IBANTools::IBAN.valid?(line['IBAN'])
     end
 
-    def check_telephone(line)
+    def check_telephone?(line)
       phone = line['Téléphone']
       phone.blank? || Phonelib.valid_for_country?(phone, :PF)
     end

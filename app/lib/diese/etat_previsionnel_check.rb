@@ -15,16 +15,16 @@ module Diese
       check_dossier_numbers(sheet, sheet_name)
     end
 
+    FIELD_NAMES = [
+      ['Nombre de salariés DiESE au mois ', 'C', 8],
+      ['Montant prévisionnel du DiESE au mois ', 'C', 9]
+    ].freeze
+
     private
 
     def sheets_to_control
       ['Mois 1', 'Mois 2', 'Mois 3']
     end
-
-    FIELD_NAMES = [
-      ['Nombre de salariés DiESE au mois ', 'C', 8],
-      ['Montant prévisionnel du DiESE au mois ', 'C', 9]
-    ].freeze
 
     def check_dossier_numbers(sheet, sheet_name)
       self.class::FIELD_NAMES.each do |base_name, column, line|

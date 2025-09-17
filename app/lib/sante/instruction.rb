@@ -23,11 +23,11 @@ module Sante
 
     def update_needed(field_name)
       field = get_annotation(field_name)
-      field.present? && (field.value.blank? || en_construction)
+      field.present? && (field.value.blank? || en_construction?)
     end
 
     def check(dossier)
-      if en_construction
+      if en_construction?
         check_children_date_of_birth
         check_date(ARRIVAL)
         check_date(DEPARTURE)
@@ -36,41 +36,8 @@ module Sante
       Check.where(dossier: dossier.number).update_all(checked_at: Time.zone.now) if modified
     end
 
-    private
-
-    def en_construction
-      dossier.state == 'en_construction'
-    end
-
     ADDRESS = 'Adresse retenue'
-
-    def update_address
-      return unless update_needed(ADDRESS)
-
-      address = get_field('Adresse de quarantaine')&.value.to_s
-      commune = get_field('Commune')&.value.to_s
-      address += " - #{commune}" unless address.downcase.include?(commune.downcase)
-
-      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, ADDRESS, address)
-    end
-
     FLIGHT = 'Numéro de vol retenu'
-
-    def update_flight_number
-      return unless update_needed(FLIGHT)
-
-      flight_number = get_field('Numéro du vol')
-      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, FLIGHT, flight_number.value) if flight_number&.value
-    end
-
-    def get_field(field_name)
-      @dossier.champs.find { |c| c.label == field_name }
-    end
-
-    def get_annotation(field_name)
-      @dossier.annotations.find { |c| c.label == field_name }
-    end
-
     AUTH = 'Autorisation de prélèvement'
     AUTH_MESSAGE = "Vous devez donner l'autorisation d'effectuer les prélèvements sur les enfants " \
                    "agés de plus de 6 ans en cochant la case 'Oui - Yes'.<BR>" \
@@ -90,6 +57,51 @@ module Sante
     DATE_OF_BIRTH = "Date de naissance de l'enfant"
     CHILDREN = 'Liste des mineurs'
     CIVILITY = "Civilité de l'enfant"
+
+    ARRIVAL = {
+      dst_field: "Date d'arrivée retenue",
+      src_field: "Date d'arrivée",
+      message: "La date d'arrivée donnée doit être dans les 12 prochains mois. <br> " \
+               'The given arrival date must be within the next 12 months.'
+    }.freeze
+
+    DEPARTURE = {
+      dst_field: 'Date de départ retenue',
+      src_field: 'Date de départ du vol ',
+      message: 'La date de départ donnée doit être dans les 12 prochains mois. <br> ' \
+               'The given departure date must be within the next 12 months.'
+    }.freeze
+
+    private
+
+    def en_construction?
+      dossier.state == 'en_construction'
+    end
+
+    def update_address
+      return unless update_needed(ADDRESS)
+
+      address = get_field('Adresse de quarantaine')&.value.to_s
+      commune = get_field('Commune')&.value.to_s
+      address += " - #{commune}" unless address.downcase.include?(commune.downcase)
+
+      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, ADDRESS, address)
+    end
+
+    def update_flight_number
+      return unless update_needed(FLIGHT)
+
+      flight_number = get_field('Numéro du vol')
+      SetAnnotationValue.set_value(@dossier, @demarche.instructeur, FLIGHT, flight_number.value) if flight_number&.value
+    end
+
+    def get_field(field_name)
+      @dossier.champs.find { |c| c.label == field_name }
+    end
+
+    def get_annotation(field_name)
+      @dossier.annotations.find { |c| c.label == field_name }
+    end
 
     def check_child(arrival_date, child)
       date_of_birth = child[DATE_OF_BIRTH]
@@ -114,11 +126,11 @@ module Sante
     end
 
     def minor?(arrival_date, date_of_birth)
-      (arrival_date - 18.years..arrival_date).cover?(date_of_birth)
+      ((arrival_date - 18.years)..arrival_date).cover?(date_of_birth)
     end
 
     def between_6_and_18_years_old?(arrival_date, date_of_birth)
-      (arrival_date - 18.years..arrival_date - 6.years).cover?(date_of_birth)
+      ((arrival_date - 18.years)..(arrival_date - 6.years)).cover?(date_of_birth)
     end
 
     def check_children_date_of_birth
@@ -145,20 +157,6 @@ module Sante
       add_message(AUTH, 'Oui - Yes', DECLARE_CHILDREN) unless date_of_birth.blank? || minor?(arrival_date, Date.iso8601(date_of_birth))
     end
 
-    ARRIVAL = {
-      dst_field: "Date d'arrivée retenue",
-      src_field: "Date d'arrivée",
-      message: "La date d'arrivée donnée doit être dans les 12 prochains mois. <br> " \
-               'The given arrival date must be within the next 12 months.'
-    }.freeze
-
-    DEPARTURE = {
-      dst_field: 'Date de départ retenue',
-      src_field: 'Date de départ du vol ',
-      message: 'La date de départ donnée doit être dans les 12 prochains mois. <br> ' \
-               'The given departure date must be within the next 12 months.'
-    }.freeze
-
     def update_date(config)
       return unless update_needed(config[:dst_field])
 
@@ -174,7 +172,7 @@ module Sante
 
     def check_date(config)
       date = get_date(config)
-      return true if date.nil? || (Time.zone.now..Time.zone.now + 1.year).cover?(date)
+      return true if date.nil? || (Time.zone.now..(Time.zone.now + 1.year)).cover?(date)
 
       add_message(config[:src_field], date, @params[:date_message] || config[:message])
     end

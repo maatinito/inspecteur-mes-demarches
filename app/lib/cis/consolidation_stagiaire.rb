@@ -26,6 +26,8 @@ module Cis
       set_text_attribute(@dossier_oa, params[:champ_synthese], synthese(candidats))
     end
 
+    DN = 'Numéro DN'
+
     private
 
     def dossier_oa
@@ -35,8 +37,6 @@ module Cis
 
       champ.dossier
     end
-
-    DN = 'Numéro DN'
 
     def update_candidats(candidats, dossier)
       dn_field = dossier_field(dossier, DN)

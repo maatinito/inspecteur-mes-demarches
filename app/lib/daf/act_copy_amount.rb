@@ -16,7 +16,7 @@ module Daf
 
     def process(demarche, dossier)
       super
-      return if dossier.state != 'en_instruction' || order_not_ready || amount_already_set
+      return if dossier.state != 'en_instruction' || order_not_ready? || amount_already_set?
 
       dossier.annotations.each do |champ|
         process_orders(demarche, dossier, champ) if champ.__typename == 'RepetitionChamp'
@@ -38,11 +38,11 @@ module Daf
       repetition.rows.map { amount_for(file_count(_1)) }.reduce(&:+)
     end
 
-    def amount_already_set
+    def amount_already_set?
       annotation_present?(:champ_montant_theorique) && annotation_present?(:champ_montant)
     end
 
-    def order_not_ready
+    def order_not_ready?
       !annotation_present?(:champ_commande_prete)
     end
 

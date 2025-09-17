@@ -14,19 +14,19 @@ namespace :demarches do
     demarche_ids = Set.new
 
     Dir.glob(File.join(config_dir, '**/*.yml')).each do |yaml_file|
-        content = YAML.load_file(yaml_file, aliases: true)
-        next unless content.is_a?(Hash)
+      content = YAML.load_file(yaml_file, aliases: true)
+      next unless content.is_a?(Hash)
 
-        # Scan all root objects with a 'demarches' attribute
-        content.each_value do |value|
-          next unless value.is_a?(Hash) && value['demarches']
+      # Scan all root objects with a 'demarches' attribute
+      content.each_value do |value|
+        next unless value.is_a?(Hash) && value['demarches']
 
-          demarches = value['demarches']
-          demarches = [demarches] unless demarches.is_a?(Array)
-          demarches.each { |d| demarche_ids.add(d.to_i) if d }
-        end
+        demarches = value['demarches']
+        demarches = [demarches] unless demarches.is_a?(Array)
+        demarches.each { |d| demarche_ids.add(d.to_i) if d }
+      end
     rescue StandardError => e
-        puts "Warning: Failed to parse #{yaml_file}: #{e.message}"
+      puts "Warning: Failed to parse #{yaml_file}: #{e.message}"
     end
 
     if demarche_ids.empty?
