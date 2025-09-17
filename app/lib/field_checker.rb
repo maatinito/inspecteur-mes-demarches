@@ -174,11 +174,18 @@ class FieldChecker < InspectorTask
     when 'NumeroDnChamp'
       "#{champ.numero_dn}|#{champ.date_de_naissance}"
     when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp', 'ReferentielDePolynesieChamp'
-      champ.string_value
+      begin
+        champ.string_value
+      rescue StandardError => e
+        Rails.logger.error "Error on #{champ.to_h} : #{champ.class} => (#{champ.class.ancestors.first(5)}): #{e.message}"
+        raise e
+      end
     when 'PieceJustificativeChamp'
       champ.files.map(&:filename).join(',')
     when 'TitreIdentiteChamp'
       "Titre d'identité"
+    when 'TeFenuaChamp'
+      'TeFenuaChamp'
     else
       raise "Unknown field type #{champ.label}:#{champ.__typename}"
     end
