@@ -208,35 +208,47 @@ class WordDemarcheValidator
         target_set << match[0]
       end
 
-      text.scan(/«([^»]+)»/).each do |match|
-        target_set << match[0]
-      end
-
-      # Instructions MERGEFIELD dans w:instrText
-      nodeset = tr.xpath("w:instrText[contains(., 'MERGEFIELD')]")
-      nodeset.each do |node|
-        field_name = extract_field_name(node.text)
-        target_set << field_name if field_name
-      end
+      # Extraire les champs MERGEFIELD selon la même logique que publipostage_v2
+      extract_mergefield_from_text_run(tr, target_set)
     end
 
     # Instructions MERGEFIELD dans w:fldSimple
+    extract_mergefield_from_field_simple(paragraph, target_set)
+  end
+
+  def extract_mergefield_from_text_run(tr, target_set)
+    # Chercher les instructions MERGEFIELD dans w:instrText, comme dans publipostage_v2
+    nodeset = tr.xpath("w:instrText[starts-with(., ' MERGEFIELD')]")
+    return unless nodeset.size.positive?
+
+    field_name = extract_field_name_from_instruction(nodeset.text)
+    target_set << field_name if field_name
+  end
+
+  def extract_mergefield_from_field_simple(paragraph, target_set)
+    # Extraire les champs des w:fldSimple, comme dans publipostage_v2
     paragraph.xpath('w:fldSimple').each do |node|
       instr = node.attribute('instr')
       next unless instr
 
-      field_name = extract_field_name(instr.text)
+      field_name = extract_field_name_from_instruction(instr.text)
       target_set << field_name if field_name
     end
   end
 
-  def extract_field_name(instr_text)
+  def extract_field_name_from_instruction(instr_text)
     return nil unless instr_text.include?('MERGEFIELD')
 
-    match = instr_text.match(/MERGEFIELD\s+(?:"([^"]+)"|([^" \\]+))/)
+    # Utiliser la même regex que publipostage_v2
+    match = instr_text.match(/MERGEFIELD\s+(?:"([^"]+)"|([^" ]+))/)
     return nil unless match
 
-    match[1] || match[2]
+    match[1].presence || match[2]
+  end
+
+  def extract_field_name(instr_text)
+    # Méthode de compatibilité, rediriger vers la nouvelle méthode
+    extract_field_name_from_instruction(instr_text)
   end
 
   def fetch_demarche_definition
