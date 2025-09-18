@@ -303,6 +303,9 @@ module MesDemarches
             }
             champs {
               ...ChampInfo
+              ... on DossierLinkChamp {
+                stringValue
+              }
               ... on RepetitionChamp {
                   rows {
                     champs {
@@ -323,6 +326,13 @@ module MesDemarches
                   ...DossierInfo
                   annotations {
                       ...ChampInfo
+                      ... on RepetitionChamp {
+                          rows {
+                            champs {
+                              ...ChampInfo
+                            }
+                          }
+                      }
                   }
                   champs {
                       ...ChampInfo
@@ -331,9 +341,6 @@ module MesDemarches
                             champs {
                               ...ChampInfo
                             }
-                          }
-                          champs {
-                              ...ChampInfo
                           }
                       }
                   }
