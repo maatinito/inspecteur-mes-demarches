@@ -1,0 +1,492 @@
+- content_for :title, "Synchronisation Baserow"
+
+.container-fluid
+  .row
+    .col
+      %h2.mb-4 Synchronisation Mes-Démarches ↔ Baserow
+      %p.text-muted
+        Cette interface permet de créer automatiquement des colonnes dans une table Baserow
+        basées sur les champs et annotations d'une démarche Mes-Démarches.
+
+  %form#sync-form
+    .row
+      .col-md-6
+        .card.mb-4
+          .card-header
+            %h5.mb-0 Configuration de la démarche
+          .card-body
+            .form-group
+              %label{ for: "demarche_number" } Numéro de démarche *
+              %input.form-control#demarche_number{ type: "number", required: true, placeholder: "Ex: 1234" }
+              %small.form-text.text-muted Les erreurs d'accès seront affichées lors de l'aperçu/synchronisation
+
+            .form-group.mb-4
+              %label Éléments à synchroniser
+              .form-check
+                %input.form-check-input#include_identity_info{ type: "checkbox" }
+                %label.form-check-label{ for: "include_identity_info" } Informations système (n° dossier, dates, etc.)
+              .form-check
+                %input.form-check-input#include_fields{ type: "checkbox", checked: true }
+                %label.form-check-label{ for: "include_fields" } Champs du formulaire
+              .form-check
+                %input.form-check-input#include_annotations{ type: "checkbox" }
+                %label.form-check-label{ for: "include_annotations" } Annotations privées
+
+            .form-group.mb-4#demandeur-type-group{ style: "display: none;" }
+              %label Type de demandeur
+              %small.form-text.text-muted Choisissez le type de demandeur configuré pour cette démarche
+              .form-check
+                %input.form-check-input#demandeur_personne_physique{ type: "radio", name: "demandeur_type", value: "personne_physique", checked: true }
+                %label.form-check-label{ for: "demandeur_personne_physique" }
+                  Personne physique
+                  %small.text-muted (civilité, nom, prénom, mandataire)
+              .form-check
+                %input.form-check-input#demandeur_personne_morale{ type: "radio", name: "demandeur_type", value: "personne_morale" }
+                %label.form-check-label{ for: "demandeur_personne_morale" }
+                  Personne morale
+                  %small.text-muted (SIRET, NAF, adresse établissement)
+
+            .form-group
+              %label{ for: "collision_strategy" } Stratégie en cas de conflit
+              %select.form-control#collision_strategy
+                %option{ value: "skip" } Ignorer si la colonne existe
+                %option{ value: "rename" } Renommer automatiquement
+                %option{ value: "error" } Lever une erreur
+
+      .col-md-6
+        .card.mb-4
+          .card-header
+            %h5.mb-0 Configuration Baserow
+          .card-body
+            .form-group
+              %label{ for: "workspace_select" } Workspace Baserow *
+              %select.form-control#workspace_select{ required: true }
+                %option{ value: "" } Chargement...
+              %small.form-text.text-muted Seuls les workspaces accessibles apparaissent
+
+            .form-group
+              %label{ for: "application_select" } Application (Base de données) *
+              %select.form-control#application_select{ required: true, disabled: true }
+                %option{ value: "" } Sélectionnez d'abord un workspace
+
+            .form-group
+              %label{ for: "table_select" } Table de destination *
+              %select.form-control#table_select{ required: true, disabled: true }
+                %option{ value: "" } Sélectionnez d'abord une application
+
+    .row
+      .col
+        .card.mb-4#preview-card{ style: "display: none;" }
+          .card-header
+            %h5.mb-0 Aperçu des colonnes à créer
+          .card-body
+            %div#preview-content
+
+    .row
+      .col.text-center
+        %button.btn.btn-outline-primary.mr-2#preview-btn{ type: "button", disabled: true }
+          %i.fas.fa-eye.mr-1
+          Aperçu
+        %button.btn.btn-success#sync-btn{ type: "button", disabled: true }
+          %i.fas.fa-sync.mr-1
+          Synchroniser
+
+  .row
+    .col
+      %div#result-alert{ style: "display: none;" }
+
+:javascript
+  console.log('JavaScript loaded!');
+
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded!');
+
+    // Test simple de l'authentification
+    fetch('/admin/baserow_sync/test_auth', {
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      console.log('Test auth response status:', response.status);
+      return response.json();
+    })
+    .then(data => {
+      console.log('Test auth data:', data);
+    })
+    .catch(error => {
+      console.error('Test auth error:', error);
+    });
+
+    const workspaceSelect = document.getElementById('workspace_select');
+    const applicationSelect = document.getElementById('application_select');
+    const tableSelect = document.getElementById('table_select');
+    const previewBtn = document.getElementById('preview-btn');
+    const syncBtn = document.getElementById('sync-btn');
+    const previewCard = document.getElementById('preview-card');
+    const previewContent = document.getElementById('preview-content');
+    const resultAlert = document.getElementById('result-alert');
+
+    // Load workspaces on page load
+    console.log('Starting to load workspaces...');
+    fetch('/admin/baserow_sync/workspaces', {
+      credentials: 'same-origin'
+    })
+      .then(response => {
+        console.log('Workspaces response status:', response.status);
+        return response.json();
+      })
+      .then(data => {
+        console.log('Workspaces data:', data);
+        workspaceSelect.innerHTML = "<option value=\"\">Sélectionnez un workspace</option>";
+        if (data.success) {
+          data.workspaces.forEach(workspace => {
+            const option = document.createElement('option');
+            option.value = workspace.id;
+            option.textContent = workspace.name;
+            workspaceSelect.appendChild(option);
+          });
+        } else {
+          showError('Erreur lors du chargement des workspaces: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Fetch error:', error);
+        showError('Erreur réseau: ' + error.message);
+      });
+
+    // Workspace selection handler
+    workspaceSelect.addEventListener('change', function() {
+      applicationSelect.innerHTML = "<option value=\"\">Chargement...</option>";
+      applicationSelect.disabled = true;
+      tableSelect.innerHTML = "<option value=\"\">Sélectionnez d'abord une application</option>";
+      tableSelect.disabled = true;
+      updateButtons();
+
+      if (this.value) {
+        fetch(`/admin/baserow_sync/applications?workspace_id=${this.value}`, {
+          credentials: 'same-origin'
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+          })
+          .then(data => {
+            applicationSelect.innerHTML = "<option value=\"\">Sélectionnez une application</option>";
+            if (data.success) {
+              data.applications.forEach(app => {
+                const option = document.createElement('option');
+                option.value = app.id;
+                option.textContent = app.name;
+                applicationSelect.appendChild(option);
+              });
+              applicationSelect.disabled = false;
+            } else {
+              console.error('Applications error:', data);
+              showError('Erreur lors du chargement des applications: ' + (data.error || 'Erreur inconnue'));
+            }
+          })
+          .catch(error => showError('Erreur réseau: ' + error.message));
+      }
+    });
+
+    // Application selection handler
+    applicationSelect.addEventListener('change', function() {
+      tableSelect.innerHTML = "<option value=\"\">Chargement...</option>";
+      tableSelect.disabled = true;
+      updateButtons();
+
+      if (this.value) {
+        const workspaceId = workspaceSelect.value;
+        fetch(`/admin/baserow_sync/tables?application_id=${this.value}&workspace_id=${workspaceId}`, {
+          credentials: 'same-origin'
+        })
+          .then(response => response.json())
+          .then(data => {
+            tableSelect.innerHTML = "<option value=\"\">Sélectionnez une table</option>";
+            if (data.success) {
+              data.tables.forEach(table => {
+                const option = document.createElement('option');
+                option.value = table.id;
+                option.textContent = table.name;
+                tableSelect.appendChild(option);
+              });
+              tableSelect.disabled = false;
+            } else {
+              showError('Erreur lors du chargement des tables: ' + data.error);
+            }
+          })
+          .catch(error => showError('Erreur réseau: ' + error.message));
+      }
+    });
+
+    // Update button states
+    function updateButtons() {
+      const canPreview = document.getElementById('demarche_number').value &&
+                        tableSelect.value &&
+                        !tableSelect.disabled;
+      previewBtn.disabled = !canPreview;
+      syncBtn.disabled = !canPreview;
+    }
+
+    // Form change listeners
+    ['demarche_number', 'table_select', 'include_fields', 'include_annotations', 'include_identity_info'].forEach(id => {
+      document.getElementById(id).addEventListener('change', updateButtons);
+    });
+
+    // Gestion de la visibilité du type de demandeur
+    const includeIdentityInfo = document.getElementById('include_identity_info');
+    const demandeurTypeGroup = document.getElementById('demandeur-type-group');
+
+    function toggleDemandeurTypeGroup() {
+      if (includeIdentityInfo.checked) {
+        demandeurTypeGroup.style.display = 'block';
+      } else {
+        demandeurTypeGroup.style.display = 'none';
+      }
+    }
+
+    includeIdentityInfo.addEventListener('change', toggleDemandeurTypeGroup);
+    toggleDemandeurTypeGroup(); // Initial state
+
+    // Preview button handler
+    previewBtn.addEventListener('click', function() {
+      const formData = getFormData();
+      previewBtn.disabled = true;
+      previewBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Chargement...";
+
+      fetch('/admin/baserow_sync/preview', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showPreview(data.preview);
+        } else {
+          showError('Erreur lors de l\'aperçu: ' + data.error);
+        }
+      })
+      .catch(error => showError('Erreur réseau: ' + error.message))
+      .finally(() => {
+        previewBtn.disabled = false;
+        previewBtn.innerHTML = "<i class=\"fas fa-eye mr-1\"></i>Aperçu";
+      });
+    });
+
+    // Sync button handler
+    syncBtn.addEventListener('click', function() {
+      if (!confirm('Confirmer la synchronisation ? Les colonnes seront créées dans Baserow.')) {
+        return;
+      }
+
+      const formData = getFormData();
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Synchronisation...";
+
+      fetch('/admin/baserow_sync/sync', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showSuccess(data.report);
+        } else {
+          showError('Erreur lors de la synchronisation: ' + data.error);
+        }
+      })
+      .catch(error => showError('Erreur réseau: ' + error.message))
+      .finally(() => {
+        syncBtn.disabled = false;
+        syncBtn.innerHTML = "<i class=\"fas fa-sync mr-1\"></i>Synchroniser";
+      });
+    });
+
+    function getFormData() {
+      const data = {
+        demarche_number: document.getElementById('demarche_number').value,
+        table_id: tableSelect.value,
+        include_fields: document.getElementById('include_fields').checked,
+        include_annotations: document.getElementById('include_annotations').checked,
+        include_identity_info: document.getElementById('include_identity_info').checked,
+        collision_strategy: document.getElementById('collision_strategy').value
+      };
+
+      // Ajouter le type de demandeur si les informations système sont incluses
+      if (data.include_identity_info) {
+        const demandeurType = document.querySelector('input[name="demandeur_type"]:checked');
+        data.demandeur_type = demandeurType ? demandeurType.value : 'mixte';
+      }
+
+      return data;
+    }
+
+    function showPreview(preview) {
+      // Détecter les doublons
+      const fieldNames = preview.fields.map(field => field.field_name);
+      const duplicates = fieldNames.filter((name, index) => fieldNames.indexOf(name) !== index);
+      const uniqueDuplicates = [...new Set(duplicates)];
+
+      let html = '<div class="row">' +
+        '<div class="col-md-3">' +
+          '<div class="card bg-light">' +
+            '<div class="card-body text-center">' +
+              '<h5 class="card-title">' + preview.total_fields + '</h5>' +
+              '<p class="card-text">Champs total</p>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="col-md-3">' +
+          '<div class="card bg-success text-white">' +
+            '<div class="card-body text-center">' +
+              '<h5 class="card-title">' + preview.supported_fields + '</h5>' +
+              '<p class="card-text">Supportés</p>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="col-md-3">' +
+          '<div class="card bg-info text-white">' +
+            '<div class="card-body text-center">' +
+              '<h5 class="card-title">' + preview.unsupported_fields + '</h5>' +
+              '<p class="card-text">Non supportés</p>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="col-md-3">' +
+          '<div class="card ' + (uniqueDuplicates.length > 0 ? 'bg-warning' : 'bg-secondary') + ' text-white">' +
+            '<div class="card-body text-center">' +
+              '<h5 class="card-title">' + uniqueDuplicates.length + '</h5>' +
+              '<p class="card-text">Doublons</p>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+      if (uniqueDuplicates.length > 0) {
+        html += '<div class="alert alert-warning mt-3">' +
+          '<h6><i class="fas fa-exclamation-triangle"></i> Noms dupliqués détectés</h6>' +
+          '<p>Les champs suivants ont des noms identiques : <strong>' + uniqueDuplicates.join(', ') + '</strong></p>' +
+          '<small>Les lignes avec des doublons sont surlignées en orange dans le tableau.</small>' +
+        '</div>';
+      }
+
+      if (preview.fields.length > 0) {
+        html += '<h6 class="mt-3">Détail des champs :</h6>' +
+          '<div class="table-responsive">' +
+            '<table class="table table-sm">' +
+              '<thead>' +
+                '<tr>' +
+                  '<th>Nom du champ</th>' +
+                  '<th>Type MD</th>' +
+                  '<th>Type technique</th>' +
+                  '<th>Type Baserow</th>' +
+                  '<th>Statut</th>' +
+                '</tr>' +
+              '</thead>' +
+              '<tbody>';
+
+        preview.fields.forEach(field => {
+          const statusClass = field.supported ? 'text-success' : 'text-info';
+          const statusText = field.supported ? 'Supporté' : 'Non supporté';
+          const isDuplicate = uniqueDuplicates.includes(field.field_name);
+          const rowClass = isDuplicate ? ' class="table-warning"' : '';
+
+          // Déterminer le type MD selon la catégorie
+          let mdType = '';
+          let mdBadgeClass = '';
+          switch(field.category) {
+            case 'champ':
+              mdType = 'champ';
+              mdBadgeClass = 'text-bg-success';
+              break;
+            case 'annotation':
+              mdType = 'annotation';
+              mdBadgeClass = 'text-bg-warning';
+              break;
+            case 'identity':
+            case 'système':
+              mdType = 'système';
+              mdBadgeClass = 'text-bg-info';
+              break;
+            default:
+              mdType = field.category || 'inconnu';
+              mdBadgeClass = 'text-bg-secondary';
+          }
+
+          html += '<tr' + rowClass + '>' +
+            '<td><strong>' + field.field_name + '</strong></td>' +
+            '<td><span class="badge ' + mdBadgeClass + '">' + mdType + '</span></td>' +
+            '<td><code>' + field.mes_demarches_type.replace('ChampDescriptor', '') + '</code></td>' +
+            '<td>' + (field.supported ? '<code>' + field.baserow_type + '</code>' : '-') + '</td>' +
+            '<td class="' + statusClass + '">' + statusText + '</td>' +
+          '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+      }
+
+      previewContent.innerHTML = html;
+      previewCard.style.display = 'block';
+    }
+
+    function showSuccess(report) {
+      let html = '<div class="alert alert-success alert-dismissible" role="alert">' +
+        '<button type="button" class="close" data-dismiss="alert">' +
+          '<span>&times;</span>' +
+        '</button>' +
+        '<h5><i class="fas fa-check-circle"></i> Synchronisation réussie !</h5>' +
+        '<p><strong>' + report.fields_created.length + '</strong> colonnes créées, ' +
+           '<strong>' + (report.fields_updated ? report.fields_updated.length : 0) + '</strong> mises à jour, ' +
+           '<strong>' + report.fields_skipped.length + '</strong> ignorées</p>';
+
+      if (report.fields_created.length > 0) {
+        html += '<h6>Colonnes créées :</h6><ul>';
+        report.fields_created.forEach(field => {
+          html += '<li><strong>' + field.name + '</strong> (' + field.type + ') - ' + field.original_label + '</li>';
+        });
+        html += '</ul>';
+      }
+
+      if (report.fields_updated && report.fields_updated.length > 0) {
+        html += '<h6>Colonnes mises à jour :</h6><ul>';
+        report.fields_updated.forEach(field => {
+          html += '<li><strong>' + field.name + '</strong>: ' + field.new_options.join(', ') + ' ajoutée(s)</li>';
+        });
+        html += '</ul>';
+      }
+
+      if (report.fields_failed.length > 0) {
+        html += '<h6 class="text-danger">Erreurs :</h6><ul>';
+        report.fields_failed.forEach(field => {
+          html += '<li><strong>' + field.name + '</strong>: ' + field.error + '</li>';
+        });
+        html += '</ul>';
+      }
+
+      html += '</div>';
+      resultAlert.innerHTML = html;
+      resultAlert.style.display = 'block';
+    }
+
+    function showError(message) {
+      resultAlert.innerHTML = '<div class="alert alert-danger alert-dismissible" role="alert">' +
+        '<button type="button" class="close" data-dismiss="alert">' +
+          '<span>&times;</span>' +
+        '</button>' +
+        '<h5><i class="fas fa-exclamation-triangle"></i> Erreur</h5>' +
+        '<p>' + message + '</p>' +
+      '</div>';
+      resultAlert.style.display = 'block';
+    }
+  });

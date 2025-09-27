@@ -40,3 +40,4 @@ yarn-debug.log*
 /robot-mes-demarches-production/
 /robot-mes-demarches-staging/
 schema.json
+venv_lexpol/

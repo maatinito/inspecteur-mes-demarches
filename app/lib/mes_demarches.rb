@@ -414,45 +414,76 @@ module MesDemarches
         }
       }
 
-    query DemarcheRevision($demarche: Int!) {
-      demarche(number: $demarche) {
-        title
-        number
-        publishedRevision {
-          id
-          datePublication
+    fragment RevisionInfo on Revision {
+      id
+      datePublication
+      champDescriptors {
+        id
+        label
+        description
+        required
+        __typename
+        ... on DropDownListChampDescriptor {
+          options
+        }
+        ... on MultipleDropDownListChampDescriptor {
+          options
+        }
+        ... on RepetitionChampDescriptor {
           champDescriptors {
             id
             label
             description
             required
             __typename
-            ... on RepetitionChampDescriptor {
-              champDescriptors {
-                id
-                label
-                description
-                required
-                __typename
-              }
+            ... on DropDownListChampDescriptor {
+              options
+            }
+            ... on MultipleDropDownListChampDescriptor {
+              options
             }
           }
-          annotationDescriptors {
+        }
+      }
+      annotationDescriptors {
+        id
+        label
+        description
+        required
+        __typename
+        ... on DropDownListChampDescriptor {
+          options
+        }
+        ... on MultipleDropDownListChampDescriptor {
+          options
+        }
+        ... on RepetitionChampDescriptor {
+          champDescriptors {
             id
             label
             description
             required
             __typename
-            ... on RepetitionChampDescriptor {
-              champDescriptors {
-                id
-                label
-                description
-                required
-                __typename
-              }
+            ... on DropDownListChampDescriptor {
+              options
+            }
+            ... on MultipleDropDownListChampDescriptor {
+              options
             }
           }
+        }
+      }
+    }
+
+    query DemarcheRevision($demarche: Int!) {
+      demarche(number: $demarche) {
+        title
+        number
+        draftRevision {
+          ...RevisionInfo
+        }
+        publishedRevision {
+          ...RevisionInfo
         }
       }
     }

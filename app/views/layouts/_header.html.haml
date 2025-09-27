@@ -5,7 +5,7 @@
   %ul.nav.text-right
     - if user_signed_in?
       %li.nav-item
-        = link_to 'se déconnecter', destroy_user_session_path, method: :delete, class: "navlink", style: 'margin-right: 15px'
+        = link_to 'se déconnecter', destroy_user_session_path, data: { 'turbo-method': :delete }, class: "navlink", style: 'margin-right: 15px'
       %li.nav-item
         = link_to 'mon profil', edit_user_registration_path,class: "navlink"
     - else

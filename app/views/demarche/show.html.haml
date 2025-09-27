@@ -1,6 +1,10 @@
 .container-fluid
   .row
     .col.text-right
+      - if user_signed_in?
+        = link_to admin_baserow_sync_index_path, class: "btn btn-outline-info mr-2" do
+          %i.fas.fa-database.mr-1
+          Synchronisation Baserow
       - if @running
         = link_to 'Vérification en cours', '',class: "btn", enabled: false
       - else

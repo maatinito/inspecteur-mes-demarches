@@ -10,6 +10,20 @@ Rails.application.routes.draw do
 
   get 'configurations', to: 'demarche#show', as: 'configuration'
 
+  # Admin routes
+  namespace :admin do
+    resources :baserow_sync, only: [:index] do
+      collection do
+        get :workspaces
+        get :applications
+        get :tables
+        get :test_auth
+        post :preview
+        post :sync
+      end
+    end
+  end
+
   # view jobs
   match '/delayed_job' => DelayedJobWeb, :anchor => false, :via => %i[get post]
 
