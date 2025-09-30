@@ -61,6 +61,9 @@ class Publipostage < FieldChecker
 
       next if same_document(fields)
 
+      # Ajouter les variables volatiles après la vérification same_document
+      add_volatile_fields(fields)
+
       path = generate_doc(fields)
       send_if_target_field_is_in_current_row(demarche, dossier, row, path)
     end
@@ -213,6 +216,12 @@ class Publipostage < FieldChecker
   end
 
   private
+
+  def add_volatile_fields(fields)
+    # Variables volatiles qui ne doivent pas être stockées dans DossierData
+    # pour éviter de redéclencher le publipostage à chaque changement
+    fields['Aujourd\'hui'] = Time.zone.today.strftime('%d/%m/%Y')
+  end
 
   def send_mail(demarche, dossier, file, filename, message)
     params = {

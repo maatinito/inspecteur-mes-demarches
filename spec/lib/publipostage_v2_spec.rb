@@ -76,7 +76,7 @@ RSpec.describe PublipostageV2 do
         expect(doc.to_html).to include('NAVIRE')
         expect(doc.to_html).to include('05/05/2023')
         expect(doc.tables.size).to eq(2)
-        msg = "La table a pour titre Produits mais aucun champ contenant une liste porte ce nom. Clés disponibles: Dossier, #index, Navire, Date d'arrivée, Produits 1, Produits 2"
+        msg = "La table a pour titre Produits mais aucun champ contenant une liste porte ce nom. Clés disponibles: Dossier, #index, Navire, Date d'arrivée, Produits 1, Produits 2, Aujourd'hui"
         expect(doc.tables[0].rows.map { |row| row.cells.map(&:text) })
           .to match([[msg, 'Poids', 'Code'],
                      ['Libellé : --Libellé des produits--', '--Poids--', '--Mauvais Code--']])
