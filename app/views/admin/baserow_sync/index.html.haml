@@ -450,6 +450,14 @@
            '<strong>' + (report.fields_updated ? report.fields_updated.length : 0) + '</strong> mises à jour, ' +
            '<strong>' + report.fields_skipped.length + '</strong> ignorées</p>';
 
+      // Afficher l'avertissement sur le champ primaire si présent
+      if (report.primary_field_warning) {
+        html += '<div class="alert alert-warning mt-3 mb-3">' +
+          '<h6><i class="fas fa-exclamation-triangle"></i> Avertissement : Champ primaire</h6>' +
+          '<p style="white-space: pre-line;">' + report.primary_field_warning + '</p>' +
+        '</div>';
+      }
+
       if (report.fields_created.length > 0) {
         html += '<h6>Colonnes créées :</h6><ul>';
         report.fields_created.forEach(field => {

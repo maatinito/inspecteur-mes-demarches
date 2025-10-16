@@ -33,12 +33,18 @@ module MesDemarchesToBaserow
 
     def sync!
       validate_demarche_access!
-      validate_primary_field!
+
+      # Valider le champ primaire mais ne pas bloquer la synchro
+      primary_validation = validate_primary_field_soft
+
       fields_to_create = collect_fields_to_create.select { |f| f[:supported] }
 
       fields_to_create.each do |field_info|
         create_field_if_needed(field_info)
       end
+
+      # Ajouter l'avertissement du champ primaire au rapport si nécessaire
+      @report[:primary_field_warning] = primary_validation[:error] if primary_validation && !primary_validation[:valid]
 
       @report
     end
@@ -77,6 +83,11 @@ module MesDemarchesToBaserow
                        "1. Renommez le champ primaire en 'Dossier'\n" \
                        "2. Assurez-vous qu'il soit de type 'number'\n" \
                        '3. Ce champ doit contenir les numéros de dossier Mes-Démarches'
+    end
+
+    # Version non bloquante de la validation du champ primaire
+    def validate_primary_field_soft
+      @structure_client.validate_primary_field(@table_id)
     end
 
     def collect_fields_to_create
@@ -162,7 +173,9 @@ module MesDemarchesToBaserow
     end
 
     def base_system_fields
-      [primary_field, state_field] + date_fields + [email_usager_field]
+      # Ne pas inclure primary_field car il doit déjà exister dans la table
+      # La validation se fait dans validate_primary_field_soft
+      [state_field] + date_fields + [email_usager_field]
     end
 
     def primary_field
