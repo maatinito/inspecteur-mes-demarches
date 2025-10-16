@@ -60,4 +60,52 @@ RSpec.describe Schedule, type: :model do
 
     include_examples 'schedule run_at tests'
   end
+
+  describe '#task_identifier' do
+    let(:pivot) { '2024-10-12' }
+
+    context 'when identifiant parameter is present' do
+      let(:params) do
+        {
+          champ_date_de_reference: 'champ',
+          champ_stockage: 'stockage',
+          taches: {},
+          identifiant: 'rappel_3_mois'
+        }
+      end
+
+      it 'returns schedule/{identifiant}' do
+        expect(subject.send(:task_identifier)).to eq('schedule/rappel_3_mois')
+      end
+    end
+
+    context 'when identifiant parameter is absent' do
+      let(:params) do
+        {
+          champ_date_de_reference: 'champ',
+          champ_stockage: 'stockage',
+          taches: {}
+        }
+      end
+
+      it 'returns the class itself for backward compatibility' do
+        expect(subject.send(:task_identifier)).to eq(Schedule)
+      end
+    end
+
+    context 'when identifiant parameter is blank' do
+      let(:params) do
+        {
+          champ_date_de_reference: 'champ',
+          champ_stockage: 'stockage',
+          taches: {},
+          identifiant: ''
+        }
+      end
+
+      it 'returns the class itself for backward compatibility' do
+        expect(subject.send(:task_identifier)).to eq(Schedule)
+      end
+    end
+  end
 end

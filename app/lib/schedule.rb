@@ -2,7 +2,7 @@
 
 class Schedule < FieldChecker
   def version
-    super + @controls.map(&:version).reduce(0, &:+) + 1
+    super + @controls.map(&:version).reduce(0, &:+) + 2
   end
 
   def required_fields
@@ -10,7 +10,7 @@ class Schedule < FieldChecker
   end
 
   def authorized_fields
-    super + %i[decalage_jours decalage_heures heure champ_stockage delai_max_heures]
+    super + %i[decalage_jours decalage_heures heure champ_stockage delai_max_heures identifiant]
   end
 
   def initialize(params)
@@ -39,12 +39,16 @@ class Schedule < FieldChecker
         Rails.logger.info("Tache programmée à #{when_time} non exécutée car trop en retard.")
       end
     else
-      ScheduledTask.clear(dossier: @dossier.number, task: self.class)
-      ScheduledTask.enqueue(@dossier.number, self.class, @params, when_time)
+      ScheduledTask.clear(dossier: @dossier.number, task: task_identifier)
+      ScheduledTask.enqueue(@dossier.number, task_identifier, @params, when_time)
     end
   end
 
   private
+
+  def task_identifier
+    @params[:identifiant].present? ? "#{self.class.name.underscore}/#{@params[:identifiant]}" : self.class
+  end
 
   def run_at
     date = datetime_pivot
