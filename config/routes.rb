@@ -12,14 +12,14 @@ Rails.application.routes.draw do
 
   # Admin routes
   namespace :admin do
-    resources :baserow_sync, only: [:index] do
+    resources :baserow_schema, only: [:index] do
       collection do
         get :workspaces
         get :applications
         get :tables
         get :test_auth
         post :preview
-        post :sync
+        post :build
       end
     end
   end

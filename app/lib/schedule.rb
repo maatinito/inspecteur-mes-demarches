@@ -25,6 +25,8 @@ class Schedule < FieldChecker
     return unless must_check?(dossier)
 
     when_time = run_at
+    return unless when_time.present?
+
     if Time.zone.now > when_time
       hours_delay = @params[:delai_max_heures]
       if hours_delay.present? && Time.zone.now < when_time + hours_delay.hours

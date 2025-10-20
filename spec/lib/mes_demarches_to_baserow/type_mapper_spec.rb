@@ -11,10 +11,11 @@ RSpec.describe MesDemarchesToBaserow::TypeMapper do
       expect(described_class.supported_type?('IntegerNumberChampDescriptor')).to be true
       expect(described_class.supported_type?('DateChampDescriptor')).to be true
       expect(described_class.supported_type?('CheckboxChampDescriptor')).to be true
+      expect(described_class.supported_type?('PieceJustificativeChampDescriptor')).to be true
+      expect(described_class.supported_type?('CiviliteChampDescriptor')).to be true
     end
 
     it 'returns false for unsupported types' do
-      expect(described_class.supported_type?('PieceJustificativeChampDescriptor')).to be false
       expect(described_class.supported_type?('RepetitionChampDescriptor')).to be false
       expect(described_class.supported_type?('UnknownType')).to be false
     end
@@ -61,8 +62,25 @@ RSpec.describe MesDemarchesToBaserow::TypeMapper do
       expect(result[:config][:select_options].first[:value]).to eq('Option 1')
     end
 
+    it 'maps PieceJustificativeChampDescriptor to file' do
+      result = mapper.map_field_type('PieceJustificativeChampDescriptor')
+      expect(result[:type]).to eq('file')
+      expect(result[:config]).to eq({})
+    end
+
+    it 'maps CiviliteChampDescriptor to single_select with predefined options' do
+      result = mapper.map_field_type('CiviliteChampDescriptor')
+      expect(result[:type]).to eq('single_select')
+      expect(result[:config][:select_options]).to be_an(Array)
+      expect(result[:config][:select_options].size).to eq(2)
+      expect(result[:config][:select_options].first[:value]).to eq('M.')
+      expect(result[:config][:select_options].last[:value]).to eq('Mme')
+      expect(result[:config][:select_options].first[:color]).to eq('blue')
+      expect(result[:config][:select_options].last[:color]).to eq('purple')
+    end
+
     it 'raises UnsupportedTypeError for unsupported types' do
-      expect { mapper.map_field_type('PieceJustificativeChampDescriptor') }
+      expect { mapper.map_field_type('RepetitionChampDescriptor') }
         .to raise_error(MesDemarchesToBaserow::TypeMapper::UnsupportedTypeError)
     end
   end

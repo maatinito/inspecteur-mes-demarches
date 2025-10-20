@@ -17,7 +17,9 @@ module MesDemarchesToBaserow
       'EmailChampDescriptor' => { type: 'email', config: {} },
       'VisaChampDescriptor' => { type: 'text', config: {} },
       'DropDownListChampDescriptor' => { type: 'single_select', config: {} },
-      'MultipleDropDownListChampDescriptor' => { type: 'multiple_select', config: {} }
+      'MultipleDropDownListChampDescriptor' => { type: 'multiple_select', config: {} },
+      'CiviliteChampDescriptor' => { type: 'single_select', config: {} },
+      'PieceJustificativeChampDescriptor' => { type: 'file', config: {} }
     }.freeze
 
     # Types qui n'ont jamais de valeurs et doivent être ignorés
@@ -27,12 +29,10 @@ module MesDemarchesToBaserow
     ].freeze
 
     UNSUPPORTED_TYPES = %w[
-      PieceJustificativeChampDescriptor
       RepetitionChampDescriptor
       SiretChampDescriptor
       NumeroDnChampDescriptor
       LinkedDropDownListChampDescriptor
-      CiviliteChampDescriptor
       ReferentielDePolynesieChampDescriptor
       CommuneDePolynesieChampDescriptor
       CodePostalDePolynesieChampDescriptor
@@ -59,6 +59,8 @@ module MesDemarchesToBaserow
       case mes_demarches_type
       when 'DropDownListChampDescriptor', 'MultipleDropDownListChampDescriptor'
         mapping[:config] = build_select_options(field_descriptor)
+      when 'CiviliteChampDescriptor'
+        mapping[:config] = build_civilite_options
       end
 
       mapping
@@ -82,6 +84,15 @@ module MesDemarchesToBaserow
       end
 
       { select_options: select_options }
+    end
+
+    def build_civilite_options
+      {
+        select_options: [
+          { value: 'M.', color: 'blue' },
+          { value: 'Mme', color: 'purple' }
+        ]
+      }
     end
 
     def default_colors

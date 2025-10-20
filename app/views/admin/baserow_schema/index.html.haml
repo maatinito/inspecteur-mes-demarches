@@ -1,9 +1,9 @@
-- content_for :title, "Synchronisation Baserow"
+- content_for :title, "Créateur de schéma Baserow"
 
 .container-fluid
   .row
     .col
-      %h2.mb-4 Synchronisation Mes-Démarches ↔ Baserow
+      %h2.mb-4 Créateur de schéma Baserow
       %p.text-muted
         Cette interface permet de créer automatiquement des colonnes dans une table Baserow
         basées sur les champs et annotations d'une démarche Mes-Démarches.
@@ -18,10 +18,10 @@
             .form-group
               %label{ for: "demarche_number" } Numéro de démarche *
               %input.form-control#demarche_number{ type: "number", required: true, placeholder: "Ex: 1234" }
-              %small.form-text.text-muted Les erreurs d'accès seront affichées lors de l'aperçu/synchronisation
+              %small.form-text.text-muted Les erreurs d'accès seront affichées lors de l'aperçu/construction
 
             .form-group.mb-4
-              %label Éléments à synchroniser
+              %label Colonnes à créer
               .form-check
                 %input.form-check-input#include_identity_info{ type: "checkbox" }
                 %label.form-check-label{ for: "include_identity_info" } Informations système (n° dossier, dates, etc.)
@@ -84,25 +84,42 @@
 
     .row
       .col.text-center
-        %button.btn.btn-outline-primary.mr-2#preview-btn{ type: "button", disabled: true }
+        %button.btn.btn-success.mr-4#build-btn{ type: "button", disabled: true }
+          %i.fas.fa-hammer.mr-1
+          Créer les colonnes
+        %button.btn.btn-outline-primary#preview-btn{ type: "button", disabled: true }
           %i.fas.fa-eye.mr-1
           Aperçu
-        %button.btn.btn-success#sync-btn{ type: "button", disabled: true }
-          %i.fas.fa-sync.mr-1
-          Synchroniser
 
   .row
     .col
       %div#result-alert{ style: "display: none;" }
 
 :javascript
-  console.log('JavaScript loaded!');
+  (function() {
+    console.log('JavaScript loaded!');
 
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded!');
+    // Flag pour éviter la double initialisation
+    var isInitialized = false;
+
+    function initializeBaserowSchema() {
+      // Vérifier si on est bien sur la bonne page
+      if (!document.getElementById('workspace_select')) {
+        console.log('Not on Baserow Schema page, skipping initialization');
+        return;
+      }
+
+      // Éviter la double initialisation
+      if (isInitialized) {
+        console.log('Already initialized, skipping');
+        return;
+      }
+
+      isInitialized = true;
+      console.log('Initializing Baserow Schema page...');
 
     // Test simple de l'authentification
-    fetch('/admin/baserow_sync/test_auth', {
+    fetch('/admin/baserow_schema/test_auth', {
       credentials: 'same-origin'
     })
     .then(response => {
@@ -120,14 +137,14 @@
     const applicationSelect = document.getElementById('application_select');
     const tableSelect = document.getElementById('table_select');
     const previewBtn = document.getElementById('preview-btn');
-    const syncBtn = document.getElementById('sync-btn');
+    const buildBtn = document.getElementById('build-btn');
     const previewCard = document.getElementById('preview-card');
     const previewContent = document.getElementById('preview-content');
     const resultAlert = document.getElementById('result-alert');
 
     // Load workspaces on page load
     console.log('Starting to load workspaces...');
-    fetch('/admin/baserow_sync/workspaces', {
+    fetch('/admin/baserow_schema/workspaces', {
       credentials: 'same-origin'
     })
       .then(response => {
@@ -162,7 +179,7 @@
       updateButtons();
 
       if (this.value) {
-        fetch(`/admin/baserow_sync/applications?workspace_id=${this.value}`, {
+        fetch(`/admin/baserow_schema/applications?workspace_id=${this.value}`, {
           credentials: 'same-origin'
         })
           .then(response => {
@@ -198,7 +215,7 @@
 
       if (this.value) {
         const workspaceId = workspaceSelect.value;
-        fetch(`/admin/baserow_sync/tables?application_id=${this.value}&workspace_id=${workspaceId}`, {
+        fetch(`/admin/baserow_schema/tables?application_id=${this.value}&workspace_id=${workspaceId}`, {
           credentials: 'same-origin'
         })
           .then(response => response.json())
@@ -226,7 +243,7 @@
                         tableSelect.value &&
                         !tableSelect.disabled;
       previewBtn.disabled = !canPreview;
-      syncBtn.disabled = !canPreview;
+      buildBtn.disabled = !canPreview;
     }
 
     // Form change listeners
@@ -255,7 +272,7 @@
       previewBtn.disabled = true;
       previewBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Chargement...";
 
-      fetch('/admin/baserow_sync/preview', {
+      fetch('/admin/baserow_schema/preview', {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -279,17 +296,17 @@
       });
     });
 
-    // Sync button handler
-    syncBtn.addEventListener('click', function() {
-      if (!confirm('Confirmer la synchronisation ? Les colonnes seront créées dans Baserow.')) {
+    // Build button handler
+    buildBtn.addEventListener('click', function() {
+      if (!confirm('Confirmer la création des colonnes ? Les colonnes seront créées dans Baserow.')) {
         return;
       }
 
       const formData = getFormData();
-      syncBtn.disabled = true;
-      syncBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Synchronisation...";
+      buildBtn.disabled = true;
+      buildBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Création en cours...";
 
-      fetch('/admin/baserow_sync/sync', {
+      fetch('/admin/baserow_schema/build', {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -303,13 +320,13 @@
         if (data.success) {
           showSuccess(data.report);
         } else {
-          showError('Erreur lors de la synchronisation: ' + data.error);
+          showError('Erreur lors de la création: ' + data.error);
         }
       })
       .catch(error => showError('Erreur réseau: ' + error.message))
       .finally(() => {
-        syncBtn.disabled = false;
-        syncBtn.innerHTML = "<i class=\"fas fa-sync mr-1\"></i>Synchroniser";
+        buildBtn.disabled = false;
+        buildBtn.innerHTML = "<i class=\"fas fa-hammer mr-1\"></i>Créer les colonnes";
       });
     });
 
@@ -445,7 +462,7 @@
         '<button type="button" class="close" data-dismiss="alert">' +
           '<span>&times;</span>' +
         '</button>' +
-        '<h5><i class="fas fa-check-circle"></i> Synchronisation réussie !</h5>' +
+        '<h5><i class="fas fa-check-circle"></i> Création des colonnes réussie !</h5>' +
         '<p><strong>' + report.fields_created.length + '</strong> colonnes créées, ' +
            '<strong>' + (report.fields_updated ? report.fields_updated.length : 0) + '</strong> mises à jour, ' +
            '<strong>' + report.fields_skipped.length + '</strong> ignorées</p>';
@@ -497,4 +514,19 @@
       '</div>';
       resultAlert.style.display = 'block';
     }
+  }
+
+  // Support both initial load and Turbolinks navigation
+  document.addEventListener('turbolinks:load', function() {
+    isInitialized = false;  // Reset flag on page change
+    initializeBaserowSchema();
   });
+
+  // For initial page load (if Turbolinks hasn't kicked in yet)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeBaserowSchema);
+  } else {
+    // DOM already loaded
+    initializeBaserowSchema();
+  }
+  })();

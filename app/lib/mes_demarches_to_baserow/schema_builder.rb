@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module MesDemarchesToBaserow
-  class SyncService
-    class SyncError < StandardError; end
+  class SchemaBuilder
+    class SchemaError < StandardError; end
 
     attr_reader :demarche_number, :table_id, :options, :report
 
@@ -31,10 +31,10 @@ module MesDemarchesToBaserow
       }
     end
 
-    def sync!
+    def build!
       validate_demarche_access!
 
-      # Valider le champ primaire mais ne pas bloquer la synchro
+      # Valider le champ primaire mais ne pas bloquer la construction
       primary_validation = validate_primary_field_soft
 
       fields_to_create = collect_fields_to_create.select { |f| f[:supported] }
@@ -65,10 +65,10 @@ module MesDemarchesToBaserow
     def validate_demarche_access!
       result = MesDemarches.query(MesDemarches::Queries::DemarcheRevision, variables: { demarche: @demarche_number })
 
-      raise SyncError, "Erreur lors de l'accès à la démarche #{@demarche_number}: #{result.errors.map(&:message).join(', ')}" if result.errors.any?
+      raise SchemaError, "Erreur lors de l'accès à la démarche #{@demarche_number}: #{result.errors.map(&:message).join(', ')}" if result.errors.any?
 
       demarche = result.data&.demarche
-      raise SyncError, "Démarche #{@demarche_number} introuvable ou accès non autorisé" if demarche.nil?
+      raise SchemaError, "Démarche #{@demarche_number} introuvable ou accès non autorisé" if demarche.nil?
 
       demarche
     end
@@ -78,11 +78,11 @@ module MesDemarchesToBaserow
 
       return if validation[:valid]
 
-      raise SyncError, "❌ Validation du champ primaire échouée: #{validation[:error]}\n\n" \
-                       "🔧 Pour résoudre ce problème:\n" \
-                       "1. Renommez le champ primaire en 'Dossier'\n" \
-                       "2. Assurez-vous qu'il soit de type 'number'\n" \
-                       '3. Ce champ doit contenir les numéros de dossier Mes-Démarches'
+      raise SchemaError, "❌ Validation du champ primaire échouée: #{validation[:error]}\n\n" \
+                         "🔧 Pour résoudre ce problème:\n" \
+                         "1. Renommez le champ primaire en 'Dossier'\n" \
+                         "2. Assurez-vous qu'il soit de type 'number'\n" \
+                         '3. Ce champ doit contenir les numéros de dossier Mes-Démarches'
     end
 
     # Version non bloquante de la validation du champ primaire
@@ -96,7 +96,7 @@ module MesDemarchesToBaserow
       # Priorité à la draft revision, sinon published revision
       revision = demarche.draft_revision || demarche.published_revision
 
-      raise SyncError, "Démarche #{@demarche_number} n'a ni révision en brouillon ni révision publiée disponible" unless revision
+      raise SchemaError, "Démarche #{@demarche_number} n'a ni révision en brouillon ni révision publiée disponible" unless revision
 
       fields = []
 
@@ -351,7 +351,7 @@ module MesDemarchesToBaserow
           @report[:fields_skipped] << { name: field_name, reason: 'field_exists' }
           return
         when 'error'
-          raise SyncError, "Le champ '#{field_name}' existe déjà dans la table"
+          raise SchemaError, "Le champ '#{field_name}' existe déjà dans la table"
         when 'rename'
           field_name = find_available_name(field_name)
           field_info[:field_name] = field_name

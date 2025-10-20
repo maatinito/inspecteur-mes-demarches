@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 module Admin
-  class BaserowSyncController < ApplicationController
+  class BaserowSchemaController < ApplicationController
     before_action :authenticate_user!
-    skip_before_action :verify_authenticity_token, only: %i[workspaces applications tables preview sync]
+    skip_before_action :verify_authenticity_token, only: %i[workspaces applications tables preview build]
 
     def index; end
 
@@ -118,7 +118,7 @@ module Admin
     def preview
       demarche_number = params[:demarche_number]&.to_i
       table_id = params[:table_id]&.to_i
-      sync_options = extract_sync_options
+      schema_options = extract_schema_options
 
       if demarche_number.blank? || table_id.blank?
         render json: { success: false, error: 'demarche_number et table_id requis' }, status: 400
@@ -126,14 +126,14 @@ module Admin
       end
 
       begin
-        sync_service = MesDemarchesToBaserow::SyncService.new(demarche_number, table_id, sync_options)
-        preview_data = sync_service.preview
+        schema_builder = MesDemarchesToBaserow::SchemaBuilder.new(demarche_number, table_id, schema_options)
+        preview_data = schema_builder.preview
 
         render json: {
           success: true,
           preview: preview_data
         }
-      rescue MesDemarchesToBaserow::SyncService::SyncError => e
+      rescue MesDemarchesToBaserow::SchemaBuilder::SchemaError => e
         render json: {
           success: false,
           error: e.message
@@ -146,10 +146,10 @@ module Admin
       end
     end
 
-    def sync
+    def build
       demarche_number = params[:demarche_number]&.to_i
       table_id = params[:table_id]&.to_i
-      sync_options = extract_sync_options
+      schema_options = extract_schema_options
 
       if demarche_number.blank? || table_id.blank?
         render json: { success: false, error: 'demarche_number et table_id requis' }, status: 400
@@ -157,14 +157,14 @@ module Admin
       end
 
       begin
-        sync_service = MesDemarchesToBaserow::SyncService.new(demarche_number, table_id, sync_options)
-        report = sync_service.sync!
+        schema_builder = MesDemarchesToBaserow::SchemaBuilder.new(demarche_number, table_id, schema_options)
+        report = schema_builder.build!
 
         render json: {
           success: true,
           report: report
         }
-      rescue MesDemarchesToBaserow::SyncService::SyncError => e
+      rescue MesDemarchesToBaserow::SchemaBuilder::SchemaError => e
         render json: {
           success: false,
           error: e.message
@@ -179,9 +179,9 @@ module Admin
 
     private
 
-    def extract_sync_options
+    def extract_schema_options
       log_raw_params
-      build_sync_options.tap { |options| Rails.logger.info "Converted options: #{options.inspect}" }
+      build_schema_options.tap { |options| Rails.logger.info "Converted options: #{options.inspect}" }
     end
 
     def log_raw_params
@@ -194,7 +194,7 @@ module Admin
                         "include_identity_info=#{identity_param}"
     end
 
-    def build_sync_options
+    def build_schema_options
       {
         include_fields: ActiveModel::Type::Boolean.new.cast(params[:include_fields]),
         include_annotations: ActiveModel::Type::Boolean.new.cast(params[:include_annotations]),
