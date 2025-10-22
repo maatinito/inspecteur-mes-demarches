@@ -66,7 +66,7 @@ gem 'sablon'
 gem 'sentry-delayed_job'
 gem 'sentry-rails'
 gem 'sentry-ruby'
-gem 'sinatra', '>= 4.1.0'
+gem 'sinatra', '>= 4.2.0'
 gem 'sprockets-rails'
 gem 'typhoeus'
 gem 'tzinfo-data', platforms: %i[mingw mswin x64_mingw jruby] # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
