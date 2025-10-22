@@ -26,13 +26,14 @@ module Daf
 
       target_repetition = SetAnnotationValue.allocate_blocks(@dossier, @demarche.instructeur, @params[:bloc_destination], orders.size)
       champ_destination_label = @params[:champ_destination]
-      annotations = target_repetition.champs.filter { |c| c.label == champ_destination_label }
-      missing = annotations.size - orders.size
-      orders = [*orders, *Array.new(missing, '')] if missing.positive?
 
       changed = false
-      orders.zip(annotations).each do |order, annotation|
-        next if order.blank? || order == SetAnnotationValue.value_of(annotation)
+      orders.each_with_index do |order, index|
+        row = target_repetition.rows[index]
+        next unless row
+
+        annotation = row.champs.find { |c| c.label == champ_destination_label }
+        next if order.blank? || !annotation || order == SetAnnotationValue.value_of(annotation)
 
         SetAnnotationValue.raw_set_value(dossier.id, demarche.instructeur, annotation.id, order)
         changed = true

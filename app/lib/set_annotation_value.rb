@@ -36,7 +36,7 @@ class SetAnnotationValue
     annotation = get_annotation(md_dossier, annotation_name)
     raise "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}" unless annotation.present?
 
-    count = count_block_in(annotation.champs)
+    count = annotation.rows&.size || 0
     result = annotation
     (count...block_count).each do
       result = raw_add_block(md_dossier.id, instructeur_id, annotation.id)
@@ -76,13 +76,6 @@ class SetAnnotationValue
     raise errors.join(';') if errors.present?
 
     result.data.dossier_modifier_annotation_ajouter_ligne.annotation
-  end
-
-  def self.count_block_in(champs)
-    return 0 if champs.empty?
-
-    label = champs.first.label
-    champs.count { |c| c.label == label }
   end
 
   Queries = MesDemarches::Client.parse <<-GRAPHQL
@@ -189,10 +182,12 @@ class SetAnnotationValue
         errors {message }
         __typename
         annotation {
-          champs {
-            id
-            label
-            stringValue
+          rows {
+            champs {
+              id
+              label
+              stringValue
+            }
           }
         }
       }
