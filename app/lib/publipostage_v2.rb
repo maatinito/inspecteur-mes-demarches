@@ -174,7 +174,7 @@ class PublipostageV2 < Publipostage
     when 'NumeroDnChamp'
       expand_numero_dn(champ)
     when 'CommuneDePolynesieChamp', 'CodePostalDePolynesieChamp'
-      expand_commune_de_polynesie(champ)
+      champ.string_value #   expand_commune_de_polynesie(champ)
     else
       super
     end
