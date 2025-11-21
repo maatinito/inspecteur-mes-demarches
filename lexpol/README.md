@@ -44,25 +44,109 @@ demande.dateReception,demande.dateReception1
 
 ## Utilisation
 
-### Renommer une seule variable (la première du CSV)
+### Mode renommage
+
+#### Renommer une seule variable (la première du CSV)
 ```bash
 source venv/bin/activate
 python3 lexpol_variable_renamer.py
 ```
 
-### Renommer toutes les variables du CSV
+#### Renommer toutes les variables du CSV
 ```bash
 source venv/bin/activate
 python3 lexpol_variable_renamer.py --all
 ```
 
+### Mode nettoyage
+
+#### Supprimer toutes les variables non utilisées
+```bash
+source venv/bin/activate
+python3 lexpol_variable_renamer.py --cleanup
+```
+
+Cette option parcourt toutes les variables du modèle et supprime automatiquement celles qui n'ont aucune occurrence. Pour chaque variable :
+- Recherche du nombre d'occurrences
+- Si 0 occurrence : suppression automatique avec confirmation
+- Affichage d'un résumé final (variables supprimées/conservées/ignorées)
+
+**Note :** Cette option ne nécessite pas de fichier CSV et est indépendante du mode renommage.
+
+### Mode extraction
+
+#### Extraire la liste de toutes les variables
+```bash
+source venv/bin/activate
+python3 lexpol_list_variables.py
+```
+
+Ce script génère un fichier CSV avec toutes les variables du modèle et leurs informations :
+- Code de la variable
+- Libellé (description)
+- Nombre d'occurrences
+- Statut (Utilisée / Non utilisée)
+
+Le fichier généré porte le nom `lexpol_variables_YYYYMMDD_HHMMSS.csv` avec un timestamp pour éviter les écrasements.
+
+### Mode tri
+
+#### Trier les variables par ordre alphabétique
+```bash
+source venv/bin/activate
+python3 lexpol_sort_variables.py
+```
+
+Ce script trie toutes les variables du modèle par ordre alphabétique :
+- Respecte la casse (majuscules avant minuscules)
+- **Ignore les accents** pour un tri naturel ("à" = "a", "é" = "e")
+- Optimisé : déplace directement de N positions en un seul appel
+- Recalcule l'ordre à chaque itération pour garantir la cohérence
+
+#### Simulation du tri (dry-run)
+```bash
+source venv/bin/activate
+python3 lexpol_sort_variables.py --dry-run
+```
+
+Affiche les déplacements qui seraient effectués sans les appliquer réellement.
+
+### Paramètres optionnels (multi-comptes)
+
+Tous les scripts de connexion acceptent des paramètres optionnels pour se connecter à différents modèles ou comptes :
+
+#### Paramètre --modele
+Permet de spécifier le numéro du modèle Lexpol à utiliser :
+```bash
+python3 lexpol_variable_renamer.py --modele 623774 --all
+python3 lexpol_list_variables.py --modele 623774
+python3 lexpol_sort_variables.py --modele 623774
+```
+
+#### Paramètre --email
+Permet de spécifier l'email de connexion (complet ou juste le préfixe) :
+```bash
+# Avec préfixe (construit automatiquement redacteur.geda@jeunesse.gov.pf)
+python3 lexpol_variable_renamer.py --email jeunesse --all
+
+# Avec email complet
+python3 lexpol_list_variables.py --email redacteur.geda@dgen.gov.pf
+
+# Combinaison des deux
+python3 lexpol_sort_variables.py --modele 623774 --email jeunesse
+```
+
+**Note :** Ces paramètres sont optionnels. Sans eux, les scripts utilisent les valeurs par défaut du fichier de configuration.
+
 ## Architecture
 
 ### Fichiers principaux
 
-- **lexpol_variable_renamer.py** : Script principal orchestrant le renommage
+- **lexpol_variable_renamer.py** : Script principal orchestrant le renommage et le nettoyage
+- **lexpol_list_variables.py** : Script d'extraction de toutes les variables (génère un CSV)
+- **lexpol_sort_variables.py** : Script de tri alphabétique des variables (ignore les accents)
 - **lexpol_strategies.py** : Gestionnaire de stratégies avec 8 stratégies de remplacement
-- **lexpol_connection.py** : Gestion de la connexion et authentification à Lexpol
+- **lexpol_connection.py** : Gestion de la connexion et authentification à Lexpol (support multi-comptes)
 - **lexpol_config.py** : Configuration (charge les variables d'environnement depuis .env)
 
 ### Les 8 stratégies de remplacement
@@ -98,9 +182,18 @@ Chaque stratégie est documentée avec sa PHILOSOPHIE, IMPLÉMENTATION, et PARTI
 - `lexpol_section_variables.csv` : Variables par section
 - `lexpol_section_variables_enhanced.csv` : Variables avec métadonnées enrichies
 
+## Corrections et améliorations récentes
+
+### Gestion des caractères spéciaux
+Le script gère correctement les noms de variables contenant des caractères spéciaux (accents, apostrophes, symboles comme °, etc.) grâce à l'utilisation de `page.evaluate()` avec passage de paramètres au lieu de f-strings JavaScript.
+
+### Mode nettoyage automatique
+Nouvelle fonctionnalité `--cleanup` qui permet de supprimer automatiquement toutes les variables non utilisées du modèle, avec gestion complète de la popup de confirmation.
+
 ## Notes importantes
 
 - Le fichier `.env` est exclu de git (.gitignore)
 - Le répertoire `venv/` est exclu de git
 - Les identifiants ne doivent JAMAIS être commitées dans le code
 - Le script utilise un mode non-headless pour observer les actions (configurable dans lexpol_config.py)
+- Les noms de variables peuvent contenir des caractères spéciaux (accents, apostrophes, symboles)

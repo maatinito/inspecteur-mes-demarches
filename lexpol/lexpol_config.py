@@ -12,7 +12,7 @@ dotenv_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=dotenv_path)
 
 # URL du modèle Lexpol à modifier
-LEXPOL_URL = "https://lexpol.cloud.pf/extranet/geda_dossier.php?idw=598470&hk=4088e2f4e3b32157927abd4c31858be9"
+LEXPOL_URL = "https://lexpol.cloud.pf/extranet/geda_dossier.php?idw=623774&hk=2b91bf992a76f1b7b44df0c10d461bf3"
 
 # Identifiants de connexion (depuis .env)
 EMAIL = os.getenv('LEXPOL_USERNAME')

@@ -1,3 +1,66 @@
 old_variable,new_variable
-demande.compta.exercice,demande.compta.exercice1
-demande.dateReception,demande.dateReception1
+arrete.anneeAvisCCBF,année CCBF
+association.typeGlobal_avec_article,la structure
+investissement ?,variable.estDeLInvestissement
+Projets 2026,Projets 2026
+Total DJS,Total DJS N-1
+arrete.conditionPremierVersement,condition versement 1
+arrete.conditionSecondVersement,condition versement 2
+arrete.dateApprobationBudget,Date approbation budget
+arrete.engagementJustification,justification engagement
+arrete.mentionCCBFetAPF,mention CCBF APF
+arrete.numDeliberationApprobationBudget,délibération approbation budget
+arrete.tauxParticipationSurCoutTotalOperation,Taux participation
+association.dateArreteDSP,Date arrêté DSP (association)
+association.dateCreation,Date création (association)
+association.libellePresident,la presidente
+association.libellePresident2,sa présidente
+association.libellePresident3,présidente
+association.listeArchipelsPratiqueDisciplinesN,Archipels (association)
+association.numArreteDSP,N° Arrêté DSP (association)
+association.structure,fédérale/associative
+association.typeGlobalEtNom,Libellé demandeur
+convention.nbExemplairesOriginaux,nb exemplaires originaux
+convention.prealable.domaineMinistreCharge,domaine
+convention.prealable.garantie,garantie préalable
+demande.compta.autorisationDEngagement,autorisation d'engagement 
+demande.compta.autorisationDeProgramme,autorisation de programme
+demande.compta.centreDeTravailEtat,Montant CT 8241-F
+demande.compta.centreDeTravailPays,Montant CT 8240-F
+demande.compta.exercice,année exercice comptable
+demande.compta.exerciceNmoinsUn,année exercice comptable précédent
+demande.compta.mission,mission comptable
+demande.compta.montantPremiereFractionVersement,Montant liquidation 1
+demande.compta.montantSecondeFractionVersement,Montant liquidation 2
+demande.compta.premiereFractionVersement,Taux liquidation 1
+demande.compta.secondeFractionVersement,Taux liquidation 2
+demande.dateAvisCCBF,Date CCBF
+demande.dateDemande,Date de la demande
+demande.flechageAttribution,Ventilation par domaine
+demande.numero,Dossier
+demande.numeroAvisCCBF,N° avis CCBF
+demande.objetDemandeRattrapee,Objet de la demande
+demande.typeCommissionLong,Type de commission
+demande.type_avec_article,de fct/inv
+demandeInitiale.compta.exercice,annee exercice
+demandeInitiale.type_avec_article,de fct/inv
+global.auPresidentAPF,à la présidente de l'APF
+global.presidentAPFLibelle,la présidente de l'APF
+global.presidentPFCiviliteLibelle,madame la présidente de pf
+global.presidentPFLibelle2,à la présidente de pf
+rpcm.avisCNDS,suite à avis CNDS
+rpcm.n.sousTotalDJS,Sout total DJS
+variable.aUneConvention,Convention ?
+variable.avecAideEmploi,avec aide emploi ?
+variable.demandeAUnAvisCCBF,avis CCBF présent ?
+variable.demandeEstUrgente,Dossier urgent ?
+variable.estDomaineSport,domaine sport ?
+variable.estDuFonctionnement,fonctionnement ?
+variable.estUneFederationAvecDSPOuUneAssociationSportive,DSP ou association sportive ?
+variable.estVentileSurCTEtat,ventilé sur état ?
+variable.estVentileSurCTPays,ventilé sur pays ?
+variable.nePassePasDevantMinistere,avis par ministre ?
+variable.passeDevantCCBF,passe devant CCBF ?
+variable.passeDevantCNDS,passe devant CNDS ?
+association.typeGlobal,Type d'association
+demande.objet,Objet de la demande

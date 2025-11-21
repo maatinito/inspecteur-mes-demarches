@@ -42,3 +42,6 @@ yarn-debug.log*
 schema.json
 /lexpol/.env
 /lexpol/venv/
+/lexpol/__pycache__/
+/lexpol/lexpol_variables_*.csv
+/lexpol/test_*.py
