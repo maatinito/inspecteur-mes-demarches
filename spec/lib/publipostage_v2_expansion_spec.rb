@@ -25,27 +25,27 @@ RSpec.describe PublipostageV2 do
         result = publipostage.send(:champ_value, referentiel_champ)
 
         expect(result).to be_a(Hash)
-        expect(result['ICPE']).to eq('ICPE-001')
-        expect(result['ICPE.section']).to eq('A')
-        expect(result['ICPE.rubrique']).to eq(2510) # Converted to integer
-        expect(result['ICPE.alinea']).to eq(1) # Converted to integer
-        expect(result['ICPE.classe']).to eq('E')
-        expect(result['ICPE.date_autorisation']).to be_a(Date)
-        expect(result['ICPE.date_autorisation'].to_s).to eq('2024-01-15')
+        expect(result['']).to eq('ICPE-001')
+        expect(result['.section']).to eq('A')
+        expect(result['.rubrique']).to eq(2510) # Converted to integer
+        expect(result['.alinea']).to eq(1) # Converted to integer
+        expect(result['.classe']).to eq('E')
+        expect(result['.date_autorisation']).to be_a(Date)
+        expect(result['.date_autorisation'].to_s).to eq('2024-01-15')
       end
 
       it 'handles empty columns' do
         referentiel_champ.columns[1] = double(name: 'rubrique', value: '')
         result = publipostage.send(:champ_value, referentiel_champ)
 
-        expect(result['ICPE.rubrique']).to eq('')
+        expect(result['.rubrique']).to eq('')
       end
 
       it 'handles missing columns' do
         allow(referentiel_champ).to receive(:columns).and_return(nil)
         result = publipostage.send(:champ_value, referentiel_champ)
 
-        expect(result).to eq({ 'ICPE' => 'ICPE-001' })
+        expect(result).to eq({ '' => 'ICPE-001' })
       end
     end
 
@@ -62,9 +62,9 @@ RSpec.describe PublipostageV2 do
         result = publipostage.send(:champ_value, numero_dn_champ)
 
         expect(result).to be_a(Hash)
-        expect(result['DN']).to eq('123456|1990-05-15')
-        expect(result['DN.numero_dn']).to eq('123456')
-        expect(result['DN.date_de_naissance']).to eq('1990-05-15')
+        expect(result['']).to eq('123456|1990-05-15')
+        expect(result['.numero_dn']).to eq('123456')
+        expect(result['.date_de_naissance']).to eq('1990-05-15')
       end
 
       it 'handles nil values' do
@@ -73,9 +73,9 @@ RSpec.describe PublipostageV2 do
 
         result = publipostage.send(:champ_value, numero_dn_champ)
 
-        expect(result['DN']).to eq('|')
-        expect(result['DN.numero_dn']).to eq('')
-        expect(result['DN.date_de_naissance']).to eq('')
+        expect(result['']).to eq('|')
+        expect(result['.numero_dn']).to eq('')
+        expect(result['.date_de_naissance']).to eq('')
       end
     end
 
@@ -91,6 +91,51 @@ RSpec.describe PublipostageV2 do
                  island: 'Tahiti',
                  archipelago: 'Société'
                ))
+      end
+
+      it 'expands commune with all properties' do
+        result = publipostage.send(:champ_value, commune_champ)
+
+        expect(result).to be_a(Hash)
+        expect(result['']).to eq('Papeete')
+        expect(result['.name']).to eq('Papeete')
+        expect(result['.postalCode']).to eq(98_714)
+        expect(result['.island']).to eq('Tahiti')
+        expect(result['.archipelago']).to eq('Société')
+      end
+
+      it 'handles missing commune object' do
+        allow(commune_champ).to receive(:commune).and_return(nil)
+
+        result = publipostage.send(:champ_value, commune_champ)
+
+        expect(result).to eq({ '' => 'Papeete' })
+      end
+    end
+
+    context 'with CodePostalDePolynesieChamp' do
+      let(:code_postal_champ) do
+        double('CodePostalDePolynesieChamp',
+               __typename: 'CodePostalDePolynesieChamp',
+               label: 'Code Postal',
+               string_value: '98714 - Papeete',
+               commune: double(
+                 name: 'Papeete',
+                 postal_code: 98_714,
+                 island: 'Tahiti',
+                 archipelago: 'Société'
+               ))
+      end
+
+      it 'expands code postal with all properties' do
+        result = publipostage.send(:champ_value, code_postal_champ)
+
+        expect(result).to be_a(Hash)
+        expect(result['']).to eq('98714 - Papeete')
+        expect(result['.name']).to eq('Papeete')
+        expect(result['.postalCode']).to eq(98_714)
+        expect(result['.island']).to eq('Tahiti')
+        expect(result['.archipelago']).to eq('Société')
       end
     end
 

@@ -160,13 +160,7 @@ class PublipostageV2 < Publipostage
       bloc_to_rows(champ).map do |repetition|
         repetition.champs.each_with_object({}) do |sous_champ, hash|
           result = champ_value(sous_champ)
-          if result.is_a?(Hash)
-            # Si champ_value retourne une Hash (champ expansé), on fusionne
-            hash.merge!(result)
-          else
-            # Sinon, on garde le comportement classique
-            hash[sous_champ.label] = result
-          end
+          expand_hash_into_result(hash, sous_champ.label, result)
         end
       end
     when 'ReferentielDePolynesieChamp'
@@ -174,7 +168,7 @@ class PublipostageV2 < Publipostage
     when 'NumeroDnChamp'
       expand_numero_dn(champ)
     when 'CommuneDePolynesieChamp', 'CodePostalDePolynesieChamp'
-      champ.string_value #   expand_commune_de_polynesie(champ)
+      expand_commune_de_polynesie(champ)
     else
       super
     end
@@ -182,13 +176,13 @@ class PublipostageV2 < Publipostage
 
   def expand_referentiel_de_polynesie(champ)
     result = {}
-    # Valeur principale
-    result[champ.label] = champ.string_value || ''
+    # Valeur principale (clé vide)
+    result[''] = champ.string_value || ''
 
-    # Expansion des colonnes
+    # Expansion des colonnes (clés préfixées par ".")
     if champ.respond_to?(:columns) && champ.columns
       champ.columns.each do |column|
-        key = "#{champ.label}.#{column.name}"
+        key = ".#{column.name}"
         value = convert_column_value(column.value)
         result[key] = value.nil? ? '' : value
       end
@@ -199,27 +193,27 @@ class PublipostageV2 < Publipostage
 
   def expand_numero_dn(champ)
     result = {}
-    # Valeur principale (format original)
-    result[champ.label] = "#{champ.numero_dn}|#{champ.date_de_naissance}"
+    # Valeur principale (format original, clé vide)
+    result[''] = "#{champ.numero_dn}|#{champ.date_de_naissance}"
 
-    # Expansion des sous-propriétés
-    result["#{champ.label}.numero_dn"] = champ.numero_dn || ''
-    result["#{champ.label}.date_de_naissance"] = champ.date_de_naissance || ''
+    # Expansion des sous-propriétés (clés préfixées par ".")
+    result['.numero_dn'] = champ.numero_dn || ''
+    result['.date_de_naissance'] = champ.date_de_naissance || ''
 
     result
   end
 
   def expand_commune_de_polynesie(champ)
     result = {}
-    # Valeur principale
-    result[champ.label] = champ.string_value || ''
+    # Valeur principale (clé vide)
+    result[''] = champ.string_value || ''
 
-    # Expansion des propriétés de la commune
+    # Expansion des propriétés de la commune (clés préfixées par ".")
     if champ.respond_to?(:commune) && champ.commune
-      result["#{champ.label}.name"] = champ.commune.name || ''
-      result["#{champ.label}.postalCode"] = champ.commune.postal_code || ''
-      result["#{champ.label}.island"] = champ.commune.island || ''
-      result["#{champ.label}.archipelago"] = champ.commune.archipelago || ''
+      result['.name'] = champ.commune.name || ''
+      result['.postalCode'] = champ.commune.postal_code || ''
+      result['.island'] = champ.commune.island || ''
+      result['.archipelago'] = champ.commune.archipelago || ''
     end
 
     result

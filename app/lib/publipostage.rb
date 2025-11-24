@@ -425,9 +425,26 @@ class Publipostage < FieldChecker
     result = { 'Dossier' => @dossier.number, '#index' => index + 1 }
     definitions.each do |definition|
       column, field, par_defaut = load_definition(definition)
-      result[column] = get_values_of(row, field, par_defaut)
+      value = get_values_of(row, field, par_defaut)
+      expand_hash_into_result(result, column, value)
     end
     result
+  end
+
+  # Expands a value into the result hash, handling expanded fields
+  # If value is a Hash with "" and ".xxx" keys (expanded field),
+  # it transforms them into "prefix" and "prefix.xxx" keys
+  def expand_hash_into_result(result, prefix, value)
+    if value.is_a?(Hash) && value.key?('')
+      # C'est un champ expansé avec la convention "" et ".xxx"
+      value.each do |key, val|
+        new_key = key.empty? ? prefix : "#{prefix}#{key}"
+        result[new_key] = val
+      end
+    else
+      # Comportement classique
+      result[prefix] = value
+    end
   end
 
   # FieldList acts as a dossier allowing looking for champs
