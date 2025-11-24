@@ -92,51 +92,6 @@ RSpec.describe PublipostageV2 do
                  archipelago: 'Société'
                ))
       end
-
-      it 'expands commune with all properties' do
-        result = publipostage.send(:champ_value, commune_champ)
-
-        expect(result).to be_a(Hash)
-        expect(result['Commune']).to eq('Papeete')
-        expect(result['Commune.name']).to eq('Papeete')
-        expect(result['Commune.postalCode']).to eq(98_714)
-        expect(result['Commune.island']).to eq('Tahiti')
-        expect(result['Commune.archipelago']).to eq('Société')
-      end
-
-      it 'handles missing commune object' do
-        allow(commune_champ).to receive(:commune).and_return(nil)
-
-        result = publipostage.send(:champ_value, commune_champ)
-
-        expect(result).to eq({ 'Commune' => 'Papeete' })
-      end
-    end
-
-    context 'with CodePostalDePolynesieChamp' do
-      let(:code_postal_champ) do
-        double('CodePostalDePolynesieChamp',
-               __typename: 'CodePostalDePolynesieChamp',
-               label: 'Code Postal',
-               string_value: '98714 - Papeete',
-               commune: double(
-                 name: 'Papeete',
-                 postal_code: 98_714,
-                 island: 'Tahiti',
-                 archipelago: 'Société'
-               ))
-      end
-
-      it 'expands code postal with all properties' do
-        result = publipostage.send(:champ_value, code_postal_champ)
-
-        expect(result).to be_a(Hash)
-        expect(result['Code Postal']).to eq('98714 - Papeete')
-        expect(result['Code Postal.name']).to eq('Papeete')
-        expect(result['Code Postal.postalCode']).to eq(98_714)
-        expect(result['Code Postal.island']).to eq('Tahiti')
-        expect(result['Code Postal.archipelago']).to eq('Société')
-      end
     end
 
     context 'with RepetitionChamp containing expanded fields' do

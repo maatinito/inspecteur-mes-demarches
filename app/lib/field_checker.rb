@@ -121,7 +121,13 @@ class FieldChecker < InspectorTask
     values = Array(object.send(name))
     return values unless name.match?(/date/i)
 
-    values.map { |v| v.is_a?(String) ? (v.include?('T') ? DateTime.iso8601(v) : Date.iso8601(v)) : v }
+    values.map do |v|
+      if v.is_a?(String)
+        v.include?('T') ? DateTime.iso8601(v) : Date.iso8601(v)
+      else
+        v
+      end
+    end
   end
 
   def object_field_values(source, field, log_empty: true)
@@ -173,7 +179,7 @@ class FieldChecker < InspectorTask
       date_value(champ, '%d/%m/%Y')
     when 'NumeroDnChamp'
       "#{champ.numero_dn}|#{champ.date_de_naissance}"
-    when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp', 'ReferentielDePolynesieChamp','CommuneDePolynesieChamp','CodePostalDePolynesieChamp'
+    when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp', 'ReferentielDePolynesieChamp', 'CommuneDePolynesieChamp', 'CodePostalDePolynesieChamp'
       string_value_of(champ)
     when 'PieceJustificativeChamp'
       champ.files.map(&:filename).join(',')
