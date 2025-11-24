@@ -288,9 +288,13 @@ module MesDemarchesToBaserow
 
     def etablissement_configs
       [
+        { original: 'demandeur.entreprise.nomCommercial', name: 'Nom commercial' },
+        { original: 'demandeur.entreprise.raisonSociale', name: 'Raison sociale' },
+        { original: 'demandeur.entreprise.formeJuridique', name: 'Forme juridique' },
         { original: 'demandeur.siret', name: 'Numéro TAHITI établissement' },
-        { original: 'demandeur.naf', name: 'Code NAF établissement' },
-        { original: 'demandeur.libelleNaf', name: 'Libellé NAF établissement' },
+        { original: 'demandeur.siren', name: 'Numéro TAHITI' },
+        { original: 'demandeur.naf', name: 'Code NAF' },
+        { original: 'demandeur.libelleNaf', name: 'Libellé NAF' },
         { original: 'demandeur.adresse', name: 'Adresse établissement' },
         { original: 'demandeur.codePostal', name: 'Code postal établissement' },
         { original: 'demandeur.localite', name: 'Localité établissement' }
