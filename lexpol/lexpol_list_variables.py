@@ -139,30 +139,6 @@ async def main():
     parser.add_argument('--email', type=str, help='Email de connexion ou préfixe (ex: jeunesse ou redacteur.geda@jeunesse.gov.pf)')
     args = parser.parse_args()
 
-    # Construire l'URL si --modele est fourni
-    url = None
-    if args.modele:
-        # Extraire le hash (hk) de l'URL de config
-        import re
-        hk_match = re.search(r'hk=([^&]+)', config.LEXPOL_URL)
-        if hk_match:
-            hk = hk_match.group(1)
-            url = f"https://lexpol.cloud.pf/extranet/geda_dossier.php?idw={args.modele}&hk={hk}"
-            print(f"🔗 Utilisation du modèle {args.modele}")
-        else:
-            print("⚠️  Impossible d'extraire le hash de l'URL de config, utilisation de l'URL par défaut")
-
-    # Construire l'email si --email est fourni
-    email = None
-    if args.email:
-        if '@' in args.email:
-            # Email complet fourni
-            email = args.email
-        else:
-            # Préfixe fourni, construire l'email
-            email = f"redacteur.geda@{args.email}.gov.pf"
-        print(f"📧 Utilisation de l'email: {email}")
-
     print("="*80)
     print("LEXPOL - EXTRACTION DES VARIABLES")
     print("="*80)
@@ -171,8 +147,12 @@ async def main():
         browser = await p.chromium.launch(headless=config.HEADLESS, slow_mo=config.SLOW_MO)
         page = await browser.new_page(viewport={'width': 1800, 'height': 1000})
 
-        # Connexion avec paramètres optionnels
-        await LexpolConnection.setup_and_connect(page, url=url, email=email)
+        # Connexion unifiée (gère tout : email, modèle, authentification)
+        success = await LexpolConnection.connect_to_model(page, model_id=args.modele, email=args.email)
+        if not success:
+            await browser.close()
+            return
+
         await LexpolConnection.ensure_variables_visible(page)
 
         # Extraire les variables
