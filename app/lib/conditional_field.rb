@@ -91,10 +91,14 @@ class ConditionalField < FieldChecker
 
   def create_control(description, index)
     if description.is_a?(String)
+      Rails.logger.warn("Création de la tache #{description.camelize}")
       Object.const_get(description.camelize).new({}).tap_name("#{index}:#{description}")
     else
       # hash
-      description.map { |taskname, params| Object.const_get(taskname.camelize).new(params).tap_name("#{index}:#{taskname}") }
+      description.map do |taskname, params|
+        Rails.logger.warn("Création de la tache #{taskname.camelize} avec #{params}")
+        Object.const_get(taskname.camelize).new(params).tap_name("#{index}:#{taskname}")
+      end
     end
   end
 
