@@ -47,7 +47,7 @@ async def process_variable(page, old_var, new_var, var_index=None, total_vars=No
         var_code = await var.query_selector('.variableCodeLibelle')
         if var_code:
             code_text = await var_code.inner_text()
-            if old_var in code_text:
+            if code_text.strip() == old_pattern:
                 print(f"✅ Variable trouvée: {code_text}")
                 variable_element = var
                 break
@@ -175,7 +175,7 @@ async def process_variable(page, old_var, new_var, var_index=None, total_vars=No
         var_code = await var.query_selector('.variableCodeLibelle')
         if var_code:
             code_text = await var_code.inner_text()
-            if old_var in code_text:
+            if code_text.strip() == old_pattern:
                 variable_element = var
                 break
 
@@ -263,7 +263,7 @@ async def process_variable(page, old_var, new_var, var_index=None, total_vars=No
                     var_code_spans = await page.query_selector_all('span.variableCodeLibelle')
                     for span in var_code_spans:
                         code_text = await span.inner_text()
-                        if old_var in code_text:
+                        if code_text.strip() == old_pattern:
                             print(f"   🔍 Variable trouvée: {code_text}")
 
                             # Double-cliquer sur le span pour activer l'édition
