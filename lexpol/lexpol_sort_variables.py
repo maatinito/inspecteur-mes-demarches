@@ -93,7 +93,7 @@ async def move_variable(page, idw, id_variable, direction, count=1):
         pass  # Si timeout, on continue quand même
 
 
-async def sort_variables(page, idw, dry_run=False):
+async def sort_variables(page, idw, dry_run=False, reverse=False):
     """
     Trie les variables par ordre alphabétique (respecte la casse)
 
@@ -101,6 +101,7 @@ async def sort_variables(page, idw, dry_run=False):
         page: Instance de page Playwright
         idw: ID du modèle
         dry_run: Si True, affiche seulement ce qui serait fait sans l'exécuter
+        reverse: Si True, trie en ordre inverse (Z-A)
     """
     print("\n" + "="*80)
     print("📋 TRI DES VARIABLES")
@@ -120,7 +121,7 @@ async def sort_variables(page, idw, dry_run=False):
         print(f"   {i+1}. {var['code']}")
 
     # Calculer l'ordre cible (tri alphabétique respectant la casse, ignorant les accents)
-    sorted_variables = sorted(variables, key=lambda x: remove_accents(x['code']))
+    sorted_variables = sorted(variables, key=lambda x: remove_accents(x['code']), reverse=reverse)
 
     print("\n🎯 Ordre cible:")
     for i, var in enumerate(sorted_variables):
@@ -146,7 +147,7 @@ async def sort_variables(page, idw, dry_run=False):
         current_vars = await get_all_variables(page)
 
         # ✅ Re-calculer l'ordre trié basé sur la liste actuelle (ignorant les accents)
-        current_sorted = sorted(current_vars, key=lambda x: remove_accents(x['code']))
+        current_sorted = sorted(current_vars, key=lambda x: remove_accents(x['code']), reverse=reverse)
 
         # ✅ La variable qui devrait être à target_position dans l'ordre trié
         target_var = current_sorted[target_position]
@@ -184,6 +185,8 @@ async def sort_variables(page, idw, dry_run=False):
         if not dry_run:
             # Appliquer le déplacement en une seule fois (optimisation)
             await move_variable(page, idw, target_var['id_variable'], direction, count=moves_needed)
+            # Forcer une relecture pour garantir que le DOM est complètement stabilisé
+            _ = await get_all_variables(page)
             total_moves += moves_needed
 
     if not dry_run:
@@ -196,8 +199,12 @@ async def sort_variables(page, idw, dry_run=False):
             print(f"   {i+1}. {var['code']}")
 
         # Vérifier que le tri est correct (en ignorant les accents)
-        is_sorted = all(remove_accents(final_vars[i]['code']) <= remove_accents(final_vars[i+1]['code'])
-                       for i in range(len(final_vars)-1))
+        if reverse:
+            is_sorted = all(remove_accents(final_vars[i]['code']) >= remove_accents(final_vars[i+1]['code'])
+                           for i in range(len(final_vars)-1))
+        else:
+            is_sorted = all(remove_accents(final_vars[i]['code']) <= remove_accents(final_vars[i+1]['code'])
+                           for i in range(len(final_vars)-1))
 
         if is_sorted:
             print(f"\n✅ TRI TERMINÉ - {total_moves} déplacement(s) effectué(s)")
@@ -240,7 +247,7 @@ async def main():
         print(f"🔑 ID du modèle: {idw}")
 
         # Trier les variables
-        await sort_variables(page, idw, dry_run=args.dry_run)
+        await sort_variables(page, idw, dry_run=args.dry_run, reverse=False)
 
         await page.wait_for_timeout(3000)
         await browser.close()
