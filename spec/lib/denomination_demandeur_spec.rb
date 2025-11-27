@@ -7,6 +7,11 @@ RSpec.describe DenominationDemandeur do
   let(:demarche) { double('Demarche', instructeur: 'instructeur_id') }
   let(:annotation_cible) { 'Dénomination demandeur' }
   let(:checker) { described_class.new({ annotation_cible: }) }
+  let(:annotation) do
+    double('Annotation',
+           label: annotation_cible,
+           value: nil)
+  end
 
   describe '#process' do
     context 'avec une PersonneMorale' do
@@ -24,7 +29,8 @@ RSpec.describe DenominationDemandeur do
         double('Dossier',
                number: 12_345,
                state: 'en_construction',
-               demandeur:)
+               demandeur:,
+               annotations: [annotation])
       end
 
       before do
@@ -59,7 +65,8 @@ RSpec.describe DenominationDemandeur do
         double('Dossier',
                number: 12_346,
                state: 'en_construction',
-               demandeur:)
+               demandeur:,
+               annotations: [annotation])
       end
 
       before do
@@ -91,7 +98,8 @@ RSpec.describe DenominationDemandeur do
         double('Dossier',
                number: 12_347,
                state: 'en_construction',
-               demandeur:)
+               demandeur:,
+               annotations: [annotation])
       end
 
       before do
@@ -123,7 +131,8 @@ RSpec.describe DenominationDemandeur do
         double('Dossier',
                number: 12_348,
                state: 'en_construction',
-               demandeur:)
+               demandeur:,
+               annotations: [annotation])
       end
 
       before do
@@ -162,7 +171,8 @@ RSpec.describe DenominationDemandeur do
       let(:dossier) do
         double('Dossier',
                number: 12_349,
-               state: 'en_construction')
+               state: 'en_construction',
+               annotations: [annotation])
       end
 
       before do
@@ -198,7 +208,8 @@ RSpec.describe DenominationDemandeur do
         double('Dossier',
                number: 12_350,
                state: 'en_construction',
-               demandeur:)
+               demandeur:,
+               annotations: [annotation])
       end
 
       before do
