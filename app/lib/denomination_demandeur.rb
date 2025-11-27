@@ -28,9 +28,13 @@ class DenominationDemandeur < FieldChecker
     denomination = generate_denomination(etablissement)
 
     if denomination.present?
-      Rails.logger.info("Setting #{@params[:annotation_cible]} to #{denomination}")
-      modified = SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:annotation_cible], denomination)
-      dossier_updated(dossier) if modified
+      actual_value = param_annotation(:annotation_cible)&.value
+      if actual_value.blank?
+        modified = SetAnnotationValue.set_value(dossier, demarche.instructeur, @params[:annotation_cible], denomination)
+        dossier_updated(dossier) if modified
+      else
+        Rails.logger.warn("dénomination already set to #{actual_value}")
+      end
     else
       Rails.logger.warn("Unable to generate denomination for dossier #{dossier.number}")
     end
