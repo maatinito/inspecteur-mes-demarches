@@ -6,6 +6,7 @@ Exemple: "à la présidente" sera trié avec "a", "É" avec "E"
 """
 import asyncio
 import argparse
+import re
 import unicodedata
 from playwright.async_api import async_playwright
 import lexpol_config as config
@@ -26,6 +27,7 @@ def remove_accents(text):
 async def get_all_variables(page):
     """
     Récupère toutes les variables avec leurs informations
+    Filtre les variables virtuelles (_en_lettres) qui sont générées automatiquement
 
     Returns:
         list: Liste de dictionnaires {code, id_variable, position}
@@ -38,6 +40,12 @@ async def get_all_variables(page):
             const codeElem = elem.querySelector('.variableCodeLibelle');
             if (codeElem) {
                 const code = codeElem.innerText.replace(/{@|@}/g, '').trim();
+
+                // Filtrer les variables virtuelles (_en_lettres)
+                if (code.endsWith('_en_lettres')) {
+                    return;  // Skip cette variable virtuelle
+                }
+
                 const id_variable = elem.id.replace('variable', '');
                 vars.push({
                     code,
@@ -60,7 +68,6 @@ async def get_model_id(page):
     Returns:
         str: ID du modèle
     """
-    import re
     url = page.url
     match = re.search(r'idw=(\d+)', url)
     if match:
@@ -149,6 +156,11 @@ async def sort_variables(page, idw, dry_run=False, reverse=False):
         # ✅ Re-calculer l'ordre trié basé sur la liste actuelle (ignorant les accents)
         current_sorted = sorted(current_vars, key=lambda x: remove_accents(x['code']), reverse=reverse)
 
+        # Vérifier qu'on n'a pas dépassé le nombre de variables actuelles
+        if target_position >= len(current_sorted):
+            print(f"   ℹ️  Tri terminé (position {target_position} >= {len(current_sorted)} variables)")
+            break
+
         # ✅ La variable qui devrait être à target_position dans l'ordre trié
         target_var = current_sorted[target_position]
 
@@ -219,6 +231,7 @@ async def main():
     parser.add_argument('--modele', type=str, help='Numéro du modèle Lexpol (optionnel)')
     parser.add_argument('--email', type=str, help='Email de connexion ou préfixe (ex: jeunesse ou redacteur.geda@jeunesse.gov.pf)')
     parser.add_argument('--dry-run', action='store_true', help='Simulation sans effectuer les modifications')
+    parser.add_argument('--reverse', action='store_true', help='Trier en ordre inverse (Z-A)')
     args = parser.parse_args()
 
     print("="*80)
@@ -247,7 +260,7 @@ async def main():
         print(f"🔑 ID du modèle: {idw}")
 
         # Trier les variables
-        await sort_variables(page, idw, dry_run=args.dry_run, reverse=False)
+        await sort_variables(page, idw, dry_run=args.dry_run, reverse=args.reverse)
 
         await page.wait_for_timeout(3000)
         await browser.close()
