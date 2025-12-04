@@ -37,6 +37,7 @@ class ConditionalField < FieldChecker
   private
 
   def process_condition(method)
+    Rails.logger.info("Processing condition for #{@params[:champ]}")
     values = champs_to_values(object_field_values(@dossier, @params[:champ], log_empty: false))
     values = [''] if values.blank?
     values.each do |value|

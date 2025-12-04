@@ -29,9 +29,13 @@ class PublipostageV3 < PublipostageV2
     template_path = VerificationService.file_manager.filepath(@template).to_s
     template = Sablon.template(template_path)
 
-    # Sablon gère la substitution des champs, des blocs répétables (tableaux)
-    # et la conversion HTML directement.
-    template.render_to_file(output_file, fields)
+    # Transformation robuste des clés :
+    # 1. Translitère les accents (ex: 'é' -> 'e').
+    # 2. Met en bas de casse.
+    # 3. Remplace les espaces et tous les caractères non-alphanumériques par des underscores.
+    context = fields.transform_keys { |k| k.parameterize(separator: '_') }
+
+    template.render_to_file(output_file, context)
   end
 
   # Pas besoin de redéfinir les autres méthodes de génération de V2 (process_table, etc.)
