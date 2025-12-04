@@ -21,7 +21,7 @@ module Travail
     end
 
     def required_fields
-      super + %i[champ_effectifs champ_effectif cellule_ETP cellule_ETP_ECAP cellule_assiette cellule_obligation cellule_licenciement champ_prestations champ_travailleurs champs_par_travailleur]
+      super + %i[champ_effectifs champ_effectif cellule_annee cellule_ETP cellule_ETP_ECAP cellule_assiette cellule_obligation cellule_licenciement champ_prestations champ_travailleurs champs_par_travailleur]
     end
 
     def authorized_fields
@@ -92,6 +92,14 @@ module Travail
 
     CONTRACT_SITH = 'Stagiaire SITH'
     CONTRACT_CDI = 'CDI'
+    CONTRACT_FPT = 'FPT'
+    CONTRACT_FPT_STAGIAIRE = 'FPT stagiaire'
+    CONTRACT_ANFA = 'ANFA'
+    CONTRACT_ANT = 'ANT'
+
+    # Types de contrats qui suivent la règle "annualisée" :
+    # Si présent avant 1/10 ET au 31/12 => compté toute l'année
+    ANNUALIZED_CONTRACTS = [CONTRACT_CDI, CONTRACT_FPT, CONTRACT_FPT_STAGIAIRE, CONTRACT_ANFA].freeze
 
     YEAR_START_MONTH = 1
     YEAR_START_DAY = 1
@@ -99,10 +107,12 @@ module Travail
     OCTOBER_DAY = 1
 
     def disabled_workers
+      year = declaration_year
+      dates = initialize_year_dates(year)
       rows = param_field(:champ_travailleurs, warn_if_empty: false)&.rows || []
       rows.map do |row|
         fields = row.champs.each_with_object({}) { |c, h| h[c.label] = c.respond_to?(:value) ? c.value : c }
-        disabled_worker_attributes(fields).merge!(disabled_worker_complement(fields))
+        disabled_worker_attributes(fields).merge!(disabled_worker_complement(fields, dates))
       end
     end
 
@@ -157,18 +167,20 @@ module Travail
 
     def default_numbers
       base = {
-        YEAR => declaration_year,
         LATE_FEE => annotation(LATE_FEE, warn_if_empty: false)&.value.to_i,
         SURCHARGE => annotation(SURCHARGE, warn_if_empty: false)&.value.to_i,
-        OUTSOURCING => param_field(:champ_prestations, warn_if_empty: false)&.value.presence || 0.0
+        OUTSOURCING => param_field(:champ_prestations, warn_if_empty: false)&.value.presence.to_f
       }
       effectif = param_field(:champ_effectif, warn_if_empty: false)
       base.merge!(effectif.present? ? default_numbers_based_on_size(effectif) : default_numbers_based_on_excel)
+      @year = base[YEAR]
+      base
     end
 
     def default_numbers_based_on_excel
       in_excel do |sheet|
         {
+          YEAR => cell(sheet, @params[:cellule_annee], Date.today.year - 1),
           FTE => cell(sheet, @params[:cellule_ETP], 0.0).to_f,
           ECAP_FTE => cell(sheet, @params[:cellule_ETP_ECAP], 0.0).to_f,
           ASSESSMENT_BASE => cell(sheet, @params[:cellule_assiette], 0.0).to_f,
@@ -181,12 +193,21 @@ module Travail
     def default_numbers_based_on_size(effectif)
       effectif = effectif&.value&.to_f
       {
+        YEAR => year_from_date_depot,
         FTE => effectif,
         ECAP_FTE => 0.0,
         ASSESSMENT_BASE => effectif,
         DEFAULT_DUTY => effectif < 25 ? 0.0 : (effectif * 0.02 / 0.5).floor * 0.5,
         DISMISSED_FTE => 0.0
       }
+    end
+
+    # Calcule l'année de déclaration à partir de la date de dépôt du dossier
+    # Si date_depot > 1er juin => année en cours, sinon année précédente
+    def year_from_date_depot
+      date_depot = @dossier.date_depot
+      june_first = Date.new(date_depot.year, 6, 1)
+      date_depot >= june_first ? date_depot.year : date_depot.year - 1
     end
 
     def disabled_worker_attributes(fields)
@@ -199,13 +220,13 @@ module Travail
       }
     end
 
-    def disabled_worker_complement(fields)
+    def disabled_worker_complement(fields, dates)
       case fields[@status]
       when STATUS_COTOREP
         {
           cotorep_category: fields[@cotorep_category],
-          cotorep_begin: fields[@cotorep_begin].present? ? Date.parse(fields[@cotorep_begin]) : nil,
-          cotorep_end: fields[@cotorep_end].present? ? Date.parse(fields[@cotorep_end]) : nil
+          cotorep_begin: fields[@cotorep_begin].present? ? Date.parse(fields[@cotorep_begin]) : dates[:year_start],
+          cotorep_end: fields[@cotorep_end].present? ? Date.parse(fields[@cotorep_end]) : dates[:year_end]
         }
       when STATUS_PDD
         {
@@ -235,7 +256,7 @@ module Travail
       dates = initialize_year_dates(year)
 
       contract_dates = calculate_contract_dates(worker, dates)
-      apply_cdi_rules(worker, contract_dates, dates, year) if worker[:contract_type] == CONTRACT_CDI
+      apply_annualized_contract_rules(worker, contract_dates, dates, year) if ANNUALIZED_CONTRACTS.include?(worker[:contract_type])
       apply_cotorep_rules(worker, contract_dates)
 
       calculate_presence_rate(contract_dates[:end_date], contract_dates[:begin_date], dates[:year_days])
@@ -252,9 +273,12 @@ module Travail
     end
 
     def calculate_contract_dates(worker, dates)
+      year_range = dates[:year_start]...dates[:year_end]
+      contract_range = worker[:contract_begin]...worker[:contract_end]
+      i = intersection(year_range, contract_range)
       {
-        end_date: normalize_end_date(worker[:contract_end], dates[:year_end]),
-        begin_date: normalize_begin_date(worker[:contract_begin], dates[:year_start])
+        begin_date: i.begin,
+        end_date: i.end
       }
     end
 
@@ -264,13 +288,21 @@ module Travail
       end_date + 1
     end
 
+    def intersection(range_a, range_b)
+      return range_a.begin...range_a.begin if range_a.end < range_b.begin || range_b.end < range_a.begin
+      [range_a.begin,range_b.begin].max...[range_a.end,range_b.end].min
+    end
+
     def normalize_begin_date(begin_date, year_start)
       return year_start if begin_date.blank? || begin_date < year_start
 
       begin_date
     end
 
-    def apply_cdi_rules(_worker, contract_dates, dates, year)
+    # Applique la règle "annualisée" pour les contrats CDI, FPT, FPT Stagiaire et ANFA :
+    # Si le travailleur est présent avant le 1er octobre ET au 31 décembre,
+    # il est compté comme présent toute l'année
+    def apply_annualized_contract_rules(_worker, contract_dates, dates, year)
       october_first = Date.new(year, OCTOBER_MONTH, OCTOBER_DAY)
       return unless contract_dates[:begin_date] <= october_first && contract_dates[:end_date] >= dates[:year_end]
 
@@ -302,7 +334,7 @@ module Travail
         payload = worker[:cotorep_category] == 'C' ? 2 : 1
         cotorep_begin = worker[:cotorep_begin]
         cotorep_end = worker[:cotorep_end]
-        payload = 0 if cotorep_begin.blank? || cotorep_end.blank?
+        # payload = 0 if cotorep_begin.blank? || cotorep_end.blank?
         msg = "#{worker[:status]}: #{worker[:cotorep_category]}, valide entre #{cotorep_begin} et #{cotorep_end}"
       else
         payload = 0
@@ -312,7 +344,7 @@ module Travail
     end
 
     def declaration_year
-      Date.today.year - 1
+      @year || (Date.today.year - 1)
     end
 
     def save_results(numbers)
