@@ -4,6 +4,7 @@ Stratégies de remplacement pour différents types d'éléments Lexpol
 """
 from abc import ABC, abstractmethod
 import re
+import json
 
 
 def create_textarea_search_js(container_id: str, old_pattern_search: str, old_pattern_lettres_search: str, textarea_selector: str = 'textarea') -> str:
@@ -531,10 +532,6 @@ class SimpleSummernoteStrategy(ReplacementStrategy):
             return False
         new_var = new_var_match.group(1)
 
-        # Échapper les caractères spéciaux pour JavaScript regex
-        old_var_escaped = old_var.replace('/', '\\/').replace('.', '\\.').replace('[', '\\[').replace(']', '\\]')
-        new_var_escaped = new_var.replace('$', '$$$$')  # Échapper $ pour replacement
-
         # Pour les "Attendus (Vu)", le textarea Summernote a un ID basé sur param1 avec "Editeur" ajouté
         # Ex: param1 = valAttendus4284854_0_0_ATTENDUS_8 -> textarea = valAttendusEditeur4284854_0_0_ATTENDUS_8
         # On insère "Editeur" après "valAttendus"
@@ -570,21 +567,35 @@ class SimpleSummernoteStrategy(ReplacementStrategy):
             // Obtenir le contenu actuel via l'API Summernote
             let currentContent = $('#{textarea_id}').summernote('code');
 
-            // Pattern 1: {{@old_var@}} ou {{@old_var@:suffixe}}
-            const pattern1 = new RegExp('\\\\{{@{old_var_escaped}@([^}}]*)\\\\}}', 'g');
-            const newContent1 = currentContent.replace(pattern1, '{{@{new_var_escaped}@$1}}');
-            const count1 = (currentContent.match(pattern1) || []).length;
+            // Les variables à remplacer
+            const oldVar = '{old_var}';
+            const newVar = '{new_var}';
 
-            // Pattern 2: {{@old_var_en_lettres@}} ou {{@old_var_en_lettres@:suffixe}}
-            const pattern2 = new RegExp('\\\\{{@{old_var_escaped}_en_lettres@([^}}]*)\\\\}}', 'g');
-            const newContent2 = newContent1.replace(pattern2, '{{@{new_var_escaped}_en_lettres@$1}}');
-            const count2 = (newContent1.match(pattern2) || []).length;
+            // Compter et remplacer avec replaceAll (simple string replacement, pas de regex)
+            let newContent = currentContent;
+            let totalCount = 0;
 
-            const totalCount = count1 + count2;
+            // Pattern 1: {{@old_var@}}
+            const pattern1 = '{{@' + oldVar + '@}}';
+            const replacement1 = '{{@' + newVar + '@}}';
+            const count1 = (currentContent.split(pattern1).length - 1);
+            if (count1 > 0) {{
+                newContent = newContent.replaceAll(pattern1, replacement1);
+                totalCount += count1;
+            }}
+
+            // Pattern 2: {{@old_var_en_lettres@}}
+            const pattern2 = '{{@' + oldVar + '_en_lettres@}}';
+            const replacement2 = '{{@' + newVar + '_en_lettres@}}';
+            const count2 = (newContent.split(pattern2).length - 1);
+            if (count2 > 0) {{
+                newContent = newContent.replaceAll(pattern2, replacement2);
+                totalCount += count2;
+            }}
 
             if (totalCount > 0) {{
                 // Mettre à jour via l'API Summernote
-                $('#{textarea_id}').summernote('code', newContent2);
+                $('#{textarea_id}').summernote('code', newContent);
 
                 // IMPORTANT: Déclencher l'événement blur pour sauvegarder
                 $('#{textarea_id}').next('.note-editor').find('.note-editable').trigger('blur');
@@ -713,37 +724,49 @@ class SummernoteStrategy(ReplacementStrategy):
         # Court délai après scroll (réduit de 2000ms à 300ms car l'élément est déjà vérifié)
         await page.wait_for_timeout(300)
 
-        # Pour Article/Préambule: Vérifier d'abord si c'est une condition
+        # DÉTECTION DE CONDITION (pour Article/Préambule/Contenu)
+        # APPROCHE GÉNÉRIQUE basée sur la structure DOM
+        print(f"   🔍 Vérification de condition...")
+        condition_info = await page.evaluate(f'''() => {{
+            const element = document.getElementById('{param1}');
+            if (!element) return null;
+
+            let conditionBtn = null;
+
+            // Méthode 1: Chercher directement dans le container (Article/Préambule)
+            conditionBtn = element.querySelector('a.btnCondition[id^="btnCondition_"]');
+
+            // Méthode 2: Remonter au TR parent et chercher dedans (Contenu)
+            if (!conditionBtn) {{
+                const tr = element.closest('tr');
+                if (tr) {{
+                    conditionBtn = tr.querySelector('a.btnCondition[id^="btnCondition_"]');
+                }}
+            }}
+
+            if (!conditionBtn) return null;
+
+            const idCondition = conditionBtn.getAttribute('data-idcondition');
+            const title = conditionBtn.getAttribute('title');
+
+            return {{
+                hasCondition: idCondition && idCondition !== "0",
+                title: title || "",
+                idCondition: idCondition
+            }};
+        }}''')
+
+        if condition_info and condition_info['hasCondition']:
+            # Vérifier si notre variable est dans la condition
+            if old_pattern in condition_info['title']:
+                element_type = 'article' if is_article_or_preambule else 'contenu'
+                print(f"   ✅ Variable détectée dans la condition de {element_type}")
+                print(f"   ℹ️  Condition: {condition_info['title']}")
+                print(f"   ⏭️  Pas de remplacement nécessaire (condition auto-mise à jour)")
+                return True
+
+        # Pour Article/Préambule uniquement: Traiter le titre si nécessaire
         if is_article_or_preambule:
-            # DÉTECTION DE CONDITION D'ARTICLE (AVANT activation de l'éditeur)
-            # Vérifier si cet article a une condition utilisant notre variable
-            print(f"   🔍 Vérification de condition d'article...")
-            condition_info = await page.evaluate(f'''() => {{
-                const container = document.getElementById('{param1}');
-                if (!container) return null;
-
-                // Chercher le bouton de condition
-                const conditionBtn = container.querySelector('a.btnCondition[id^="btnCondition_"]');
-                if (!conditionBtn) return null;
-
-                const idCondition = conditionBtn.getAttribute('data-idcondition');
-                const title = conditionBtn.getAttribute('title');
-
-                return {{
-                    hasCondition: idCondition && idCondition !== "0",
-                    title: title || "",
-                    idCondition: idCondition
-                }};
-            }}''')
-
-            if condition_info and condition_info['hasCondition']:
-                # Vérifier si notre variable est dans la condition
-                if old_pattern in condition_info['title']:
-                    print(f"   ✅ Variable détectée dans la condition d'article")
-                    print(f"   ℹ️  Condition: {condition_info['title']}")
-                    print(f"   ⏭️  Pas de remplacement nécessaire (condition auto-mise à jour)")
-                    return True
-
             # Extraire les variables de old_pattern et new_pattern (nécessaire pour le titre ET le contenu)
             var_match = re.search(r'{@([^@]+)@}', old_pattern)
             if not var_match:
@@ -758,42 +781,92 @@ class SummernoteStrategy(ReplacementStrategy):
             new_var = new_var_match.group(1)
 
             # TRAITEMENT DU TITRE D'ARTICLE
-            # Vérifier si le titre contient la variable et le traiter
-            print(f"   🔍 Vérification du titre d'article...")
+            # ÉTAPE 1 : Activer le titre (clic sur span pour afficher l'éditeur Summernote)
+            print(f"   🔍 Activation du titre d'article...")
+            titre_activated = await page.evaluate(f'''() => {{
+                const titreSpan = document.getElementById('{param1}_apercu_titre');
+                if (!titreSpan) return {{ success: false, reason: 'Span titre non trouvé' }};
+
+                const onclick = titreSpan.getAttribute('onclick');
+                if (!onclick) return {{ success: false, reason: 'Pas de onclick sur le titre' }};
+
+                // Exécuter le onclick pour activer le titre
+                try {{
+                    eval(onclick);
+                    return {{ success: true }};
+                }} catch (e) {{
+                    return {{ success: false, reason: 'Erreur lors de l\\'activation: ' + e.message }};
+                }}
+            }}''')
+
+            if not titre_activated or not titre_activated.get('success'):
+                print(f"   ℹ️  {titre_activated.get('reason', 'Impossible activer le titre')}")
+            else:
+                # Attendre que Summernote soit initialisé
+                await page.wait_for_timeout(1000)
+
+            # ÉTAPE 2 : Vérifier si le titre contient la variable
+            print(f"   🔍 Vérification du contenu du titre...")
             titre_info = await page.evaluate(f'''() => {{
-                const container = document.getElementById('{param1}');
-                if (!container) return null;
+                // Chercher le conteneur titre Summernote
+                const titreContainer = document.getElementById('{param1}_contenu_titre');
+                if (!titreContainer) return {{ hasTitre: false, reason: 'Conteneur titre non trouvé' }};
 
-                const titreSpan = container.querySelector('span.gedaArticleTitre[id$="_apercu_titre"]');
-                if (!titreSpan) return null;
+                // Vérifier si visible
+                const isVisible = titreContainer.style.display !== 'none';
+                if (!isVisible) return {{ hasTitre: false, reason: 'Conteneur titre non visible (display: none)' }};
 
-                const text = titreSpan.textContent || '';
-                const onclick = titreSpan.getAttribute('onclick') || '';
+                // Chercher l'éditeur Summernote du titre
+                const editable = titreContainer.querySelector('.note-editable[contenteditable="true"]');
+                if (!editable) return {{ hasTitre: false, reason: 'Éditeur Summernote titre non trouvé' }};
 
-                // Vérifier si le titre contient la variable
-                const hasVariable = text.includes('{{@');
+                // Lire le contenu HTML (pas textContent qui est rendu)
+                const htmlContent = editable.innerHTML || '';
+
+                // Vérifier si le HTML contient des variables Lexpol
+                const hasVariable = htmlContent.includes('{{@');
 
                 return {{
                     hasTitre: true,
                     hasVariable: hasVariable,
-                    text: text,
-                    onclick: onclick,
-                    spanId: titreSpan.id
+                    htmlContent: htmlContent,
+                    textPreview: editable.textContent.substring(0, 100)
                 }};
             }}''')
 
-            # Vérifier en Python aussi si notre variable spécifique est dans le titre
-            if titre_info and titre_info['hasVariable'] and old_pattern in titre_info['text']:
-                print(f"   ✅ Variable trouvée dans le titre: {titre_info['text'][:50]}...")
+            # Debug : afficher les informations du titre
+            # Chercher la variable SANS le } final pour gérer les suffixes (:minuscules, etc.)
+            old_pattern_search = f'{{@{old_var}@'
+
+            if titre_info is None:
+                print(f"   ⚠️  titre_info est NULL (container '{param1}' introuvable)")
+            elif not titre_info.get('hasTitre'):
+                print(f"   ℹ️  {titre_info.get('reason', 'Titre non accessible')}")
+            elif titre_info.get('hasVariable'):
+                # Il y a des variables, mais peut-être pas la nôtre
+                if old_pattern_search in titre_info.get('htmlContent', ''):
+                    print(f"   ✅ Variable trouvée dans le titre: {titre_info['textPreview']}...")
+                else:
+                    print(f"   ℹ️  Titre contient des variables mais pas '{old_var}' (aperçu: {titre_info['textPreview'][:80]}...)")
+            else:
+                print(f"   ℹ️  Titre sans variable (aperçu: {titre_info.get('textPreview', 'N/A')[:80]}...)")
+
+            # Vérifier en Python aussi si notre variable spécifique est dans le titre (avec support des suffixes)
+            if titre_info and titre_info.get('hasTitre') and titre_info.get('hasVariable') and old_pattern_search in titre_info.get('htmlContent', ''):
                 print(f"   📝 Traitement du titre d'article...")
+
+                # Échapper correctement les noms de variables pour éviter les erreurs JS avec apostrophes
+                old_var_escaped = json.dumps(old_var)
+                new_var_escaped = json.dumps(new_var)
+                param1_escaped = json.dumps(param1)
 
                 # Le titre est dans un conteneur spécifique : article4373208_31_8_contenu_titre
                 # Il faut chercher le .note-editable DANS ce conteneur
                 replaced_titre = await page.evaluate(f'''() => {{
                     // Trouver le conteneur titre spécifique à cet article
-                    const titreContainer = document.getElementById('{param1}_contenu_titre');
+                    const titreContainer = document.getElementById({param1_escaped} + '_contenu_titre');
                     if (!titreContainer) {{
-                        console.log('Conteneur titre non trouvé: {param1}_contenu_titre');
+                        console.log('Conteneur titre non trouvé');
                         return 0;
                     }}
 
@@ -810,8 +883,8 @@ class SummernoteStrategy(ReplacementStrategy):
                     let replacements = 0;
 
                     // Patterns de remplacement (mêmes que pour le contenu)
-                    const oldVar = '{old_var}';
-                    const newVar = '{new_var}';
+                    const oldVar = {old_var_escaped};
+                    const newVar = {new_var_escaped};
                     const oldVarEscaped = oldVar.replace(/[.*+?^${{}}()|[\\]\\\\]/g, '\\\\$&');
 
                     const patterns = [
@@ -1971,34 +2044,60 @@ class IntituleStrategy(ReplacementStrategy):
         textarea_id = f"intitule_element_{idelement}_edit_txt"
         print(f"   🔍 Textarea Summernote: #{textarea_id}")
 
-        # Échapper les caractères spéciaux pour JavaScript regex
-        old_var_escaped = old_var.replace('/', '\\/').replace('.', '\\.').replace('[', '\\[').replace(']', '\\]')
-        new_var_escaped = new_var.replace('$', '$$$$')  # Échapper $ pour replacement
-
         # Faire le remplacement dans Summernote via l'API Summernote
         print(f"   ✏️  Remplacement via API Summernote...")
         result = await page.evaluate(f'''() => {{
             const ta = document.getElementById('{textarea_id}');
             if (!ta) return {{ success: false, count: 0, error: 'Textarea not found' }};
 
+            // Vérifier jQuery
+            if (typeof $ === 'undefined') {{
+                return {{ success: false, count: 0, error: 'jQuery not available' }};
+            }}
+
+            // Vérifier Summernote
+            if (typeof $.fn.summernote === 'undefined') {{
+                return {{ success: false, count: 0, error: 'Summernote not available' }};
+            }}
+
+            // Vérifier si Summernote est initialisé sur cet élément
+            const $elem = $('#{textarea_id}');
+            if (!$elem.data('summernote')) {{
+                return {{ success: false, count: 0, error: 'Summernote not initialized on element' }};
+            }}
+
             // Obtenir le contenu actuel via l'API Summernote
-            let currentContent = $('#{textarea_id}').summernote('code');
+            let currentContent = $elem.summernote('code');
 
-            // Pattern 1: {{@old_var@}} ou {{@old_var@:suffixe}}
-            const pattern1 = new RegExp('\\\\{{@{old_var_escaped}@([^}}]*)\\\\}}', 'g');
-            const newContent1 = currentContent.replace(pattern1, '{{@{new_var_escaped}@$1}}');
-            const count1 = (currentContent.match(pattern1) || []).length;
+            // Les variables à remplacer
+            const oldVar = '{old_var}';
+            const newVar = '{new_var}';
 
-            // Pattern 2: {{@old_var_en_lettres@}} ou {{@old_var_en_lettres@:suffixe}}
-            const pattern2 = new RegExp('\\\\{{@{old_var_escaped}_en_lettres@([^}}]*)\\\\}}', 'g');
-            const newContent2 = newContent1.replace(pattern2, '{{@{new_var_escaped}_en_lettres@$1}}');
-            const count2 = (newContent1.match(pattern2) || []).length;
+            // Compter et remplacer avec replaceAll (simple string replacement, pas de regex)
+            let newContent = currentContent;
+            let totalCount = 0;
 
-            const totalCount = count1 + count2;
+            // Pattern 1: {{@old_var@}}
+            const pattern1 = '{{@' + oldVar + '@}}';
+            const replacement1 = '{{@' + newVar + '@}}';
+            const count1 = (currentContent.split(pattern1).length - 1);
+            if (count1 > 0) {{
+                newContent = newContent.replaceAll(pattern1, replacement1);
+                totalCount += count1;
+            }}
+
+            // Pattern 2: {{@old_var_en_lettres@}}
+            const pattern2 = '{{@' + oldVar + '_en_lettres@}}';
+            const replacement2 = '{{@' + newVar + '_en_lettres@}}';
+            const count2 = (newContent.split(pattern2).length - 1);
+            if (count2 > 0) {{
+                newContent = newContent.replaceAll(pattern2, replacement2);
+                totalCount += count2;
+            }}
 
             if (totalCount > 0) {{
                 // Mettre à jour via l'API Summernote
-                $('#{textarea_id}').summernote('code', newContent2);
+                $elem.summernote('code', newContent);
             }}
 
             return {{ success: true, count: totalCount }};
@@ -2053,7 +2152,8 @@ class VariableFieldStrategy(ReplacementStrategy):
 
     async def can_handle(self, occurrence_text: str) -> bool:
         """Cette stratégie traite les éléments 'Variable du dossier'"""
-        return bool(re.search(r'Variable du dossier \([^)]+\)', occurrence_text))
+        # Utiliser .+ pour gérer les noms avec parenthèses (ex: "Libellé (association)")
+        return bool(re.search(r'Variable du dossier \((.+)\)', occurrence_text))
 
     async def process(self, page, occurrence: dict, old_pattern: str, new_pattern: str) -> bool:
         """
@@ -2072,7 +2172,8 @@ class VariableFieldStrategy(ReplacementStrategy):
 
         # Extraire le nom de la variable depuis le texte de l'occurrence
         # Ex: "Variable du dossier (global.auPresidentAPF)" → "global.auPresidentAPF"
-        var_name_match = re.search(r'Variable du dossier \(([^)]+)\)', occurrence['text'])
+        # Utiliser .+ au lieu de [^)]+ pour gérer les noms avec parenthèses (ex: "Libellé (association)")
+        var_name_match = re.search(r'Variable du dossier \((.+)\)', occurrence['text'])
         if not var_name_match:
             print("   ❌ Impossible d'extraire le nom de la variable")
             return False
@@ -2108,8 +2209,10 @@ class VariableFieldStrategy(ReplacementStrategy):
         new_var = new_var_match.group(1)
 
         # Vérifier que le textarea existe et récupérer son data-id
+        # Échapper correctement textarea_id pour éviter les erreurs JS avec caractères spéciaux
+        textarea_id_escaped = json.dumps(textarea_id)
         textarea_info = await page.evaluate(f'''() => {{
-            const ta = document.getElementById('{textarea_id}');
+            const ta = document.getElementById({textarea_id_escaped});
             if (!ta) return null;
 
             const pEdit = ta.closest('p.variableEdit');
@@ -2148,9 +2251,11 @@ class VariableFieldStrategy(ReplacementStrategy):
         await page.wait_for_timeout(500)
 
         # Récupérer le textarea maintenant qu'il est visible
-        textarea = await page.query_selector(f'textarea[id="{textarea_id}"]')
+        # Utiliser l'ID réel récupéré (plus sûr que textarea_id qui peut contenir des caractères spéciaux)
+        real_id = textarea_info['id']
+        textarea = await page.query_selector(f'textarea[id="{real_id}"]')
         if not textarea:
-            print(f"   ❌ Textarea #{textarea_id} inaccessible après activation")
+            print(f"   ❌ Textarea #{real_id} inaccessible après activation")
             return False
 
         # Remplacer le contenu

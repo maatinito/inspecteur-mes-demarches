@@ -61,6 +61,32 @@ async def get_all_variables(page):
     return variables
 
 
+async def get_all_variables_with_retry(page, max_retries=3, expected_min_count=1):
+    """
+    Récupère les variables avec retry en cas de liste vide
+
+    Args:
+        page: Instance de page Playwright
+        max_retries: Nombre maximum de tentatives
+        expected_min_count: Nombre minimum de variables attendues
+
+    Returns:
+        list: Liste de variables ou None en cas d'échec
+    """
+    for attempt in range(max_retries):
+        variables = await get_all_variables(page)
+
+        if len(variables) >= expected_min_count:
+            return variables
+
+        if attempt < max_retries - 1:
+            # Attendre un peu plus avant de réessayer
+            await page.wait_for_timeout(1500)
+
+    # Dernière tentative sans vérification
+    return await get_all_variables(page)
+
+
 async def get_model_id(page):
     """
     Extrait l'ID du modèle (idw) depuis l'URL de la page
@@ -91,11 +117,11 @@ async def move_variable(page, idw, id_variable, direction, count=1):
     await page.evaluate(f'variable_deplacer({idw}, {id_variable}, {sens})')
 
     # Attendre que le DOM soit mis à jour en vérifiant que la variable a bien bougé
-    await page.wait_for_timeout(500)
+    await page.wait_for_timeout(1000)  # Augmenté de 500ms à 1000ms
 
     # Attendre que l'état "networkidle" soit atteint (AJAX terminé)
     try:
-        await page.wait_for_load_state('networkidle', timeout=3000)
+        await page.wait_for_load_state('networkidle', timeout=5000)  # Augmenté de 3s à 5s
     except:
         pass  # Si timeout, on continue quand même
 
@@ -114,8 +140,8 @@ async def sort_variables(page, idw, dry_run=False, reverse=False):
     print("📋 TRI DES VARIABLES")
     print("="*80 + "\n")
 
-    # Récupérer les variables
-    variables = await get_all_variables(page)
+    # Récupérer les variables avec retry
+    variables = await get_all_variables_with_retry(page, max_retries=3, expected_min_count=1)
     print(f"📊 Trouvé {len(variables)} variable(s)\n")
 
     if not variables:
@@ -148,10 +174,22 @@ async def sort_variables(page, idw, dry_run=False, reverse=False):
     # Algorithme de tri par sélection
     # Pour chaque position cible, on place la bonne variable
     total_moves = 0
+    expected_var_count = len(sorted_variables)
 
     for target_position in range(len(sorted_variables)):
-        # ✅ IMPORTANT: Récupérer la liste ACTUELLE à chaque itération
-        current_vars = await get_all_variables(page)
+        # ✅ IMPORTANT: Récupérer la liste ACTUELLE à chaque itération avec retry
+        current_vars = await get_all_variables_with_retry(page, max_retries=3, expected_min_count=expected_var_count)
+
+        # Vérifier que nous avons bien récupéré les variables
+        if not current_vars or len(current_vars) == 0:
+            print(f"   ⚠️  Erreur: impossible de récupérer les variables (liste vide)")
+            print(f"   ℹ️  Attente de 3 secondes avant nouvelle tentative...")
+            await page.wait_for_timeout(3000)
+            current_vars = await get_all_variables_with_retry(page, max_retries=5, expected_min_count=1)
+
+            if not current_vars:
+                print(f"   ❌ Abandon: impossible de récupérer les variables après plusieurs tentatives")
+                break
 
         # ✅ Re-calculer l'ordre trié basé sur la liste actuelle (ignorant les accents)
         current_sorted = sorted(current_vars, key=lambda x: remove_accents(x['code']), reverse=reverse)
@@ -198,13 +236,13 @@ async def sort_variables(page, idw, dry_run=False, reverse=False):
             # Appliquer le déplacement en une seule fois (optimisation)
             await move_variable(page, idw, target_var['id_variable'], direction, count=moves_needed)
             # Forcer une relecture pour garantir que le DOM est complètement stabilisé
-            _ = await get_all_variables(page)
+            _ = await get_all_variables_with_retry(page, max_retries=3, expected_min_count=expected_var_count)
             total_moves += moves_needed
 
     if not dry_run:
         # Vérification finale
         print("\n🔍 Vérification finale...")
-        final_vars = await get_all_variables(page)
+        final_vars = await get_all_variables_with_retry(page, max_retries=5, expected_min_count=expected_var_count)
 
         print("\n📌 Ordre final:")
         for i, var in enumerate(final_vars):

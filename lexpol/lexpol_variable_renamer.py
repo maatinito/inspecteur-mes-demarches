@@ -192,7 +192,7 @@ async def process_variable(page, old_var, new_var, var_index=None, total_vars=No
             if popup:
                 links = await popup.query_selector_all('a[onclick]')
                 remaining_processable = 0
-                remaining_conditions = 0  # Compteur pour les conditions d'articles
+                remaining_conditions = 0  # Compteur pour les conditions (auto-mises à jour par Lexpol lors du renommage)
 
                 for link in links:
                     text = await link.inner_text()
@@ -201,7 +201,7 @@ async def process_variable(page, old_var, new_var, var_index=None, total_vars=No
 
                     # Vérifier si cette occurrence est traitable
                     if await strategy_manager.get_strategy(text):
-                        # Vérifier si c'est une condition d'article
+                        # APPROCHE GÉNÉRIQUE : Vérifier si c'est une condition (articles, références, attendus, etc.)
                         condition_check = await page.evaluate('''(args) => {
                             // Extraire les paramètres de goVariable
                             const match = args.onclick.match(/goVariable\\('([^']+)'(?:,\\s*'([^']*)')?\\)/);
@@ -209,26 +209,41 @@ async def process_variable(page, old_var, new_var, var_index=None, total_vars=No
 
                             const param1 = match[1];
 
-                            // Vérifier si c'est un article (commence par "article")
-                            if (!param1.startsWith('article')) return { isCondition: false, reason: 'Not an article' };
+                            // APPROCHE GÉNÉRIQUE basée sur la structure DOM
+                            // 1. Trouver l'élément de prévisualisation (param1)
+                            const element = document.getElementById(param1);
+                            if (!element) return { isCondition: false, reason: 'Element not found' };
 
-                            // Chercher le bouton de condition
-                            const container = document.getElementById(param1);
-                            if (!container) return { isCondition: false, reason: 'Container not found' };
+                            let conditionBtn = null;
 
-                            const conditionBtn = container.querySelector('a.btnCondition[id^="btnCondition_"]');
+                            // Méthode 1: Chercher directement dans le container (Article/Préambule)
+                            conditionBtn = element.querySelector('a.btnCondition[id^="btnCondition_"]');
+
+                            // Méthode 2: Remonter au TR parent et chercher dedans (Contenu)
+                            if (!conditionBtn) {
+                                const tr = element.closest('tr');
+                                if (tr) {
+                                    conditionBtn = tr.querySelector('a.btnCondition[id^="btnCondition_"]');
+                                }
+                            }
+
                             if (!conditionBtn) return { isCondition: false, reason: 'Condition button not found' };
 
+                            // Récupérer les attributs
                             const idCondition = conditionBtn.getAttribute('data-idcondition');
                             const title = conditionBtn.getAttribute('title');
 
-                            // C'est une condition si idCondition != 0 et contient notre variable
+                            // C'est une condition si :
+                            // - idCondition != "0" (une condition est définie)
+                            // - ET le title contient notre variable (la condition utilise notre variable)
                             const hasCondition = idCondition && idCondition !== "0";
                             const hasVar = title && title.includes(args.oldPattern);
 
                             return {
                                 isCondition: hasCondition && hasVar,
-                                reason: hasCondition ? (hasVar ? 'OK' : `No var in title: ${title}`) : 'No condition',
+                                reason: hasCondition ?
+                                    (hasVar ? 'OK - Condition auto-mise à jour' : `Condition exists but no var in title: ${title}`) :
+                                    'No condition (data-idcondition=0)',
                                 idCondition,
                                 title
                             };
@@ -245,7 +260,7 @@ async def process_variable(page, old_var, new_var, var_index=None, total_vars=No
                 print(f"   Occurrences initiales traitables: {initial_count}")
                 print(f"   Occurrences restantes traitables: {remaining_processable}")
                 if remaining_conditions > 0:
-                    print(f"   ℹ️  Conditions d'articles (auto-mises à jour): {remaining_conditions}")
+                    print(f"   ℹ️  Conditions (auto-mises à jour par Lexpol): {remaining_conditions}")
                 print(f"   ✅ Remplacements réussis: {replaced_count}")
                 print(f"   (Succès attendus: {success_count})")
 
