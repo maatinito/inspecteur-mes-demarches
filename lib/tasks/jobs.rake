@@ -14,4 +14,9 @@ namespace :jobs do
     Dir.glob(glob).each { |f| require f }
     CronJob.subclasses.each(&:display_schedule)
   end
+
+  desc 'Run InspectJob to verify dossiers'
+  task inspect: :environment do
+    InspectJob.perform_now
+  end
 end
