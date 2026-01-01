@@ -45,3 +45,5 @@ schema.json
 /lexpol/__pycache__/
 /lexpol/lexpol_variables_*.csv
 /lexpol/test_*.py
+/lexpol/modeles_daoeth/
+*Zone.Identifier
