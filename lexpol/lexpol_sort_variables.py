@@ -36,7 +36,7 @@ async def get_all_variables(page):
         const vars = [];
         const varElements = document.querySelectorAll('li[id^="variable"]');
 
-        varElements.forEach((elem, index) => {
+        varElements.forEach((elem) => {
             const codeElem = elem.querySelector('.variableCodeLibelle');
             if (codeElem) {
                 const code = codeElem.innerText.replace(/{@|@}/g, '').trim();
@@ -47,10 +47,14 @@ async def get_all_variables(page):
                 }
 
                 const id_variable = elem.id.replace('variable', '');
+
+                // Utiliser la position dans le DOM réel
+                const position = Array.from(varElements).indexOf(elem);
+
                 vars.push({
                     code,
                     id_variable,
-                    position: index
+                    position
                 });
             }
         });
@@ -270,6 +274,10 @@ async def main():
     parser.add_argument('--email', type=str, help='Email de connexion ou préfixe (ex: jeunesse ou redacteur.geda@jeunesse.gov.pf)')
     parser.add_argument('--dry-run', action='store_true', help='Simulation sans effectuer les modifications')
     parser.add_argument('--reverse', action='store_true', help='Trier en ordre inverse (Z-A)')
+    parser.add_argument('--browser', type=str, default='firefox', choices=['firefox', 'chromium'],
+                        help='Navigateur à utiliser (firefox par défaut car il affiche l\'ordre réel du serveur, chromium applique un tri JS automatique)')
+    parser.add_argument('--debug-no-js', action='store_true',
+                        help='DEBUG: Désactiver JavaScript pour voir l\'ordre HTML brut du serveur')
     args = parser.parse_args()
 
     print("="*80)
@@ -277,8 +285,24 @@ async def main():
     print("="*80)
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=config.HEADLESS, slow_mo=config.SLOW_MO)
-        page = await browser.new_page(viewport={'width': 1800, 'height': 1000})
+        # Firefox affiche l'ordre réel du serveur, Chromium applique un tri automatique JavaScript
+        if args.browser == 'firefox':
+            print("🦊 Utilisation de Firefox (affiche l'ordre réel du serveur)")
+            browser = await p.firefox.launch(headless=config.HEADLESS, slow_mo=config.SLOW_MO)
+        else:
+            print("🔷 Utilisation de Chromium (ATTENTION: Lexpol applique un tri automatique JS)")
+            browser = await p.chromium.launch(headless=config.HEADLESS, slow_mo=config.SLOW_MO)
+
+        # Créer le contexte avec ou sans JavaScript
+        if args.debug_no_js:
+            print("⚠️  DEBUG: JavaScript DÉSACTIVÉ - Vous verrez l'ordre HTML brut mais ne pourrez pas trier")
+            context = await browser.new_context(
+                viewport={'width': 1800, 'height': 1000},
+                java_script_enabled=False
+            )
+            page = await context.new_page()
+        else:
+            page = await browser.new_page(viewport={'width': 1800, 'height': 1000})
 
         # Connexion unifiée (gère tout : email, modèle, authentification)
         success = await LexpolConnection.connect_to_model(page, model_id=args.modele, email=args.email)
