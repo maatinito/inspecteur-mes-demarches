@@ -20,6 +20,10 @@ def create_textarea_search_js(container_id: str, old_pattern_search: str, old_pa
     Returns:
         Code JavaScript à exécuter via page.evaluate()
     """
+    # Échapper les apostrophes pour éviter les erreurs de syntaxe JavaScript
+    old_pattern_search_escaped = old_pattern_search.replace("'", "\\'")
+    old_pattern_lettres_search_escaped = old_pattern_lettres_search.replace("'", "\\'")
+
     return f'''() => {{
         // Chercher d'abord dans le conteneur spécifique
         const container = document.getElementById('{container_id}');
@@ -28,7 +32,7 @@ def create_textarea_search_js(container_id: str, old_pattern_search: str, old_pa
             // Fallback: chercher globalement
             const textareas = Array.from(document.querySelectorAll('{textarea_selector}'));
             for (const ta of textareas) {{
-                if (ta.value && (ta.value.includes('{old_pattern_search}') || ta.value.includes('{old_pattern_lettres_search}'))) {{
+                if (ta.value && (ta.value.includes('{old_pattern_search_escaped}') || ta.value.includes('{old_pattern_lettres_search_escaped}'))) {{
                     return ta.id;
                 }}
             }}
@@ -38,7 +42,7 @@ def create_textarea_search_js(container_id: str, old_pattern_search: str, old_pa
         // Chercher uniquement les textareas DANS ce conteneur
         const textareas = Array.from(container.querySelectorAll('{textarea_selector}'));
         for (const ta of textareas) {{
-            if (ta.value && (ta.value.includes('{old_pattern_search}') || ta.value.includes('{old_pattern_lettres_search}'))) {{
+            if (ta.value && (ta.value.includes('{old_pattern_search_escaped}') || ta.value.includes('{old_pattern_lettres_search_escaped}'))) {{
                 return ta.id;
             }}
         }}
@@ -371,6 +375,10 @@ class ReferenceStrategy(ReplacementStrategy):
             return False
         new_var = new_var_match.group(1)
 
+        # Échapper les apostrophes pour l'injection JavaScript
+        old_var_escaped = old_var.replace("'", "\\'")
+        new_var_escaped = new_var.replace("'", "\\'")
+
         # Pour les Références, le textarea Summernote a un ID basé sur param1 avec "Editeur" ajouté
         # Ex: param1 = valListeLibre4373210_0_0_REFERENCE_2 -> textarea = valListeLibreEditeur4373210_0_0_REFERENCE_2
         textarea_id = param1.replace('valListeLibre', 'valListeLibreEditeur')
@@ -411,8 +419,8 @@ class ReferenceStrategy(ReplacementStrategy):
             let replacements = 0;
 
             // Patterns de remplacement
-            const oldVar = '{old_var}';
-            const newVar = '{new_var}';
+            const oldVar = '{old_var_escaped}';
+            const newVar = '{new_var_escaped}';
             const oldVarEscaped = oldVar.replace(/[.*+?^${{}}()|[\\]\\\\]/g, '\\\\$&');
 
             const patterns = [
@@ -532,6 +540,10 @@ class SimpleSummernoteStrategy(ReplacementStrategy):
             return False
         new_var = new_var_match.group(1)
 
+        # Échapper les apostrophes pour l'injection JavaScript
+        old_var_escaped = old_var.replace("'", "\\'")
+        new_var_escaped = new_var.replace("'", "\\'")
+
         # Pour les "Attendus (Vu)", le textarea Summernote a un ID basé sur param1 avec "Editeur" ajouté
         # Ex: param1 = valAttendus4284854_0_0_ATTENDUS_8 -> textarea = valAttendusEditeur4284854_0_0_ATTENDUS_8
         # On insère "Editeur" après "valAttendus"
@@ -568,8 +580,8 @@ class SimpleSummernoteStrategy(ReplacementStrategy):
             let currentContent = $('#{textarea_id}').summernote('code');
 
             // Les variables à remplacer
-            const oldVar = '{old_var}';
-            const newVar = '{new_var}';
+            const oldVar = '{old_var_escaped}';
+            const newVar = '{new_var_escaped}';
 
             // Compter et remplacer avec replaceAll (simple string replacement, pas de regex)
             let newContent = currentContent;
@@ -2019,6 +2031,10 @@ class IntituleStrategy(ReplacementStrategy):
 
         new_var = new_var_match.group(1)
 
+        # Échapper les apostrophes pour l'injection JavaScript
+        old_var_escaped = old_var.replace("'", "\\'")
+        new_var_escaped = new_var.replace("'", "\\'")
+
         # Extraire l'idelement depuis param1 (ex: "elementIntituleChamp_4284865")
         element_match = re.search(r'_(\d+)$', param1)
         if not element_match:
@@ -2070,8 +2086,8 @@ class IntituleStrategy(ReplacementStrategy):
             let currentContent = $elem.summernote('code');
 
             // Les variables à remplacer
-            const oldVar = '{old_var}';
-            const newVar = '{new_var}';
+            const oldVar = '{old_var_escaped}';
+            const newVar = '{new_var_escaped}';
 
             // Compter et remplacer avec replaceAll (simple string replacement, pas de regex)
             let newContent = currentContent;
