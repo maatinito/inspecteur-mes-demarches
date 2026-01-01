@@ -21,7 +21,8 @@ module Travail
     end
 
     def required_fields
-      super + %i[champ_effectifs champ_effectif cellule_annee cellule_ETP cellule_ETP_ECAP cellule_assiette cellule_obligation cellule_licenciement champ_prestations champ_travailleurs champs_par_travailleur]
+      super + %i[champ_effectifs champ_effectif cellule_annee cellule_ETP cellule_ETP_ECAP cellule_assiette cellule_obligation cellule_licenciement champ_prestations champ_travailleurs
+                 champs_par_travailleur]
     end
 
     def authorized_fields
@@ -162,7 +163,7 @@ module Travail
     def final_duty
       duty = (@numbers[DEFAULT_DUTY] - @numbers[OUTSOURCING] - @numbers[DISMISSED_FTE] - @numbers[DISABLED_WORKER_FTE]).round(3)
       duty = 0.0 if duty.negative?
-      duty
+      duty.round(3)
     end
 
     def default_numbers
@@ -181,11 +182,11 @@ module Travail
       in_excel do |sheet|
         {
           YEAR => cell(sheet, @params[:cellule_annee], Date.today.year - 1),
-          FTE => cell(sheet, @params[:cellule_ETP], 0.0).to_f,
-          ECAP_FTE => cell(sheet, @params[:cellule_ETP_ECAP], 0.0).to_f,
-          ASSESSMENT_BASE => cell(sheet, @params[:cellule_assiette], 0.0).to_f,
-          DEFAULT_DUTY => cell(sheet, @params[:cellule_obligation], 0.0).to_f,
-          DISMISSED_FTE => cell(sheet, @params[:cellule_licenciement], 0.0).to_f
+          FTE => cell(sheet, @params[:cellule_ETP], 0.0).to_f.round(3),
+          ECAP_FTE => cell(sheet, @params[:cellule_ETP_ECAP], 0.0).to_f.round(3),
+          ASSESSMENT_BASE => cell(sheet, @params[:cellule_assiette], 0.0).to_f.round(3),
+          DEFAULT_DUTY => cell(sheet, @params[:cellule_obligation], 0.0).to_f.round(3),
+          DISMISSED_FTE => cell(sheet, @params[:cellule_licenciement], 0.0).to_f.round(3)
         }
       end
     end
@@ -290,7 +291,8 @@ module Travail
 
     def intersection(range_a, range_b)
       return range_a.begin...range_a.begin if range_a.end < range_b.begin || range_b.end < range_a.begin
-      [range_a.begin,range_b.begin].max...[range_a.end,range_b.end].min
+
+      [range_a.begin, range_b.begin].max...[range_a.end, range_b.end].min
     end
 
     def normalize_begin_date(begin_date, year_start)
