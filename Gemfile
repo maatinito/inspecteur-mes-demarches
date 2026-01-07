@@ -37,7 +37,7 @@ gem 'jbuilder', '~> 2.5'
 # gem 'capistrano-rails', group: :development
 
 # Reduces boot times through caching; required in config/boot.rb
-gem 'aws-sdk-s3'
+gem 'aws-sdk-s3', '>= 1.208.0'
 gem 'bootsnap', require: false
 gem 'caxlsx'
 gem 'combine_pdf'
