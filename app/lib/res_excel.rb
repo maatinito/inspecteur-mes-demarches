@@ -110,12 +110,34 @@ class ResExcel < FieldChecker
   end
 
   def download(url, extension)
+    # Valider que l'URL provient d'une source sûre (API démarches-simplifiées)
+    validate_url!(url)
+
     Tempfile.create(['res', extension]) do |f|
       f.binmode
-      f.write URI.open(url).read
+      # Utiliser Typhoeus au lieu de URI.open pour éviter les risques SSRF
+      response = Typhoeus.get(url, followlocation: true)
+      raise StandardError, "Erreur lors du téléchargement du fichier: #{response.code}" unless response.success?
+
+      f.write response.body
       f.rewind
       yield f
     end
+  end
+
+  def validate_url!(url)
+    uri = URI.parse(url)
+    # Vérifier que le schéma est http ou https
+    raise StandardError, 'URL invalide: schéma non autorisé' unless %w[http https].include?(uri.scheme)
+
+    # Vérifier que l'URL provient du domaine autorisé
+    graphql_host = ENV.fetch('GRAPHQL_HOST', 'https://www.mes-demarches.gov.pf')
+    allowed_host = URI.parse(graphql_host).host
+    raise StandardError, 'URL invalide: domaine non autorisé' unless uri.host == allowed_host
+
+    true
+  rescue URI::InvalidURIError
+    raise StandardError, 'URL invalide'
   end
 
   def bad_extension(extension)

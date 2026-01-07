@@ -3,6 +3,9 @@
 module Admin
   class BaserowSchemaController < ApplicationController
     before_action :authenticate_user!
+    # Security: CSRF protection is disabled for JSON API endpoints only.
+    # These endpoints require user authentication (authenticate_user!) and only process JSON data,
+    # making CSRF attacks impractical. Authentication is enforced on all actions.
     skip_before_action :verify_authenticity_token, only: %i[workspaces applications tables preview build]
 
     def index; end
