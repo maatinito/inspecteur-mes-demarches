@@ -5,6 +5,7 @@ FactoryBot.define do
     etat_du_dossier { 'en_construction, en_instruction' }
     champ_effectifs { "Effectifs de l'entreprise" }
     champ_effectif { "Effectif de l'entreprise" }
+    cellule_annee { 'D4' }
     cellule_ETP { 'D5' }
     cellule_ETP_ECAP { 'D6' }
     cellule_assiette { 'D7' }

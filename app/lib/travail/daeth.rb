@@ -247,6 +247,8 @@ module Travail
     end
 
     def compute_weekly_presence_rate(worker)
+      return 1 unless worker[:contract_hours].present?
+
       weekly_presence_rate = worker[:contract_hours] / 39.0
       weekly_presence_rate = 1 if weekly_presence_rate >= 0.5
       weekly_presence_rate
@@ -275,7 +277,8 @@ module Travail
 
     def calculate_contract_dates(worker, dates)
       year_range = dates[:year_start]...dates[:year_end]
-      contract_range = worker[:contract_begin]...worker[:contract_end]
+      # Ajouter +1 car la date de fin de contrat est inclusive
+      contract_range = worker[:contract_begin]...(worker[:contract_end] + 1)
       i = intersection(year_range, contract_range)
       {
         begin_date: i.begin,
