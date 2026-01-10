@@ -70,8 +70,8 @@ Rails.application.configure do
   if ENV.fetch('SENDINBLUE_USER_NAME', '').present?
     config.action_mailer.delivery_method = :smtp
     ActionMailer::Base.smtp_settings = {
-      user_name: Rails.application.secrets.sendinblue[:username],
-      password: Rails.application.secrets.sendinblue[:smtp_key],
+      user_name: ENV.fetch('SENDINBLUE_USER_NAME', nil),
+      password: ENV.fetch('SENDINBLUE_SMTP_KEY', nil),
       address: 'smtp-relay.brevo.com',
       domain: 'smtp-relay.brevo.com',
       port: '587',

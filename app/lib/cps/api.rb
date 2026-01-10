@@ -93,10 +93,10 @@ module Cps
     def auth_body
       {
         grant_type: 'password',
-        client_id: Rails.application.secrets.api_cps[:client_id],
-        client_secret: Rails.application.secrets.api_cps[:client_secret],
-        username: Rails.application.secrets.api_cps[:username],
-        password: Rails.application.secrets.api_cps[:password],
+        client_id: ENV.fetch('API_CPS_CLIENT_ID', nil),
+        client_secret: ENV.fetch('API_CPS_CLIENT_SECRET', nil),
+        username: ENV.fetch('API_CPS_USERNAME', nil),
+        password: ENV.fetch('API_CPS_PASSWORD', nil),
         scope: 'openid'
       }
     end

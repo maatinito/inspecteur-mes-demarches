@@ -85,16 +85,16 @@ class Publipostage < FieldChecker
     end
   end
 
-  def deep_transform_keys(value, &block)
+  def deep_transform_keys(value, &)
     case value
     when Hash
       value.each_with_object({}) do |(key, value), result|
         new_key = yield(key)
-        new_value = deep_transform_keys(value, &block)
+        new_value = deep_transform_keys(value, &)
         result[new_key] = new_value
       end
     when Array
-      value.map { |v| deep_transform_keys(v, &block) }
+      value.map { |v| deep_transform_keys(v, &) }
     else
       value
     end
@@ -305,7 +305,7 @@ class Publipostage < FieldChecker
     rows = []
     headers = sheet.row(header_line)
     sheet.each_row_streaming(pad_cells: true, offset: header_line) do |row|
-      break unless row.any? { _1&.value.present? }
+      break unless row.any? { it&.value.present? }
 
       rows << headers.each_with_object({}).with_index do |(k, h), i|
         value = row[i]&.value

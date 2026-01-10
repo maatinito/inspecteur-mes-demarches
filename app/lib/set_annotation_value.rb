@@ -25,7 +25,7 @@ class SetAnnotationValue
 
   def self.set_piece_justificative_on_annotation(md_dossier, instructeur_id, annotation, path, filename)
     new_checksum = FileUpload.checksum(path)
-    same_file = annotation.files.find { _1.checksum == new_checksum }
+    same_file = annotation.files.find { it.checksum == new_checksum }
     return if same_file
 
     attachment = FileUpload.upload_file(md_dossier.id, path, filename, new_checksum)

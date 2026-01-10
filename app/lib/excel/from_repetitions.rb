@@ -48,7 +48,7 @@ module Excel
           end
         end
       end
-      save_excel(workbook) { send_document(@demarche, @dossier, _1) }
+      save_excel(workbook) { send_document(@demarche, @dossier, it) }
       save_posted
     end
 

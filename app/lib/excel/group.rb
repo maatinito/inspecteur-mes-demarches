@@ -25,7 +25,7 @@ module Excel
     end
 
     def group_lines(lines, colonnes)
-      lines.each_with_object({}) { |line, h| (h[colonnes.map { line[_1].to_s }.reduce(&:+)] ||= []) << line }
+      lines.each_with_object({}) { |line, h| (h[colonnes.map { line[it].to_s }.reduce(&:+)] ||= []) << line }
     end
 
     def merge_lines(groups)

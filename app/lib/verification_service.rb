@@ -118,8 +118,8 @@ class VerificationService
     @@files ||= if Rails.env.production? && ENV.fetch('FILE_MANAGER', 'S3') == 'S3'
                   Tools::S3FileManager.new(
                     ENV.fetch('S3_BUCKET', nil),
-                    access_key_id: Rails.application.secrets.s3[:access_key_id],
-                    secret_access_key: Rails.application.secrets.s3[:secret_access_key],
+                    access_key_id: ENV.fetch('S3_ACCESS_KEY', nil),
+                    secret_access_key: ENV.fetch('S3_SECRET_KEY', nil),
                     endpoint: ENV.fetch('S3_ENDPOINT', nil),
                     region: ENV.fetch('S3_REGION', nil)
                   )

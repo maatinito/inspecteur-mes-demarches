@@ -35,7 +35,7 @@ module Daf
     end
 
     def amount_for_repetition(repetition)
-      repetition.rows.map { amount_for(file_count(_1)) }.reduce(&:+)
+      repetition.rows.map { amount_for(file_count(it)) }.reduce(&:+)
     end
 
     def amount_already_set?

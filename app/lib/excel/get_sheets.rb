@@ -15,7 +15,7 @@ module Excel
       champs.each do |champ_source|
         raise "Le champ #{params[:champ]} n'est pas de type PieceJustificative" if champ_source.__typename != 'PieceJustificativeChamp'
 
-        source_file = champ_source.files.filter { File.extname(_1.filename) == '.xlsx' }.last
+        source_file = champ_source.files.filter { File.extname(it.filename) == '.xlsx' }.last
         next unless source_file
 
         PieceJustificativeCache.get(source_file) do |file|
