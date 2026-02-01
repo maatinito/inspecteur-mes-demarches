@@ -22,7 +22,7 @@ class DemarcheActions
     result = MesDemarches.query(MesDemarches::Queries::Demarche,
                                 variables: { demarche: demarche_number })
     if result.errors.present?
-      Rails.logger.info("Impossible d'accéder à la dmarche #{demarche_number} : " + result.errors.messages.values.join(','))
+      Rails.logger.info("Impossible d'accéder à la démarche #{demarche_number} : " + result.errors.messages.values.join(','))
       raise StandardError, result.errors.messages.values.join(',') if result.errors.present?
     end
 

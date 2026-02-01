@@ -18,9 +18,8 @@ module Calculs
     def process_row(dossier, output)
       instructeur_email = dossier.instructeurs.first&.email
       handle(output, 'Instructeur', instructeur_email)
-      dossier.annotations.filter { |c| c.__typename == 'VisaChamp' }.each do |champ|
-        handle(output, champ.label, champ.string_value)
-      end
+      dossier.annotations.filter { |c| c.__typename == 'VisaChamp' }.each { |champ| handle(output, champ.label, champ.string_value) }
+      dossier.annotations.filter { |c| c.__typename == 'TextChamp' && c.value.is_a?(String) && c.value.match?(URI::MailTo::EMAIL_REGEXP) }.each { |champ| handle(output, champ.label, champ.value) }
     end
 
     def handle(output, variable, valeur)

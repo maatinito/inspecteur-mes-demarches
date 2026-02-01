@@ -11,12 +11,14 @@ module MesDemarches
     end
 
     def connection
-      @connection ||= begin
-        conn = super
-        conn.read_timeout = 60
-        conn.open_timeout = 60
-        conn
-      end
+      # Ne pas mettre en cache la connexion pour éviter les erreurs SSL
+      # "can't modify frozen OpenSSL::SSL::SSLContext"
+      conn = super
+      conn.read_timeout = 60
+      conn.open_timeout = 60
+      # Réduire le keep-alive pour éviter la réutilisation de connexions fermées
+      conn.keep_alive_timeout = 2
+      conn
     end
   end
 
@@ -26,10 +28,9 @@ module MesDemarches
   HTTP = CustomHTTPAdapter.new(graphql_url)
 
   def self.http(host)
-    Rails.cache.fetch("#{host} http client") do
-      graphql_url = "#{host}/api/v2/graphql"
-      CustomHTTPAdapter.new(graphql_url)
-    end
+    # Ne pas mettre en cache le client HTTP pour éviter les erreurs SSL
+    graphql_url = "#{host}/api/v2/graphql"
+    CustomHTTPAdapter.new(graphql_url)
   end
 
   # Fetch latest schema on init, this will make a network request
@@ -55,7 +56,16 @@ module MesDemarches
         success = true
       rescue StandardError => e
         retry_count += 1
-        raise e if retry_count >= max_retries
+
+        unless retryable_error?(e)
+          Rails.logger.error("Non-retryable error querying Mes-Démarches: #{e.message}")
+          raise e
+        end
+
+        if retry_count >= max_retries
+          Rails.logger.error("Max retries (#{max_retries}) exceeded querying Mes-Démarches: #{e.message}")
+          raise e
+        end
 
         Rails.logger.warn("Attempt #{retry_count} failed querying Mes-Démarches: #{e.message}. Retrying in 1 second...")
         sleep 1
@@ -63,6 +73,16 @@ module MesDemarches
     end
     result
   end
+
+  def self.retryable_error?(error)
+    error.message.include?('frozen OpenSSL::SSL::SSLContext') ||
+      error.message.include?('Bad file descriptor') ||
+      error.message.include?('wrong status line') ||
+      error.is_a?(Errno::ECONNRESET) ||
+      error.is_a?(Errno::EPIPE) ||
+      error.is_a?(OpenSSL::SSL::SSLError)
+  end
+  private_class_method :retryable_error?
 
   # list dossiers
 
