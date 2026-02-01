@@ -26,14 +26,18 @@ module Daf
     def process(demarche, dossier)
       super
       message = instanciate(@params[:message])
-      if @mails.present?
-        send_mail(demarche, dossier, message)
+
+      # Instancier les emails avec les variables du dossier (supporte {Champ})
+      mails = (@mails.map { |mail| instanciate(mail) }.compact.select(&:present?) if @mails.present?)
+
+      if mails.present?
+        send_mail(demarche, dossier, message, mails)
       else
         SendMessage.deliver_message(dossier, instructeur_id_for(demarche, dossier), message, check_not_sent: true)
       end
     end
 
-    def send_mail(demarche, dossier, message)
+    def send_mail(demarche, dossier, message, mails)
       if @timestamp_field
         last_sent = annotation(@timestamp_field)&.value
         return if sent_less_than_one_day_ago(last_sent)
@@ -46,7 +50,7 @@ module Daf
         demarche: demarche.id,
         dossier: dossier.number,
         message:,
-        recipients: @mails
+        recipients: mails
       }
       NotificationMailer.with(params).notify_user.deliver_later
     end
