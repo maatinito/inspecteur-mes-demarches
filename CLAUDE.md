@@ -137,6 +137,8 @@ API_CPS_CLIENT_SECRET=
 
 The application requires a configuration file named `auto-instructeur.yml` that lists the checks to perform on Mes-Démarches platform. This file should be placed in the `/storage` directory.
 
+For detailed guidance on writing YAML configuration files for auto-instructeur, including syntax, available FieldCheckers, common patterns, and complete examples, see the **[Configuration Guide](docs/CONFIGURATION_GUIDE.md)**.
+
 ## Working with the Code
 
 When implementing a new check or task:
