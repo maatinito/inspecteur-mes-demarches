@@ -54,6 +54,8 @@ gem 'haml-rails'
 gem 'humanize'
 gem 'iban-tools'
 gem 'jquery-rails'
+gem 'kramdown'
+gem 'kramdown-parser-gfm' # GitHub Flavored Markdown
 gem 'mailjet'
 gem 'mime-types'
 gem 'net-imap', '>= 0.5.7', require: false

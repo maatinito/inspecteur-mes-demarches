@@ -244,6 +244,10 @@ GEM
       railties (>= 4.2.0)
       thor (>= 0.14, < 2.0)
     json (2.18.0)
+    kramdown (2.5.2)
+      rexml (>= 3.4.4)
+    kramdown-parser-gfm (1.1.0)
+      kramdown (~> 2.0)
     language_server-protocol (3.17.0.5)
     launchy (3.1.1)
       addressable (~> 2.8)
@@ -599,6 +603,8 @@ DEPENDENCIES
   jbuilder (~> 2.5)
   jquery-rails
   json (>= 2.10.0)
+  kramdown
+  kramdown-parser-gfm
   letter_opener_web
   listen (~> 3.7)
   mailjet

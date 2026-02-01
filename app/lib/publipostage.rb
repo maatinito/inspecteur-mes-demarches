@@ -372,13 +372,81 @@ class Publipostage < FieldChecker
     # migrate data to ignore #checksum
     data.save if data.present? && data.data.delete('#checksum').present?
 
-    same = data.present? && data.data == stable_fields
+    same = data.present? && JSON.parse(data.data.to_json) == JSON.parse(stable_fields.to_json)
     if same
       Rails.logger.info('Canceling publipost as input data coming from dossier is the same as before')
     else
+      log_data_differences(data&.data, stable_fields, label)
       @publiposts[label] = stable_fields
     end
     same
+  end
+
+  # Log les différences entre l'ancien et le nouveau document pour debugging
+  def log_data_differences(old_data, new_data, label)
+    if old_data.nil?
+      Rails.logger.info("Generating new document '#{label}' (no previous data found)")
+      return
+    end
+
+    differences = find_hash_differences(old_data, new_data)
+
+    if differences.empty?
+      Rails.logger.info("Regenerating document '#{label}' but no differences detected (possibly data structure change)")
+    else
+      Rails.logger.info("Regenerating document '#{label}' due to #{differences.size} change(s):")
+      differences.each do |diff|
+        Rails.logger.info("  [#{diff[:path]}] #{diff[:old].inspect} → #{diff[:new].inspect}")
+      end
+    end
+  end
+
+  # Compare récursivement deux hashes et retourne les différences
+  def find_hash_differences(old_hash, new_hash, path = '')
+    differences = []
+    differences.concat(find_removed_keys(old_hash, new_hash, path))
+    differences.concat(find_added_keys(old_hash, new_hash, path))
+    differences.concat(find_changed_values(old_hash, new_hash, path))
+    differences
+  end
+
+  def find_removed_keys(old_hash, new_hash, path)
+    (old_hash.keys - new_hash.keys).map do |key|
+      { path: build_path(path, key), old: old_hash[key], new: nil }
+    end
+  end
+
+  def find_added_keys(old_hash, new_hash, path)
+    (new_hash.keys - old_hash.keys).map do |key|
+      { path: build_path(path, key), old: nil, new: new_hash[key] }
+    end
+  end
+
+  def find_changed_values(old_hash, new_hash, path)
+    differences = []
+    (old_hash.keys & new_hash.keys).each do |key|
+      old_value = old_hash[key]
+      new_value = new_hash[key]
+      next if old_value == new_value
+      # Comparer via JSON pour gérer les structs Sablon::Content::HTML
+      next if old_value.to_json == new_value.to_json
+
+      current_path = build_path(path, key)
+      differences.concat(compare_values(old_value, new_value, current_path))
+    end
+    differences
+  end
+
+  def compare_values(old_value, new_value, path)
+    if old_value.is_a?(Hash) && new_value.is_a?(Hash)
+      find_hash_differences(old_value, new_value, path)
+    else
+      [{ path:, old: old_value, new: new_value }]
+    end
+  end
+
+  def build_path(path, key)
+    path.empty? ? key.to_s : "#{path}.#{key}"
   end
 
   def save_posted

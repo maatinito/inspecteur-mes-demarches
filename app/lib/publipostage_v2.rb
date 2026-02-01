@@ -158,10 +158,13 @@ class PublipostageV2 < Publipostage
       excel_to_rows(champ)
     when 'RepetitionChamp'
       bloc_to_rows(champ).map do |repetition|
-        repetition.champs.each_with_object({}) do |sous_champ, hash|
+        # 1. Construire le hash de la ligne
+        row_hash = repetition.champs.each_with_object({}) do |sous_champ, hash|
           result = champ_value(sous_champ)
           expand_hash_into_result(hash, sous_champ.label, result)
         end
+        # 2. Interpoler toutes les valeurs string avec le contexte complet de la ligne
+        interpolate_row_values(row_hash)
       end
     when 'ReferentielDePolynesieChamp'
       expand_referentiel_de_polynesie(champ)
@@ -217,5 +220,36 @@ class PublipostageV2 < Publipostage
     end
 
     result
+  end
+
+  # Interpoler les valeurs d'une ligne de bloc répétable avec son propre contexte
+  # Remplace {champ}, {prefix;champ;suffix}, {champ?oui:non} via instanciate
+  def interpolate_row_values(row_hash)
+    row_hash.transform_values do |value|
+      if value.is_a?(Hash)
+        # Pour les champs expandus (.libelle, .parametre, etc.)
+        value.transform_values { |v| interpolate_single_value(v, row_hash) }
+      else
+        interpolate_single_value(value, row_hash)
+      end
+    end
+  end
+
+  # Interpoler une valeur unique (String, Sablon::Content::HTML, ou autre)
+  def interpolate_single_value(value, context)
+    case value
+    when String
+      instanciate(value, context)
+    when Struct
+      # Gérer Sablon::Content::HTML : interpoler le contenu HTML
+      if value.respond_to?(:html_content)
+        interpolated_html = instanciate(value.html_content, context)
+        Sablon.content(:html, interpolated_html)
+      else
+        value
+      end
+    else
+      value
+    end
   end
 end
