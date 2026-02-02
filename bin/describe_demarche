@@ -1,0 +1,156 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative '../config/environment'
+
+def display_inline_options(champ)
+  options = []
+
+  # Afficher uniquement si non obligatoire (required=false)
+  # Par défaut, on suppose que les champs sont obligatoires
+  options << 'Non obligatoire' if champ.respond_to?(:required) && champ.required == false
+
+  return '' if options.empty?
+
+  " { #{options.join(', ')} }"
+end
+
+def display_dropdown_options(champ, indent_level)
+  return unless champ.respond_to?(:options) && champ.options.present?
+
+  indent = '  ' * (indent_level + 1)
+  max_display = 5
+
+  champ.options.first(max_display).each do |option|
+    puts "#{indent}• #{option}"
+  end
+
+  return unless champ.options.size > max_display
+
+  remaining = champ.options.size - max_display
+  puts "#{indent}... et #{remaining} autre#{'s' if remaining > 1} option#{'s' if remaining > 1}"
+end
+
+def display_champ(champ, indent_level)
+  indent = '  ' * indent_level
+  type = champ.__typename.gsub('ChampDescriptor', '')
+  inline_options = display_inline_options(champ)
+
+  puts "#{indent}#{champ.label} : #{type}#{inline_options}"
+
+  # Afficher les options des listes déroulantes sur des lignes séparées
+  display_dropdown_options(champ, indent_level) if %w[DropDownListChampDescriptor MultipleDropDownListChampDescriptor].include?(champ.__typename)
+
+  # Si c'est un bloc répétable, afficher les sous-champs
+  return unless champ.__typename == 'RepetitionChampDescriptor' && champ.respond_to?(:champ_descriptors)
+
+  champ.champ_descriptors.each do |sub_champ|
+    display_champ(sub_champ, indent_level + 1)
+  end
+end
+
+def detect_section_depth(label)
+  # Détecte la profondeur d'une section en analysant sa numérotation
+  # Exemples :
+  #   "I- SECTEURS" -> 1
+  #   "III-1 Renseignements" -> 2
+  #   "III.2.1 - Précisions" -> 3
+  #   "A.1- Suite" -> 2
+
+  # Extraire la partie numérique au début (avant les mots)
+  prefix = label.match(/^[IVXLCDM\d.-]+/)
+  return 1 unless prefix
+
+  # Compter les segments (séparés par . ou -)
+  segments = prefix[0].split(/[.-]/).reject(&:empty?)
+  segments.size
+end
+
+def display_champs(champs, title)
+  puts "\n#{title}"
+  puts '=' * title.length
+
+  indent_level = 0
+
+  champs.each do |champ|
+    case champ.__typename
+    when 'HeaderSectionChampDescriptor'
+      # Détecter la profondeur du titre
+      depth = detect_section_depth(champ.label)
+      section_indent = '  ' * depth
+
+      # Afficher le titre avec son indentation
+      puts "\n#{section_indent}#{champ.label}"
+
+      # Les champs suivants seront indentés d'un niveau de plus
+      indent_level = depth + 1
+    when 'ExplicationChampDescriptor'
+      # Explication : ne pas afficher, juste noter qu'elle existe
+      next
+    else
+      # Champ normal
+      display_champ(champ, indent_level)
+    end
+  end
+end
+
+# Vérifier les arguments
+if ARGV.empty?
+  puts "Usage: #{$PROGRAM_NAME} <numero_demarche>"
+  puts "Exemple: #{$PROGRAM_NAME} 3508"
+  exit 1
+end
+
+demarche_number = ARGV[0].to_i
+
+if demarche_number <= 0
+  puts 'Erreur: Le numéro de démarche doit être un entier positif'
+  exit 1
+end
+
+# Requête GraphQL
+puts "Récupération de la démarche #{demarche_number}..."
+
+begin
+  result = MesDemarches.query(
+    MesDemarches::Queries::DemarcheRevision,
+    variables: { demarche: demarche_number }
+  )
+rescue StandardError => e
+  puts "Erreur lors de la requête: #{e.message}"
+  exit 1
+end
+
+if result.errors.present?
+  errors = result.errors.to_h.values.flatten
+  puts "Erreur: #{errors.join(', ')}"
+  exit 1
+end
+
+unless result.data.demarche
+  puts "Erreur: Démarche #{demarche_number} introuvable"
+  exit 1
+end
+
+demarche = result.data.demarche
+revision = demarche.published_revision || demarche.draft_revision
+
+unless revision
+  puts 'Erreur: Aucune révision disponible pour cette démarche'
+  exit 1
+end
+
+# Affichage
+puts "\n#{'=' * 80}"
+puts "Démarche #{demarche.number} : #{demarche.title}"
+puts '=' * 80
+
+# Champs (remplis par l'usager)
+display_champs(revision.champ_descriptors, "CHAMPS (remplis par l'usager)")
+
+# Annotations privées (remplies par les agents)
+display_champs(revision.annotation_descriptors, 'ANNOTATIONS PRIVÉES (remplies par les agents)')
+
+puts "\n#{'=' * 80}"
+puts 'Fin de la description'
+puts '=' * 80
