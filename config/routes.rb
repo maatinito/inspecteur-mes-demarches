@@ -20,6 +20,11 @@ Rails.application.routes.draw do
         get :test_auth
         post :preview
         post :build
+
+        # Routes pour blocs répétables
+        get :repetable_blocks
+        post :preview_repetable_blocks
+        post :build_repetable_blocks
       end
     end
   end

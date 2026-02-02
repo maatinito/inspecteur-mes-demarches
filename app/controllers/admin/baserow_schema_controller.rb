@@ -6,9 +6,14 @@ module Admin
     # Security: CSRF protection is disabled for JSON API endpoints only.
     # These endpoints require user authentication (authenticate_user!) and only process JSON data,
     # making CSRF attacks impractical. Authentication is enforced on all actions.
-    skip_before_action :verify_authenticity_token, only: %i[workspaces applications tables preview build]
+    skip_before_action :verify_authenticity_token, only: %i[
+      workspaces applications tables preview build
+      preview_repetable_blocks build_repetable_blocks
+    ]
 
     def index; end
+
+    def repetable_blocks; end
 
     def test_auth
       render json: {
@@ -152,32 +157,12 @@ module Admin
     def build
       demarche_number = params[:demarche_number]&.to_i
       table_id = params[:table_id]&.to_i
+      selected_fields = params[:selected_fields] || []
       schema_options = extract_schema_options
 
-      if demarche_number.blank? || table_id.blank?
-        render json: { success: false, error: 'demarche_number et table_id requis' }, status: 400
-        return
-      end
+      return render_validation_error('demarche_number et table_id requis') if demarche_number.blank? || table_id.blank?
 
-      begin
-        schema_builder = MesDemarchesToBaserow::SchemaBuilder.new(demarche_number, table_id, schema_options)
-        report = schema_builder.build!
-
-        render json: {
-          success: true,
-          report: report
-        }
-      rescue MesDemarchesToBaserow::SchemaBuilder::SchemaError => e
-        render json: {
-          success: false,
-          error: e.message
-        }, status: 422
-      rescue StandardError => e
-        render json: {
-          success: false,
-          error: "Erreur inattendue: #{e.message}"
-        }, status: 500
-      end
+      build_schema(demarche_number, table_id, selected_fields, schema_options)
     end
 
     private
@@ -254,6 +239,91 @@ module Admin
         success: false,
         error: "Erreur inattendue: #{error.message}"
       }, status: 500
+    end
+
+    def render_validation_error(message)
+      render json: { success: false, error: message }, status: 400
+    end
+
+    def build_schema(demarche_number, table_id, selected_fields, schema_options)
+      schema_builder = MesDemarchesToBaserow::SchemaBuilder.new(demarche_number, table_id, schema_options)
+      report = schema_builder.build!(selected_fields: selected_fields)
+
+      render json: {
+        success: true,
+        report: report
+      }
+    rescue MesDemarchesToBaserow::SchemaBuilder::SchemaError => e
+      render json: {
+        success: false,
+        error: e.message
+      }, status: 422
+    rescue StandardError => e
+      render json: {
+        success: false,
+        error: "Erreur inattendue: #{e.message}"
+      }, status: 500
+    end
+
+    def preview_repetable_blocks
+      demarche_number = params[:demarche_number]&.to_i
+      main_table_id = params[:main_table_id]&.to_i
+      application_id = params[:application_id]&.to_i
+
+      if demarche_number.blank? || main_table_id.blank? || application_id.blank?
+        render json: { success: false, error: 'demarche_number, main_table_id et application_id requis' }, status: 400
+        return
+      end
+
+      begin
+        builder = MesDemarchesToBaserow::RepetableBlockBuilder.new(
+          demarche_number,
+          main_table_id,
+          application_id
+        )
+
+        preview_data = builder.preview
+
+        render json: {
+          success: true,
+          preview: preview_data
+        }
+      rescue MesDemarchesToBaserow::RepetableBlockBuilder::BlockError => e
+        render json: { success: false, error: e.message }, status: 422
+      rescue StandardError => e
+        render json: { success: false, error: "Erreur inattendue: #{e.message}" }, status: 500
+      end
+    end
+
+    def build_repetable_blocks
+      demarche_number = params[:demarche_number]&.to_i
+      main_table_id = params[:main_table_id]&.to_i
+      application_id = params[:application_id]&.to_i
+      blocks_config = params[:blocks] || []
+
+      if demarche_number.blank? || main_table_id.blank? || application_id.blank?
+        render json: { success: false, error: 'demarche_number, main_table_id et application_id requis' }, status: 400
+        return
+      end
+
+      begin
+        builder = MesDemarchesToBaserow::RepetableBlockBuilder.new(
+          demarche_number,
+          main_table_id,
+          application_id
+        )
+
+        report = builder.build!(blocks_config)
+
+        render json: {
+          success: true,
+          report: report
+        }
+      rescue MesDemarchesToBaserow::RepetableBlockBuilder::BlockError => e
+        render json: { success: false, error: e.message }, status: 422
+      rescue StandardError => e
+        render json: { success: false, error: "Erreur inattendue: #{e.message}" }, status: 500
+      end
     end
   end
 end

@@ -23,21 +23,34 @@ module MesDemarchesToBaserow
 
     def preview
       fields_to_create = collect_fields_to_create
+      mark_existing_fields(fields_to_create)
       {
         total_fields: fields_to_create.length,
+        existing_fields: fields_to_create.count { |f| f[:exists_in_baserow] },
+        new_fields: fields_to_create.count { |f| !f[:exists_in_baserow] },
         supported_fields: fields_to_create.count { |f| f[:supported] },
         unsupported_fields: fields_to_create.count { |f| !f[:supported] },
         fields: fields_to_create
       }
     end
 
-    def build!
+    def build!(selected_fields: nil)
       validate_demarche_access!
 
       # Valider le champ primaire mais ne pas bloquer la construction
       primary_validation = validate_primary_field_soft
 
       fields_to_create = collect_fields_to_create.select { |f| f[:supported] }
+
+      # Filtrer par sélection utilisateur
+      fields_to_create.select! { |f| selected_fields.include?(f[:field_name]) } if selected_fields.present?
+
+      # Warning si aucun champ sélectionné
+      if fields_to_create.empty?
+        @report[:warnings] ||= []
+        @report[:warnings] << 'Aucun champ sélectionné pour la création'
+        return @report
+      end
 
       fields_to_create.each do |field_info|
         create_field_if_needed(field_info)
@@ -88,6 +101,13 @@ module MesDemarchesToBaserow
     # Version non bloquante de la validation du champ primaire
     def validate_primary_field_soft
       @structure_client.validate_primary_field(@table_id)
+    end
+
+    def mark_existing_fields(fields)
+      fields.each do |field_info|
+        field_info[:exists_in_baserow] = @structure_client.field_exists?(@table_id, field_info[:field_name])
+        field_info[:is_mandatory] = (field_info[:field_name] == 'Dossier')
+      end
     end
 
     def collect_fields_to_create

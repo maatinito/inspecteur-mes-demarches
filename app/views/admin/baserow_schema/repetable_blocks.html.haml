@@ -1,0 +1,441 @@
+- content_for :title, "Gestion des blocs répétables - Baserow"
+
+.container-fluid
+  .row
+    .col
+      %h2.mb-4 Gestion des blocs répétables
+      %p.text-muted
+        Cette interface permet de créer des tables Baserow séparées pour les blocs répétables
+        (RepetitionChampDescriptor) détectés dans une démarche.
+      .alert.alert-info
+        %i.fas.fa-info-circle.mr-2
+        Assurez-vous d'avoir d'abord créé la table principale via
+        = link_to "l'interface de création de schéma", admin_baserow_schema_index_path, class: "alert-link"
+
+  %form#repetable-form
+    .row
+      .col-md-6
+        .card.mb-4
+          .card-header
+            %h5.mb-0 Configuration
+          .card-body
+            .form-group
+              %label{ for: "demarche_number" } Numéro de démarche *
+              %input.form-control#demarche_number{ type: "number", required: true, placeholder: "Ex: 1234" }
+
+            .form-group
+              %label{ for: "workspace_select" } Workspace Baserow *
+              %select.form-control#workspace_select{ required: true }
+                %option{ value: "" } Chargement...
+
+            .form-group
+              %label{ for: "application_select" } Application (Base de données) *
+              %select.form-control#application_select{ required: true, disabled: true }
+                %option{ value: "" } Sélectionnez d'abord un workspace
+
+            .form-group
+              %label{ for: "main_table_select" } Table principale *
+              %select.form-control#main_table_select{ required: true, disabled: true }
+                %option{ value: "" } Sélectionnez d'abord une application
+              %small.form-text.text-muted La table qui contient les dossiers
+
+      .col-md-6
+        .card.mb-4.bg-light
+          .card-header
+            %h5.mb-0
+              %i.fas.fa-lightbulb.mr-2
+              Comment ça marche ?
+          .card-body
+            %ol
+              %li Sélectionnez la démarche et la table principale
+              %li Cliquez sur "Aperçu" pour voir les blocs répétables détectés
+              %li Personnalisez les noms des tables si nécessaire
+              %li Cliquez sur "Créer" pour générer les tables
+
+            %p.mt-3.mb-0
+              %strong Chaque bloc répétable créera :
+            %ul
+              %li Une nouvelle table dans Baserow
+              %li Les colonnes correspondant aux champs du bloc
+              %li Un champ de liaison dans la table principale
+
+    .row
+      .col
+        .card.mb-4#preview-card{ style: "display: none;" }
+          .card-header
+            %h5.mb-0 Blocs répétables détectés
+          .card-body
+            %div#preview-content
+
+    .row
+      .col.text-center
+        %button.btn.btn-success.mr-4#build-btn{ type: "button", disabled: true }
+          %i.fas.fa-hammer.mr-1
+          Créer les tables
+        %button.btn.btn-outline-primary#preview-btn{ type: "button", disabled: true }
+          %i.fas.fa-eye.mr-1
+          Aperçu
+
+  .row
+    .col
+      %div#result-alert{ style: "display: none;" }
+
+:javascript
+  (function() {
+    console.log('Repetable blocks page loaded');
+
+    var isInitialized = false;
+    let selectedBlocks = new Map(); // champ_id -> table_name
+
+    function initializeRepetableBlocks() {
+      if (!document.getElementById('workspace_select')) {
+        console.log('Not on Repetable Blocks page, skipping initialization');
+        return;
+      }
+
+      if (isInitialized) {
+        console.log('Already initialized, skipping');
+        return;
+      }
+
+      isInitialized = true;
+      console.log('Initializing Repetable Blocks page...');
+
+      const workspaceSelect = document.getElementById('workspace_select');
+      const applicationSelect = document.getElementById('application_select');
+      const mainTableSelect = document.getElementById('main_table_select');
+      const previewBtn = document.getElementById('preview-btn');
+      const buildBtn = document.getElementById('build-btn');
+      const previewCard = document.getElementById('preview-card');
+      const previewContent = document.getElementById('preview-content');
+      const resultAlert = document.getElementById('result-alert');
+
+      // Load workspaces
+      fetch('/admin/baserow_schema/workspaces', {
+        credentials: 'same-origin'
+      })
+        .then(response => response.json())
+        .then(data => {
+          workspaceSelect.innerHTML = "<option value=\"\">Sélectionnez un workspace</option>";
+          if (data.success) {
+            data.workspaces.forEach(workspace => {
+              const option = document.createElement('option');
+              option.value = workspace.id;
+              option.textContent = workspace.name;
+              workspaceSelect.appendChild(option);
+            });
+          } else {
+            showError('Erreur lors du chargement des workspaces: ' + data.error);
+          }
+        })
+        .catch(error => showError('Erreur réseau: ' + error.message));
+
+      // Workspace selection handler
+      workspaceSelect.addEventListener('change', function() {
+        applicationSelect.innerHTML = "<option value=\"\">Chargement...</option>";
+        applicationSelect.disabled = true;
+        mainTableSelect.innerHTML = "<option value=\"\">Sélectionnez d'abord une application</option>";
+        mainTableSelect.disabled = true;
+        updateButtons();
+
+        if (this.value) {
+          fetch(`/admin/baserow_schema/applications?workspace_id=${this.value}`, {
+            credentials: 'same-origin'
+          })
+            .then(response => response.json())
+            .then(data => {
+              applicationSelect.innerHTML = "<option value=\"\">Sélectionnez une application</option>";
+              if (data.success) {
+                data.applications.forEach(app => {
+                  const option = document.createElement('option');
+                  option.value = app.id;
+                  option.textContent = app.name;
+                  applicationSelect.appendChild(option);
+                });
+                applicationSelect.disabled = false;
+              } else {
+                showError('Erreur lors du chargement des applications: ' + data.error);
+              }
+            })
+            .catch(error => showError('Erreur réseau: ' + error.message));
+        }
+      });
+
+      // Application selection handler
+      applicationSelect.addEventListener('change', function() {
+        mainTableSelect.innerHTML = "<option value=\"\">Chargement...</option>";
+        mainTableSelect.disabled = true;
+        updateButtons();
+
+        if (this.value) {
+          const workspaceId = workspaceSelect.value;
+          fetch(`/admin/baserow_schema/tables?application_id=${this.value}&workspace_id=${workspaceId}`, {
+            credentials: 'same-origin'
+          })
+            .then(response => response.json())
+            .then(data => {
+              mainTableSelect.innerHTML = "<option value=\"\">Sélectionnez une table</option>";
+              if (data.success) {
+                data.tables.forEach(table => {
+                  const option = document.createElement('option');
+                  option.value = table.id;
+                  option.textContent = table.name;
+                  mainTableSelect.appendChild(option);
+                });
+                mainTableSelect.disabled = false;
+              } else {
+                showError('Erreur lors du chargement des tables: ' + data.error);
+              }
+            })
+            .catch(error => showError('Erreur réseau: ' + error.message));
+        }
+      });
+
+      // Update button states
+      function updateButtons() {
+        const canPreview = document.getElementById('demarche_number').value &&
+                          mainTableSelect.value &&
+                          !mainTableSelect.disabled &&
+                          applicationSelect.value;
+        previewBtn.disabled = !canPreview;
+        buildBtn.disabled = !canPreview;
+      }
+
+      ['demarche_number', 'main_table_select'].forEach(id => {
+        document.getElementById(id).addEventListener('change', updateButtons);
+      });
+
+      // Preview button handler
+      previewBtn.addEventListener('click', function() {
+        const formData = getFormData();
+        previewBtn.disabled = true;
+        previewBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Chargement...";
+
+        fetch('/admin/baserow_schema/preview_repetable_blocks', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showPreview(data.preview);
+          } else {
+            showError('Erreur lors de l\'aperçu: ' + data.error);
+          }
+        })
+        .catch(error => showError('Erreur réseau: ' + error.message))
+        .finally(() => {
+          previewBtn.disabled = false;
+          previewBtn.innerHTML = "<i class=\"fas fa-eye mr-1\"></i>Aperçu";
+          updateButtons();
+        });
+      });
+
+      // Build button handler
+      buildBtn.addEventListener('click', function() {
+        if (selectedBlocks.size === 0) {
+          showError('Veuillez sélectionner au moins un bloc à créer');
+          return;
+        }
+
+        if (!confirm('Confirmer la création des tables pour les blocs sélectionnés ?')) {
+          return;
+        }
+
+        const formData = getFormData();
+        formData.blocks = Array.from(selectedBlocks.entries()).map(([champ_id, table_name]) => ({
+          champ_id: champ_id,
+          table_name: table_name
+        }));
+
+        buildBtn.disabled = true;
+        buildBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Création en cours...";
+
+        fetch('/admin/baserow_schema/build_repetable_blocks', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showSuccess(data.report);
+          } else {
+            showError('Erreur lors de la création: ' + data.error);
+          }
+        })
+        .catch(error => showError('Erreur réseau: ' + error.message))
+        .finally(() => {
+          buildBtn.disabled = false;
+          buildBtn.innerHTML = "<i class=\"fas fa-hammer mr-1\"></i>Créer les tables";
+        });
+      });
+
+      function getFormData() {
+        return {
+          demarche_number: document.getElementById('demarche_number').value,
+          main_table_id: mainTableSelect.value,
+          application_id: applicationSelect.value
+        };
+      }
+
+      function showPreview(preview) {
+        selectedBlocks.clear();
+
+        let html = '<div class="alert alert-info">' +
+          '<strong>' + preview.total_blocks + '</strong> bloc(s) répétable(s) détecté(s)' +
+        '</div>';
+
+        if (preview.blocks.length === 0) {
+          html += '<p class="text-muted">Aucun bloc répétable trouvé dans cette démarche.</p>';
+        } else {
+          preview.blocks.forEach((block, index) => {
+            const blockId = 'block_' + index;
+            const defaultChecked = true; // Par défaut, tous les blocs sont sélectionnés
+
+            if (defaultChecked) {
+              selectedBlocks.set(block.champ_id, block.suggested_table_name);
+            }
+
+            html += '<div class="card mb-3">' +
+              '<div class="card-header">' +
+                '<div class="form-check">' +
+                  '<input class="form-check-input block-checkbox" type="checkbox" id="' + blockId + '" ' +
+                    'data-champ-id="' + block.champ_id + '" ' +
+                    (defaultChecked ? 'checked' : '') + '>' +
+                  '<label class="form-check-label" for="' + blockId + '">' +
+                    '<strong>' + block.label + '</strong>' +
+                    ' <span class="badge badge-info">' + block.fields_count + ' champ(s)</span>' +
+                  '</label>' +
+                '</div>' +
+              '</div>' +
+              '<div class="card-body">' +
+                '<div class="form-group">' +
+                  '<label>Nom de la table Baserow</label>' +
+                  '<input type="text" class="form-control table-name-input" ' +
+                    'data-champ-id="' + block.champ_id + '" ' +
+                    'value="' + block.suggested_table_name + '" ' +
+                    'placeholder="Nom de la table">' +
+                '</div>' +
+                '<details>' +
+                  '<summary class="text-muted" style="cursor: pointer;">Voir les champs du bloc (' + block.fields.length + ')</summary>' +
+                  '<ul class="mt-2">';
+
+            block.fields.forEach(field => {
+              const supportClass = field.supported ? 'text-success' : 'text-muted';
+              const supportText = field.supported ? '✓' : '✗';
+              html += '<li class="' + supportClass + '">' +
+                supportText + ' ' + field.label + ' <code>(' + field.type.replace('ChampDescriptor', '') + ')</code>' +
+              '</li>';
+            });
+
+            html += '</ul></details>' +
+              '</div>' +
+            '</div>';
+          });
+        }
+
+        previewContent.innerHTML = html;
+        previewCard.style.display = 'block';
+
+        // Ajouter les gestionnaires d'événements
+        document.querySelectorAll('.block-checkbox').forEach(checkbox => {
+          checkbox.addEventListener('change', function() {
+            const champId = this.dataset.champId;
+            const tableNameInput = document.querySelector('.table-name-input[data-champ-id="' + champId + '"]');
+
+            if (this.checked) {
+              selectedBlocks.set(champId, tableNameInput.value);
+              tableNameInput.disabled = false;
+            } else {
+              selectedBlocks.delete(champId);
+              tableNameInput.disabled = true;
+            }
+          });
+        });
+
+        document.querySelectorAll('.table-name-input').forEach(input => {
+          input.addEventListener('input', function() {
+            const champId = this.dataset.champId;
+            const checkbox = document.querySelector('.block-checkbox[data-champ-id="' + champId + '"]');
+
+            if (checkbox.checked) {
+              selectedBlocks.set(champId, this.value);
+            }
+          });
+        });
+      }
+
+      function showSuccess(report) {
+        let html = '<div class="alert alert-success alert-dismissible" role="alert">' +
+          '<button type="button" class="close" data-dismiss="alert">' +
+            '<span>&times;</span>' +
+          '</button>' +
+          '<h5><i class="fas fa-check-circle"></i> Création réussie !</h5>' +
+          '<p><strong>' + report.tables_created.length + '</strong> table(s) créée(s), ' +
+             '<strong>' + report.tables_updated.length + '</strong> table(s) mise(s) à jour, ' +
+             '<strong>' + report.fields_created.length + '</strong> champ(s) créé(s), ' +
+             '<strong>' + report.link_fields_created.length + '</strong> lien(s) créé(s)</p>';
+
+        if (report.tables_created.length > 0) {
+          html += '<h6>Tables créées :</h6><ul>';
+          report.tables_created.forEach(table => {
+            html += '<li><strong>' + table.name + '</strong> (ID: ' + table.id + ') - ' + table.block_label + '</li>';
+          });
+          html += '</ul>';
+        }
+
+        if (report.tables_updated.length > 0) {
+          html += '<h6>Tables mises à jour :</h6><ul>';
+          report.tables_updated.forEach(table => {
+            html += '<li><strong>' + table.name + '</strong> (ID: ' + table.id + ') - ' + table.block_label + '</li>';
+          });
+          html += '</ul>';
+        }
+
+        if (report.errors.length > 0) {
+          html += '<h6 class="text-danger">Erreurs :</h6><ul>';
+          report.errors.forEach(error => {
+            html += '<li>' + error + '</li>';
+          });
+          html += '</ul>';
+        }
+
+        html += '</div>';
+        resultAlert.innerHTML = html;
+        resultAlert.style.display = 'block';
+      }
+
+      function showError(message) {
+        resultAlert.innerHTML = '<div class="alert alert-danger alert-dismissible" role="alert">' +
+          '<button type="button" class="close" data-dismiss="alert">' +
+            '<span>&times;</span>' +
+          '</button>' +
+          '<h5><i class="fas fa-exclamation-triangle"></i> Erreur</h5>' +
+          '<p>' + message + '</p>' +
+        '</div>';
+        resultAlert.style.display = 'block';
+      }
+    }
+
+    // Support both initial load and Turbolinks navigation
+    document.addEventListener('turbolinks:load', function() {
+      isInitialized = false;
+      initializeRepetableBlocks();
+    });
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeRepetableBlocks);
+    } else {
+      initializeRepetableBlocks();
+    }
+  })();

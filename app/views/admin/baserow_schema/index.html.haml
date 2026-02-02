@@ -7,6 +7,10 @@
       %p.text-muted
         Cette interface permet de créer automatiquement des colonnes dans une table Baserow
         basées sur les champs et annotations d'une démarche Mes-Démarches.
+      .alert.alert-info
+        %i.fas.fa-info-circle.mr-2
+        Cette page crée les colonnes de la table principale.
+        = link_to "Gérer les blocs répétables →", admin_baserow_schema_repetable_blocks_path, class: "alert-link"
 
   %form#sync-form
     .row
@@ -31,6 +35,10 @@
               .form-check
                 %input.form-check-input#include_annotations{ type: "checkbox" }
                 %label.form-check-label{ for: "include_annotations" } Annotations privées
+              .form-check
+                %input.form-check-input#show_all_fields{ type: "checkbox" }
+                %label.form-check-label{ for: "show_all_fields" }
+                  Afficher tous les champs (inclure les champs déjà existants)
 
             .form-group.mb-4#demandeur-type-group{ style: "display: none;" }
               %label Type de demandeur
@@ -80,6 +88,16 @@
           .card-header
             %h5.mb-0 Aperçu des colonnes à créer
           .card-body
+            .mb-3#selection-controls{ style: "display: none;" }
+              %button.btn.btn-sm.btn-outline-primary.mr-2#select-all{ type: "button" }
+                %i.fas.fa-check-square.mr-1
+                Tout sélectionner
+              %button.btn.btn-sm.btn-outline-secondary#deselect-all{ type: "button" }
+                %i.fas.fa-square.mr-1
+                Tout désélectionner
+              %span.ml-3.text-muted
+                %span#selected-count 0
+                champ(s) sélectionné(s)
             %div#preview-content
 
     .row
@@ -101,6 +119,9 @@
 
     // Flag pour éviter la double initialisation
     var isInitialized = false;
+
+    // État de sélection
+    let selectedFields = new Set();
 
     function initializeBaserowSchema() {
       // Vérifier si on est bien sur la bonne page
@@ -266,6 +287,61 @@
     includeIdentityInfo.addEventListener('change', toggleDemandeurTypeGroup);
     toggleDemandeurTypeGroup(); // Initial state
 
+    // Gestion de l'affichage des champs existants
+    const showAllFields = document.getElementById('show_all_fields');
+    showAllFields.addEventListener('change', function() {
+      filterPreviewFields(this.checked);
+    });
+
+    function filterPreviewFields(showAll) {
+      const rows = document.querySelectorAll('#preview-table tbody tr');
+      rows.forEach(row => {
+        const existsInBaserow = row.dataset.existsInBaserow === 'true';
+        if (!showAll && existsInBaserow) {
+          row.style.display = 'none';
+        } else {
+          row.style.display = '';
+        }
+      });
+      updateSelectedCount();
+    }
+
+    // Checkbox individuelle
+    window.handleFieldCheckbox = function(checkbox) {
+      const fieldName = checkbox.dataset.fieldName;
+      if (checkbox.checked) {
+        selectedFields.add(fieldName);
+      } else {
+        selectedFields.delete(fieldName);
+      }
+      updateSelectedCount();
+    };
+
+    // Tout sélectionner/désélectionner
+    document.getElementById('select-all').addEventListener('click', function() {
+      document.querySelectorAll('.field-checkbox:not(:disabled)').forEach(cb => {
+        if (cb.closest('tr').style.display !== 'none') {
+          cb.checked = true;
+          selectedFields.add(cb.dataset.fieldName);
+        }
+      });
+      updateSelectedCount();
+    });
+
+    document.getElementById('deselect-all').addEventListener('click', function() {
+      document.querySelectorAll('.field-checkbox:not(:disabled)').forEach(cb => {
+        if (cb.closest('tr').style.display !== 'none') {
+          cb.checked = false;
+          selectedFields.delete(cb.dataset.fieldName);
+        }
+      });
+      updateSelectedCount();
+    });
+
+    function updateSelectedCount() {
+      document.getElementById('selected-count').textContent = selectedFields.size;
+    }
+
     // Preview button handler
     previewBtn.addEventListener('click', function() {
       const formData = getFormData();
@@ -337,7 +413,8 @@
         include_fields: document.getElementById('include_fields').checked,
         include_annotations: document.getElementById('include_annotations').checked,
         include_identity_info: document.getElementById('include_identity_info').checked,
-        collision_strategy: document.getElementById('collision_strategy').value
+        collision_strategy: document.getElementById('collision_strategy').value,
+        selected_fields: Array.from(selectedFields)
       };
 
       // Ajouter le type de demandeur si les informations système sont incluses
@@ -350,6 +427,9 @@
     }
 
     function showPreview(preview) {
+      // Reset selection
+      selectedFields.clear();
+
       // Détecter les doublons
       const fieldNames = preview.fields.map(field => field.field_name);
       const duplicates = fieldNames.filter((name, index) => fieldNames.indexOf(name) !== index);
@@ -390,6 +470,30 @@
         '</div>' +
       '</div>';
 
+      // Stats des champs nouveaux vs existants
+      const existingCount = preview.existing_fields || 0;
+      const newCount = preview.new_fields || 0;
+      if (existingCount > 0 || newCount > 0) {
+        html += '<div class="row mt-3">' +
+          '<div class="col-md-6">' +
+            '<div class="card border-primary">' +
+              '<div class="card-body text-center">' +
+                '<h5 class="card-title text-primary">' + newCount + '</h5>' +
+                '<p class="card-text">Nouveaux champs</p>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="col-md-6">' +
+            '<div class="card border-secondary">' +
+              '<div class="card-body text-center">' +
+                '<h5 class="card-title text-secondary">' + existingCount + '</h5>' +
+                '<p class="card-text">Champs existants</p>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }
+
       if (uniqueDuplicates.length > 0) {
         html += '<div class="alert alert-warning mt-3">' +
           '<h6><i class="fas fa-exclamation-triangle"></i> Noms dupliqués détectés</h6>' +
@@ -401,13 +505,15 @@
       if (preview.fields.length > 0) {
         html += '<h6 class="mt-3">Détail des champs :</h6>' +
           '<div class="table-responsive">' +
-            '<table class="table table-sm">' +
+            '<table class="table table-sm" id="preview-table">' +
               '<thead>' +
                 '<tr>' +
+                  '<th><input type="checkbox" id="toggle-all" title="Tout sélectionner/désélectionner"></th>' +
                   '<th>Nom du champ</th>' +
                   '<th>Type MD</th>' +
                   '<th>Type technique</th>' +
                   '<th>Type Baserow</th>' +
+                  '<th>Existe déjà</th>' +
                   '<th>Statut</th>' +
                 '</tr>' +
               '</thead>' +
@@ -417,7 +523,14 @@
           const statusClass = field.supported ? 'text-success' : 'text-info';
           const statusText = field.supported ? 'Supporté' : 'Non supporté';
           const isDuplicate = uniqueDuplicates.includes(field.field_name);
+          const existsInBaserow = field.exists_in_baserow || false;
+          const isMandatory = field.is_mandatory || false;
+          const isChecked = !existsInBaserow && field.supported; // Nouveaux champs supportés cochés par défaut
           const rowClass = isDuplicate ? ' class="table-warning"' : '';
+
+          if (isChecked && !isMandatory) {
+            selectedFields.add(field.field_name);
+          }
 
           // Déterminer le type MD selon la catégorie
           let mdType = '';
@@ -441,11 +554,21 @@
               mdBadgeClass = 'text-bg-secondary';
           }
 
-          html += '<tr' + rowClass + '>' +
-            '<td><strong>' + field.field_name + '</strong></td>' +
+          html += '<tr' + rowClass + ' data-exists-in-baserow="' + existsInBaserow + '">' +
+            '<td>' +
+              '<input type="checkbox" class="field-checkbox" ' +
+              'data-field-name="' + field.field_name + '" ' +
+              (isMandatory ? 'disabled checked title="Champ obligatoire"' : (isChecked ? 'checked' : '')) +
+              ' onchange="handleFieldCheckbox(this)">' +
+            '</td>' +
+            '<td>' +
+              '<strong>' + field.field_name + '</strong>' +
+              (isMandatory ? ' <span class="badge badge-danger">Obligatoire</span>' : '') +
+            '</td>' +
             '<td><span class="badge ' + mdBadgeClass + '">' + mdType + '</span></td>' +
             '<td><code>' + field.mes_demarches_type.replace('ChampDescriptor', '') + '</code></td>' +
             '<td>' + (field.supported ? '<code>' + field.baserow_type + '</code>' : '-') + '</td>' +
+            '<td>' + (existsInBaserow ? '<span class="badge badge-secondary">Oui</span>' : '-') + '</td>' +
             '<td class="' + statusClass + '">' + statusText + '</td>' +
           '</tr>';
         });
@@ -455,6 +578,31 @@
 
       previewContent.innerHTML = html;
       previewCard.style.display = 'block';
+
+      // Afficher les contrôles de sélection
+      document.getElementById('selection-controls').style.display = 'block';
+
+      // Initialiser le compteur
+      updateSelectedCount();
+
+      // Appliquer le filtre initial (ne montrer que les nouveaux champs)
+      filterPreviewFields(document.getElementById('show_all_fields').checked);
+
+      // Ajouter le gestionnaire pour le toggle-all
+      document.getElementById('toggle-all').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.field-checkbox:not(:disabled)');
+        checkboxes.forEach(cb => {
+          if (cb.closest('tr').style.display !== 'none') {
+            cb.checked = this.checked;
+            if (this.checked) {
+              selectedFields.add(cb.dataset.fieldName);
+            } else {
+              selectedFields.delete(cb.dataset.fieldName);
+            }
+          }
+        });
+        updateSelectedCount();
+      });
     }
 
     function showSuccess(report) {
