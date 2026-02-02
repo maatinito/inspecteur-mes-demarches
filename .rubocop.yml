@@ -74,16 +74,17 @@ Metrics/ParameterLists:
 Metrics/BlockLength:
   Exclude:
     - 'db/schema.rb'
-    - 'spec/lib/deseti/instruction_spec.rb'
-    - 'spec/lib/payzen/payment_order_spec.rb'
-    - 'spec/lib/travail/daeth_spec.rb'
-    - 'spec/lib/baserow/table_spec.rb'
-    - 'spec/lib/baserow/client_spec.rb'
-    - 'spec/lib/tftn/tickets_spec.rb'
-    - 'spec/lib/field_checker_referentiel_spec.rb'
-    - 'spec/lib/publipostage_v2_expansion_spec.rb'
-    - 'spec/lib/field_checker_spec.rb'
     - 'spec/lib/avis_to_bloc_repetable_spec.rb'
+    - 'spec/lib/baserow/client_spec.rb'
+    - 'spec/lib/baserow/table_spec.rb'
+    - 'spec/lib/deseti/instruction_spec.rb'
+    - 'spec/lib/field_checker_referentiel_spec.rb'
+    - 'spec/lib/field_checker_spec.rb'
+    - 'spec/lib/generate_id_spec.rb'
+    - 'spec/lib/payzen/payment_order_spec.rb'
+    - 'spec/lib/publipostage_v2_expansion_spec.rb'
+    - 'spec/lib/tftn/tickets_spec.rb'
+    - 'spec/lib/travail/daeth_spec.rb'
     - 'lib/lppr.rb'
   Max: 100
 

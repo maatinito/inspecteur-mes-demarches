@@ -228,6 +228,7 @@ end
 | `daf/message` | Envoi de message ou email | `message` | `destinataires`, `champ_envoi` |
 | `set_field` | Modification d'une annotation | `champ`, `valeur` | `si_vide`, `decalage` |
 | `daf/copy_order` | Copie de blocs répétables de champs vers annotations | `champ_source`, `bloc_destination`, `champs_destination` | `etat_du_dossier` |
+| `generate_id` | Génération d'identifiant unique sécurisé (UUID v7) | `champ` | `timestamp_field`, `etat_du_dossier` |
 
 ### Trouver les paramètres d'un checker
 
@@ -436,6 +437,70 @@ when_ok:
 - Supporte les templates avec syntaxe `{champ}`
 - Peut copier des champs texte et des pièces justificatives
 - Crée automatiquement le bon nombre de lignes dans le bloc destination
+
+### 7. Génération d'identifiant unique sécurisé
+
+Génère un identifiant unique sécurisé pour chaque dossier.
+
+**UUID v7 (RFC 9562)** :
+- Identifiant de 32 caractères hexadécimaux (format compact)
+- Triable chronologiquement
+- Sécurisé contre l'énumération (2^74 possibilités par milliseconde)
+- Standard moderne reconnu
+- Contient un timestamp pour l'audit
+
+**Usage basique** (basé sur l'heure actuelle) :
+
+```yaml
+when_ok:
+  - generate_id:
+      champ: "Identifiant unique"
+```
+
+**Usage avancé** (basé sur la date de dépôt) :
+
+```yaml
+when_ok:
+  - generate_id:
+      champ: "Identifiant du permis"
+      timestamp_field: "date_depot"
+```
+
+**Cas d'usage** :
+
+```yaml
+# Génération d'identifiant au moment du dépôt
+inspection_1:
+  demarches: [1234]
+  etat_du_dossier: [en_construction]
+  when_ok:
+    - generate_id:
+        champ: "Identifiant du permis"
+        timestamp_field: "date_depot"  # Basé sur la date de dépôt
+
+# Génération d'identifiant lors de l'instruction
+inspection_2:
+  demarches: [1234]
+  etat_du_dossier: [en_instruction]
+  when_ok:
+    - generate_id:
+        champ: "Numéro d'instruction"  # Basé sur Time.now
+```
+
+**Comportement** :
+- Ne génère l'ID que si le champ destination est vide
+- Ne modifie jamais un ID existant (idempotent)
+- Log l'opération pour traçabilité
+- Si `timestamp_field` est fourni, l'ID reflète ce timestamp (utile pour tri chronologique précis)
+
+**Exemple d'ID** : `018d3b8a01234567abcdef0123456789` (32 caractères)
+- Les 12 premiers caractères encodent le timestamp (48 bits)
+- Les 20 derniers caractères contiennent des bits aléatoires (74 bits effectifs)
+
+**Sécurité** :
+- 2^74 ≈ 1.9×10^22 possibilités par milliseconde
+- Impossible à énumérer même avec rate limiting faible
+- Idéal pour accès public via URL ou QR Code
 
 ## Exemples commentés
 
