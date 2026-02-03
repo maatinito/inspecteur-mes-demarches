@@ -104,8 +104,18 @@ module MesDemarchesToBaserow
     end
 
     def mark_existing_fields(fields)
+      # Récupérer tous les champs existants UNE SEULE FOIS pour éviter les multiples appels API
+      existing_fields = @structure_client.get_table_fields(@table_id)
+      existing_field_names = Set.new(existing_fields.map { |f| f['name']&.downcase })
+
       fields.each do |field_info|
-        field_info[:exists_in_baserow] = @structure_client.field_exists?(@table_id, field_info[:field_name])
+        field_info[:exists_in_baserow] = existing_field_names.include?(field_info[:field_name].downcase)
+        field_info[:is_mandatory] = (field_info[:field_name] == 'Dossier')
+      end
+    rescue Baserow::APIError
+      # En cas d'erreur API, marquer tous les champs comme non-existants
+      fields.each do |field_info|
+        field_info[:exists_in_baserow] = false
         field_info[:is_mandatory] = (field_info[:field_name] == 'Dossier')
       end
     end
@@ -406,7 +416,7 @@ module MesDemarchesToBaserow
         type: field_info[:baserow_type],
         category: field_info[:category]
       }
-    rescue Baserow::ApiError => e
+    rescue Baserow::APIError => e
       @report[:fields_failed] << {
         name: field_info[:field_name],
         error: e.message

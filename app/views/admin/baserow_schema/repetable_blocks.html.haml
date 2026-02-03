@@ -84,7 +84,8 @@
   (function() {
     console.log('Repetable blocks page loaded');
 
-    var isInitialized = false;
+    // Variable globale pour éviter la double initialisation
+    window.repetableBlocksInitialized = window.repetableBlocksInitialized || false;
     let selectedBlocks = new Map(); // champ_id -> table_name
 
     function initializeRepetableBlocks() {
@@ -93,12 +94,12 @@
         return;
       }
 
-      if (isInitialized) {
+      if (window.repetableBlocksInitialized) {
         console.log('Already initialized, skipping');
         return;
       }
 
-      isInitialized = true;
+      window.repetableBlocksInitialized = true;
       console.log('Initializing Repetable Blocks page...');
 
       const workspaceSelect = document.getElementById('workspace_select');
@@ -284,7 +285,8 @@
         return {
           demarche_number: document.getElementById('demarche_number').value,
           main_table_id: mainTableSelect.value,
-          application_id: applicationSelect.value
+          application_id: applicationSelect.value,
+          workspace_id: workspaceSelect.value
         };
       }
 
@@ -427,15 +429,9 @@
       }
     }
 
-    // Support both initial load and Turbolinks navigation
+    // Utiliser UNIQUEMENT turbolinks:load pour éviter les doubles initialisations
     document.addEventListener('turbolinks:load', function() {
-      isInitialized = false;
+      window.repetableBlocksInitialized = false;
       initializeRepetableBlocks();
     });
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeRepetableBlocks);
-    } else {
-      initializeRepetableBlocks();
-    }
   })();

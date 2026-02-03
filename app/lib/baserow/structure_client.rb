@@ -85,12 +85,7 @@ module Baserow
     end
 
     def create_table(application_id, table_data)
-      response = make_request(:post, "/api/database/tables/application/#{application_id}/", body: table_data.to_json)
-      handle_response(response)
-    end
-
-    def get_application(application_id)
-      response = make_request(:get, "/api/database/applications/#{application_id}/")
+      response = make_request(:post, "/api/database/tables/database/#{application_id}/", body: table_data.to_json)
       handle_response(response)
     end
 

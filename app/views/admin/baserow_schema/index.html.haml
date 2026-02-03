@@ -664,17 +664,9 @@
     }
   }
 
-  // Support both initial load and Turbolinks navigation
+  // Utiliser UNIQUEMENT turbolinks:load pour éviter les doubles initialisations
   document.addEventListener('turbolinks:load', function() {
     isInitialized = false;  // Reset flag on page change
     initializeBaserowSchema();
   });
-
-  // For initial page load (if Turbolinks hasn't kicked in yet)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeBaserowSchema);
-  } else {
-    // DOM already loaded
-    initializeBaserowSchema();
-  }
   })();

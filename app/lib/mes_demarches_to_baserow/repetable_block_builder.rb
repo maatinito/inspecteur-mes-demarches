@@ -4,14 +4,16 @@ module MesDemarchesToBaserow
   class RepetableBlockBuilder
     class BlockError < StandardError; end
 
-    attr_reader :demarche_number, :main_table_id, :application_id, :report
+    attr_reader :demarche_number, :main_table_id, :application_id, :workspace_id, :report
 
-    def initialize(demarche_number, main_table_id, application_id)
+    def initialize(demarche_number, main_table_id, application_id, workspace_id)
       @demarche_number = demarche_number
       @main_table_id = main_table_id
       @application_id = application_id
+      @workspace_id = workspace_id
       @structure_client = Baserow::StructureClient.new
       @type_mapper = TypeMapper.new
+      @created_tables = {} # Cache local des tables créées pendant cette exécution
       @report = {
         tables_created: [],
         tables_updated: [],
@@ -34,8 +36,8 @@ module MesDemarchesToBaserow
             champ_id: block.id,
             label: block.label,
             suggested_table_name: block.label,
-            fields_count: block.champs.length,
-            fields: block.champs.map { |champ| format_field_info(champ) }
+            fields_count: block.champ_descriptors.length,
+            fields: block.champ_descriptors.map { |champ| format_field_info(champ) }
           }
         end
       }
@@ -116,37 +118,25 @@ module MesDemarchesToBaserow
     end
 
     def find_table_by_name(table_name)
-      # Lister les tables de l'application
-      application = @structure_client.get_application(@application_id)
-      tables = application['tables'] || []
+      # Vérifier d'abord dans le cache local (tables créées pendant cette exécution)
+      return @created_tables[table_name] if @created_tables.key?(table_name)
 
+      # Sinon, chercher dans les tables existantes
+      applications = @structure_client.list_applications(@workspace_id)
+      application = applications.find { |app| app['id'].to_s == @application_id.to_s }
+
+      return nil unless application
+
+      # Les tables sont incluses dans la réponse de l'application
+      tables = application['tables'] || []
       tables.find { |table| table['name'] == table_name }
     end
 
     def create_repetable_table(table_name, block)
-      # 1. Créer la table Baserow
-      table_data = {
-        name: table_name,
-        data: [
-          [{ value: 'Dossier' }] # Première colonne = Dossier (jointure)
-        ]
-      }
-
-      new_table = @structure_client.create_table(@application_id, table_data)
-      table_id = new_table['id']
-
-      @report[:tables_created] << {
-        name: table_name,
-        id: table_id,
-        block_label: block.label
-      }
-
-      # 2. Créer les colonnes pour chaque champ du bloc
+      table_id = create_table_with_ligne_field(table_name, block)
+      create_link_to_main_table(table_id)
       create_block_fields(table_id, block)
-
-      # 3. Créer le lien dans la table principale
-      create_link_field(table_name, table_id)
-    rescue Baserow::ApiError => e
+    rescue Baserow::APIError => e
       @report[:errors] << "Erreur création table #{table_name}: #{e.message}"
     end
 
@@ -160,19 +150,22 @@ module MesDemarchesToBaserow
         block_label: block.label
       }
 
+      # Vérifier/créer le lien "Dossier" dans la table du bloc si absent
+      create_link_to_main_table(table_id) unless @structure_client.field_exists?(table_id, 'Dossier')
+
       # Ajouter les colonnes manquantes
       create_block_fields(table_id, block)
-
-      # Vérifier/créer le lien dans la table principale si absent
-      link_field_name = table_name
-      create_link_field(table_name, table_id) unless @structure_client.field_exists?(@main_table_id, link_field_name)
-    rescue Baserow::ApiError => e
+    rescue Baserow::APIError => e
       @report[:errors] << "Erreur mise à jour table #{table_name}: #{e.message}"
     end
 
     def create_block_fields(table_id, block)
+      # Récupérer tous les champs existants UNE SEULE FOIS pour éviter les multiples appels API
+      existing_fields = @structure_client.get_table_fields(table_id)
+      existing_field_names = Set.new(existing_fields.map { |f| f['name']&.downcase })
+
       # Pour chaque champ du bloc, créer une colonne
-      block.champs.each do |champ|
+      block.champ_descriptors.each do |champ|
         field_type = champ.__typename
 
         # Ignorer les types non supportés
@@ -182,7 +175,7 @@ module MesDemarchesToBaserow
         field_name = @type_mapper.generate_field_name(champ.label)
 
         # Skip si existe déjà
-        next if @structure_client.field_exists?(table_id, field_name)
+        next if existing_field_names.include?(field_name.downcase)
 
         # Créer le champ
         mapping = @type_mapper.map_field_type(field_type, champ.to_h)
@@ -202,30 +195,51 @@ module MesDemarchesToBaserow
         }
       rescue TypeMapper::UnsupportedTypeError
         # Skip silencieux pour les types non supportés
-      rescue Baserow::ApiError => e
+      rescue Baserow::APIError => e
         @report[:errors] << "Erreur création champ #{field_name}: #{e.message}"
       end
     end
 
-    def create_link_field(target_table_name, target_table_id)
-      # Créer un champ "Link to table" dans la table principale
-      link_field_name = target_table_name
-
+    def create_link_to_main_table(block_table_id)
+      # Créer un champ "Link to table" DANS la table du bloc qui pointe vers la table principale
+      # Cela créera automatiquement le champ inverse dans la table principale
       field_data = {
         type: 'link_row',
-        name: link_field_name,
-        link_row_table_id: target_table_id
+        name: 'Dossier',
+        link_row_table_id: @main_table_id
       }
 
-      @structure_client.create_field(@main_table_id, field_data)
+      link_field = @structure_client.create_field(block_table_id, field_data)
 
       @report[:link_fields_created] << {
-        name: link_field_name,
-        target_table: target_table_name,
-        target_table_id: target_table_id
+        name: 'Dossier',
+        from_table_id: block_table_id,
+        to_table_id: @main_table_id,
+        link_field_id: link_field['id']
       }
-    rescue Baserow::ApiError => e
-      @report[:errors] << "Erreur création lien #{link_field_name}: #{e.message}"
+    rescue Baserow::APIError => e
+      @report[:errors] << "Erreur création lien Dossier: #{e.message}"
+    end
+
+    def create_table_with_ligne_field(table_name, block)
+      table_data = {
+        name: table_name,
+        data: [['Ligne']],
+        first_row_header: true
+      }
+
+      new_table = @structure_client.create_table(@application_id, table_data)
+      table_id = new_table['id']
+
+      @created_tables[table_name] = new_table
+
+      @report[:tables_created] << {
+        name: table_name,
+        id: table_id,
+        block_label: block.label
+      }
+
+      table_id
     end
   end
 end

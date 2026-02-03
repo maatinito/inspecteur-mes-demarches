@@ -165,6 +165,20 @@ module Admin
       build_schema(demarche_number, table_id, selected_fields, schema_options)
     end
 
+    def preview_repetable_blocks
+      params_hash = extract_repetable_params
+      return render_validation_error(params_hash[:error]) if params_hash[:error]
+
+      preview_repetable_blocks_with_params(params_hash)
+    end
+
+    def build_repetable_blocks
+      params_hash = extract_repetable_params
+      return render_validation_error(params_hash[:error]) if params_hash[:error]
+
+      build_repetable_blocks_with_params(params_hash, params[:blocks] || [])
+    end
+
     private
 
     def extract_schema_options
@@ -265,65 +279,60 @@ module Admin
       }, status: 500
     end
 
-    def preview_repetable_blocks
+    def extract_repetable_params
       demarche_number = params[:demarche_number]&.to_i
       main_table_id = params[:main_table_id]&.to_i
       application_id = params[:application_id]&.to_i
+      workspace_id = params[:workspace_id]&.to_i
 
-      if demarche_number.blank? || main_table_id.blank? || application_id.blank?
-        render json: { success: false, error: 'demarche_number, main_table_id et application_id requis' }, status: 400
-        return
-      end
+      return { error: 'demarche_number, main_table_id, application_id et workspace_id requis' } if demarche_number.blank? || main_table_id.blank? || application_id.blank? || workspace_id.blank?
 
-      begin
-        builder = MesDemarchesToBaserow::RepetableBlockBuilder.new(
-          demarche_number,
-          main_table_id,
-          application_id
-        )
-
-        preview_data = builder.preview
-
-        render json: {
-          success: true,
-          preview: preview_data
-        }
-      rescue MesDemarchesToBaserow::RepetableBlockBuilder::BlockError => e
-        render json: { success: false, error: e.message }, status: 422
-      rescue StandardError => e
-        render json: { success: false, error: "Erreur inattendue: #{e.message}" }, status: 500
-      end
+      {
+        demarche_number: demarche_number,
+        main_table_id: main_table_id,
+        application_id: application_id,
+        workspace_id: workspace_id
+      }
     end
 
-    def build_repetable_blocks
-      demarche_number = params[:demarche_number]&.to_i
-      main_table_id = params[:main_table_id]&.to_i
-      application_id = params[:application_id]&.to_i
-      blocks_config = params[:blocks] || []
+    def preview_repetable_blocks_with_params(params_hash)
+      builder = MesDemarchesToBaserow::RepetableBlockBuilder.new(
+        params_hash[:demarche_number],
+        params_hash[:main_table_id],
+        params_hash[:application_id],
+        params_hash[:workspace_id]
+      )
 
-      if demarche_number.blank? || main_table_id.blank? || application_id.blank?
-        render json: { success: false, error: 'demarche_number, main_table_id et application_id requis' }, status: 400
-        return
-      end
+      preview_data = builder.preview
 
-      begin
-        builder = MesDemarchesToBaserow::RepetableBlockBuilder.new(
-          demarche_number,
-          main_table_id,
-          application_id
-        )
+      render json: {
+        success: true,
+        preview: preview_data
+      }
+    rescue MesDemarchesToBaserow::RepetableBlockBuilder::BlockError => e
+      render json: { success: false, error: e.message }, status: 422
+    rescue StandardError => e
+      render json: { success: false, error: "Erreur inattendue: #{e.message}" }, status: 500
+    end
 
-        report = builder.build!(blocks_config)
+    def build_repetable_blocks_with_params(params_hash, blocks_config)
+      builder = MesDemarchesToBaserow::RepetableBlockBuilder.new(
+        params_hash[:demarche_number],
+        params_hash[:main_table_id],
+        params_hash[:application_id],
+        params_hash[:workspace_id]
+      )
 
-        render json: {
-          success: true,
-          report: report
-        }
-      rescue MesDemarchesToBaserow::RepetableBlockBuilder::BlockError => e
-        render json: { success: false, error: e.message }, status: 422
-      rescue StandardError => e
-        render json: { success: false, error: "Erreur inattendue: #{e.message}" }, status: 500
-      end
+      report = builder.build!(blocks_config)
+
+      render json: {
+        success: true,
+        report: report
+      }
+    rescue MesDemarchesToBaserow::RepetableBlockBuilder::BlockError => e
+      render json: { success: false, error: e.message }, status: 422
+    rescue StandardError => e
+      render json: { success: false, error: "Erreur inattendue: #{e.message}" }, status: 500
     end
   end
 end
