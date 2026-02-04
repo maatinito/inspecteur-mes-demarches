@@ -58,7 +58,12 @@ module MesDemarchesToBaserow
 
       case mes_demarches_type
       when 'DropDownListChampDescriptor', 'MultipleDropDownListChampDescriptor'
-        mapping[:config] = build_select_options(field_descriptor)
+        # Si dropdown avec "autre option", utiliser text au lieu de single_select
+        if mes_demarches_type == 'DropDownListChampDescriptor' && field_descriptor['otherOption'] == true
+          mapping = { type: 'text', config: {} }
+        else
+          mapping[:config] = build_select_options(field_descriptor)
+        end
       when 'CiviliteChampDescriptor'
         mapping[:config] = build_civilite_options
       end

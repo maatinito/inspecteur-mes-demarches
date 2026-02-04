@@ -222,14 +222,32 @@ module MesDemarchesToBaserow
     end
 
     def create_table_with_ligne_field(table_name, block)
+      # 1. Créer table avec "Bloc" (text temporaire) comme champ primaire
       table_data = {
         name: table_name,
-        data: [['Ligne']],
+        data: [['Bloc']],
         first_row_header: true
       }
 
       new_table = @structure_client.create_table(@application_id, table_data)
       table_id = new_table['id']
+
+      # 2. Créer champ "Ligne" (number)
+      @structure_client.create_field(table_id, {
+                                       type: 'number',
+                                       name: 'Ligne',
+                                       number_decimal_places: 0
+                                     })
+
+      # 3. Créer lien "Dossier" vers table principale
+      create_link_to_main_table(table_id)
+
+      # 4. Modifier "Bloc" en formula: "Dossier-Ligne"
+      primary_field = @structure_client.get_primary_field(table_id)
+      @structure_client.update_field(primary_field['id'], {
+                                       type: 'formula',
+                                       formula: "concat(join('Dossier',''),\"-\",totext(field('Ligne')))"
+                                     })
 
       @created_tables[table_name] = new_table
 
