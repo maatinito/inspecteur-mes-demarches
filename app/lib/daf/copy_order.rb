@@ -2,11 +2,11 @@
 
 module Daf
   class CopyOrder < FieldChecker
-    IMAGE_EXTENSIONS = %w[.jpg .jpeg .png .gif .tiff .tif .svg].freeze
+    IMAGE_EXTENSIONS = %w[.jpg .jpeg .png .gif .tiff .tif .svg .webp].freeze
     OUTPUT_DIR = 'tmp/copy_order'
 
     def version
-      super + 1
+      super + 2
     end
 
     def required_fields
@@ -15,12 +15,17 @@ module Daf
     end
 
     def authorized_fields
-      super + %i[champ_destination valeur champs_destination]
+      super + %i[champ_destination valeur champs_destination convert_to_pdf]
     end
 
     def initialize(params)
       super
       validate_configuration
+
+      # OFFICE_PATH requis seulement si convert_to_pdf = true
+      convert = params.fetch(:convert_to_pdf, false)
+      raise 'OFFICE_PATH not defined in .env file but convert_to_pdf is enabled' if convert && ENV['OFFICE_PATH'].blank?
+
       FileUtils.mkdir_p(OUTPUT_DIR)
     end
 
@@ -232,30 +237,37 @@ module Daf
 
     def upload_file_if_needed(annotation, source_file)
       filename = source_file.filename
+      convert = params.fetch(:convert_to_pdf, false)
 
-      if image_file_by_name?(filename)
-        upload_image_if_needed(annotation, source_file)
-      else
+      if convert && !pdf_file_by_name?(filename)
+        # Conversion PDF demandée et fichier n'est pas déjà un PDF
         upload_converted_if_needed(annotation, source_file)
+      else
+        # Copie sans conversion (défaut)
+        upload_original_if_needed(annotation, source_file)
       end
     rescue StandardError => e
       Rails.logger.error("Erreur lors du traitement du fichier #{filename} vers #{annotation.label}: #{e.message}")
       false
     end
 
-    def upload_image_if_needed(annotation, source_file)
+    def pdf_file_by_name?(filename)
+      File.extname(filename).downcase == '.pdf'
+    end
+
+    def upload_original_if_needed(annotation, source_file)
       filename = source_file.filename
       source_checksum = source_file.checksum
 
-      # OPTIMISATION : Vérifier le checksum AVANT de télécharger
+      # Vérifier le checksum source AVANT de télécharger
       same_file = annotation.files&.find { |f| f.checksum == source_checksum }
 
       if same_file
-        Rails.logger.info("Image #{filename} déjà présente dans #{annotation.label} (même checksum), pas d'upload")
+        Rails.logger.info("Fichier #{filename} déjà présent dans #{annotation.label} (même checksum), pas d'upload")
         return false
       end
 
-      # Télécharger l'image et l'uploader
+      # Télécharger et uploader le fichier tel quel
       local_path = PieceJustificativeCache.get(source_file)
       SetAnnotationValue.set_piece_justificative_on_annotation(
         @dossier,
@@ -264,45 +276,47 @@ module Daf
         local_path,
         filename
       )
-      Rails.logger.info("Image #{filename} uploadée avec succès vers #{annotation.label}")
+      Rails.logger.info("Fichier #{filename} uploadé avec succès vers #{annotation.label}")
       true
     end
 
     def upload_converted_if_needed(annotation, source_file)
       filename = source_file.filename
+      source_checksum = source_file.checksum
 
-      # Pour les fichiers à convertir, télécharger et convertir
+      # Nom du fichier converti contient le checksum source pour éviter les reconversions
+      base_name = File.basename(filename, '.*')
+      converted_filename = "#{base_name}-#{source_checksum[0..7]}.pdf"
+
+      # Vérifier si on a déjà converti CE fichier source (par le nom de fichier)
+      same_source = annotation.files&.find { |f| f.filename == converted_filename }
+
+      if same_source
+        Rails.logger.info("Source #{filename} déjà converti dans #{annotation.label} (#{converted_filename}), pas de reconversion")
+        return false
+      end
+
+      # Télécharger et convertir
       local_path = PieceJustificativeCache.get(source_file)
       converted_path = convert_file_to_pdf(local_path)
 
       return false unless converted_path
 
-      # Le nom du fichier converti garde le nom de base mais avec extension .pdf
-      converted_filename = "#{File.basename(filename, '.*')}.pdf"
-
-      # Vérifier si le PDF converti existe déjà (par checksum)
-      converted_checksum = FileUpload.checksum(converted_path)
-      same_file = annotation.files&.find { |f| f.checksum == converted_checksum }
-
-      if same_file
-        Rails.logger.info("Fichier converti #{converted_filename} déjà présent dans #{annotation.label}, pas d'upload")
-        false
-      else
-        SetAnnotationValue.set_piece_justificative_on_annotation(
-          @dossier,
-          @demarche.instructeur,
-          annotation,
-          converted_path,
-          converted_filename
-        )
-        Rails.logger.info("Fichier #{filename} converti et uploadé vers #{annotation.label} comme #{converted_filename}")
-        true
-      end
+      # Uploader avec le nom contenant le checksum source
+      SetAnnotationValue.set_piece_justificative_on_annotation(
+        @dossier,
+        @demarche.instructeur,
+        annotation,
+        converted_path,
+        converted_filename
+      )
+      Rails.logger.info("Fichier #{filename} converti et uploadé vers #{annotation.label} comme #{converted_filename}")
+      true
     end
     # rubocop:enable Naming/PredicateMethod
 
     def orders
-      rows = param_field(:champ_source).rows
+      rows = param_field(:champ_source)&.rows
       return [] if rows.blank?
 
       rows.map { |row| extract_row_data(row) }

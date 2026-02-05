@@ -3,12 +3,14 @@
 class CopyFileField < FieldChecker
   OUTPUT_DIR = 'tmp/copy_file_field'
   def version
-    super + 1
+    super + 2
   end
 
   def initialize(params)
     super
-    raise 'OFFICE_PATH not defined in .env file' if ENV.fetch('OFFICE_PATH').blank?
+    # OFFICE_PATH requis seulement si convert_to_pdf = true (défaut)
+    convert = params.fetch(:convert_to_pdf, true)
+    raise 'OFFICE_PATH not defined in .env file' if convert && ENV.fetch('OFFICE_PATH').blank?
 
     FileUtils.mkdir_p(OUTPUT_DIR)
   end
@@ -18,7 +20,7 @@ class CopyFileField < FieldChecker
   end
 
   def authorized_fields
-    super + %i[nom_fichier]
+    super + %i[nom_fichier convert_to_pdf]
   end
 
   def process(demarche, dossier)
@@ -30,9 +32,23 @@ class CopyFileField < FieldChecker
 
   def copy
     champs = file_fields(Array(params[:champ_source]))
-    pdfs = champs&.flat_map(&method(:download))&.flat_map(&method(:to_pdf))
-    if pdfs.blank?
+    if champs.blank?
       Rails.logger.warn("Aucun champ source '#{@params[:champ_source]}' sur le dossier")
+      return
+    end
+
+    convert = params.fetch(:convert_to_pdf, true)
+    if convert
+      copy_as_combined_pdf(champs)
+    else
+      copy_files_individually(champs)
+    end
+  end
+
+  def copy_as_combined_pdf(champs)
+    pdfs = champs.flat_map(&method(:download)).flat_map(&method(:to_pdf))
+    if pdfs.blank?
+      Rails.logger.warn("Aucun fichier à copier depuis '#{@params[:champ_source]}'")
       return
     end
 
@@ -42,6 +58,30 @@ class CopyFileField < FieldChecker
       changed = SetAnnotationValue.set_piece_justificative(@dossier, instructeur_id_for(@demarche, @dossier), params[:champ_cible], pdf_file.path)
       dossier_updated(@dossier) if changed
     end
+  end
+
+  def copy_files_individually(champs)
+    files = champs.flat_map(&method(:download))
+    if files.blank?
+      Rails.logger.warn("Aucun fichier à copier depuis '#{@params[:champ_source]}'")
+      return
+    end
+
+    # Récupérer l'objet annotation une seule fois
+    annotation = param_annotation(:champ_cible)
+    raise "Unable to find annotation '#{params[:champ_cible]}' on dossier #{@dossier.number}" unless annotation.present?
+
+    instructeur = instructeur_id_for(@demarche, @dossier)
+    changed = false
+
+    files.each do |file|
+      filename = File.basename(file)
+      Rails.logger.info("Copying file #{filename} to #{params[:champ_cible]}")
+      file_changed = SetAnnotationValue.set_piece_justificative_on_annotation(@dossier, instructeur, annotation, file, filename)
+      changed ||= file_changed
+    end
+
+    dossier_updated(@dossier) if changed
   end
 
   private
