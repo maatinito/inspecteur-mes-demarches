@@ -177,6 +177,7 @@ module MesDemarches
                siren
                nomCommercial
                raisonSociale
+               formeJuridique
              }
              association {
                titre
