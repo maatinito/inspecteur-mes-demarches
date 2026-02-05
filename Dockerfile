@@ -8,15 +8,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     gnupg \
     libpq-dev \
+    libyaml-dev \
     ca-certificates \
     tzdata \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install newer Node.js (18.x LTS) and Yarn
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+# Install newer Node.js (22.x LTS)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs && \
-    npm install -g yarn
+    rm -rf /var/lib/apt/lists/*
 
 # Add app user
 ENV APP_PATH=/app
@@ -48,10 +49,9 @@ COPY --chown=userapp:userapp . .
 ENV APP_HOST="localhost"
 # SECRET_KEY_BASE should be provided at runtime via environment variables
 
-# Build assets with CSS compilation using legacy OpenSSL for Node.js 18 compatibility
+# Build assets with CSS compilation
 # Use temporary SECRET_KEY_BASE for asset compilation only
-RUN NODE_OPTIONS="--openssl-legacy-provider" \
-    SECRET_KEY_BASE="temp-key-for-asset-compilation-only" \
+RUN SECRET_KEY_BASE="temp-key-for-asset-compilation-only" \
     RAILS_ENV=production \
     bundle exec rails assets:precompile
 
@@ -74,13 +74,13 @@ RUN echo "deb http://deb.debian.org/debian bullseye main contrib" > /etc/apt/sou
     fonts-freefont-ttf \
     gnupg \
     libpq5 \
+    libyaml-0-2 \
     libreoffice \
     ttf-mscorefonts-installer \
     tzdata \
     unzip \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g yarn \
     && curl -fsSL https://bun.sh/install | bash \
     && mv /root/.bun/bin/bun /usr/local/bin/bun \
     && chmod +x /usr/local/bin/bun \
