@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'baserow_sync/sync_coordinator'
-require_relative 'baserow_sync/data_extractor'
-require_relative 'baserow_sync/field_filter'
-require_relative 'baserow_sync/row_upserter'
+require_relative 'mes_demarches_to_baserow/sync_coordinator'
+require_relative 'mes_demarches_to_baserow/data_extractor'
+require_relative 'mes_demarches_to_baserow/field_filter'
+require_relative 'mes_demarches_to_baserow/row_upserter'
 
 # Synchronisation des dossiers Mes-Démarches vers Baserow
 #
@@ -29,7 +29,7 @@ class BaserowSync < InspectorTask
   def process(demarche, dossier)
     Rails.logger.info "BaserowSync: Synchro dossier #{dossier.number} (démarche #{demarche.number})"
 
-    coordinator = BaserowSync::SyncCoordinator.new(
+    coordinator = MesDemarchesToBaserow::SyncCoordinator.new(
       demarche.number,
       @params[:baserow],
       @params[:options] || {}
@@ -42,7 +42,7 @@ class BaserowSync < InspectorTask
     Sentry.capture_exception(e, extra: { dossier: dossier.number, demarche: demarche.number })
 
     # Continuer ou lever l'erreur selon la config
-    raise unless @params.dig(:options, :continue_on_error) == true
+    raise unless @params.dig(:options, :continuer_si_erreur) == true
   end
 
   # Pas de filtre d'état - on synchronise tous les dossiers traités

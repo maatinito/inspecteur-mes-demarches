@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module BaserowSync
+module MesDemarchesToBaserow
   # Filtre les champs Baserow pour exclure les champs read-only
   #
   # Responsabilités:

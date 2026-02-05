@@ -236,7 +236,7 @@ RSpec.describe Daf::CopyOrder do
       it 'does not download or upload the file again' do
         expect(PieceJustificativeCache).not_to receive(:get)
         expect(SetAnnotationValue).not_to receive(:set_piece_justificative_on_annotation)
-        expect(Rails.logger).to receive(:info).with(/déjà présente/)
+        expect(Rails.logger).to receive(:info).with(/déjà présent/)
 
         result = controle.send(:upload_file_if_needed, annotation, source_file)
         expect(result).to be false
@@ -250,7 +250,7 @@ RSpec.describe Daf::CopyOrder do
       it 'downloads and uploads the file' do
         expect(PieceJustificativeCache).to receive(:get).with(source_file).and_return(local_path)
         expect(SetAnnotationValue).to receive(:set_piece_justificative_on_annotation)
-        expect(Rails.logger).to receive(:info).with(/uploadée avec succès/)
+        expect(Rails.logger).to receive(:info).with(/uploadé avec succès/)
 
         result = controle.send(:upload_file_if_needed, annotation, source_file)
         expect(result).to be true
@@ -265,6 +265,7 @@ RSpec.describe Daf::CopyOrder do
       let(:converted_checksum) { 'pdf456' }
 
       before do
+        controle.instance_variable_set(:@params, { convert_to_pdf: true })
         allow(PieceJustificativeCache).to receive(:get).with(source_file).and_return(local_path)
         allow(controle).to receive(:convert_file_to_pdf).with(local_path).and_return(converted_path)
         allow(FileUpload).to receive(:checksum).with(converted_path).and_return(converted_checksum)
@@ -279,11 +280,11 @@ RSpec.describe Daf::CopyOrder do
       end
 
       context 'when converted PDF already exists' do
-        let(:existing_files) { [double('File', checksum: 'pdf456')] }
+        let(:existing_files) { [double('File', checksum: 'pdf456', filename: 'document-docx123.pdf')] }
 
         it 'does not upload again' do
           expect(SetAnnotationValue).not_to receive(:set_piece_justificative_on_annotation)
-          expect(Rails.logger).to receive(:info).with(/déjà présent/)
+          expect(Rails.logger).to receive(:info).with(/déjà converti/)
 
           result = controle.send(:upload_file_if_needed, annotation, source_file)
           expect(result).to be false
@@ -298,7 +299,7 @@ RSpec.describe Daf::CopyOrder do
       it 'uploads the file' do
         expect(PieceJustificativeCache).to receive(:get).with(source_file).and_return(local_path)
         expect(SetAnnotationValue).to receive(:set_piece_justificative_on_annotation)
-        expect(Rails.logger).to receive(:info).with(/uploadée avec succès/)
+        expect(Rails.logger).to receive(:info).with(/uploadé avec succès/)
 
         result = controle.send(:upload_file_if_needed, annotation, source_file)
         expect(result).to be true

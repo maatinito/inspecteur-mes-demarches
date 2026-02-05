@@ -16,7 +16,7 @@ BaserowSync (InspectorTask)
 
 ## Configuration YAML
 
-### Configuration simple
+### Configuration minimale
 
 ```yaml
 ma_procedure:
@@ -29,12 +29,10 @@ ma_procedure:
           table_id: 42
           token_config: 'tftn'  # Optionnel
 
-        options:
-          include_system_fields: true
-          include_annotations: true
+# C'est tout ! Tout est auto-découvert depuis Baserow
 ```
 
-### Configuration avec blocs répétables
+### Configuration avec options avancées
 
 ```yaml
 ma_procedure:
@@ -45,15 +43,12 @@ ma_procedure:
         baserow:
           table_id: 100
           token_config: 'ma_config'
-          application_id: 123
-          workspace_id: 456
 
         options:
-          include_repetable_blocks: true
-          repetable_blocks:
-            - champ_id: "Q2hhbXAtOTAw..."
-              table_name: "Bénéficiaires"
-              table_id: 101
+          continuer_si_erreur: true    # Continue même si un dossier échoue
+          supprimer_orphelins: true    # Supprimer les lignes orphelines (miroir exact)
+          tentatives: 3                # 3 tentatives en cas d'erreur
+          delai_retry: 5               # Délai initial entre tentatives (secondes)
 ```
 
 ## Données synchronisées
@@ -77,6 +72,45 @@ Tables liées avec structure:
 - `Dossier` (link_row): Lien vers la table principale
 - `Ligne` (number): 1, 2, 3...
 - Tous les champs du bloc
+
+## Philosophie : Convention over Configuration
+
+**Principe fondamental** : **Si un champ ou une table existe dans Baserow, on le synchronise. Sinon, on l'ignore.**
+
+Cette approche élimine toute configuration complexe :
+- ✅ Pas de liste de champs à spécifier
+- ✅ Pas d'options `include_system_fields`, `include_annotations`, `include_repetable_blocks`
+- ✅ Pas d'IDs GraphQL ou Baserow à connaître
+- ✅ La structure Baserow **EST** la configuration
+
+### Auto-découverte complète
+
+#### Champs de la table principale
+1. Extraction de TOUTES les données du dossier :
+   - Champs système (Dossier, État, Dates, Usager, etc.)
+   - Champs formulaire (saisis par l'usager)
+   - Annotations privées (saisies par l'instructeur)
+
+2. Chargement des métadonnées de la table Baserow
+
+3. Filtrage : seuls les champs **présents dans Baserow** sont synchronisés
+   - Champ "État" existe dans Baserow → synchronisé ✅
+   - Champ "Commentaire interne" n'existe pas dans Baserow → ignoré ⏭️
+
+4. Exclusion automatique des champs read-only (formula, lookup, rollup)
+
+#### Blocs répétables
+
+- **Convention de nommage** : Bloc "Bénéficiaires" dans Mes-Démarches → Table "Bénéficiaires" dans Baserow
+
+- **Découverte automatique** :
+  1. Récupération de l'`application_id` depuis la table principale
+  2. Liste de toutes les tables de l'application Baserow
+  3. Pour chaque bloc répétable du dossier : recherche d'une table avec le même nom
+  4. Si table trouvée → synchronisation ✅
+  5. Si table non trouvée → skip silencieux (log debug) ⏭️
+
+**Résultat** : Ajoutez/supprimez des champs ou tables dans Baserow, la synchronisation s'adapte automatiquement. Aucun changement de configuration nécessaire !
 
 ## Fonctionnement
 
@@ -121,7 +155,7 @@ Inconvénients:
 
 - **Retry automatique** avec backoff exponentiel (2s, 4s, 8s...)
 - **Erreurs retryables**: Timeout (408), Rate limit (429), Erreurs serveur (500-504)
-- **Option `continue_on_error`**: Continue la synchronisation même si un dossier échoue
+- **Option `continuer_si_erreur`**: Continue la synchronisation même si un dossier échoue
 - **Logging**: Tous les échecs sont loggés et envoyés à Sentry
 
 ## Structure des tables Baserow
@@ -153,22 +187,41 @@ Ordre de création (via RepetableBlockBuilder):
 
 ## Options de configuration
 
-### baserow
+### baserow (requis)
 - `table_id` (requis): ID de la table Baserow principale
 - `token_config` (optionnel): Nom de la config de token dans la table BASEROW_TOKEN_TABLE
-- `application_id` (requis pour blocs): ID de l'application Baserow
-- `workspace_id` (requis pour blocs): ID du workspace Baserow
 
-### options
-- `sync_mode`: Mode de synchronisation ('incremental' par défaut)
-- `include_system_fields`: Inclure les champs système (true/false)
-- `include_annotations`: Inclure les annotations privées (true/false)
-- `include_repetable_blocks`: Inclure les blocs répétables (true/false)
-- `repetable_blocks`: Liste des blocs à synchroniser
-- `delete_orphans`: Supprimer les rows qui n'existent plus (true/false)
-- `continue_on_error`: Continuer si un dossier échoue (true/false)
-- `retry_attempts`: Nombre de tentatives (défaut: 3)
-- `retry_delay`: Délai initial entre tentatives en secondes (défaut: 5)
+### options (toutes optionnelles)
+- `continuer_si_erreur`: Continuer si un dossier échoue (true/false, défaut: false)
+- `tentatives`: Nombre de tentatives en cas d'erreur (défaut: 3)
+- `delai_retry`: Délai initial entre tentatives en secondes (défaut: 5)
+- `supprimer_orphelins`: Supprimer les lignes orphelines de blocs répétables (true/false, **défaut: true**)
+
+#### Option `supprimer_orphelins` (blocs répétables)
+
+**Philosophie** : Baserow est un **miroir exact** de Mes-Démarches (archive pour visualisation). Les suppressions dans Mes-Démarches doivent être reflétées dans Baserow.
+
+**Exemple** :
+```
+État initial Baserow (dossier 12345, bloc "Bénéficiaires") :
+- 12345-1 : Alice
+- 12345-2 : Bob
+- 12345-3 : Charlie
+
+L'usager supprime Charlie du dossier.
+
+Avec supprimer_orphelins: true (défaut, recommandé) :
+- 12345-1 et 12345-2 sont mis à jour
+- 12345-3 est supprimée de Baserow → Miroir exact ✅
+
+Avec supprimer_orphelins: false :
+- 12345-1 et 12345-2 sont mis à jour
+- 12345-3 reste dans Baserow (orpheline) → Données obsolètes ⚠️
+```
+
+**Recommandation** : **Laisser à `true` (défaut)** pour garantir que Baserow reflète exactement l'état actuel de Mes-Démarches. Ne passer à `false` que si vous avez besoin de conserver l'historique complet (y compris les lignes supprimées).
+
+**Note** : Les options `include_system_fields`, `include_annotations`, `include_repetable_blocks` et `repetable_blocks` sont **obsolètes** et ignorées. Tout est auto-découvert depuis Baserow.
 
 ## Intégration avec VerificationService
 

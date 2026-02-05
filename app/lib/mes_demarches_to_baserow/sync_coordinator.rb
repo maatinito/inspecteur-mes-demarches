@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module BaserowSync
+module MesDemarchesToBaserow
   # Coordonne la synchronisation d'une démarche vers Baserow
   #
   # Responsabilités:
@@ -15,6 +15,7 @@ module BaserowSync
       @baserow_config = baserow_config.is_a?(Hash) ? baserow_config.deep_stringify_keys : baserow_config
       @options = options.is_a?(Hash) ? options.deep_stringify_keys : options
       @schema_ensured = false
+      @application_tables = nil # Cache pour les tables de l'application
     end
 
     def sync_dossier(dossier)
@@ -42,8 +43,8 @@ module BaserowSync
       upserter = RowUpserter.new(main_table, @options)
       upserter.upsert_row(dossier.number, syncable_data)
 
-      # 6. Synchroniser les blocs répétables
-      sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks]) if @options['include_repetable_blocks']
+      # 6. Synchroniser les blocs répétables (auto-découverte)
+      sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks])
 
       Rails.logger.info "BaserowSync: Dossier #{dossier.number} synchronisé avec succès"
     end
@@ -56,15 +57,47 @@ module BaserowSync
       @schema_ensured = true
     end
 
+    def discover_application_tables
+      return @application_tables if @application_tables
+
+      # 1. Récupérer l'application_id depuis la table principale
+      structure_client = Baserow::StructureClient.new(@baserow_config['token_config'])
+      main_table_info = structure_client.get_table(@baserow_config['table_id'])
+      application_id = main_table_info['database_id']
+
+      # 2. Lister toutes les tables de l'application
+      tables = structure_client.list_tables(application_id)
+
+      # 3. Créer un mapping nom → table_id
+      @application_tables = tables.each_with_object({}) do |table, hash|
+        hash[table['name']] = table['id']
+      end
+
+      Rails.logger.debug "BaserowSync: Tables découvertes dans l'application #{application_id}: #{@application_tables.keys.join(', ')}"
+
+      @application_tables
+    rescue StandardError => e
+      Rails.logger.error "BaserowSync: Erreur découverte tables: #{e.message}"
+      @application_tables = {}
+    end
+
     def sync_repetable_blocks(dossier_number, blocks_data)
       return if blocks_data.blank?
 
-      blocks_data.each do |block_name, rows|
-        # Trouver la config du bloc
-        block_config = @options['repetable_blocks']&.find { |b| b['table_name'] == block_name }
-        next unless block_config && block_config['table_id']
+      # Découvrir les tables de l'application
+      available_tables = discover_application_tables
 
-        sync_block_rows(dossier_number, block_config['table_id'], rows)
+      blocks_data.each do |block_name, rows|
+        # Chercher si une table avec ce nom existe dans Baserow
+        table_id = available_tables[block_name]
+
+        unless table_id
+          Rails.logger.debug "BaserowSync: Table '#{block_name}' non trouvée dans Baserow, skip du bloc répétable"
+          next
+        end
+
+        Rails.logger.info "BaserowSync: Synchronisation bloc répétable '#{block_name}' vers table #{table_id}"
+        sync_block_rows(dossier_number, table_id, rows)
       end
     end
 
@@ -89,11 +122,12 @@ module BaserowSync
         end
       end
 
-      # Optionnel: supprimer les rows qui n'existent plus dans le dossier
-      delete_orphan_rows(existing_rows, rows, dossier_number) if @options['delete_orphans']
+      # Supprimer les rows orphelines (par défaut: true, Baserow = miroir exact de Mes-Démarches)
+      supprimer_orphelins = @options.key?('supprimer_orphelins') ? @options['supprimer_orphelins'] : true
+      delete_orphan_rows(existing_rows, rows, dossier_number) if supprimer_orphelins
     rescue StandardError => e
       Rails.logger.error "BaserowSync: Erreur synchro bloc répétable (table #{table_id}): #{e.message}"
-      raise unless @options['continue_on_error']
+      raise unless @options['continuer_si_erreur']
     end
 
     def delete_orphan_rows(existing_rows, current_rows, dossier_number)

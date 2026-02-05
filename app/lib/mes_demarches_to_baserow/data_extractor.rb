@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module BaserowSync
+module MesDemarchesToBaserow
   # Extrait les données d'un dossier Mes-Démarches pour synchronisation Baserow
   #
   # Responsabilités:
@@ -30,14 +30,14 @@ module BaserowSync
     def extract_main_table(dossier)
       data = {}
 
-      # Champs système
-      data.merge!(extract_system_fields(dossier)) if @options['include_system_fields']
+      # Champs système (toujours extraits)
+      data.merge!(extract_system_fields(dossier))
 
-      # Champs formulaire
+      # Champs formulaire (toujours extraits)
       data.merge!(extract_champs(dossier))
 
-      # Annotations privées
-      data.merge!(extract_annotations(dossier)) if @options['include_annotations']
+      # Annotations privées (toujours extraites)
+      data.merge!(extract_annotations(dossier))
 
       data
     end
@@ -45,15 +45,19 @@ module BaserowSync
     def extract_system_fields(dossier)
       {
         'Dossier' => dossier.number,
-        'Etat' => dossier.state,
-        'Date dépôt' => format_date(dossier.datePassageEnConstruction),
-        'Date instruction' => format_date(dossier.datePassageEnInstruction),
-        'Date traitement' => format_date(dossier.dateTraitement),
+        'Statut' => dossier.state,
+        'Date de dépôt' => format_date(dossier.dateDepot),
+        'Date de passage en instruction' => format_date(dossier.datePassageEnInstruction),
+        'Date de traitement' => format_date(dossier.dateTraitement),
         'Email usager' => dossier.usager&.email,
-        'Demandeur civilité' => dossier.demandeur&.civilite,
-        'Demandeur nom' => dossier.demandeur&.nom,
-        'Demandeur prénom' => dossier.demandeur&.prenom,
-        'SIRET' => dossier.demandeur&.siret
+        'Civilité' => dossier.demandeur&.civilite,
+        'Nom' => dossier.demandeur&.nom,
+        'Prénom' => dossier.demandeur&.prenom,
+        'Numéro TAHITI' => dossier.demandeur&.siret,
+        'Raison sociale' => dossier.demandeur&.entreprise&.raisonSociale,
+        'Nom commercial' => dossier.demandeur&.entreprise&.nomCommercial,
+        'Forme juridique' => dossier.demandeur&.entreprise&.formeJuridique,
+        'Libellé NAF' => dossier.demandeur&.libelleNaf
       }.compact
     end
 
@@ -89,25 +93,27 @@ module BaserowSync
     end
 
     def extract_repetable_blocks(dossier)
-      return {} unless @options['include_repetable_blocks']
-
-      blocks_config = @options['repetable_blocks'] || []
       blocks_data = {}
 
-      blocks_config.each do |block_config|
-        block_data = extract_block(dossier, block_config)
-        blocks_data[block_config['table_name']] = block_data if block_data.any?
+      # Auto-découvrir tous les champs de type RepetitionChamp
+      repetition_champs = find_all_repetition_champs(dossier.champs)
+
+      repetition_champs.each do |repetition_champ|
+        block_name = repetition_champ.label
+        block_data = extract_block_rows(dossier, repetition_champ)
+        blocks_data[block_name] = block_data if block_data.any?
       end
 
       blocks_data
     end
 
-    def extract_block(dossier, block_config)
-      # Trouver le champ répétable par ID
-      repetition_champ = find_champ_by_id(dossier.champs, block_config['champ_id'])
-      return [] unless repetition_champ
+    def find_all_repetition_champs(champs)
+      champs.select { |c| c.typename == 'RepetitionChamp' }
+    end
 
+    def extract_block_rows(dossier, repetition_champ)
       rows = []
+
       repetition_champ.rows.each_with_index do |row, index|
         ligne_number = index + 1
         row_data = {
@@ -126,10 +132,6 @@ module BaserowSync
       end
 
       rows
-    end
-
-    def find_champ_by_id(champs, champ_id)
-      champs.find { |c| c.id == champ_id }
     end
 
     def normalize_value(champ, baserow_type)

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module BaserowSync
+module MesDemarchesToBaserow
   # Gère l'insertion et la mise à jour de rows dans Baserow
   #
   # Responsabilités:
@@ -14,8 +14,8 @@ module BaserowSync
     def initialize(table, options = {})
       @table = table
       @options = options
-      @retry_attempts = options['retry_attempts'] || 3
-      @retry_delay = options['retry_delay'] || 5
+      @retry_attempts = options['tentatives'] || 3
+      @retry_delay = options['delai_retry'] || 5
     end
 
     def upsert_row(dossier_number, data)
@@ -62,7 +62,7 @@ module BaserowSync
         Rails.logger.error "BaserowSync: Échec synchro dossier #{dossier_number} après #{attempt} tentatives: #{error.message}"
         Sentry.capture_exception(error, extra: { dossier: dossier_number, data: data, attempt: attempt })
 
-        raise unless @options['continue_on_error']
+        raise unless @options['continuer_si_erreur']
 
         false
 

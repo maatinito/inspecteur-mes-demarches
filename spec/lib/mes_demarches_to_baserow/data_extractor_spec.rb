@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 # rubocop:disable Metrics/BlockLength
-RSpec.describe BaserowSync::DataExtractor do
+RSpec.describe MesDemarchesToBaserow::DataExtractor do
   let(:field_metadata) do
     {
       'Nom' => { 'type' => 'text', 'id' => 1 },

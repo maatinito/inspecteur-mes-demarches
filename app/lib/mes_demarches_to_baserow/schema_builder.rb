@@ -225,7 +225,7 @@ module MesDemarchesToBaserow
     def state_field
       {
         original_label: 'state',
-        field_name: 'Etat',
+        field_name: 'Statut',
         mes_demarches_type: 'DropDownListChampDescriptor',
         category: 'système',
         supported: true,
@@ -253,11 +253,10 @@ module MesDemarchesToBaserow
 
     def date_field_configs
       [
-        { original: 'datePassageEnConstruction', name: 'Date en construction' },
-        { original: 'datePassageEnInstruction', name: 'Date en instruction' },
-        { original: 'dateTraitement', name: 'Date cloture' },
-        { original: 'dateDerniereModification', name: 'Date modification MD' },
-        { original: 'dateDepot', name: 'Date de dépôt' }
+        { original: 'dateDepot', name: 'Date de dépôt' },
+        { original: 'datePassageEnInstruction', name: 'Date de passage en instruction' },
+        { original: 'dateTraitement', name: 'Date de traitement' },
+        { original: 'dateDerniereModification', name: 'Date de dernière modification' }
       ]
     end
 
@@ -293,10 +292,9 @@ module MesDemarchesToBaserow
 
     def demandeur_physique_fields
       [
-        build_text_field('demandeur.civilite', 'Civilité demandeur'),
-        build_text_field('demandeur.nom', 'Nom demandeur'),
-        build_text_field('demandeur.prenom', 'Prénom demandeur'),
-        build_email_field('demandeur.email', 'Email demandeur')
+        build_text_field('demandeur.civilite', 'Civilité'),
+        build_text_field('demandeur.nom', 'Nom'),
+        build_text_field('demandeur.prenom', 'Prénom')
       ]
     end
 
@@ -318,16 +316,11 @@ module MesDemarchesToBaserow
 
     def etablissement_configs
       [
-        { original: 'demandeur.entreprise.nomCommercial', name: 'Nom commercial' },
+        { original: 'demandeur.siret', name: 'Numéro TAHITI' },
         { original: 'demandeur.entreprise.raisonSociale', name: 'Raison sociale' },
+        { original: 'demandeur.entreprise.nomCommercial', name: 'Nom commercial' },
         { original: 'demandeur.entreprise.formeJuridique', name: 'Forme juridique' },
-        { original: 'demandeur.siret', name: 'Numéro TAHITI établissement' },
-        { original: 'demandeur.siren', name: 'Numéro TAHITI' },
-        { original: 'demandeur.naf', name: 'Code NAF' },
-        { original: 'demandeur.libelleNaf', name: 'Libellé NAF' },
-        { original: 'demandeur.adresse', name: 'Adresse établissement' },
-        { original: 'demandeur.codePostal', name: 'Code postal établissement' },
-        { original: 'demandeur.localite', name: 'Localité établissement' }
+        { original: 'demandeur.libelleNaf', name: 'Libellé NAF' }
       ]
     end
 
