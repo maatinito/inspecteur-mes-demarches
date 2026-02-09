@@ -420,7 +420,7 @@ class VerificationService
 
   def get_pieces_messages(procedure_name, procedure)
     result = procedure['pieces_messages']
-    raise ArgumentError, "#{procedure_name} devrait définir une section pieces_messages" if result.empty?
+    raise ArgumentError, "#{procedure_name} devrait définir une section pieces_messages" if result.nil?
 
     result.symbolize_keys!
     missing = NOMS_PIECES_MESSAGES.reject { |nom| result.key?(nom) }

@@ -49,7 +49,7 @@ La plupart des fichiers de configuration suivent cette structure standard :
 ```yaml
 # 1. Bloc par_defaut (RECOMMANDÉ)
 par_defaut: &par_defaut
-  email_instructeur: service@administration.gov.pf
+  email_instructeur: robot-mes-demarches@administration.gov.pf
   messages_automatiques: false
   pieces_messages:
     debut_premier_mail: "Bonjour..."
@@ -92,7 +92,7 @@ Le bloc `par_defaut` est **fortement recommandé** car il permet de :
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `email_instructeur` | String | Email de l'instructeur robot (ex: `robot-mes-demarches@administration.gov.pf`) |
+| `email_instructeur` | String | Email de l'instructeur robot. **Email standard recommandé** : `robot-mes-demarches@administration.gov.pf` |
 | `messages_automatiques` | Boolean | Active/désactive l'envoi automatique de messages aux usagers |
 | `pieces_messages` | Hash | Messages standards pour les notifications automatiques |
 

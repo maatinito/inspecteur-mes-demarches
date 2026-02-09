@@ -9,7 +9,6 @@ Inspecteur Mes-Démarches is a Ruby on Rails application that validates and proc
 ## RÈGLES CRITIQUES - À RESPECTER ABSOLUMENT
 
 ### Commit Guidelines
-- Dans ce projet, les commits ne doivent ABSOLUMENT PAS mentionner Claude
 - Avant chaque commit, il est OBLIGATOIRE de :
   * Exécuter un rubocop -A (pour corriger automatiquement)
   * Exécuter un lint

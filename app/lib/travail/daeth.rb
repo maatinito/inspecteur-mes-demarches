@@ -206,7 +206,7 @@ module Travail
     # Calcule l'année de déclaration à partir de la date de dépôt du dossier
     # Si date_depot > 1er juin => année en cours, sinon année précédente
     def year_from_date_depot
-      date_depot = @dossier.date_depot
+      date_depot = DateTime.parse(@dossier.date_depot)
       june_first = Date.new(date_depot.year, 6, 1)
       date_depot >= june_first ? date_depot.year : date_depot.year - 1
     end
