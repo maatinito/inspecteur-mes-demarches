@@ -42,24 +42,42 @@ module MesDemarchesToBaserow
       data
     end
 
+    # rubocop:disable Metrics/MethodLength
     def extract_system_fields(dossier)
-      {
+      data = {
         'Dossier' => dossier.number,
         'Statut' => dossier.state,
-        'Date de dépôt' => format_date(dossier.dateDepot),
-        'Date de passage en instruction' => format_date(dossier.datePassageEnInstruction),
-        'Date de traitement' => format_date(dossier.dateTraitement),
-        'Email usager' => dossier.usager&.email,
-        'Civilité' => dossier.demandeur&.civilite,
-        'Nom' => dossier.demandeur&.nom,
-        'Prénom' => dossier.demandeur&.prenom,
-        'Numéro TAHITI' => dossier.demandeur&.siret,
-        'Raison sociale' => dossier.demandeur&.entreprise&.raisonSociale,
-        'Nom commercial' => dossier.demandeur&.entreprise&.nomCommercial,
-        'Forme juridique' => dossier.demandeur&.entreprise&.formeJuridique,
-        'Libellé NAF' => dossier.demandeur&.libelleNaf
-      }.compact
+        'Date de dépôt' => format_datetime(dossier.date_depot),
+        'Date de passage en instruction' => format_datetime(dossier.date_passage_en_instruction),
+        'Date de traitement' => format_datetime(dossier.date_traitement),
+        'Email usager' => dossier.usager&.email
+      }
+
+      # Extraction selon le type de demandeur (PersonnePhysique ou PersonneMorale)
+      if dossier.demandeur
+        demandeur_type = dossier.demandeur.respond_to?(:__typename) ? dossier.demandeur.__typename : nil
+
+        case demandeur_type
+        when 'PersonnePhysique'
+          data.merge!(
+            'Civilité' => dossier.demandeur.civilite,
+            'Nom' => dossier.demandeur.nom,
+            'Prénom' => dossier.demandeur.prenom
+          )
+        when 'PersonneMorale'
+          data.merge!(
+            'Numéro TAHITI' => dossier.demandeur.siret,
+            'Raison sociale' => dossier.demandeur.entreprise&.raison_sociale,
+            'Nom commercial' => dossier.demandeur.entreprise&.nom_commercial,
+            'Forme juridique' => dossier.demandeur.entreprise&.forme_juridique,
+            'Libellé NAF' => dossier.demandeur.libelle_naf
+          )
+        end
+      end
+
+      data.compact
     end
+    # rubocop:enable Metrics/MethodLength
 
     def extract_champs(dossier)
       extract_fields(dossier.champs)
@@ -73,7 +91,7 @@ module MesDemarchesToBaserow
       data = {}
 
       champs.each do |champ|
-        next if champ.typename == 'RepetitionChamp'
+        next if champ.__typename == 'RepetitionChamp'
 
         field_name = champ.label
         next unless @field_metadata.key?(field_name)
@@ -81,12 +99,16 @@ module MesDemarchesToBaserow
         baserow_type = @field_metadata[field_name]['type']
 
         # Pour les champs fichiers, passer les fichiers existants
-        if baserow_type == 'file' && @existing_row
-          existing_files = @existing_row[field_name] || []
-          data[field_name] = normalize_files(champ, existing_files)
-        else
-          data[field_name] = normalize_value(champ, baserow_type)
-        end
+        value = if baserow_type == 'file' && @existing_row
+                  existing_files = @existing_row[field_name] || []
+                  normalize_files(champ, existing_files)
+                else
+                  normalize_value(champ, baserow_type)
+                end
+
+        # Ne pas ajouter les champs avec des valeurs nil
+        # (important pour les fichiers : si aucun nouveau fichier, on ne modifie pas le champ)
+        data[field_name] = value unless value.nil?
       end
 
       data
@@ -95,10 +117,12 @@ module MesDemarchesToBaserow
     def extract_repetable_blocks(dossier)
       blocks_data = {}
 
-      # Auto-découvrir tous les champs de type RepetitionChamp
-      repetition_champs = find_all_repetition_champs(dossier.champs)
+      # Auto-découvrir tous les champs de type RepetitionChamp dans champs ET annotations
+      champs_repetition = find_all_repetition_champs(dossier.champs)
+      annotations_repetition = find_all_repetition_champs(dossier.annotations)
+      all_repetition_champs = champs_repetition + annotations_repetition
 
-      repetition_champs.each do |repetition_champ|
+      all_repetition_champs.each do |repetition_champ|
         block_name = repetition_champ.label
         block_data = extract_block_rows(dossier, repetition_champ)
         blocks_data[block_name] = block_data if block_data.any?
@@ -108,7 +132,7 @@ module MesDemarchesToBaserow
     end
 
     def find_all_repetition_champs(champs)
-      champs.select { |c| c.typename == 'RepetitionChamp' }
+      champs.select { |c| c.__typename == 'RepetitionChamp' }
     end
 
     def extract_block_rows(dossier, repetition_champ)
@@ -137,9 +161,9 @@ module MesDemarchesToBaserow
     def normalize_value(champ, baserow_type)
       case baserow_type
       when 'date'
-        format_date(champ.stringValue)
+        format_date(get_champ_value(champ))
       when 'boolean'
-        normalize_boolean(champ.stringValue)
+        normalize_boolean(get_champ_value(champ))
       when 'multiple_select'
         normalize_multiple_select(champ)
       when 'file'
@@ -147,30 +171,50 @@ module MesDemarchesToBaserow
       when 'number'
         normalize_number(champ)
       else # single_select, phone_number, email, url, text, long_text
-        champ.stringValue
+        get_champ_value(champ)
       end
     end
 
     def normalize_value_simple(champ)
-      case champ.typename
+      case champ.__typename
       when 'DateChamp', 'DatetimeChamp'
-        format_date(champ.stringValue)
+        format_date(get_champ_value(champ))
       when 'CheckboxChamp', 'YesNoChamp'
-        normalize_boolean(champ.stringValue)
+        normalize_boolean(get_champ_value(champ))
       when 'PieceJustificativeChamp'
         normalize_files(champ)
       when 'IntegerNumberChamp', 'DecimalNumberChamp'
         normalize_number(champ)
       else
-        champ.stringValue
+        get_champ_value(champ)
       end
+    end
+
+    # Récupère la valeur d'un champ selon son type GraphQL
+    # - Types simples (TextChamp, DateChamp, CheckboxChamp, etc.) utilisent 'value'
+    # - Types spéciaux (SiretChamp, PieceJustificativeChamp, etc.) utilisent 'string_value'
+    def get_champ_value(champ)
+      # Priorité à 'value' (types simples), sinon 'string_value' (types spéciaux)
+      champ.respond_to?(:value) ? champ.value : champ.string_value
     end
 
     def format_date(date_string)
       return nil if date_string.blank?
 
-      # Format ISO8601 → format Baserow (YYYY-MM-DD ou YYYY-MM-DDTHH:MM:SS)
-      DateTime.parse(date_string).iso8601
+      # Format ISO8601 → format Baserow (YYYY-MM-DD)
+      # Utiliser Date.parse pour obtenir uniquement la date sans l'heure
+      Date.parse(date_string).iso8601
+    rescue ArgumentError
+      nil
+    end
+
+    def format_datetime(datetime_string)
+      return nil if datetime_string.blank?
+
+      # Format ISO8601 → format Baserow (YYYY-MM-DDTHH:MM:SSZ)
+      # Convertir en UTC pour éviter les problèmes de timezone
+      # Ex: 2025-11-18T08:40:08-10:00 → 2025-11-18T18:40:08Z
+      DateTime.parse(datetime_string).utc.iso8601
     rescue ArgumentError
       nil
     end
@@ -187,49 +231,63 @@ module MesDemarchesToBaserow
       champ.values.map(&:to_s)
     end
 
+    # rubocop:disable Metrics/MethodLength
     def normalize_files(champ, existing_files = [])
       return existing_files if champ.respond_to?(:files) && champ.files.blank?
 
       # Récupérer les fichiers existants dans Baserow
-      # Format Baserow: [{ 'name' => 'file.pdf', 'url' => 'https://...', 'size' => 12345, 'visible_name' => '...' }]
+      # Format Baserow: [{ 'name' => 'hash...', 'url' => 'https://...', 'size' => 12345, 'visible_name' => '...' }]
       baserow_files = existing_files.is_a?(Array) ? existing_files : []
 
-      # Construire un index des fichiers existants par (nom, taille)
-      # pour détecter les fichiers identiques même si l'URL change
-      existing_file_signatures = baserow_files.map do |f|
+      # Construire un index des fichiers existants par (nom visible, taille)
+      # avec leur hash Baserow pour réutilisation
+      existing_file_index = baserow_files.map do |f|
         {
-          name: f['name'] || f['visible_name'],
-          size: f['size']
+          visible_name: f['visible_name'],
+          size: f['size'],
+          baserow_hash: f['name'] # Le hash unique Baserow
         }
       end.compact
 
-      # Ajouter uniquement les nouveaux fichiers (par nom + taille)
-      champ.files.filter_map do |file|
-        # Vérifier si un fichier avec le même nom ET la même taille existe déjà
-        file_exists = existing_file_signatures.any? do |sig|
-          sig[:name] == file.filename && sig[:size] == file.byte_size
+      # Pour CHAQUE fichier dans Mes-Démarches, déterminer s'il faut l'uploader ou le conserver
+      all_files = champ.files.filter_map do |file|
+        filename = file.filename.to_s.strip
+        next if filename.blank?
+
+        # Chercher si ce fichier existe déjà dans Baserow (même nom + même taille)
+        existing = existing_file_index.find do |sig|
+          sig[:visible_name] == filename && sig[:size] == file.byte_size
         end
 
-        next if file_exists
-
-        {
-          name: file.filename,
-          url: file.url
-        }
+        if existing
+          # Fichier déjà uploadé : réutiliser le hash Baserow ET conserver le visible_name
+          # Important : inclure visible_name pour éviter qu'il soit perdu dans Baserow
+          { 'name' => existing[:baserow_hash], 'visible_name' => filename }
+        else
+          # Nouveau fichier : envoyer l'URL pour upload
+          Rails.logger.debug "BaserowSync: Préparation upload nouveau fichier '#{filename}' depuis #{file.url}"
+          { url: file.url, visible_name: filename }
+        end
       end
 
-      # Retourner uniquement les nouveaux fichiers à ajouter
-      # Important: Baserow attend juste les nouveaux fichiers avec URL pour les ajouter
-      # Les fichiers déjà uploadés restent en place automatiquement
+      Rails.logger.info "BaserowSync: #{all_files.count { |f| f.key?(:url) }} nouveau(x) fichier(s) à uploader pour le champ #{champ.label}" if all_files.any? { |f| f.key?(:url) }
+
+      # Si aucun fichier, retourner nil pour ne pas envoyer le champ
+      all_files.empty? ? nil : all_files
     rescue StandardError => e
       Rails.logger.warn "BaserowSync: Erreur normalisation fichiers: #{e.message}"
-      []
+      raise
     end
+    # rubocop:enable Metrics/MethodLength
 
     def normalize_number(champ)
-      return nil if champ.stringValue.blank?
+      value = get_champ_value(champ)
+      return nil if value.blank?
 
-      Float(champ.stringValue)
+      float_value = Float(value)
+      # Si pas de décimales, retourner un Integer pour éviter les erreurs Baserow
+      # sur les champs configurés avec number_decimal_places: 0
+      (float_value % 1).zero? ? float_value.to_i : float_value
     rescue ArgumentError, TypeError
       nil
     end

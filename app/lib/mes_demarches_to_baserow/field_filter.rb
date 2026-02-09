@@ -19,9 +19,9 @@ module MesDemarchesToBaserow
     def load_baserow_fields
       return @field_metadata if @field_metadata
 
-      table # Ensure table exists
-      structure_client = Baserow::StructureClient.new(@token_config)
-      fields = structure_client.get_table_fields(@table_id)
+      # Utiliser le client normal (avec token API) au lieu de StructureClient (JWT)
+      client = Baserow::Config.client(@token_config)
+      fields = client.list_fields(@table_id)
 
       @field_metadata = {}
       fields.each do |field|

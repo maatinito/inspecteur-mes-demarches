@@ -134,10 +134,13 @@ module MesDemarchesToBaserow
 
     def create_repetable_table(table_name, block)
       table_id = create_table_with_ligne_field(table_name, block)
-      create_link_to_main_table(table_id)
+      ensure_table_structure(table_id, table_name)
       create_block_fields(table_id, block)
-    rescue Baserow::APIError => e
-      @report[:errors] << "Erreur création table #{table_name}: #{e.message}"
+    rescue StandardError => e
+      error_msg = "Erreur création table #{table_name}: #{e.message}"
+      Rails.logger.error "RepetableBlockBuilder: #{error_msg}"
+      Rails.logger.error e.backtrace.join("\n")
+      @report[:errors] << error_msg
     end
 
     def update_repetable_table(existing_table, block)
@@ -150,13 +153,13 @@ module MesDemarchesToBaserow
         block_label: block.label
       }
 
-      # Vérifier/créer le lien "Dossier" dans la table du bloc si absent
-      create_link_to_main_table(table_id) unless @structure_client.field_exists?(table_id, 'Dossier')
-
-      # Ajouter les colonnes manquantes
+      ensure_table_structure(table_id, table_name)
       create_block_fields(table_id, block)
-    rescue Baserow::APIError => e
-      @report[:errors] << "Erreur mise à jour table #{table_name}: #{e.message}"
+    rescue StandardError => e
+      error_msg = "Erreur mise à jour table #{table_name}: #{e.message}"
+      Rails.logger.error "RepetableBlockBuilder: #{error_msg}"
+      Rails.logger.error e.backtrace.join("\n")
+      @report[:errors] << error_msg
     end
 
     def create_block_fields(table_id, block)
@@ -206,7 +209,9 @@ module MesDemarchesToBaserow
       field_data = {
         type: 'link_row',
         name: 'Dossier',
-        link_row_table_id: @main_table_id
+        link_row_table_id: @main_table_id,
+        has_related_field: true,
+        link_row_multiple_relationships: false # Un bloc ne peut pointer que vers UN seul dossier
       }
 
       link_field = @structure_client.create_field(block_table_id, field_data)
@@ -219,6 +224,88 @@ module MesDemarchesToBaserow
       }
     rescue Baserow::APIError => e
       @report[:errors] << "Erreur création lien Dossier: #{e.message}"
+    end
+
+    # Garantit que la table a la structure requise pour un bloc répétable :
+    # - Champ "Ligne" (number)
+    # - Champ "Dossier" (link_row vers table principale, limité à un seul lien)
+    # - Champ primaire "Bloc" (formula)
+    def ensure_table_structure(table_id, table_name)
+      # 1. Vérifier/créer le champ "Ligne" s'il n'existe pas
+      unless @structure_client.field_exists?(table_id, 'Ligne')
+        Rails.logger.info "RepetableBlockBuilder: Création du champ 'Ligne' pour la table #{table_name}"
+        @structure_client.create_field(table_id, {
+                                         type: 'number',
+                                         name: 'Ligne',
+                                         number_decimal_places: 0
+                                       })
+      end
+
+      # 2. Vérifier/créer le lien "Dossier" s'il n'existe pas
+      dossier_field = @structure_client.get_field_by_name(table_id, 'Dossier')
+      if dossier_field
+        # Le champ existe, vérifier qu'il est configuré pour un seul lien
+        ensure_single_link_dossier(dossier_field, table_name)
+      else
+        # Le champ n'existe pas, le créer
+        Rails.logger.info "RepetableBlockBuilder: Création du lien 'Dossier' pour la table #{table_name}"
+        create_link_to_main_table(table_id)
+      end
+
+      # 3. Vérifier/corriger le champ primaire "Bloc" en formula
+      ensure_bloc_field_is_formula(table_id, table_name)
+    rescue Baserow::APIError => e
+      error_msg = "Erreur lors de la vérification de la structure de la table #{table_name}: #{e.message}"
+      Rails.logger.error "RepetableBlockBuilder: #{error_msg}"
+      @report[:errors] << error_msg
+    end
+
+    def ensure_single_link_dossier(dossier_field, table_name)
+      # Vérifier que le champ "Dossier" n'autorise qu'un seul lien
+      if dossier_field['link_row_multiple_relationships'] == false
+        Rails.logger.debug "RepetableBlockBuilder: Champ 'Dossier' déjà configuré pour un seul lien dans la table #{table_name}"
+        return
+      end
+
+      # Si multiple relationships est activé, le désactiver
+      Rails.logger.info "RepetableBlockBuilder: Désactivation des liens multiples pour le champ 'Dossier' dans la table #{table_name}"
+
+      @structure_client.update_field(dossier_field['id'], {
+                                       link_row_multiple_relationships: false
+                                     })
+
+      Rails.logger.info "RepetableBlockBuilder: Champ 'Dossier' modifié avec succès (limité à un seul lien)"
+    rescue Baserow::APIError => e
+      error_msg = "Impossible de modifier le champ 'Dossier' pour limiter à un seul lien dans la table #{table_name}: #{e.message}"
+      Rails.logger.error "RepetableBlockBuilder: #{error_msg}"
+      @report[:errors] << error_msg
+      # Ne pas lever l'erreur, continuer
+    end
+
+    def ensure_bloc_field_is_formula(table_id, table_name)
+      # Récupérer le champ primaire (devrait être "Bloc")
+      primary_field = @structure_client.get_primary_field(table_id)
+
+      # Vérifier si c'est déjà une formula
+      if primary_field['type'] == 'formula'
+        Rails.logger.debug "RepetableBlockBuilder: Champ primaire '#{primary_field['name']}' est déjà une formula pour la table #{table_name}"
+        return
+      end
+
+      # Si ce n'est pas une formula, la convertir
+      Rails.logger.info "RepetableBlockBuilder: Conversion du champ primaire '#{primary_field['name']}' en formula pour la table #{table_name}"
+
+      @structure_client.update_field(primary_field['id'], {
+                                       type: 'formula',
+                                       formula: "join(totext(field('Dossier')),'')+'-'+totext(field('Ligne'))"
+                                     })
+
+      Rails.logger.info 'RepetableBlockBuilder: Champ primaire modifié avec succès en formula'
+    rescue Baserow::APIError => e
+      error_msg = "Impossible de modifier le champ primaire '#{primary_field&.dig('name') || 'Bloc'}' en formula pour la table #{table_name}: #{e.message}"
+      Rails.logger.error "RepetableBlockBuilder: #{error_msg}"
+      @report[:errors] << error_msg
+      # Ne pas lever l'erreur, continuer avec le champ actuel
     end
 
     def create_table_with_ligne_field(table_name, block)
@@ -239,15 +326,7 @@ module MesDemarchesToBaserow
                                        number_decimal_places: 0
                                      })
 
-      # 3. Créer lien "Dossier" vers table principale
-      create_link_to_main_table(table_id)
-
-      # 4. Modifier "Bloc" en formula: "Dossier-Ligne"
-      primary_field = @structure_client.get_primary_field(table_id)
-      @structure_client.update_field(primary_field['id'], {
-                                       type: 'formula',
-                                       formula: "concat(join('Dossier',''),\"-\",totext(field('Ligne')))"
-                                     })
+      # NOTE: Le lien "Dossier" et la conversion en formula seront faits par ensure_table_structure
 
       @created_tables[table_name] = new_table
 

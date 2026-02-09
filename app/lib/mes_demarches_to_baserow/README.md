@@ -21,7 +21,7 @@ BaserowSync (InspectorTask)
 ```yaml
 ma_procedure:
   demarches: [1234]
-  email_instructeur: admin@example.com
+  email_instructeur: robot-mes-demarches@administration.gov.pf
 
   when_ok:
     - baserow_sync:
@@ -40,6 +40,11 @@ ma_procedure:
 
   when_ok:
     - baserow_sync:
+        # Filtrage par état (optionnel)
+        # Synchronise uniquement les dossiers dans ces états
+        # Si non spécifié, synchronise tous les états
+        etat_du_dossier: [en_instruction, accepte]
+
         baserow:
           table_id: 100
           token_config: 'ma_config'
@@ -66,12 +71,14 @@ Tous les champs du formulaire usager présents dans la table Baserow.
 ### Annotations privées (si `include_annotations: true`)
 Toutes les annotations privées instructeur présentes dans la table Baserow.
 
-### Blocs répétables (si `include_repetable_blocks: true`)
+### Blocs répétables
 Tables liées avec structure:
 - `Bloc` (formula): "12345-1", "12345-2"...
-- `Dossier` (link_row): Lien vers la table principale
+- `Dossier` (link_row): Lien vers la table principale (limité à un seul lien)
 - `Ligne` (number): 1, 2, 3...
 - Tous les champs du bloc
+
+**Recherche optimisée** : La synchronisation utilise `find_by_link_row_id` pour récupérer efficacement les lignes d'un bloc liées à un dossier spécifique, en filtrant par l'ID de la row principale (au lieu de filtrer par valeur textuelle).
 
 ## Philosophie : Convention over Configuration
 
@@ -173,19 +180,35 @@ Peut contenir:
 ### Tables blocs répétables
 
 Structure requise:
-1. `Bloc` (formula, champ primaire): `concat(join('Dossier',''),"-",totext(field('Ligne')))`
+1. `Bloc` (formula, champ primaire): `join(totext(field('Dossier')),'')+'-'+totext(field('Ligne'))`
 2. `Dossier` (link_row): Lien vers table principale
+   - **Important** : Configuré avec `link_row_multiple_relationships: false` pour garantir qu'un bloc ne pointe que vers un seul dossier
 3. `Ligne` (number): Numéro de ligne (1, 2, 3...)
 4. Champs du bloc répétable
 
 Ordre de création (via RepetableBlockBuilder):
 1. Créer table avec "Bloc" (text temporaire) comme primaire
 2. Créer champ "Ligne" (number)
-3. Créer lien "Dossier" (link_row)
+3. Créer lien "Dossier" (link_row avec `link_row_multiple_relationships: false`)
 4. Modifier "Bloc" en formula
 5. Créer les champs du bloc
 
+Note : `ensure_table_structure` vérifie et corrige automatiquement la configuration des tables existantes, y compris la limitation à un seul lien pour le champ "Dossier".
+
 ## Options de configuration
+
+### etat_du_dossier (optionnel)
+- Type: String ou Array de Strings
+- Filtre les dossiers à synchroniser par état
+- États possibles: `en_construction`, `en_instruction`, `accepte`, `refuse`, `sans_suite`
+- Si non spécifié: synchronise tous les états
+- Exemples:
+  - `etat_du_dossier: en_instruction` (un seul état)
+  - `etat_du_dossier: [en_instruction, accepte]` (plusieurs états)
+
+**Cas d'usage**:
+- Ne pas synchroniser les dossiers classés sans suite: `etat_du_dossier: [en_construction, en_instruction, accepte, refuse]`
+- Synchroniser uniquement les dossiers acceptés: `etat_du_dossier: accepte`
 
 ### baserow (requis)
 - `table_id` (requis): ID de la table Baserow principale

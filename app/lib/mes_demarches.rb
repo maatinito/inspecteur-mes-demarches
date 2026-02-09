@@ -154,12 +154,14 @@ module MesDemarches
               contentType
               checksum
               filename
+              byteSize
               url
           }
           file {
               contentType
               checksum
               filename
+              byteSize
               url
           }
           stringValue

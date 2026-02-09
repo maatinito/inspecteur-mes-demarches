@@ -2,20 +2,24 @@
 
 module Baserow
   class Table
-    attr_reader :client, :table_id, :table_name, :fields
+    attr_reader :client, :table_id, :table_name
 
     def initialize(client, table_id, table_name = nil)
       @client = client
       @table_id = table_id
       @table_name = table_name
-      @fields = {}
-      load_fields if table_id
+      @fields = nil # Lazy loading : chargé à la demande
+    end
+
+    # Lazy loading des fields (chargé uniquement à la demande)
+    def fields
+      @fields ||= load_fields
     end
 
     # Load table information and fields
     def load_fields
       fields_data = client.list_fields(table_id)
-      @fields = fields_data.each_with_object({}) do |field, hash|
+      fields_data.each_with_object({}) do |field, hash|
         hash[field['name']] = {
           id: field['id'],
           type: field['type'],
@@ -53,6 +57,18 @@ module Baserow
     def find_by(field_name, value)
       field_id = get_field_id(field_name)
       params = { "filter__field_#{field_id}__equal" => value }
+      results = client.list_rows(table_id, params)
+      results['results']
+    end
+
+    # Find rows by link_row field ID
+    # Utilisé pour filtrer sur un champ link_row par l'ID de la row liée
+    # Exemple: find_by_link_row_id('Dossier', 123) retourne toutes les rows où Dossier pointe vers la row d'ID 123
+    def find_by_link_row_id(field_name, linked_row_id)
+      params = {
+        "filter__#{field_name}__link_row_has" => linked_row_id,
+        'user_field_names' => true # Retourne les noms de champs au lieu des IDs
+      }
       results = client.list_rows(table_id, params)
       results['results']
     end
@@ -113,15 +129,11 @@ module Baserow
 
     # Get the field ID for a given field name
     def get_field_id(field_name)
-      field = @fields[field_name]
-      return field[:id] if field
-
-      # If fields haven't been loaded yet or field name isn't found, reload fields
-      load_fields
-      field = @fields[field_name]
+      # Utiliser le getter 'fields' qui charge automatiquement si besoin (lazy loading)
+      field = fields[field_name]
 
       unless field
-        available_fields = @fields.keys.join(', ')
+        available_fields = fields.keys.join(', ')
         raise ArgumentError, "Field '#{field_name}' not found. Available fields: #{available_fields}"
       end
 

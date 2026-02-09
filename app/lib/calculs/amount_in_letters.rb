@@ -24,7 +24,7 @@ module Calculs
       return unless label.include?('Montant') || label.include?('TVA')
 
       output["#{label} en lettres"] = [*value || 0].map(&:to_i).map(&:humanize).map(&:to_s)
-      output["#{label} en chiffres"] = [*value || 0].map { |v| number_to_currency(v, unit: '', separator: ',', delimiter: ' ', precision: 0) }
+      output["#{label} en chiffres"] = [*value || 0].map { |v| number_to_currency(v, format: '%n', separator: ',', delimiter: ' ', precision: 0) }
     end
   end
 end

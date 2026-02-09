@@ -39,19 +39,19 @@ module Baserow
 
     # Get a specific row
     def get_row(table_id, row_id)
-      response = make_request(:get, "/api/database/rows/table/#{table_id}/#{row_id}/")
+      response = make_request(:get, "/api/database/rows/table/#{table_id}/#{row_id}/?user_field_names=true")
       handle_response(response)
     end
 
     # Create a new row
     def create_row(table_id, data)
-      response = make_request(:post, "/api/database/rows/table/#{table_id}/", body: data.to_json)
+      response = make_request(:post, "/api/database/rows/table/#{table_id}/?user_field_names=true", body: data.to_json)
       handle_response(response)
     end
 
     # Update an existing row
     def update_row(table_id, row_id, data)
-      response = make_request(:patch, "/api/database/rows/table/#{table_id}/#{row_id}/", body: data.to_json)
+      response = make_request(:patch, "/api/database/rows/table/#{table_id}/#{row_id}/?user_field_names=true", body: data.to_json)
       handle_response(response)
     end
 

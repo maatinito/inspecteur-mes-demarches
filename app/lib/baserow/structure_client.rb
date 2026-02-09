@@ -94,6 +94,11 @@ module Baserow
       handle_response(response)
     end
 
+    def list_tables(database_id)
+      response = make_request(:get, "/api/database/tables/database/#{database_id}/")
+      handle_response(response)
+    end
+
     private
 
     def make_request(method, path, options = {})

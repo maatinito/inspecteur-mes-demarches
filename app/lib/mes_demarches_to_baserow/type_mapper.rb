@@ -8,7 +8,7 @@ module MesDemarchesToBaserow
       'TextChampDescriptor' => { type: 'text', config: {} }, # Texte court
       'TextareaChampDescriptor' => { type: 'long_text', config: {} }, # Texte long
       'IntegerNumberChampDescriptor' => { type: 'number', config: { number_decimal_places: 0 } },
-      'DecimalNumberChampDescriptor' => { type: 'number', config: { number_decimal_places: 2 } },
+      'DecimalNumberChampDescriptor' => { type: 'number', config: { number_decimal_places: 4 } }, # Augmenté à 4 pour les superficies
       'DateChampDescriptor' => { type: 'date', config: { date_format: 'EU', date_include_time: false } },
       'DatetimeChampDescriptor' => { type: 'date', config: { date_format: 'EU', date_include_time: true } },
       'CheckboxChampDescriptor' => { type: 'boolean', config: {} },
