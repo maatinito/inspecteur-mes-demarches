@@ -140,4 +140,38 @@ RSpec.describe FieldChecker do
       end
     end
   end
+
+  context 'civilite expansion' do
+    let(:checker) { FieldChecker.new({}) }
+
+    context 'expands M. to Monsieur' do
+      it 'returns Monsieur' do
+        expect(checker.send(:expand_civilite, 'M.')).to eq('Monsieur')
+      end
+    end
+
+    context 'expands M to Monsieur' do
+      it 'returns Monsieur' do
+        expect(checker.send(:expand_civilite, 'M')).to eq('Monsieur')
+      end
+    end
+
+    context 'expands Mme to Madame' do
+      it 'returns Madame' do
+        expect(checker.send(:expand_civilite, 'Mme')).to eq('Madame')
+      end
+    end
+
+    context 'expands Mlle to Madame' do
+      it 'returns Madame' do
+        expect(checker.send(:expand_civilite, 'Mlle')).to eq('Madame')
+      end
+    end
+
+    context 'returns unknown values unchanged' do
+      it 'returns the original value' do
+        expect(checker.send(:expand_civilite, 'Unknown')).to eq('Unknown')
+      end
+    end
+  end
 end

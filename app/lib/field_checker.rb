@@ -170,7 +170,7 @@ class FieldChecker < InspectorTask
     when 'CheckboxChamp', 'YesNoChamp'
       champ.value ? 'Oui' : 'Non'
     when 'CiviliteChamp'
-      champ.value.to_s
+      expand_civilite(champ.value.to_s)
     when 'MultipleDropDownListChamp'
       champ.values
     when 'LinkedDropDownListChamp'
@@ -295,6 +295,17 @@ class FieldChecker < InspectorTask
   end
 
   private
+
+  def expand_civilite(value)
+    case value
+    when 'M.', 'M'
+      'Monsieur'
+    when 'Mme', 'Mlle'
+      'Madame'
+    else
+      value
+    end
+  end
 
   def string_value_of(champ)
     champ.string_value
