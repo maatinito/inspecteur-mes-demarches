@@ -232,9 +232,21 @@ BASEROW_API_TOKEN=your_token
 BASEROW_TOKEN_TABLE=table_id
 ```
 
-### Fichier de configuration
+### Fichiers de configuration YAML
 
-Placer le fichier `auto-instructeur.yml` dans le répertoire `/storage` pour définir la liste des contrôles à effectuer.
+Les fichiers de configuration YAML définissent les contrôles automatiques à effectuer sur les dossiers. Ils doivent être placés dans `storage/configurations/`.
+
+**Documentation :**
+- [Guide complet de configuration YAML](docs/CONFIGURATION_GUIDE.md) - Syntaxe, FieldCheckers disponibles, exemples
+- [CLAUDE.md](CLAUDE.md) - Instructions pour Claude Code, incluant le processus de déploiement
+
+**Déploiement :**
+Les fichiers de configuration ne sont pas versionnés dans Git. Pour déployer :
+1. Développer dans `storage/configurations/`
+2. Copier vers `robot-mes-demarches-staging` (dev) ou `robot-mes-demarches-production` (master)
+3. Exécuter `mirror_staging.sh` ou `mirror_production.sh`
+
+Voir [CLAUDE.md](CLAUDE.md#configuration-deployment-process) pour les détails.
 
 ## Architecture
 

@@ -21,6 +21,23 @@ class PieceJustificativeCache
       end
     end
 
+    # Génère un fichier si absent du cache, sinon le retourne
+    # Le block doit retourner le contenu binaire à écrire
+    #
+    # Exemple :
+    #   path = PieceJustificativeCache.get_or_generate('qrcode.png', checksum) do
+    #     RQRCode::QRCode.new(data).as_png(size: 300).to_s
+    #   end
+    def get_or_generate(filename, checksum)
+      pathname = pathname(filename, checksum)
+      unless pathname.size?
+        content = yield # Le block génère le contenu
+        File.binwrite(pathname, content)
+        maintenance
+      end
+      pathname.to_s
+    end
+
     def put(src)
       dst = pathname(src, FileUpload.checksum(src))
       FileUtils.cp(src, dst)

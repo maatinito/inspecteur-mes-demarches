@@ -1,0 +1,49 @@
+# Exemple d'utilisation des QR codes dans PublipostageV3
+
+ma_configuration:
+  demarches: [12345]
+  email_instructeur: test@example.com
+
+  when_ok:
+    - publipostage_v3:
+        etat_du_dossier: en_instruction
+        message: "Votre document avec QR code"
+        modele: "mon_template.docx"
+        nom_fichier: "document_{numero}.docx"
+
+        champs:
+          - numero
+          - nom
+          - prenom
+
+        calculs:
+          # Exemple 1 : QR code simple avec URL
+          - qrcode:
+              colonne: "qrcode"
+              contenu: "https://www.mes-demarches.gov.pf/dossiers/{numero}"
+              taille: 300
+
+          # Exemple 2 : QR code avec préfixes (si numéro existe)
+          - qrcode:
+              colonne: "qrcode_reference"
+              contenu: "{Dossier n°;numero}"
+              taille: 250
+
+          # Exemple 3 : QR code avec données multiples
+          - qrcode:
+              colonne: "qrcode_contact"
+              contenu: "mailto:{email}?subject=Dossier {numero}"
+              taille: 200
+
+# Dans le template Word (mon_template.docx), utiliser :
+#
+# «@qrcode.image:start»[placeholder image ici]«@qrcode.image:end»
+#
+# Ou avec le lien en dessous :
+# «@qrcode.image:start»[img]«@qrcode.image:end»
+# Scannez ce code ou utilisez : «=qrcode.url»
+#
+# Conditionnel (si QR code existe) :
+# «qrcode:if(present?)»
+#   «@qrcode.image:start»[img]«@qrcode.image:end»
+# «qrcode:endIf»

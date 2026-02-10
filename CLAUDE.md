@@ -138,6 +138,24 @@ The application requires a configuration file named `auto-instructeur.yml` that 
 
 For detailed guidance on writing YAML configuration files for auto-instructeur, including syntax, available FieldCheckers, common patterns, and complete examples, see the **[Configuration Guide](docs/CONFIGURATION_GUIDE.md)**.
 
+### Configuration Deployment Process
+
+YAML configuration files are not versioned in Git (excluded via `.gitignore`). Follow this process to deploy configuration changes:
+
+1. **Development**: Create or modify YAML files in `storage/configurations/`
+   - Test locally to ensure the configuration works correctly
+   - Validate YAML syntax: `ruby -ryaml -e "YAML.load_file('storage/configurations/your_file.yml', aliases: true)"`
+
+2. **Copy to deployment repository**:
+   - **For dev branch configurations**: Copy or update the file in `robot-mes-demarches-staging`
+   - **For master branch configurations**: Copy or update the file in `robot-mes-demarches-production`
+
+3. **Deploy to servers**:
+   - **Staging**: Run `mirror_staging.sh` to push configuration files to staging servers
+   - **Production**: Run `mirror_production.sh` to push configuration files to production servers
+
+**Important**: Always deploy to staging first and verify the configuration works before deploying to production.
+
 ## Working with the Code
 
 When implementing a new check or task:

@@ -70,7 +70,7 @@ RSpec.describe Baserow::Client do
     describe '#create_row' do
       it 'makes a POST request to the rows endpoint with the provided data' do
         data = { name: 'Test Row' }
-        expected_url = "#{base_url}/api/database/rows/table/#{table_id}/"
+        expected_url = "#{base_url}/api/database/rows/table/#{table_id}/?user_field_names=true"
         expect(Typhoeus::Request).to receive(:new).with(
           expected_url,
           hash_including(method: :post, body: data.to_json)
@@ -83,7 +83,7 @@ RSpec.describe Baserow::Client do
     describe '#update_row' do
       it 'makes a PATCH request to the row endpoint with the provided data' do
         data = { name: 'Updated Row' }
-        expected_url = "#{base_url}/api/database/rows/table/#{table_id}/#{row_id}/"
+        expected_url = "#{base_url}/api/database/rows/table/#{table_id}/#{row_id}/?user_field_names=true"
         expect(Typhoeus::Request).to receive(:new).with(
           expected_url,
           hash_including(method: :patch, body: data.to_json)

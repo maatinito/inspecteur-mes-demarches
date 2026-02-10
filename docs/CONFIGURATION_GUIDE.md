@@ -820,3 +820,65 @@ bundle exec rake lint
    - Créer un dossier de test dans Mes-Démarches
    - Lancer la vérification manuellement
    - Vérifier les logs et les résultats
+
+## Déploiement d'une configuration
+
+Les fichiers de configuration YAML ne sont **pas versionnés dans Git** (exclus via `.gitignore`). Suivez ce processus pour déployer vos modifications de configuration :
+
+### Processus de déploiement
+
+#### 1. Développement local
+- Créer ou modifier les fichiers YAML dans `storage/configurations/`
+- Tester localement pour s'assurer que la configuration fonctionne correctement
+- Valider la syntaxe YAML :
+```bash
+ruby -ryaml -e "YAML.load_file('storage/configurations/votre_fichier.yml', aliases: true)"
+```
+
+#### 2. Copie vers le dépôt de déploiement
+Les configurations doivent être copiées dans les dépôts appropriés selon la branche cible :
+
+- **Pour les configurations basées sur la branche `dev`** :
+  - Copier ou mettre à jour le fichier dans le dépôt `robot-mes-demarches-staging`
+
+- **Pour les configurations basées sur la branche `master`** :
+  - Copier ou mettre à jour le fichier dans le dépôt `robot-mes-demarches-production`
+
+#### 3. Déploiement sur les serveurs
+Lancer le script de déploiement approprié :
+
+- **Staging** : Exécuter `mirror_staging.sh` pour pousser les fichiers vers les serveurs de staging
+- **Production** : Exécuter `mirror_production.sh` pour pousser les fichiers vers les serveurs de production
+
+### Bonnes pratiques de déploiement
+
+1. **Toujours déployer sur staging d'abord** : Testez vos configurations sur l'environnement de staging avant de déployer en production
+2. **Vérifier après déploiement** : Consultez les logs des serveurs pour confirmer que la configuration a été chargée correctement
+3. **Documenter les changements** : Ajoutez des commentaires dans le fichier YAML pour expliquer les modifications importantes
+4. **Backup** : Conservez une copie de l'ancienne configuration avant de la modifier, au cas où vous devriez revenir en arrière
+
+### Exemple de workflow complet
+
+```bash
+# 1. Développement et test local
+cd /path/to/inspecteur-mes-demarches
+vim storage/configurations/ma_config.yml
+ruby -ryaml -e "YAML.load_file('storage/configurations/ma_config.yml', aliases: true)"
+
+# 2. Copie vers staging
+cp storage/configurations/ma_config.yml /path/to/robot-mes-demarches-staging/storage/configurations/
+
+# 3. Déploiement staging
+cd /path/to/robot-mes-demarches-staging
+./mirror_staging.sh
+
+# 4. Vérification et tests sur staging
+# ... vérifier les logs et tester ...
+
+# 5. Copie vers production (si tests OK)
+cp storage/configurations/ma_config.yml /path/to/robot-mes-demarches-production/storage/configurations/
+
+# 6. Déploiement production
+cd /path/to/robot-mes-demarches-production
+./mirror_production.sh
+```
