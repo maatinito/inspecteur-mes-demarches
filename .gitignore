@@ -16,6 +16,7 @@
 # Ignore uploaded files in development
 /storage/*
 !/storage/.keep
+/Auto-Claude/
 
 /node_modules
 /yarn-error.log
@@ -47,3 +48,4 @@ schema.json
 /lexpol/test_*.py
 /lexpol/modeles_daoeth/
 *Zone.Identifier
+*.pem
