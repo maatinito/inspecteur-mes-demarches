@@ -372,7 +372,12 @@ class Publipostage < FieldChecker
     # migrate data to ignore #checksum
     data.save if data.present? && data.data.delete('#checksum').present?
 
-    same = data.present? && JSON.parse(data.data.to_json) == JSON.parse(stable_fields.to_json)
+    # Normaliser les civilités pour comparaison (M./Mme → Monsieur/Madame)
+    # Cela évite de régénérer les documents uniquement à cause du changement de format des civilités
+    normalized_old = data.present? ? normalize_civilites_in_data(data.data) : nil
+    normalized_new = normalize_civilites_in_data(stable_fields)
+
+    same = normalized_old.present? && JSON.parse(normalized_old.to_json) == JSON.parse(normalized_new.to_json)
     if same
       Rails.logger.info('Canceling publipost as input data coming from dossier is the same as before')
     else
@@ -612,5 +617,37 @@ class Publipostage < FieldChecker
     return nil unless @sender
 
     @sender_id ||= DemarcheActions.get_graphql_demarche(demarche_id).groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == @sender }&.id
+  end
+
+  # Normalise récursivement les civilités dans les données pour éviter les régénérations inutiles
+  # lors du passage de M./Mme à Monsieur/Madame
+  #
+  # Cette méthode transforme toutes les civilités courtes en forme longue dans les données,
+  # permettant une comparaison cohérente entre anciennes et nouvelles données.
+  def normalize_civilites_in_data(data)
+    case data
+    when Hash
+      data.transform_values { |v| normalize_civilites_in_data(v) }
+    when Array
+      data.map { |v| normalize_civilites_in_data(v) }
+    when String
+      normalize_civilite_value(data)
+    else
+      data
+    end
+  end
+
+  # Normalise une valeur de civilité individuelle
+  # M., M → Monsieur
+  # Mme, Mlle → Madame
+  def normalize_civilite_value(value)
+    case value
+    when 'M.', 'M'
+      'Monsieur'
+    when 'Mme', 'Mlle'
+      'Madame'
+    else
+      value
+    end
   end
 end
