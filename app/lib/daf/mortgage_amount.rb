@@ -13,7 +13,7 @@ module Daf
     private
 
     def amount
-      sum_of(:champs_source) - sum_of(:champs_prepaiement)
+      [0, sum_of(:champs_source) - sum_of(:champs_prepaiement)].max
     end
 
     def sum_of(champs)
