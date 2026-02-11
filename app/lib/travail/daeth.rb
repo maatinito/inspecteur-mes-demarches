@@ -277,8 +277,9 @@ module Travail
 
     def calculate_contract_dates(worker, dates)
       year_range = dates[:year_start]...dates[:year_end]
-      # Ajouter +1 car la date de fin de contrat est inclusive
-      contract_range = worker[:contract_begin]...(worker[:contract_end] + 1)
+      contract_begin = worker[:contract_begin] || dates[:year_start]
+      contract_end = normalize_end_date(worker[:contract_end], dates[:year_end])
+      contract_range = contract_begin...contract_end
       i = intersection(year_range, contract_range)
       {
         begin_date: i.begin,
