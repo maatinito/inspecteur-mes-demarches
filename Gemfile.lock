@@ -164,9 +164,9 @@ GEM
       devise (>= 4.9.0)
       rails-i18n
     diff-lcs (1.6.2)
-    docx (0.10.0)
+    docx (0.8.0)
       nokogiri (~> 1.13, >= 1.13.0)
-      rubyzip (>= 2.0, < 4)
+      rubyzip (~> 2.0)
     dotenv (3.2.0)
     dotenv-rails (3.2.0)
       dotenv (= 3.2.0)
@@ -397,12 +397,9 @@ GEM
       actionpack (>= 7.0)
       railties (>= 7.0)
     rexml (3.4.4)
-    roo (3.0.0)
-      base64 (~> 0.2)
-      csv (~> 3)
-      logger (~> 1)
+    roo (2.10.1)
       nokogiri (~> 1)
-      rubyzip (>= 3.0.0, < 4.0.0)
+      rubyzip (>= 1.3.0, < 3.0.0)
     roo-xls (2.0.0)
       csv
       nokogiri
@@ -480,10 +477,10 @@ GEM
     ruby-progressbar (1.13.0)
     ruby-rc4 (0.1.5)
     ruby2_keywords (0.0.5)
-    rubyXL (3.4.35)
+    rubyXL (3.4.34)
       nokogiri (>= 1.10.8)
-      rubyzip (>= 3.2.2)
-    rubyzip (3.2.2)
+      rubyzip (~> 2.4)
+    rubyzip (2.4.1)
     sablon (0.4.3)
       nokogiri (>= 1.8.5)
       rubyzip (>= 1.3.0)
@@ -591,7 +588,7 @@ DEPENDENCIES
   delayed_job_web
   devise (~> 4.7)
   devise-i18n
-  docx
+  docx (~> 0.8.0)
   dotenv-rails
   factory_bot_rails
   fugit
