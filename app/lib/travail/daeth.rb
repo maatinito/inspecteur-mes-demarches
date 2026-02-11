@@ -45,12 +45,16 @@ module Travail
 
     def in_excel(&block)
       champ = param_field(:champ_effectifs)
+      if champ.blank?
+        @msgs << "Champ #{@params[:champ_effectifs]} vide."
+        return block.call(nil)
+      end
       begin
         champ_files = champ.files
       rescue GraphQL::Client::InvariantError
         champ_files = [champ.file]
       end
-      if champ.blank? || champ.files.blank?
+      if champ_files.blank?
         @msgs << "Champ #{@params[:champ_effectifs]} vide."
         return block.call(nil)
       end
