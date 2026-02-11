@@ -12,7 +12,8 @@ module Daf
       champ_source = param_field(:champ_source)
       return if champ_source.blank?
 
-      champ_source.values
+      dest_field = fields_configuration.keys.first
+      champ_source.values.map { |v| { dest_field => v } }
     end
   end
 end

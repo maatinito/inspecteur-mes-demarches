@@ -487,12 +487,13 @@ class Publipostage < FieldChecker
 
   def convert_to_pdf(file)
     Rails.logger.info("Converting #{file} to pdf")
-    stdout_str, stderr_str, status = Open3.capture3(ENV.fetch('OFFICE_PATH', nil), '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, file)
-    if status != 0
-      Rails.logger.error("Unable to convert #{file} to pdf\n#{stdout_str}#{stderr_str}")
+    out, err, status = Open3.capture3(ENV.fetch('OFFICE_PATH', nil), '--headless', '--convert-to', 'pdf', '--outdir', OUTPUT_DIR, file)
+    pdf_path = File.join(OUTPUT_DIR, File.basename(file).sub(/\.\w+$/, '.pdf'))
+    unless status.success? && File.exist?(pdf_path)
+      Rails.logger.error("Unable to convert #{file} to pdf (status=#{status.exitstatus}, exists=#{File.exist?(pdf_path)})\n#{out}#{err}")
       return
     end
-    File.join(OUTPUT_DIR, File.basename(file).sub(/\.\w+$/, '.pdf'))
+    pdf_path
   end
 
   def get_fields(row, definitions, index)
