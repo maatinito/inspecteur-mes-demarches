@@ -372,10 +372,11 @@ class Publipostage < FieldChecker
     # migrate data to ignore #checksum
     data.save if data.present? && data.data.delete('#checksum').present?
 
-    # Normaliser les civilités pour comparaison (M./Mme → Monsieur/Madame)
-    # Cela évite de régénérer les documents uniquement à cause du changement de format des civilités
-    normalized_old = data.present? ? normalize_civilites_in_data(data.data) : nil
-    normalized_new = normalize_civilites_in_data(stable_fields)
+    # Normaliser les données pour comparaison afin d'éviter les régénérations inutiles :
+    # - Civilités : M./Mme → Monsieur/Madame
+    # - Dates : "09/02/2026 à 00h00" → "09/02/2026"
+    normalized_old = data.present? ? normalize_for_comparison(data.data) : nil
+    normalized_new = normalize_for_comparison(stable_fields)
 
     same = normalized_old.present? && JSON.parse(normalized_old.to_json) == JSON.parse(normalized_new.to_json)
     if same
@@ -619,35 +620,35 @@ class Publipostage < FieldChecker
     @sender_id ||= DemarcheActions.get_graphql_demarche(demarche_id).groupe_instructeurs.flat_map(&:instructeurs).find { |i| i.email == @sender }&.id
   end
 
-  # Normalise récursivement les civilités dans les données pour éviter les régénérations inutiles
-  # lors du passage de M./Mme à Monsieur/Madame
-  #
-  # Cette méthode transforme toutes les civilités courtes en forme longue dans les données,
-  # permettant une comparaison cohérente entre anciennes et nouvelles données.
-  def normalize_civilites_in_data(data)
+  # Normalise récursivement les données pour éviter les régénérations inutiles dues à :
+  # - Changement de format des civilités (M./Mme → Monsieur/Madame)
+  # - Changement de format des dates (ajout de l'heure : "09/02/2026 à 00h00" → "09/02/2026")
+  def normalize_for_comparison(data)
     case data
     when Hash
-      data.transform_values { |v| normalize_civilites_in_data(v) }
+      data.transform_values { |v| normalize_for_comparison(v) }
     when Array
-      data.map { |v| normalize_civilites_in_data(v) }
+      data.map { |v| normalize_for_comparison(v) }
     when String
-      normalize_civilite_value(data)
+      normalize_string_value(data)
     else
       data
     end
   end
 
-  # Normalise une valeur de civilité individuelle
-  # M., M → Monsieur
-  # Mme, Mlle → Madame
-  def normalize_civilite_value(value)
+  # Normalise une valeur string pour comparaison :
+  # - Civilités : M., M → Monsieur ; Mme, Mlle → Madame
+  # - Dates avec heure : "09/02/2026 à 00h00" → "09/02/2026"
+  def normalize_string_value(value)
+    # Normaliser les civilités
     case value
     when 'M.', 'M'
-      'Monsieur'
+      return 'Monsieur'
     when 'Mme', 'Mlle'
-      'Madame'
-    else
-      value
+      return 'Madame'
     end
+
+    # Normaliser les dates : supprimer la partie heure " à XXhXX"
+    value.sub(/ à \d{2}h\d{2}$/, '')
   end
 end
