@@ -26,6 +26,6 @@ class DossierPasserEnInstruction < DossierChangerEtat
         dossierId: dossier.id,
         instructeurId: instructeur_id_for(demarche, dossier)
       })
-    raise StandardError, result.errors if result.errors.present?
+    raise StandardError, result.errors.messages.values.join(', ') if result.errors.present?
   end
 end
