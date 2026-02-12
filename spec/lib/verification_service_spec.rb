@@ -5,68 +5,24 @@ require 'rails_helper'
 RSpec.describe VerificationService do
   let(:service) { VerificationService.new }
 
-  before do
-    VerificationService.clear_network_error_notifications
-  end
+  describe '.retry_reference_time' do
+    it 'returns BOOT_TIME when it is after last 8am' do
+      boot_time = VerificationService::BOOT_TIME
+      last_8am = Time.current.change(hour: 8)
+      last_8am -= 1.day if last_8am > Time.current
 
-  describe '#network_error?' do
-    it 'detects network errors' do
-      network_errors = [
-        StandardError.new('Connection refused'),
-        StandardError.new('Network timeout'),
-        StandardError.new('Host not found'),
-        StandardError.new('Connection timeout'),
-        StandardError.new('Socket error')
-      ]
-
-      network_errors.each do |error|
-        expect(service.network_error?(error)).to be true
-      end
+      result = VerificationService.retry_reference_time
+      expect(result).to eq([boot_time, last_8am].max)
     end
 
-    it 'does not detect non-network errors' do
-      non_network_errors = [
-        StandardError.new('Invalid data format'),
-        StandardError.new('Missing field'),
-        StandardError.new('Validation failed')
-      ]
-
-      non_network_errors.each do |error|
-        expect(service.network_error?(error)).to be false
-      end
-    end
-  end
-
-  describe '#should_notify_error?' do
-    let(:network_exception) { StandardError.new('Connection refused') }
-    let(:non_network_exception) { StandardError.new('Invalid data') }
-
-    it 'always allows notification for non-network errors' do
-      expect(service.should_notify_error?('Test error', non_network_exception)).to be true
-    end
-
-    it 'allows first notification for network errors' do
-      expect(service.should_notify_error?('Network error', network_exception)).to be true
-    end
-
-    it 'blocks repeated notifications within cooldown period' do
-      service.mark_error_notified('Network error', network_exception)
-      expect(service.should_notify_error?('Network error', network_exception)).to be false
-    end
-
-    it 'allows notification after cooldown period' do
-      service.mark_error_notified('Network error', network_exception)
-
-      # Simulate time passage
-      allow(Time).to receive(:current).and_return(2.hours.from_now)
-
-      expect(service.should_notify_error?('Network error', network_exception)).to be true
+    it 'returns a time that is not in the future' do
+      expect(VerificationService.retry_reference_time).to be <= Time.current
     end
   end
 
   describe '#report_error' do
     let(:mailer_double) { double('NotificationMailer') }
-    let(:network_exception) { StandardError.new('Connection refused') }
+    let(:exception) { StandardError.new('Something went wrong') }
 
     before do
       allow(NotificationMailer).to receive(:with).and_return(mailer_double)
@@ -74,19 +30,11 @@ RSpec.describe VerificationService do
       allow(mailer_double).to receive(:deliver_later)
     end
 
-    it 'sends notification for first network error' do
-      service.report_error('Network error', network_exception)
+    it 'sends notification' do
+      service.report_error('Error', exception)
 
       expect(NotificationMailer).to have_received(:with)
       expect(mailer_double).to have_received(:deliver_later)
-    end
-
-    it 'does not send notification for repeated network error within cooldown' do
-      service.report_error('Network error', network_exception)
-      service.report_error('Network error', network_exception)
-
-      expect(NotificationMailer).to have_received(:with).once
-      expect(mailer_double).to have_received(:deliver_later).once
     end
   end
 end

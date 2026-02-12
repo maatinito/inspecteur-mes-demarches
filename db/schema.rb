@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 20_241_203_163_430) do
+ActiveRecord::Schema[7.2].define(version: 20_260_212_041_933) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -36,6 +36,7 @@ ActiveRecord::Schema[7.0].define(version: 20_241_203_163_430) do
     t.integer 'demarche_id'
     t.boolean 'failed'
     t.boolean 'posted', default: false
+    t.datetime 'failed_at'
     t.index %w[dossier checker], name: 'unicity', unique: true
     t.index ['dossier'], name: 'by_dossier'
   end

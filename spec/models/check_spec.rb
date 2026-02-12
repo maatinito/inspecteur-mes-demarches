@@ -9,6 +9,7 @@
 #  checker     :string
 #  dossier     :integer
 #  failed      :boolean
+#  failed_at   :datetime
 #  posted      :boolean          default(FALSE)
 #  version     :bigint           default(1)
 #  created_at  :datetime         not null

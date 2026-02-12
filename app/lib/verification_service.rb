@@ -4,8 +4,13 @@ class VerificationService
   attr_reader :messages, :user_email
 
   @@config = nil
-  @@network_error_notified = {}
-  NETWORK_ERROR_COOLDOWN = 1.hour
+  BOOT_TIME = Time.current
+
+  def self.retry_reference_time
+    last_8am = Time.current.change(hour: 8)
+    last_8am -= 1.day if last_8am > Time.current
+    [BOOT_TIME, last_8am].max
+  end
 
   def initialize(user_email = nil)
     @user_email = user_email
@@ -48,50 +53,7 @@ class VerificationService
   end
 
   def report_error(message, exception)
-    return unless should_notify_error?(message, exception)
-
     NotificationMailer.with(error_params(message, exception)).report_error.deliver_later
-    mark_error_notified(message, exception)
-  end
-
-  def should_notify_error?(message, exception)
-    return true unless network_error?(exception)
-
-    error_key = network_error_key(message, exception)
-    last_notification = @@network_error_notified[error_key]
-
-    last_notification.nil? || last_notification < NETWORK_ERROR_COOLDOWN.ago
-  end
-
-  def mark_error_notified(message, exception)
-    return unless network_error?(exception)
-
-    error_key = network_error_key(message, exception)
-    @@network_error_notified[error_key] = Time.current
-  end
-
-  def network_error?(exception)
-    network_error_patterns = [
-      /connection/i,
-      /timeout/i,
-      /network/i,
-      /host/i,
-      /resolve/i,
-      /refused/i,
-      /unreachable/i,
-      /socket/i
-    ]
-
-    error_message = exception.message.to_s
-    network_error_patterns.any? { |pattern| error_message.match?(pattern) }
-  end
-
-  def network_error_key(message, exception)
-    "#{message}_#{exception.class.name}".downcase.gsub(/[^a-z0-9_]/, '_')
-  end
-
-  def self.clear_network_error_notifications
-    @@network_error_notified.clear
   end
 
   def post_message(dossier_number)
@@ -229,6 +191,7 @@ class VerificationService
   def failed_checks
     Check
       .where(failed: true, demarche: [*@procedure['demarches']])
+      .where(Check.arel_table[:failed_at].lt(self.class.retry_reference_time))
       .select(:dossier, :demarche_id)
       .distinct
   end
@@ -345,7 +308,7 @@ class VerificationService
   end
 
   def check_obsolete?(check, control, md_dossier)
-    check.failed ||
+    (check.failed && check.failed_at.present? && check.failed_at < self.class.retry_reference_time) ||
       check.checked_at < DateTime.parse(md_dossier.date_derniere_modification) ||
       check.version != control.version
   end
@@ -390,9 +353,11 @@ class VerificationService
 
   def apply_task(demarche, task, md_dossier, check)
     check.failed = !task.valid?
+    check.failed_at = nil unless check.failed
     task.process(demarche, md_dossier) if task.valid?
   rescue StandardError => e
     check.failed = true
+    check.failed_at = Time.current
     raise e unless Rails.env.production?
 
     report_error('Error applying task', e)
@@ -401,6 +366,7 @@ class VerificationService
   def apply_control(control, md_dossier, check)
     previous_failed = check.failed
     check.failed = !control.valid?
+    check.failed_at = nil unless check.failed
     if control.valid?
       control.control(md_dossier)
       update_check_messages(check, control)
@@ -413,6 +379,7 @@ class VerificationService
     end
   rescue StandardError => e
     check.failed = true
+    check.failed_at = Time.current
     raise e unless Rails.env.production?
 
     report_error('Error applying control', e)
