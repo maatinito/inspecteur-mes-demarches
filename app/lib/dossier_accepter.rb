@@ -19,7 +19,7 @@ class DossierAccepter < DossierChangerEtat
           instructeurId: instructeur_id_for(demarche, dossier),
           motivation:
         })
-      raise StandardError, result.errors if result.errors.present?
+      raise StandardError, result.errors.messages.values.join(', ') if result.errors.present?
     when 'accepte'
       Rails.logger.info('Dossier ignoré car déjà accepté')
     else
