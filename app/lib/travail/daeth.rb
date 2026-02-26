@@ -128,7 +128,7 @@ module Travail
       worker_rates = dw.map do |worker|
         if worker[:contract_type] == CONTRACT_SITH
           @msgs << "Travailleur #{worker[:contract_type]} ignoré"
-          next 0
+          next 0.0
         end
 
         year_presence_rate = compute_year_presence_rate(worker)
