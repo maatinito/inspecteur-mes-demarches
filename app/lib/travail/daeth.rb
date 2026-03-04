@@ -17,7 +17,7 @@ module Travail
     TOTAL = 'Montant total'
 
     def version
-      super + 1
+      super + 2
     end
 
     def required_fields

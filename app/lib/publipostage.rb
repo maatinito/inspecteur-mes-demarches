@@ -375,14 +375,14 @@ class Publipostage < FieldChecker
     # Normaliser les données pour comparaison afin d'éviter les régénérations inutiles :
     # - Civilités : M./Mme → Monsieur/Madame
     # - Dates : "09/02/2026 à 00h00" → "09/02/2026"
-    normalized_old = data.present? ? normalize_for_comparison(data.data) : nil
-    normalized_new = normalize_for_comparison(stable_fields)
+    normalized_old = data.present? ? normalize_for_comparison(JSON.parse(data.data.to_json)) : nil
+    normalized_new = normalize_for_comparison(JSON.parse(stable_fields.to_json))
 
-    same = normalized_old.present? && JSON.parse(normalized_old.to_json) == JSON.parse(normalized_new.to_json)
+    same = normalized_old.present? && normalized_old == normalized_new
     if same
       Rails.logger.info('Canceling publipost as input data coming from dossier is the same as before')
     else
-      log_data_differences(data&.data, stable_fields, label)
+      log_data_differences(normalized_old, normalized_new, label)
       @publiposts[label] = stable_fields
     end
     same
