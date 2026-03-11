@@ -274,7 +274,18 @@ class FieldChecker < InspectorTask
     d.data.dossier.instructeurs.first&.id
   end
 
-  def instanciate(template, source = nil)
+  def instanciate(template, source = nil, max_depth: 5)
+    result = instanciate_once(template, source)
+    depth = 0
+    while result != template && result.match?(/{[^{}]+}/) && depth < max_depth
+      template = result
+      result = instanciate_once(template, source)
+      depth += 1
+    end
+    result
+  end
+
+  def instanciate_once(template, source)
     # Traiter les expressions ternaires en premier
     template = process_ternary_expressions(template, source)
 

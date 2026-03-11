@@ -139,6 +139,46 @@ RSpec.describe FieldChecker do
         end
       end
     end
+
+    context 'recursive resolution' do
+      let(:source) do
+        {
+          'Réserve' => 'Respecter les recommandations de l\'arrêté n°{Paramètre}',
+          'Paramètre' => '345CM du 20 janvier 2000'
+        }
+      end
+
+      context 'resolves nested placeholders' do
+        let(:template) { '{Réserve}' }
+        it 'replaces placeholder in resolved value' do
+          expect(subject).to eq('Respecter les recommandations de l\'arrêté n°345CM du 20 janvier 2000')
+        end
+      end
+
+      context 'resolves with prefix/suffix' do
+        let(:source) do
+          {
+            'A' => 'valeur de {B}',
+            'B' => '{C} final',
+            'C' => 'résolu'
+          }
+        end
+        let(:template) { '{A}' }
+        it 'resolves multiple levels' do
+          expect(subject).to eq('valeur de résolu final')
+        end
+      end
+
+      context 'stops at max depth' do
+        let(:source) do
+          { 'A' => '{A}' }
+        end
+        let(:template) { '{A}' }
+        it 'does not loop infinitely' do
+          expect(subject).to eq('{A}')
+        end
+      end
+    end
   end
 
   context 'civilite expansion' do
