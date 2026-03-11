@@ -59,6 +59,14 @@ bundle exec rubocop --parallel
 bundle exec scss-lint app/assets/stylesheets/
 ```
 
+### Useful Scripts
+
+```bash
+# Describe all fields (champs + annotations) of a démarche via GraphQL
+bin/describe_demarche <numero_demarche>
+# Example: bin/describe_demarche 3194
+```
+
 ### Jobs
 
 ```bash

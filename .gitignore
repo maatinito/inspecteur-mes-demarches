@@ -42,6 +42,12 @@ yarn-debug.log*
 /robot-mes-demarches-staging/
 schema.json
 /lexpol/.env
+/lexpol/tools/.env
+/lexpol/tools/venv/
+/lexpol/tools/__pycache__/
+/lexpol/tools/*.log
+/lexpol/tools/*.csv
+/lexpol/tools/comparison_output/
 /lexpol/venv/
 /lexpol/__pycache__/
 /lexpol/lexpol_variables_*.csv
@@ -49,3 +55,9 @@ schema.json
 /lexpol/modeles_daoeth/
 *Zone.Identifier
 *.pem
+
+# Fichiers temporaires de debug/test à la racine
+/debug_*.rb
+/test_*.rb
+/analyze_*.rb
+production.log
