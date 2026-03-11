@@ -87,6 +87,16 @@ class PieceJustificativeFile
     tabular_file?
   end
 
+  # Sérialisation stable pour JSON/JSONB (utilisé par DossierData et les comparaisons).
+  # Retourne uniquement les métadonnées stables, sans données binaires ni URL temporaire.
+  def as_json(_options = nil)
+    {
+      'checksum' => @file.checksum,
+      'filename' => @filename,
+      'byte_size' => @file.byte_size
+    }
+  end
+
   private
 
   def image_file?

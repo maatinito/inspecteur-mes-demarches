@@ -37,10 +37,11 @@ class BaserowSync < FieldChecker
     super
 
     # Validation des paramètres (pattern standard: @errors au lieu de raise)
-    @errors << "Configuration 'baserow.table_id' manquante sur baserow_sync" unless @params[:baserow]&.[](:table_id)
+    # Note: les sous-hash YAML arrivent avec des clés string, pas symbol
+    @errors << "Configuration 'baserow.table_id' manquante sur baserow_sync" unless @params[:baserow]&.[]('table_id')
 
-    if @params.dig(:options, :include_repetable_blocks) == true
-      blocks = @params.dig(:options, :repetable_blocks)
+    if @params.dig(:options, 'include_repetable_blocks') == true
+      blocks = @params.dig(:options, 'repetable_blocks')
       @errors << "Configuration 'options.repetable_blocks' invalide ou vide sur baserow_sync" if blocks.nil? || !blocks.is_a?(Array) || blocks.empty?
     end
 
@@ -71,6 +72,6 @@ class BaserowSync < FieldChecker
     Sentry.capture_exception(e, extra: { dossier: dossier.number, demarche: demarche.id })
 
     # Continuer ou lever l'erreur selon la config
-    raise unless @params.dig(:options, :continuer_si_erreur) == true
+    raise unless @params.dig(:options, 'continuer_si_erreur') == true
   end
 end

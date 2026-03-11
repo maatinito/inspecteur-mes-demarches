@@ -105,13 +105,8 @@ module Daf
       source_champ.files
     end
 
-    def image_file_by_name?(filename)
+    def image_file?(filename)
       ext = File.extname(filename).downcase
-      IMAGE_EXTENSIONS.include?(ext)
-    end
-
-    def image_file?(path)
-      ext = File.extname(path).downcase
       IMAGE_EXTENSIONS.include?(ext)
     end
 
@@ -316,7 +311,7 @@ module Daf
     # rubocop:enable Naming/PredicateMethod
 
     def orders
-      rows = param_field(:champ_source)&.rows
+      rows = param_field(:champ_source)&.rows || param_annotation(:champ_source)&.rows
       return [] if rows.blank?
 
       rows.map { |row| extract_row_data(row) }

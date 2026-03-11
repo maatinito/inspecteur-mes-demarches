@@ -175,28 +175,6 @@ RSpec.describe Daf::CopyOrder do
     end
   end
 
-  describe '#image_file_by_name?' do
-    let(:controle) { FactoryBot.build(:copy_order) }
-
-    Daf::CopyOrder::IMAGE_EXTENSIONS.each do |ext|
-      it "returns true for #{ext} files" do
-        expect(controle.send(:image_file_by_name?, "file#{ext}")).to be true
-      end
-
-      it "returns true for #{ext.upcase} files (case insensitive)" do
-        expect(controle.send(:image_file_by_name?, "file#{ext.upcase}")).to be true
-      end
-    end
-
-    it 'returns false for PDF files' do
-      expect(controle.send(:image_file_by_name?, 'file.pdf')).to be false
-    end
-
-    it 'returns false for DOCX files' do
-      expect(controle.send(:image_file_by_name?, 'file.docx')).to be false
-    end
-  end
-
   describe '#convert_file_to_pdf' do
     let(:controle) { FactoryBot.build(:copy_order) }
 

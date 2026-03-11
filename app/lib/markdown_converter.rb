@@ -35,8 +35,13 @@ class MarkdownConverter
     return text unless text.is_a?(String)
     return text if text.blank?
 
+    # S'assurer que les titres (#, ##, ###...) sont précédés d'une ligne vide
+    # pour que Kramdown les traite comme des blocs séparés et non comme du contenu
+    # imbriqué dans une liste précédente (ce qui génère <h3> dans <li>, interdit par Sablon)
+    prepared = text.gsub(/(\S[^\n]*)\n(#+\s)/, "\\1\n\n\\2")
+
     html = Kramdown::Document.new(
-      text,
+      prepared,
       input: 'GFM',                # GitHub Flavored Markdown
       hard_wrap: true,             # Convertit les line breaks en <br>
       syntax_highlighter: nil,     # Désactive highlighting (sécurité)
