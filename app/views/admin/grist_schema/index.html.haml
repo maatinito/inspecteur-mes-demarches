@@ -1,0 +1,481 @@
+- content_for :title, "Créateur de schéma Grist"
+
+.container-fluid
+  .row
+    .col
+      %h2.mb-4 Créateur de schéma Grist
+      %p.text-muted
+        Cette interface permet de créer automatiquement des colonnes dans une table Grist
+        basées sur les champs et annotations d'une démarche Mes-Démarches.
+      .alert.alert-info
+        %i.fas.fa-info-circle.mr-2
+        Cette page crée les colonnes de la table principale.
+        = link_to "Gérer les blocs répétables →", repetable_blocks_admin_grist_schema_index_path, class: "alert-link"
+
+  %form#sync-form
+    .row
+      .col-md-6
+        .card.mb-4
+          .card-header
+            %h5.mb-0 Configuration de la démarche
+          .card-body
+            .form-group
+              %label{ for: "demarche_number" } Numéro de démarche *
+              %input.form-control#demarche_number{ type: "number", required: true, placeholder: "Ex: 1234" }
+              %small.form-text.text-muted Les erreurs d'accès seront affichées lors de l'aperçu/construction
+
+            .form-group.mb-4
+              %label Colonnes à créer
+              .form-check
+                %input.form-check-input#include_identity_info{ type: "checkbox" }
+                %label.form-check-label{ for: "include_identity_info" } Informations système (n° dossier, dates, etc.)
+              .form-check
+                %input.form-check-input#include_fields{ type: "checkbox", checked: true }
+                %label.form-check-label{ for: "include_fields" } Champs du formulaire
+              .form-check
+                %input.form-check-input#include_annotations{ type: "checkbox" }
+                %label.form-check-label{ for: "include_annotations" } Annotations privées
+              .form-check
+                %input.form-check-input#show_all_fields{ type: "checkbox" }
+                %label.form-check-label{ for: "show_all_fields" }
+                  Afficher tous les champs (inclure les champs déjà existants)
+
+            .form-group.mb-4#demandeur-type-group{ style: "display: none;" }
+              %label Type de demandeur
+              %small.form-text.text-muted Choisissez le type de demandeur configuré pour cette démarche
+              .form-check
+                %input.form-check-input#demandeur_personne_physique{ type: "radio", name: "demandeur_type", value: "personne_physique", checked: true }
+                %label.form-check-label{ for: "demandeur_personne_physique" }
+                  Personne physique
+                  %small.text-muted (civilité, nom, prénom)
+              .form-check
+                %input.form-check-input#demandeur_personne_morale{ type: "radio", name: "demandeur_type", value: "personne_morale" }
+                %label.form-check-label{ for: "demandeur_personne_morale" }
+                  Personne morale
+                  %small.text-muted (N° TAHITI, NAF, raison sociale)
+
+            .form-group
+              %label{ for: "collision_strategy" } Stratégie en cas de conflit
+              %select.form-control#collision_strategy
+                %option{ value: "skip" } Ignorer si la colonne existe
+                %option{ value: "rename" } Renommer automatiquement
+                %option{ value: "error" } Lever une erreur
+
+      .col-md-6
+        .card.mb-4
+          .card-header
+            %h5.mb-0 Configuration Grist
+          .card-body
+            .form-group
+              %label{ for: "org_select" } Organisation Grist *
+              %select.form-control#org_select{ required: true }
+                %option{ value: "" } Chargement...
+              %small.form-text.text-muted Seules les organisations accessibles apparaissent
+
+            .form-group
+              %label{ for: "workspace_select" } Workspace *
+              %select.form-control#workspace_select{ required: true, disabled: true }
+                %option{ value: "" } Sélectionnez d'abord une organisation
+
+            .form-group
+              %label{ for: "doc_select" } Document *
+              %select.form-control#doc_select{ required: true, disabled: true }
+                %option{ value: "" } Sélectionnez d'abord un workspace
+
+            .form-group
+              %label{ for: "table_select" } Table de destination *
+              %select.form-control#table_select{ required: true, disabled: true }
+                %option{ value: "" } Sélectionnez d'abord un document
+
+    .row
+      .col
+        .card.mb-4#preview-card{ style: "display: none;" }
+          .card-header
+            %h5.mb-0 Aperçu des colonnes à créer
+          .card-body
+            .mb-3#selection-controls{ style: "display: none;" }
+              %button.btn.btn-sm.btn-outline-primary.mr-2#select-all{ type: "button" }
+                %i.fas.fa-check-square.mr-1
+                Tout sélectionner
+              %button.btn.btn-sm.btn-outline-secondary#deselect-all{ type: "button" }
+                %i.fas.fa-square.mr-1
+                Tout désélectionner
+              %span.ml-3.text-muted
+                %span#selected-count 0
+                champ(s) sélectionné(s)
+            %div#preview-content
+
+    .row
+      .col.text-center
+        %button.btn.btn-success.mr-4#build-btn{ type: "button", disabled: true }
+          %i.fas.fa-hammer.mr-1
+          Créer les colonnes
+        %button.btn.btn-outline-primary#preview-btn{ type: "button", disabled: true }
+          %i.fas.fa-eye.mr-1
+          Aperçu
+
+  .row
+    .col
+      %div#result-alert{ style: "display: none;" }
+
+:javascript
+  (function() {
+    var isInitialized = false;
+    let selectedFields = new Set();
+
+    function initializeGristSchema() {
+      if (!document.getElementById('org_select')) return;
+      if (isInitialized) return;
+      isInitialized = true;
+
+      const orgSelect = document.getElementById('org_select');
+      const workspaceSelect = document.getElementById('workspace_select');
+      const docSelect = document.getElementById('doc_select');
+      const tableSelect = document.getElementById('table_select');
+      const previewBtn = document.getElementById('preview-btn');
+      const buildBtn = document.getElementById('build-btn');
+      const previewCard = document.getElementById('preview-card');
+      const previewContent = document.getElementById('preview-content');
+      const resultAlert = document.getElementById('result-alert');
+
+      // Load organizations on page load
+      fetch('/admin/grist_schema/organizations', { credentials: 'same-origin' })
+        .then(response => response.json())
+        .then(data => {
+          orgSelect.innerHTML = "<option value=\"\">Sélectionnez une organisation</option>";
+          if (data.success) {
+            data.organizations.forEach(org => {
+              const option = document.createElement('option');
+              option.value = org.id;
+              option.textContent = org.name;
+              orgSelect.appendChild(option);
+            });
+          } else {
+            showError('Erreur lors du chargement des organisations: ' + data.error);
+          }
+        })
+        .catch(error => showError('Erreur réseau: ' + error.message));
+
+      // Organization → Workspaces
+      orgSelect.addEventListener('change', function() {
+        workspaceSelect.innerHTML = "<option value=\"\">Chargement...</option>";
+        workspaceSelect.disabled = true;
+        docSelect.innerHTML = "<option value=\"\">Sélectionnez d'abord un workspace</option>";
+        docSelect.disabled = true;
+        tableSelect.innerHTML = "<option value=\"\">Sélectionnez d'abord un document</option>";
+        tableSelect.disabled = true;
+        updateButtons();
+
+        if (this.value) {
+          fetch(`/admin/grist_schema/workspaces?org_id=${this.value}`, { credentials: 'same-origin' })
+            .then(response => response.json())
+            .then(data => {
+              workspaceSelect.innerHTML = "<option value=\"\">Sélectionnez un workspace</option>";
+              if (data.success) {
+                data.workspaces.forEach(ws => {
+                  const option = document.createElement('option');
+                  option.value = ws.id;
+                  option.textContent = ws.name;
+                  workspaceSelect.appendChild(option);
+                });
+                workspaceSelect.disabled = false;
+              } else {
+                showError('Erreur: ' + data.error);
+              }
+            })
+            .catch(error => showError('Erreur réseau: ' + error.message));
+        }
+      });
+
+      // Workspace → Documents
+      workspaceSelect.addEventListener('change', function() {
+        docSelect.innerHTML = "<option value=\"\">Chargement...</option>";
+        docSelect.disabled = true;
+        tableSelect.innerHTML = "<option value=\"\">Sélectionnez d'abord un document</option>";
+        tableSelect.disabled = true;
+        updateButtons();
+
+        if (this.value) {
+          fetch(`/admin/grist_schema/documents?workspace_id=${this.value}`, { credentials: 'same-origin' })
+            .then(response => response.json())
+            .then(data => {
+              docSelect.innerHTML = "<option value=\"\">Sélectionnez un document</option>";
+              if (data.success) {
+                data.documents.forEach(doc => {
+                  const option = document.createElement('option');
+                  option.value = doc.id;
+                  option.textContent = doc.name;
+                  docSelect.appendChild(option);
+                });
+                docSelect.disabled = false;
+              } else {
+                showError('Erreur: ' + data.error);
+              }
+            })
+            .catch(error => showError('Erreur réseau: ' + error.message));
+        }
+      });
+
+      // Document → Tables
+      docSelect.addEventListener('change', function() {
+        tableSelect.innerHTML = "<option value=\"\">Chargement...</option>";
+        tableSelect.disabled = true;
+        updateButtons();
+
+        if (this.value) {
+          fetch(`/admin/grist_schema/tables?doc_id=${this.value}`, { credentials: 'same-origin' })
+            .then(response => response.json())
+            .then(data => {
+              tableSelect.innerHTML = "<option value=\"\">Sélectionnez une table</option>";
+              if (data.success) {
+                data.tables.forEach(table => {
+                  const option = document.createElement('option');
+                  option.value = table.id;
+                  option.textContent = table.name;
+                  tableSelect.appendChild(option);
+                });
+                tableSelect.disabled = false;
+              } else {
+                showError('Erreur: ' + data.error);
+              }
+            })
+            .catch(error => showError('Erreur réseau: ' + error.message));
+        }
+      });
+
+      function updateButtons() {
+        const canPreview = document.getElementById('demarche_number').value &&
+                          docSelect.value && tableSelect.value &&
+                          !tableSelect.disabled;
+        previewBtn.disabled = !canPreview;
+        buildBtn.disabled = !canPreview;
+      }
+
+      ['demarche_number', 'table_select', 'include_fields', 'include_annotations', 'include_identity_info'].forEach(id => {
+        document.getElementById(id).addEventListener('change', updateButtons);
+      });
+
+      // Gestion visibilité type demandeur
+      const includeIdentityInfo = document.getElementById('include_identity_info');
+      const demandeurTypeGroup = document.getElementById('demandeur-type-group');
+      function toggleDemandeurTypeGroup() {
+        demandeurTypeGroup.style.display = includeIdentityInfo.checked ? 'block' : 'none';
+      }
+      includeIdentityInfo.addEventListener('change', toggleDemandeurTypeGroup);
+      toggleDemandeurTypeGroup();
+
+      // Filtre champs existants
+      const showAllFields = document.getElementById('show_all_fields');
+      showAllFields.addEventListener('change', function() { filterPreviewFields(this.checked); });
+
+      function filterPreviewFields(showAll) {
+        const rows = document.querySelectorAll('#preview-table tbody tr');
+        rows.forEach(row => {
+          const existsInGrist = row.dataset.existsInGrist === 'true';
+          row.style.display = (!showAll && existsInGrist) ? 'none' : '';
+        });
+        updateSelectedCount();
+      }
+
+      window.handleFieldCheckbox = function(checkbox) {
+        if (checkbox.checked) { selectedFields.add(checkbox.dataset.fieldName); }
+        else { selectedFields.delete(checkbox.dataset.fieldName); }
+        updateSelectedCount();
+      };
+
+      document.getElementById('select-all').addEventListener('click', function() {
+        document.querySelectorAll('.field-checkbox:not(:disabled)').forEach(cb => {
+          if (cb.closest('tr').style.display !== 'none') {
+            cb.checked = true;
+            selectedFields.add(cb.dataset.fieldName);
+          }
+        });
+        updateSelectedCount();
+      });
+
+      document.getElementById('deselect-all').addEventListener('click', function() {
+        document.querySelectorAll('.field-checkbox:not(:disabled)').forEach(cb => {
+          if (cb.closest('tr').style.display !== 'none') {
+            cb.checked = false;
+            selectedFields.delete(cb.dataset.fieldName);
+          }
+        });
+        updateSelectedCount();
+      });
+
+      function updateSelectedCount() {
+        document.getElementById('selected-count').textContent = selectedFields.size;
+      }
+
+      // Preview
+      previewBtn.addEventListener('click', function() {
+        const formData = getFormData();
+        previewBtn.disabled = true;
+        previewBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Chargement...";
+
+        fetch('/admin/grist_schema/preview', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => { data.success ? showPreview(data.preview) : showError('Erreur: ' + data.error); })
+        .catch(error => showError('Erreur réseau: ' + error.message))
+        .finally(() => { previewBtn.disabled = false; previewBtn.innerHTML = "<i class=\"fas fa-eye mr-1\"></i>Aperçu"; });
+      });
+
+      // Build
+      buildBtn.addEventListener('click', function() {
+        if (!confirm('Confirmer la création des colonnes ? Les colonnes seront créées dans Grist.')) return;
+
+        const formData = getFormData();
+        buildBtn.disabled = true;
+        buildBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Création en cours...";
+
+        fetch('/admin/grist_schema/build', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => { data.success ? showSuccess(data.report) : showError('Erreur: ' + data.error); })
+        .catch(error => showError('Erreur réseau: ' + error.message))
+        .finally(() => { buildBtn.disabled = false; buildBtn.innerHTML = "<i class=\"fas fa-hammer mr-1\"></i>Créer les colonnes"; });
+      });
+
+      function getFormData() {
+        const data = {
+          demarche_number: document.getElementById('demarche_number').value,
+          doc_id: docSelect.value,
+          table_id: tableSelect.value,
+          include_fields: document.getElementById('include_fields').checked,
+          include_annotations: document.getElementById('include_annotations').checked,
+          include_identity_info: document.getElementById('include_identity_info').checked,
+          collision_strategy: document.getElementById('collision_strategy').value,
+          selected_fields: Array.from(selectedFields)
+        };
+        if (data.include_identity_info) {
+          const demandeurType = document.querySelector('input[name="demandeur_type"]:checked');
+          data.demandeur_type = demandeurType ? demandeurType.value : 'mixte';
+        }
+        return data;
+      }
+
+      function showPreview(preview) {
+        selectedFields.clear();
+        const fieldNames = preview.fields.map(f => f.field_name);
+        const duplicates = fieldNames.filter((name, i) => fieldNames.indexOf(name) !== i);
+        const uniqueDuplicates = [...new Set(duplicates)];
+
+        let html = '<div class="row">' +
+          '<div class="col-md-3"><div class="card bg-light"><div class="card-body text-center"><h5>' + preview.total_fields + '</h5><p class="card-text">Champs total</p></div></div></div>' +
+          '<div class="col-md-3"><div class="card bg-success text-white"><div class="card-body text-center"><h5>' + preview.supported_fields + '</h5><p class="card-text">Supportés</p></div></div></div>' +
+          '<div class="col-md-3"><div class="card bg-info text-white"><div class="card-body text-center"><h5>' + preview.unsupported_fields + '</h5><p class="card-text">Non supportés</p></div></div></div>' +
+          '<div class="col-md-3"><div class="card ' + (uniqueDuplicates.length > 0 ? 'bg-warning' : 'bg-secondary') + ' text-white"><div class="card-body text-center"><h5>' + uniqueDuplicates.length + '</h5><p class="card-text">Doublons</p></div></div></div>' +
+        '</div>';
+
+        const existingCount = preview.existing_fields || 0;
+        const newCount = preview.new_fields || 0;
+        if (existingCount > 0 || newCount > 0) {
+          html += '<div class="row mt-3">' +
+            '<div class="col-md-6"><div class="card border-primary"><div class="card-body text-center"><h5 class="text-primary">' + newCount + '</h5><p class="card-text">Nouveaux champs</p></div></div></div>' +
+            '<div class="col-md-6"><div class="card border-secondary"><div class="card-body text-center"><h5 class="text-secondary">' + existingCount + '</h5><p class="card-text">Champs existants</p></div></div></div>' +
+          '</div>';
+        }
+
+        if (uniqueDuplicates.length > 0) {
+          html += '<div class="alert alert-warning mt-3"><h6><i class="fas fa-exclamation-triangle"></i> Noms dupliqués</h6><p>Champs avec noms identiques : <strong>' + uniqueDuplicates.join(', ') + '</strong></p></div>';
+        }
+
+        if (preview.fields.length > 0) {
+          html += '<h6 class="mt-3">Détail des champs :</h6><div class="table-responsive"><table class="table table-sm" id="preview-table"><thead><tr>' +
+            '<th><input type="checkbox" id="toggle-all"></th><th>Nom</th><th>Type MD</th><th>Type technique</th><th>Type Grist</th><th>Existe</th><th>Statut</th>' +
+            '</tr></thead><tbody>';
+
+          preview.fields.forEach(field => {
+            const statusClass = field.supported ? 'text-success' : 'text-info';
+            const statusText = field.supported ? 'Supporté' : 'Non supporté';
+            const isDuplicate = uniqueDuplicates.includes(field.field_name);
+            const existsInGrist = field.exists_in_grist || false;
+            const isMandatory = field.is_mandatory || false;
+            const isChecked = !existsInGrist && field.supported;
+            const rowClass = isDuplicate ? ' class="table-warning"' : '';
+
+            if (isChecked && !isMandatory) selectedFields.add(field.field_name);
+
+            let mdType = '', mdBadgeClass = '';
+            switch(field.category) {
+              case 'champ': mdType = 'champ'; mdBadgeClass = 'text-bg-success'; break;
+              case 'annotation': mdType = 'annotation'; mdBadgeClass = 'text-bg-warning'; break;
+              case 'système': mdType = 'système'; mdBadgeClass = 'text-bg-info'; break;
+              default: mdType = field.category || 'inconnu'; mdBadgeClass = 'text-bg-secondary';
+            }
+
+            html += '<tr' + rowClass + ' data-exists-in-grist="' + existsInGrist + '">' +
+              '<td><input type="checkbox" class="field-checkbox" data-field-name="' + field.field_name + '" ' +
+              (isMandatory ? 'disabled checked title="Champ obligatoire"' : (isChecked ? 'checked' : '')) +
+              ' onchange="handleFieldCheckbox(this)"></td>' +
+              '<td><strong>' + field.field_name + '</strong>' + (isMandatory ? ' <span class="badge badge-danger">Obligatoire</span>' : '') + '</td>' +
+              '<td><span class="badge ' + mdBadgeClass + '">' + mdType + '</span></td>' +
+              '<td><code>' + field.mes_demarches_type.replace('ChampDescriptor', '') + '</code></td>' +
+              '<td>' + (field.supported ? '<code>' + (field.grist_type || '-') + '</code>' : '-') + '</td>' +
+              '<td>' + (existsInGrist ? '<span class="badge badge-secondary">Oui</span>' : '-') + '</td>' +
+              '<td class="' + statusClass + '">' + statusText + '</td></tr>';
+          });
+          html += '</tbody></table></div>';
+        }
+
+        previewContent.innerHTML = html;
+        previewCard.style.display = 'block';
+        document.getElementById('selection-controls').style.display = 'block';
+        updateSelectedCount();
+        filterPreviewFields(document.getElementById('show_all_fields').checked);
+
+        document.getElementById('toggle-all').addEventListener('change', function() {
+          document.querySelectorAll('.field-checkbox:not(:disabled)').forEach(cb => {
+            if (cb.closest('tr').style.display !== 'none') {
+              cb.checked = this.checked;
+              if (this.checked) selectedFields.add(cb.dataset.fieldName);
+              else selectedFields.delete(cb.dataset.fieldName);
+            }
+          });
+          updateSelectedCount();
+        });
+      }
+
+      function showSuccess(report) {
+        let html = '<div class="alert alert-success alert-dismissible" role="alert">' +
+          '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+          '<h5><i class="fas fa-check-circle"></i> Création des colonnes réussie !</h5>' +
+          '<p><strong>' + report.fields_created.length + '</strong> colonnes créées, ' +
+          '<strong>' + (report.fields_updated ? report.fields_updated.length : 0) + '</strong> mises à jour, ' +
+          '<strong>' + report.fields_skipped.length + '</strong> ignorées</p>';
+
+        if (report.fields_created.length > 0) {
+          html += '<h6>Colonnes créées :</h6><ul>';
+          report.fields_created.forEach(f => { html += '<li><strong>' + f.name + '</strong> (' + f.type + ') - ' + f.original_label + '</li>'; });
+          html += '</ul>';
+        }
+        if (report.fields_failed && report.fields_failed.length > 0) {
+          html += '<h6 class="text-danger">Erreurs :</h6><ul>';
+          report.fields_failed.forEach(f => { html += '<li><strong>' + f.name + '</strong>: ' + f.error + '</li>'; });
+          html += '</ul>';
+        }
+        html += '</div>';
+        resultAlert.innerHTML = html;
+        resultAlert.style.display = 'block';
+      }
+
+      function showError(message) {
+        resultAlert.innerHTML = '<div class="alert alert-danger alert-dismissible" role="alert">' +
+          '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+          '<h5><i class="fas fa-exclamation-triangle"></i> Erreur</h5><p>' + message + '</p></div>';
+        resultAlert.style.display = 'block';
+      }
+    }
+
+    document.addEventListener('turbolinks:load', function() {
+      isInitialized = false;
+      initializeGristSchema();
+    });
+  })();

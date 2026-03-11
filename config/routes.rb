@@ -27,6 +27,22 @@ Rails.application.routes.draw do
         post :build_repetable_blocks
       end
     end
+
+    resources :grist_schema, only: [:index] do
+      collection do
+        get :organizations
+        get :workspaces
+        get :documents
+        get :tables
+        post :preview
+        post :build
+
+        # Routes pour blocs répétables
+        get :repetable_blocks
+        post :preview_repetable_blocks
+        post :build_repetable_blocks
+      end
+    end
   end
 
   # view jobs
