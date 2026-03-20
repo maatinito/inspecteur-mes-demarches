@@ -30,7 +30,9 @@ class SetField < FieldChecker
     field = @params[:champ]
     value = @params[:valeur]
     value = instanciate(value) if value.is_a?(String)
-    value = decalage(annotation(field), value) if @shift
+    target_annotation = annotation(field)
+    value = cast_to_annotation_type(target_annotation, value) if value.is_a?(String)
+    value = decalage(target_annotation, value) if @shift
 
     # Vérifier si on doit modifier uniquement si le champ est vide
     if si_vide?
@@ -45,6 +47,21 @@ class SetField < FieldChecker
   end
 
   F2E = { jours: :days, mois: :months, annees: :years, heures: :hours, minutes: :minutes, semaines: :weeks }.freeze
+
+  def cast_to_annotation_type(target, value)
+    case target.__typename
+    when 'DateChamp'
+      Date.parse(value)
+    when 'DatetimeChamp'
+      Time.zone.parse(value)
+    when 'IntegerNumberChamp'
+      value.to_i
+    else
+      value
+    end
+  rescue ArgumentError
+    value
+  end
 
   def decalage(annotation, value)
     date = case annotation.__typename
