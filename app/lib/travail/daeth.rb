@@ -185,7 +185,7 @@ module Travail
     def default_numbers_based_on_excel
       in_excel do |sheet|
         {
-          YEAR => cell(sheet, @params[:cellule_annee], Date.today.year - 1),
+          YEAR => cell(sheet, @params[:cellule_annee], year_from_date_depot),
           FTE => cell(sheet, @params[:cellule_ETP], 0.0).to_f.round(3),
           ECAP_FTE => cell(sheet, @params[:cellule_ETP_ECAP], 0.0).to_f.round(3),
           ASSESSMENT_BASE => cell(sheet, @params[:cellule_assiette], 0.0).to_f.round(3),
@@ -338,7 +338,7 @@ module Travail
         payload = 1
         msg = STATUS_PENSION
       when STATUS_PDD
-        payload = worker[:annuity] && worker[:pdd_rate] > 20 ? 1 : 0
+        payload = worker[:annuity] && worker[:pdd_rate] >= 20 ? 1 : 0
         msg = "#{worker[:status]}: #{worker[:annuity] ? 'avec' : 'sans'} pension, #{worker[:pdd_rate]}% d'invalidité"
       when STATUS_COTOREP
         payload = worker[:cotorep_category] == 'C' ? 2 : 1
