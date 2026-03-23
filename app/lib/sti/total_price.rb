@@ -7,17 +7,19 @@ module Sti
     end
 
     TOTAL_PRICE = 'Prix total'
+    PAYMENT_REFERENCE = 'Références de transaction'
 
     def process(demarche, dossier)
       super
       return unless must_check?(dossier)
 
-      if annotation_already_set?(TOTAL_PRICE)
-        Rails.logger.info("Dossier ignored as #{name} is already set")
-        return
-      end
       if dossier.archived
         Rails.logger.info('Dossier ignored as it is archived')
+        return
+      end
+
+      if annotation(PAYMENT_REFERENCE)&.value.present?
+        Rails.logger.info("Dossier #{dossier.number} ignored: payment reference already set")
         return
       end
 
@@ -25,11 +27,6 @@ module Sti
     end
 
     private
-
-    def annotation_already_set?(name)
-      field = annotation(name)
-      field.present? && field.value.present?
-    end
 
     def set_total_price
       total = price_for(1500)
