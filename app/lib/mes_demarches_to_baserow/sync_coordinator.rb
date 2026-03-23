@@ -21,9 +21,10 @@ module MesDemarchesToBaserow
       @main_field_filter = FieldFilter.new(@baserow_config['table_id'], @baserow_config['token_config'])
       @main_field_metadata = build_field_metadata(@main_table)
 
-      # Caches pour les blocs répétables et découverte des tables
+      # Caches pour les blocs répétables, découverte des tables et link_row
       @block_field_metadata_cache = {}
       @application_tables = nil
+      @link_row_cache = {} # { table_id => { primary_value => row_id } }
     end
 
     def sync_dossier(dossier)
@@ -40,7 +41,10 @@ module MesDemarchesToBaserow
       syncable_data = @main_field_filter.filter_syncable_fields(extracted_data[:main_table])
 
       # 4. Traiter les uploads de fichiers (téléchargement + upload multipart)
-      syncable_data = process_file_uploads(syncable_data, @main_field_metadata)
+      process_file_uploads(syncable_data, @main_field_metadata)
+
+      # 4b. Résoudre les champs link_row (lookup/création dans table cible)
+      resolve_link_rows(syncable_data)
 
       # 5. Upsert dans la table principale (avec field_metadata pour comparaison intelligente)
       # Passer existing_row (même si nil) pour éviter une recherche redondante
@@ -62,19 +66,29 @@ module MesDemarchesToBaserow
       @schema_ensured = true
     end
 
-    # Construit les métadonnées des champs à partir de table.fields
+    # Construit les métadonnées des champs depuis l'API Baserow (config complète)
+    # Nécessaire pour les link_row (link_row_table_id, link_row_table_primary_field)
     def build_field_metadata(table)
-      # Types de champs read-only (ne peuvent pas être mis à jour)
       readonly_types = %w[formula lookup rollup count created_on last_modified].freeze
 
-      # Construire les métadonnées à partir de table.fields
-      table.fields.transform_values do |field_data|
-        {
-          'id' => field_data[:id],
-          'type' => field_data[:type],
-          'primary' => field_data[:primary],
-          'readonly' => readonly_types.include?(field_data[:type])
+      client = Baserow::Config.client(@baserow_config['token_config'])
+      fields = client.list_fields(table.table_id)
+
+      fields.each_with_object({}) do |field, hash|
+        meta = {
+          'id' => field['id'],
+          'type' => field['type'],
+          'primary' => field['primary'],
+          'readonly' => readonly_types.include?(field['type'])
         }
+
+        # Conserver la config link_row pour resolve_link_rows
+        if field['type'] == 'link_row'
+          meta['link_row_table_id'] = field['link_row_table_id']
+          meta['link_row_table_primary_field'] = field['link_row_table_primary_field']
+        end
+
+        hash[field['name']] = meta
       end
     end
 
@@ -129,6 +143,51 @@ module MesDemarchesToBaserow
       raise # Re-lever l'exception pour que le framework puisse gérer l'erreur
     end
     # rubocop:enable Metrics/MethodLength
+
+    # Résout les champs link_row : cherche (ou crée) la row dans la table cible
+    # et remplace la valeur texte par un array d'IDs Baserow
+    def resolve_link_rows(data)
+      data.each do |field_name, value|
+        next if value.blank?
+
+        meta = @main_field_metadata[field_name]
+        next unless meta&.dig('type') == 'link_row'
+
+        target_table_id = meta['link_row_table_id']
+        primary_field = meta.dig('link_row_table_primary_field', 'name')
+        next unless target_table_id && primary_field
+
+        row_id = find_or_create_link_row(target_table_id, primary_field, value.to_s)
+        if row_id
+          data[field_name] = [row_id]
+        else
+          data.delete(field_name)
+        end
+      end
+    end
+
+    # Cherche une row par sa clé primaire dans la table cible, la crée si absente
+    # Utilise un cache pour éviter les appels répétés
+    def find_or_create_link_row(table_id, primary_field, value)
+      @link_row_cache[table_id] ||= {}
+      return @link_row_cache[table_id][value] if @link_row_cache[table_id].key?(value)
+
+      table = get_table(table_id)
+      results = table.find_by_normalized(primary_field, value)
+
+      row_id = if results.any?
+                 results.first['id']
+               else
+                 Rails.logger.info "BaserowSync: Création entrée '#{value}' dans table #{table_id}"
+                 new_row = table.create_row({ primary_field => value })
+                 new_row['id']
+               end
+
+      @link_row_cache[table_id][value] = row_id
+    rescue Baserow::ApiError => e
+      Rails.logger.error "BaserowSync: Erreur résolution link_row '#{value}' (table #{table_id}): #{e.message}"
+      nil
+    end
 
     # Charge les métadonnées des champs d'une table de bloc répétable (avec cache)
     # Retourne un hash { nom_champ => { type: ..., ... } }

@@ -235,6 +235,11 @@ module MesDemarches
       prenomMandataire
       nomMandataire
       deposeParUnTiers
+      labels {
+        id
+        name
+        color
+      }
       usager {
           email
       }

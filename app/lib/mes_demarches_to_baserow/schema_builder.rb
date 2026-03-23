@@ -205,7 +205,7 @@ module MesDemarchesToBaserow
     def base_system_fields
       # Ne pas inclure primary_field car il doit déjà exister dans la table
       # La validation se fait dans validate_primary_field_soft
-      [state_field] + date_fields + [email_usager_field]
+      [state_field] + date_fields + [email_usager_field, labels_field]
     end
 
     def primary_field
@@ -255,8 +255,7 @@ module MesDemarchesToBaserow
       [
         { original: 'dateDepot', name: 'Date de dépôt' },
         { original: 'datePassageEnInstruction', name: 'Date de passage en instruction' },
-        { original: 'dateTraitement', name: 'Date de traitement' },
-        { original: 'dateDerniereModification', name: 'Date de dernière modification' }
+        { original: 'dateTraitement', name: 'Date de traitement' }
       ]
     end
 
@@ -283,6 +282,21 @@ module MesDemarchesToBaserow
         required: false,
         baserow_type: 'email',
         baserow_config: {}
+      }
+    end
+
+    def labels_field
+      {
+        original_label: 'labels',
+        field_name: 'Labels',
+        mes_demarches_type: 'MultipleDropDownListChampDescriptor',
+        category: 'système',
+        supported: true,
+        required: false,
+        baserow_type: 'multiple_select',
+        baserow_config: {
+          select_options: []
+        }
       }
     end
 

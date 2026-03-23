@@ -28,7 +28,7 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
     let(:file2) { double('File', filename: 'doc2.pdf', url: 'https://example.com/doc2.pdf', byte_size: 2048) }
     let(:file3) { double('File', filename: 'doc3.pdf', url: 'https://example.com/doc3.pdf', byte_size: 3072) }
 
-    let(:champ) { double('PieceJustificativeChamp', files: [file1, file2, file3], label: 'Pièces jointes') }
+    let(:champ) { double('PieceJustificativeChamp', files: [file1, file2, file3], label: 'Pièces jointes', __typename: 'PieceJustificativeChamp') }
 
     context 'quand il n\'y a pas de fichiers existants' do
       it 'retourne tous les fichiers comme nouveaux (avec url)' do
@@ -101,7 +101,7 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
     end
 
     context 'quand le champ n\'a pas de fichiers' do
-      let(:champ) { double('PieceJustificativeChamp', files: [], label: 'Pièces jointes') }
+      let(:champ) { double('PieceJustificativeChamp', files: [], label: 'Pièces jointes', __typename: 'PieceJustificativeChamp') }
 
       it 'retourne les fichiers existants' do
         existing_files = [
@@ -112,6 +112,42 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
 
         expect(result).to eq(existing_files)
       end
+    end
+
+    context 'quand le champ MD n\'est pas un PieceJustificativeChamp' do
+      let(:text_champ) { double('TextChamp', label: 'Documents', __typename: 'TextChamp', value: 'some text') }
+
+      it 'retourne les fichiers existants sans erreur' do
+        existing_files = [
+          { 'name' => 'doc1.pdf', 'url' => 'https://baserow.com/files/123', 'size' => 1024 }
+        ]
+
+        result = extractor.send(:normalize_files, text_champ, existing_files)
+
+        expect(result).to eq(existing_files)
+      end
+    end
+  end
+
+  describe '#normalize_phone' do
+    it 'formate un numéro international avec texte parasite' do
+      result = extractor.send(:normalize_phone, '+33766616250 (réside en métropole)')
+      expect(result).to eq('+33 7 66 61 62 50')
+    end
+
+    it 'formate un numéro local PF' do
+      result = extractor.send(:normalize_phone, '87123456')
+      expect(result).to eq('+689 87 12 34 56')
+    end
+
+    it 'retourne nil pour une valeur vide' do
+      expect(extractor.send(:normalize_phone, '')).to be_nil
+      expect(extractor.send(:normalize_phone, nil)).to be_nil
+    end
+
+    it 'nettoie une valeur non reconnue comme numéro' do
+      result = extractor.send(:normalize_phone, 'pas de téléphone')
+      expect(result).to eq('')
     end
   end
 

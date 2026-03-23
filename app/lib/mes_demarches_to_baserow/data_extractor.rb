@@ -50,7 +50,8 @@ module MesDemarchesToBaserow
         'Date de dépôt' => format_datetime(dossier.date_depot),
         'Date de passage en instruction' => format_datetime(dossier.date_passage_en_instruction),
         'Date de traitement' => format_datetime(dossier.date_traitement),
-        'Email usager' => dossier.usager&.email
+        'Email usager' => dossier.usager&.email,
+        'Labels' => extract_labels(dossier)
       }
 
       # Extraction selon le type de demandeur (PersonnePhysique ou PersonneMorale)
@@ -99,7 +100,8 @@ module MesDemarchesToBaserow
         baserow_type = @field_metadata[field_name]['type']
 
         # Pour les champs fichiers, passer les fichiers existants
-        value = if baserow_type == 'file' && @existing_row
+        # Vérifier aussi le type MD : seul PieceJustificativeChamp a la méthode `files`
+        value = if baserow_type == 'file' && champ.__typename == 'PieceJustificativeChamp' && @existing_row
                   existing_files = @existing_row[field_name] || []
                   normalize_files(champ, existing_files)
                 else
@@ -170,7 +172,9 @@ module MesDemarchesToBaserow
         normalize_files(champ)
       when 'number'
         normalize_number(champ)
-      else # single_select, phone_number, email, url, text, long_text
+      when 'phone_number'
+        normalize_phone(get_champ_value(champ))
+      else # single_select, email, url, text, long_text
         get_champ_value(champ)
       end
     end
@@ -225,6 +229,19 @@ module MesDemarchesToBaserow
       value.to_s.downcase.in?(%w[oui true 1 yes])
     end
 
+    def normalize_phone(value)
+      return nil if value.blank?
+
+      phone = Phonelib.parse(value, 'PF')
+      phone.valid? ? phone.full_international : value.gsub(/[^+\d]/, '')
+    end
+
+    def extract_labels(dossier)
+      return [] unless dossier.respond_to?(:labels) && dossier.labels.present?
+
+      dossier.labels.map(&:name)
+    end
+
     def normalize_multiple_select(champ)
       return [] if champ.values.blank?
 
@@ -233,7 +250,7 @@ module MesDemarchesToBaserow
 
     # rubocop:disable Metrics/MethodLength
     def normalize_files(champ, existing_files = [])
-      return existing_files if champ.respond_to?(:files) && champ.files.blank?
+      return existing_files if champ.__typename != 'PieceJustificativeChamp' || champ.files.blank?
 
       # Récupérer les fichiers existants dans Baserow
       # Format Baserow: [{ 'name' => 'hash...', 'url' => 'https://...', 'size' => 12345, 'visible_name' => '...' }]
