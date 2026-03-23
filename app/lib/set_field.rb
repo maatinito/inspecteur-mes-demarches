@@ -66,9 +66,9 @@ class SetField < FieldChecker
   def decalage(annotation, value)
     date = case annotation.__typename
            when 'DateChamp'
-             Date.parse(value)
+             value.is_a?(Date) ? value : Date.parse(value)
            when 'DatetimeChamp'
-             Time.zone.parse(value)
+             value.is_a?(Time) ? value : Time.zone.parse(value)
            end
     return value unless date.present?
 
