@@ -5,7 +5,7 @@ require 'rails_helper'
 # rubocop:disable Metrics/BlockLength
 RSpec.describe DeadLineChecker do
   let(:checker) { FactoryBot.build(:dead_line_checker) }
-  let(:demarche) { double('Demarche', number: 123, instructeur: 'instructeur_id') }
+  let(:demarche) { double('Demarche', id: 123, number: 123, instructeur: 'instructeur_id') }
 
   def make_traitement(state, processed_at)
     double('Traitement', state: state, processed_at: processed_at.iso8601)
@@ -277,6 +277,32 @@ RSpec.describe DeadLineChecker do
         expect(ScheduledTask).to have_received(:enqueue).with(
           456, 'dead_line_checker/456', anything, anything
         )
+      end
+
+      it 'ajoute un label quand un seuil avec label est franchi' do
+        checker_with_label = FactoryBot.build(:dead_line_checker, :instruction_only, instruction: {
+                                                'duree_max' => 60,
+                                                'annotation_jours_restants' => 'Jours restants',
+                                                'seuils' => [
+                                                  { 'jours' => 10, 'label' => 'Instruction urgente',
+                                                    'alerter' => 'chef@admin.gov.pf', 'objet' => 'A', 'message' => 'B' }
+                                                ]
+                                              })
+        allow(checker_with_label).to receive(:instructeur_id).and_return('instructeur_id')
+        allow(DossierLabel).to receive(:find_label_id).and_return('label_id_123')
+        allow(DossierLabel).to receive(:add)
+
+        traitements = [make_traitement('en_instruction', 55.days.ago)]
+        annotation_alertes = double('Annotation', string_value: nil, label: 'Historique alertes délai')
+        dossier = make_dossier(
+          state: 'en_instruction', traitements: traitements, date_depot: 60.days.ago,
+          annotations: [annotation_alertes]
+        )
+
+        checker_with_label.process(demarche, dossier)
+
+        expect(DossierLabel).to have_received(:find_label_id).with(123, 'Instruction urgente')
+        expect(DossierLabel).to have_received(:add).with('dossier_id', 'label_id_123')
       end
 
       it 'ne programme pas de schedule si tous les seuils sont déclenchés' do

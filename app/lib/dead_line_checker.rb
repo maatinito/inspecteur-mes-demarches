@@ -84,7 +84,8 @@ class DeadLineChecker < FieldChecker
         jours: seuil[:jours].to_i,
         alerter: parse_destinataires(seuil[:alerter]),
         objet: seuil[:objet],
-        message: seuil[:message]
+        message: seuil[:message],
+        label: seuil[:label]
       }
     end
     parsed.sort_by { |s| -s[:jours] }
@@ -115,6 +116,7 @@ class DeadLineChecker < FieldChecker
       next unless jours_restants <= threshold
 
       send_alert(seuil, variables)
+      apply_label(seuil[:label])
       newly_triggered << threshold
     end
 
@@ -150,6 +152,17 @@ class DeadLineChecker < FieldChecker
     recipients = seuil[:alerter].join(',')
 
     NotificationMailer.with({ subject:, message: body, recipients: }).user_mail.deliver_later
+  end
+
+  def apply_label(label_name)
+    return if label_name.blank?
+
+    label_id = DossierLabel.find_label_id(@demarche.id, label_name)
+    if label_id
+      DossierLabel.add(@dossier.id, label_id)
+    else
+      Rails.logger.warn("Label '#{label_name}' introuvable sur la démarche #{@demarche.id}")
+    end
   end
 
   # --- Scheduling ---
