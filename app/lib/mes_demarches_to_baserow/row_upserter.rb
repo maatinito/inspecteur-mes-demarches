@@ -188,12 +188,7 @@ module MesDemarchesToBaserow
       else
         # Erreur finale
         Rails.logger.error "BaserowSync: Échec synchro dossier #{dossier_number} après #{attempt} tentatives: #{error.message}"
-        Sentry.capture_exception(error, extra: { dossier: dossier_number, data: data, attempt: attempt })
-
-        raise unless @options['continuer_si_erreur']
-
-        false
-
+        raise
       end
     end
 

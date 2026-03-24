@@ -25,10 +25,13 @@ module MesDemarchesToBaserow
       @block_field_metadata_cache = {}
       @application_tables = nil
       @link_row_cache = {} # { table_id => { primary_value => row_id } }
+      @select_options_cache = {} # { field_id => Set[known_values] }
+      @failed_uploads = []
     end
 
     def sync_dossier(dossier)
       ensure_schema unless @schema_ensured
+      @failed_uploads = []
 
       # 1. Récupérer la row existante pour détecter les fichiers déjà présents
       existing_row = find_existing_row(@main_table, dossier.number)
@@ -46,6 +49,9 @@ module MesDemarchesToBaserow
       # 4b. Résoudre les champs link_row (lookup/création dans table cible)
       resolve_link_rows(syncable_data)
 
+      # 4c. S'assurer que les options select existent dans Baserow
+      ensure_select_options(syncable_data)
+
       # 5. Upsert dans la table principale (avec field_metadata pour comparaison intelligente)
       # Passer existing_row (même si nil) pour éviter une recherche redondante
       upserter = RowUpserter.new(@main_table, @options, @main_field_metadata)
@@ -54,6 +60,11 @@ module MesDemarchesToBaserow
       # 7. Synchroniser les blocs répétables (auto-découverte)
       # Passer main_row_id pour éviter une recherche inutile
       sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks], main_row_id)
+
+      # 8. Si des fichiers ont échoué, lever une exception APRÈS l'upsert
+      # pour que le framework marque le dossier en échec et le retente.
+      # Au retry, les fichiers déjà uploadés seront détectés comme existants.
+      raise "Upload fichiers échoué: #{@failed_uploads.join(', ')}" if @failed_uploads.present?
 
       Rails.logger.info "BaserowSync: Dossier #{dossier.number} synchronisé avec succès"
     end
@@ -99,6 +110,7 @@ module MesDemarchesToBaserow
     # rubocop:disable Metrics/MethodLength
     def process_file_uploads(data, field_metadata)
       file_uploader = Baserow::FileUploader.new(@baserow_config['token_config'])
+      failed_uploads = []
 
       data.each do |field_name, value|
         # Identifier les champs de type file
@@ -117,9 +129,8 @@ module MesDemarchesToBaserow
             visible_name = file_data[:visible_name] || 'fichier'
             result = file_uploader.download_and_upload(file_data[:url], visible_name)
 
-            # Si l'upload échoue, skip ce fichier
             unless result
-              Rails.logger.warn "BaserowSync: Échec upload fichier #{visible_name} pour champ #{field_name}"
+              failed_uploads << "#{field_name}/#{visible_name}"
               next
             end
 
@@ -127,8 +138,7 @@ module MesDemarchesToBaserow
           end
         end
 
-        # Mettre à jour le champ avec tous les fichiers (existants + nouveaux uploadés)
-        # Si aucun fichier, retirer le champ pour ne pas envoyer un array vide
+        # Mettre à jour le champ avec les fichiers réussis (existants + nouveaux uploadés)
         if processed_files.empty?
           data.delete(field_name)
         else
@@ -136,11 +146,8 @@ module MesDemarchesToBaserow
         end
       end
 
-      data
-    rescue StandardError => e
-      Rails.logger.error "BaserowSync: Erreur traitement uploads fichiers: #{e.message}"
-      Rails.logger.error e.backtrace.join("\n")
-      raise # Re-lever l'exception pour que le framework puisse gérer l'erreur
+      # Mémoriser les échecs pour lever après l'upsert
+      @failed_uploads = failed_uploads
     end
     # rubocop:enable Metrics/MethodLength
 
@@ -187,6 +194,52 @@ module MesDemarchesToBaserow
     rescue Baserow::ApiError => e
       Rails.logger.error "BaserowSync: Erreur résolution link_row '#{value}' (table #{table_id}): #{e.message}"
       nil
+    end
+
+    # Vérifie que les options select/multiple_select existent dans Baserow
+    # Crée les options manquantes à la volée via StructureClient
+    def ensure_select_options(data)
+      data.each do |field_name, value|
+        next if value.nil?
+
+        meta = @main_field_metadata[field_name]
+        next unless meta && %w[single_select multiple_select].include?(meta['type'])
+
+        field_id = meta['id']
+        values = meta['type'] == 'multiple_select' ? Array(value) : [value]
+        values = values.compact.map(&:to_s).reject(&:blank?)
+        next if values.empty?
+
+        ensure_field_options(field_id, values)
+      end
+    end
+
+    # S'assure que les valeurs existent comme options du champ select
+    def ensure_field_options(field_id, values)
+      # Charger le cache des options existantes au premier appel
+      unless @select_options_cache.key?(field_id)
+        structure_client = Baserow::StructureClient.new
+        field_data = structure_client.get_field(field_id)
+        existing = (field_data['select_options'] || []).map { |opt| opt['value'] }
+        @select_options_cache[field_id] = Set.new(existing)
+      end
+
+      known = @select_options_cache[field_id]
+      missing = values.reject { |v| known.include?(v) }
+      return if missing.empty?
+
+      # Ajouter les options manquantes
+      structure_client = Baserow::StructureClient.new
+      field_data = structure_client.get_field(field_id)
+      current_options = field_data['select_options'] || []
+      new_options = current_options + missing.map { |v| { 'value' => v } }
+
+      structure_client.update_field(field_id, { select_options: new_options })
+      missing.each { |v| known.add(v) }
+
+      Rails.logger.info "BaserowSync: Options ajoutées au champ #{field_id}: #{missing.join(', ')}"
+    rescue Baserow::APIError => e
+      Rails.logger.error "BaserowSync: Erreur ajout options select (champ #{field_id}): #{e.message}"
     end
 
     # Charge les métadonnées des champs d'une table de bloc répétable (avec cache)
@@ -275,7 +328,7 @@ module MesDemarchesToBaserow
     rescue StandardError => e
       Rails.logger.error "BaserowSync: Erreur synchro bloc répétable (table #{table_id}): #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
-      raise unless @options['continuer_si_erreur']
+      raise
     end
 
     # rubocop:disable Metrics/ParameterLists

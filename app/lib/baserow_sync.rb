@@ -18,7 +18,6 @@ require_relative 'mes_demarches_to_baserow/row_upserter'
 #       table_id: 42
 #       token_config: 'tftn'
 #     options:
-#       continuer_si_erreur: true
 #       supprimer_orphelins: true
 class BaserowSync < FieldChecker
   def version
@@ -66,12 +65,5 @@ class BaserowSync < FieldChecker
     end
 
     @coordinator.sync_dossier(dossier)
-  rescue StandardError => e
-    Rails.logger.error "BaserowSync: Erreur synchro dossier #{dossier.number}: #{e.message}"
-    Rails.logger.error e.backtrace.join("\n")
-    Sentry.capture_exception(e, extra: { dossier: dossier.number, demarche: demarche.id })
-
-    # Continuer ou lever l'erreur selon la config
-    raise unless @params.dig(:options, 'continuer_si_erreur') == true
   end
 end

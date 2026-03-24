@@ -43,6 +43,11 @@ module Baserow
       false
     end
 
+    def get_field(field_id)
+      response = make_request(:get, "/api/database/fields/#{field_id}/")
+      handle_response(response)
+    end
+
     def get_field_by_name(table_id, field_name)
       fields = get_table_fields(table_id)
       fields.find { |field| field['name']&.downcase == field_name.downcase }
