@@ -61,3 +61,4 @@ schema.json
 /test_*.rb
 /analyze_*.rb
 production.log
+*.lock
