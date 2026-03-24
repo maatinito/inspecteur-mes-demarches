@@ -17,7 +17,7 @@ module Travail
     TOTAL = 'Montant total'
 
     def version
-      super + 2
+      super + 3
     end
 
     def required_fields
@@ -320,7 +320,10 @@ module Travail
     end
 
     def apply_cotorep_rules(worker, contract_dates)
-      contract_dates[:end_date] = [contract_dates[:begin_date], worker[:cotorep_end]].max if worker[:cotorep_end].present? && worker[:cotorep_end] < contract_dates[:end_date]
+      if worker[:cotorep_end].present?
+        cotorep_end = worker[:cotorep_end] + 1 # normalise en date exclusive, comme contract_end
+        contract_dates[:end_date] = [contract_dates[:begin_date], cotorep_end].max if cotorep_end < contract_dates[:end_date]
+      end
 
       return unless worker[:cotorep_begin].present? && worker[:cotorep_begin] > contract_dates[:begin_date]
 

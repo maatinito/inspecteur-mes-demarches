@@ -216,7 +216,7 @@ RSpec.describe Travail::Daeth do
 
           ]
         end
-        let(:disabled_worker_fte) { 5.200 }
+        let(:disabled_worker_fte) { 5.205 }
         let(:disabled_worker_log) do
           <<~TEXT.chomp
             2 = Reconnu COTOREP: C, valide entre 2024-01-01 et 2025-09-01, h/sem: 100%  présence annuelle:100.0%
@@ -225,11 +225,11 @@ RSpec.describe Travail::Daeth do
             1 = Reconnu COTOREP: B, valide entre 2024-01-01 et 2025-09-01, h/sem: 100%  présence annuelle:24.9%
             1 = Reconnu COTOREP: B, valide entre 2024-01-01 et 2025-09-01, h/sem: 48.7%  présence annuelle:100.0%
             2 = Reconnu COTOREP: C, valide entre 2023-01-01 et 2023-12-31, h/sem: 100%  présence annuelle:0.0%
-            2 = Reconnu COTOREP: C, valide entre 2024-08-01 et 2024-08-31, h/sem: 100%  présence annuelle:8.2%
+            2 = Reconnu COTOREP: C, valide entre 2024-08-01 et 2024-08-31, h/sem: 100%  présence annuelle:8.5%
             2 = Reconnu COTOREP: C, valide entre 2024-08-01 et 2025-08-31, h/sem: 100%  présence annuelle:41.8%
           TEXT
         end
-        let(:levy) { 3_110_800 }
+        let(:levy) { 3_105_245 }
 
         it 'should triggers levy' do
           subject
