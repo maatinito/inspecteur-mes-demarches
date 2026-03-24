@@ -270,8 +270,8 @@ module MesDemarchesToBaserow
       tables = structure_client.list_tables(application_id)
 
       # 3. Créer un mapping nom → table_id
-      @application_tables = tables.each_with_object({}) do |table, hash|
-        hash[table['name']] = table['id']
+      @application_tables = tables.to_h do |table|
+        [table['name'], table['id']]
       end
 
       Rails.logger.debug "BaserowSync: Tables découvertes dans l'application #{application_id}: #{@application_tables.keys.join(', ')}"

@@ -19,12 +19,12 @@ module Baserow
     # Load table information and fields
     def load_fields
       fields_data = client.list_fields(table_id)
-      fields_data.each_with_object({}) do |field, hash|
-        hash[field['name']] = {
+      fields_data.to_h do |field|
+        [field['name'], {
           id: field['id'],
           type: field['type'],
           primary: field['primary']
-        }
+        }]
       end
     end
 

@@ -116,7 +116,7 @@ module Travail
       dates = initialize_year_dates(year)
       rows = param_field(:champ_travailleurs, warn_if_empty: false)&.rows || []
       rows.map do |row|
-        fields = row.champs.each_with_object({}) { |c, h| h[c.label] = c.respond_to?(:value) ? c.value : c }
+        fields = row.champs.to_h { |c| [c.label, c.respond_to?(:value) ? c.value : c] }
         disabled_worker_attributes(fields).merge!(disabled_worker_complement(fields, dates))
       end
     end

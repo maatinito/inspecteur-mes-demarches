@@ -23,7 +23,7 @@ class PublipostageV2 < Publipostage
 
         [*fields].each do |k, v|
           # ActiveSupport::NumberHelper.number_to_currency(123456789, unit: '', delimiter: ' ', precision: 0)
-          tr.substitute("--#{k}--", [*v].map(&:to_s).join(', '))
+          tr.substitute("--#{k}--", [*v].join(', '))
         end
         insert_line_breaks(tr)
       end
@@ -69,7 +69,7 @@ class PublipostageV2 < Publipostage
     if variable
       options = text.scan(/\\(. (?:\w+|"[^"]+"))/).flatten.to_set
       value = fields.fetch(variable) { Rails.env.development? || Rails.env.test? ? "[#{variable} inconnue]" : '' }
-      value = Array(value).map(&:to_s).join(', ')
+      value = Array(value).join(', ')
       value = normalize_value(value, options)
       variable = Regexp.escape(variable)
       [variable, value]

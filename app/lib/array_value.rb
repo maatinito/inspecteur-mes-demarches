@@ -33,7 +33,7 @@ class ArrayValue
 
   # Affichage direct : «=valeurs» → "val1, val2, val3"
   def to_s
-    @array.map(&:to_s).join(', ')
+    @array.join(', ')
   end
   alias texte to_s
 

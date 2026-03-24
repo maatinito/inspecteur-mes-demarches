@@ -151,7 +151,7 @@ class Publipostage < FieldChecker
 
   def generate_docx(output_file, row)
     context = row.transform_keys { |k| k.gsub(/\s/, '_').gsub(/[()]/, '') }
-                 .transform_values { |v| [*v].map(&:to_s).join(', ') }
+                 .transform_values { |v| [*v].join(', ') }
 
     template = Sablon.template(VerificationService.file_manager.filepath(@template))
     template.render_to_file output_file, context

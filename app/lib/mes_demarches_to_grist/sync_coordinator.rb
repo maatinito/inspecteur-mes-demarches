@@ -177,8 +177,8 @@ module MesDemarchesToGrist
       result = @main_table.client.list_tables(@doc_id)
       tables = result['tables'] || []
 
-      tables.each_with_object({}) do |table, hash|
-        hash[table['id']] = table['id']
+      tables.to_h do |table|
+        [table['id'], table['id']]
       end
     rescue StandardError => e
       Rails.logger.error "GristSync: Erreur découverte tables: #{e.message}"

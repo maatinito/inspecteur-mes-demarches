@@ -18,7 +18,7 @@ module Excel
       super
       @field_name = @params[:variable]
       @column_name = @params[:colonne]
-      @default_partitions = @params[:valeurs]&.each_with_object({}) { |str, h| h[str] = [] } || {}
+      @default_partitions = @params[:valeurs].to_h { |str| [str, []] }
     end
 
     def process_row(_row, output)
