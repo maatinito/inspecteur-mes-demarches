@@ -46,8 +46,7 @@ module Daf
       repetition = field(@params[:champ])
       raise "Impossible de trouver le champ #{@params[:champ]} sur le dossier #{@dossier&.number}" if repetition.blank?
 
-      label = repetition&.champs&.first&.label # rubocop:disable Style/SafeNavigationChainLength
-      count = repetition.champs&.reduce(0) { |c, champ| champ.label == label ? c + 1 : c }
+      count = repetition.rows&.count || 0
       max = @params[:max].to_i
       yield count if count > max
     end
