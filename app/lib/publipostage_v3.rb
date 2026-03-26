@@ -102,7 +102,7 @@ class PublipostageV3 < PublipostageV2
     # Listes : utiliser "Paragraphedeliste" (styleId du template Word français)
     config.register_html_tag(:ul, :block,
                              ast_class: :list,
-                             properties: { pStyle: 'Listepuces' },
+                             properties: { pStyle: 'Paragraphedeliste' },
                              allowed_children: %i[ul li])
 
     config.register_html_tag(:ol, :block,
@@ -182,7 +182,7 @@ class PublipostageV3 < PublipostageV2
   # get_fields retourne systématiquement des tableaux, mais dans un template Word
   # on veut écrire «=Nom» et «Nom:if(present?)» plutôt que de boucler sur tout.
   def normalize_array(array)
-    if array.size == 1
+    if array.size == 1 && !array.first.is_a?(Hash)
       normalize_context(array.first)
     elsif simple_array?(array)
       ArrayValue.new(array)

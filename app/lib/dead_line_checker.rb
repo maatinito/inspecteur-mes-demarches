@@ -126,7 +126,7 @@ class DeadLineChecker < FieldChecker
   def load_triggered_thresholds
     return [] if @params[:annotation_alertes].blank?
 
-    value = annotation(@params[:annotation_alertes], warn_if_empty: false)&.string_value
+    value = annotation(@params[:annotation_alertes], warn_if_empty: false)&.value
     return [] if value.blank?
 
     value.split(',').map { |s| s.strip.to_i }

@@ -241,7 +241,7 @@ RSpec.describe DeadLineChecker do
 
       it 'envoie un mail quand un seuil est franchi' do
         traitements = [make_traitement('en_instruction', 55.days.ago)]
-        annotation_alertes = double('Annotation', string_value: nil, label: 'Historique alertes délai')
+        annotation_alertes = double('Annotation', value: nil, label: 'Historique alertes délai')
         dossier = make_dossier(
           state: 'en_instruction', traitements: traitements, date_depot: 60.days.ago,
           annotations: [annotation_alertes]
@@ -254,8 +254,8 @@ RSpec.describe DeadLineChecker do
 
       it 'ne re-déclenche pas un seuil déjà déclenché' do
         traitements = [make_traitement('en_instruction', 55.days.ago)]
-        annotation_alertes = double('Annotation', string_value: '10', label: 'Historique alertes délai')
-        annotation_jours = double('Annotation', string_value: '5', label: 'Jours restants')
+        annotation_alertes = double('Annotation', value: '10', label: 'Historique alertes délai')
+        annotation_jours = double('Annotation', value: '5', label: 'Jours restants')
         dossier = make_dossier(
           state: 'en_instruction', traitements: traitements, date_depot: 60.days.ago,
           annotations: [annotation_alertes, annotation_jours]
@@ -293,7 +293,7 @@ RSpec.describe DeadLineChecker do
         allow(DossierLabel).to receive(:add)
 
         traitements = [make_traitement('en_instruction', 55.days.ago)]
-        annotation_alertes = double('Annotation', string_value: nil, label: 'Historique alertes délai')
+        annotation_alertes = double('Annotation', value: nil, label: 'Historique alertes délai')
         dossier = make_dossier(
           state: 'en_instruction', traitements: traitements, date_depot: 60.days.ago,
           annotations: [annotation_alertes]
@@ -307,7 +307,7 @@ RSpec.describe DeadLineChecker do
 
       it 'ne programme pas de schedule si tous les seuils sont déclenchés' do
         traitements = [make_traitement('en_instruction', 58.days.ago)]
-        annotation_alertes = double('Annotation', string_value: '10, 5', label: 'Historique alertes délai')
+        annotation_alertes = double('Annotation', value: '10, 5', label: 'Historique alertes délai')
         dossier = make_dossier(
           state: 'en_instruction', traitements: traitements, date_depot: 60.days.ago,
           annotations: [annotation_alertes]
