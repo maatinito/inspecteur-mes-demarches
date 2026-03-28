@@ -8,6 +8,15 @@ module MesDemarchesToBaserow
   # - Coordonner l'extraction, le filtrage et l'upsert des données
   # - Gérer les blocs répétables (tables liées)
   class SyncCoordinator
+    # Mapping couleurs Mes-Démarches → Baserow
+    MES_DEMARCHES_TO_BASEROW_COLORS = {
+      'green' => 'green', 'blue' => 'blue', 'red' => 'red',
+      'orange' => 'orange', 'yellow' => 'yellow', 'purple' => 'purple',
+      'pink' => 'pink', 'grey' => 'light-gray', 'gray' => 'light-gray'
+    }.freeze
+
+    DEFAULT_OPTION_COLORS = %w[blue green red yellow orange purple pink light-blue light-green light-red].freeze
+
     attr_reader :demarche_number, :baserow_config, :options
 
     def initialize(demarche_number, baserow_config, options = {})
@@ -50,6 +59,7 @@ module MesDemarchesToBaserow
       resolve_link_rows(syncable_data)
 
       # 4c. S'assurer que les options select existent dans Baserow
+      @pending_select_colors = data_extractor.label_colors || {}
       ensure_select_options(syncable_data)
 
       # 5. Upsert dans la table principale (avec field_metadata pour comparaison intelligente)
@@ -161,15 +171,33 @@ module MesDemarchesToBaserow
         next unless meta&.dig('type') == 'link_row'
 
         target_table_id = meta['link_row_table_id']
-        primary_field = meta.dig('link_row_table_primary_field', 'name')
-        next unless target_table_id && primary_field
+        primary_field_name = meta.dig('link_row_table_primary_field', 'name')
+        primary_field_type = meta.dig('link_row_table_primary_field', 'type')
+        next unless target_table_id && primary_field_name
 
-        row_id = find_or_create_link_row(target_table_id, primary_field, value.to_s)
+        # Normaliser la valeur selon le type de la colonne primaire cible
+        # Ex: DossierLink "599761 -" → 599761 pour une colonne number
+        normalized = normalize_link_row_value(value.to_s, primary_field_type)
+        next if normalized.blank?
+
+        row_id = find_or_create_link_row(target_table_id, primary_field_name, normalized)
         if row_id
           data[field_name] = [row_id]
         else
           data.delete(field_name)
         end
+      end
+    end
+
+    # Normalise la valeur selon le type attendu par la colonne primaire cible
+    def normalize_link_row_value(value, primary_field_type)
+      case primary_field_type
+      when 'number'
+        # Extraire le premier nombre entier (ex: "599761 -" → "599761")
+        match = value.match(/\A\s*(\d+)/)
+        match ? match[1].to_i : nil
+      else
+        value
       end
     end
 
@@ -198,6 +226,7 @@ module MesDemarchesToBaserow
 
     # Vérifie que les options select/multiple_select existent dans Baserow
     # Crée les options manquantes à la volée via StructureClient
+    # En cas d'échec, les valeurs sont conservées dans data (l'upsert tentera quand même)
     def ensure_select_options(data)
       data.each do |field_name, value|
         next if value.nil?
@@ -228,18 +257,35 @@ module MesDemarchesToBaserow
       missing = values.reject { |v| known.include?(v) }
       return if missing.empty?
 
-      # Ajouter les options manquantes
+      # Ajouter les options manquantes avec couleur
       structure_client = Baserow::StructureClient.new
       field_data = structure_client.get_field(field_id)
       current_options = field_data['select_options'] || []
-      new_options = current_options + missing.map { |v| { 'value' => v } }
 
-      structure_client.update_field(field_id, { select_options: new_options })
+      # Nettoyer les options existantes (ne garder que id/value/color) pour éviter les champs parasites
+      clean_options = current_options.map { |opt| opt.slice('id', 'value', 'color') }
+      color_offset = clean_options.length
+      new_entries = missing.each_with_index.map do |v, i|
+        { 'value' => v, 'color' => baserow_color_for(v, color_offset + i) }
+      end
+
+      structure_client.update_field(field_id, { select_options: clean_options + new_entries })
       missing.each { |v| known.add(v) }
 
       Rails.logger.info "BaserowSync: Options ajoutées au champ #{field_id}: #{missing.join(', ')}"
     rescue Baserow::APIError => e
-      Rails.logger.error "BaserowSync: Erreur ajout options select (champ #{field_id}): #{e.message}"
+      detail = e.respond_to?(:error_data) ? e.error_data : e.message
+      Rails.logger.error "BaserowSync: Erreur ajout options select (champ #{field_id}): #{detail}"
+    end
+
+    # Détermine la couleur Baserow pour une nouvelle option select
+    # Utilise la couleur du label Mes-Démarches si disponible, sinon round-robin
+    def baserow_color_for(value, index)
+      if @pending_select_colors&.key?(value)
+        md_color = @pending_select_colors[value].to_s.downcase
+        return MES_DEMARCHES_TO_BASEROW_COLORS[md_color] if MES_DEMARCHES_TO_BASEROW_COLORS.key?(md_color)
+      end
+      DEFAULT_OPTION_COLORS[index % DEFAULT_OPTION_COLORS.length]
     end
 
     # Charge les métadonnées des champs d'une table de bloc répétable (avec cache)

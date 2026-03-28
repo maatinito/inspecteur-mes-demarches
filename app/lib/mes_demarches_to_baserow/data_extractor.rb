@@ -10,10 +10,13 @@ module MesDemarchesToBaserow
   # - Extraire les blocs répétables
   # - Normaliser les valeurs selon les types Baserow
   class DataExtractor
+    attr_reader :label_colors
+
     def initialize(field_metadata, options = {})
       @field_metadata = field_metadata
       @options = options
       @existing_row = nil
+      @label_colors = {}
     end
 
     def extract_all(dossier, existing_row = nil)
@@ -238,6 +241,11 @@ module MesDemarchesToBaserow
 
     def extract_labels(dossier)
       return [] unless dossier.respond_to?(:labels) && dossier.labels.present?
+
+      @label_colors = {}
+      dossier.labels.each do |label|
+        @label_colors[label.name] = label.color if label.respond_to?(:color) && label.color.present?
+      end
 
       dossier.labels.map(&:name)
     end
