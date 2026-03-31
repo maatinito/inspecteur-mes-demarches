@@ -28,7 +28,7 @@
           %tr.d-flex
             %td
               - demarche_number = checks.first.demarche_id
-              = link_to "Dossier #{dossier_number}", ENV['GRAPHQL_HOST'] + "/procedures/#{demarche_number}/dossiers/#{dossier_number}", target: "_blank"
+              = link_to "Dossier #{dossier_number}", MesDemarches.public_url + "/procedures/#{demarche_number}/dossiers/#{dossier_number}", target: "_blank"
               %br
               Vérifié le
               = checks.first.checked_at.strftime("%d/%m/%Y à %H:%M")

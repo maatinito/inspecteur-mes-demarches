@@ -468,6 +468,6 @@ class VerificationService
   end
 
   def modifier_url(md_dossier)
-    ENV.fetch('GRAPHQL_HOST', nil) + "/dossiers/#{md_dossier.number}/modifier"
+    MesDemarches.public_url + "/dossiers/#{md_dossier.number}/modifier"
   end
 end

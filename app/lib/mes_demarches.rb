@@ -27,6 +27,10 @@ module MesDemarches
   graphql_url = "#{host}/api/v2/graphql"
   HTTP = CustomHTTPAdapter.new(graphql_url)
 
+  def self.public_url
+    ENV.fetch('MES_DEMARCHES_URL', ENV.fetch('GRAPHQL_HOST', 'https://www.mes-demarches.gov.pf'))
+  end
+
   def self.http(host)
     # Ne pas mettre en cache le client HTTP pour éviter les erreurs SSL
     graphql_url = "#{host}/api/v2/graphql"

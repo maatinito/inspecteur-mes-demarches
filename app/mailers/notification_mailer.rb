@@ -4,7 +4,7 @@ class NotificationMailer < ApplicationMailer
   def unauthorized_decision
     @dossier = params[:dossier]
     @demarche = params[:demarche]
-    @dossier_url = [ENV.fetch('GRAPHQL_HOST', nil), 'procedures', @demarche, 'dossiers', @dossier].join('/')
+    @dossier_url = [MesDemarches.public_url, 'procedures', @demarche, 'dossiers', @dossier].join('/')
     @recipients = recipients
     @instructeur = params[:instructeur]
     @action = params[:state]
@@ -17,7 +17,7 @@ class NotificationMailer < ApplicationMailer
   def report_error
     @dossier = params[:dossier]
     @demarche = params[:demarche]
-    @dossier_url = [ENV.fetch('GRAPHQL_HOST', nil), 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
+    @dossier_url = [MesDemarches.public_url, 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
     @tags = params[:tags]
     @message = params[:message]
     @backtrace = params[:backtrace]&.select { |b| b.include?('/app/') }&.first(7) || []
@@ -29,7 +29,7 @@ class NotificationMailer < ApplicationMailer
   def notify_user
     @dossier = params[:dossier]
     @demarche = params[:demarche]
-    @dossier_url = [ENV.fetch('GRAPHQL_HOST', nil), 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
+    @dossier_url = [MesDemarches.public_url, 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
     @message = params[:message].gsub(/\n\r?/, "<br>\n")
     attachments[params[:filename]] = params[:file] if params[:file] && params[:filename]
     mail(to: recipients, subject: "#{SITE_NAME}: #{params[:subject]}")
