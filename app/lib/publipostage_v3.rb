@@ -169,7 +169,16 @@ class PublipostageV3 < PublipostageV2
       value.transform_keys { |k| k.parameterize(separator: '_') }
            .transform_values { |v| normalize_context(v) }
     when Array
-      normalize_array(value)
+      # Checkbox/YesNo : ['Oui'] → true, ['Non'] → false pour que Sablon évalue correctement
+      return value.first == 'Oui' if value.size == 1 && %w[Oui Non].include?(value.first)
+
+      if simple_array?(value)
+        # Tableau de valeurs simples → ArrayValue pour double usage (boucle + string)
+        ArrayValue.new(value)
+      else
+        # Tableau de Hash ou d'objets complexes (PieceJustificativeFile...) → garder tel quel
+        value.map { |v| normalize_context(v) }
+      end
     when String
       # Conversion automatique Markdown → HTML si détecté
       convert_markdown_if_detected(value)
@@ -191,6 +200,8 @@ class PublipostageV3 < PublipostageV2
     end
   end
 
+
+  
   # Convertit en HTML si Markdown détecté, sinon retourne le texte tel quel
   def convert_markdown_if_detected(text)
     if MarkdownConverter.looks_like_markdown?(text)
