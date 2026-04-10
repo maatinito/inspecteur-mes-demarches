@@ -187,6 +187,21 @@ class PublipostageV3 < PublipostageV2
     end
   end
 
+  # Déplie les tableaux à un seul élément en valeur simple pour Sablon.
+  # get_fields retourne systématiquement des tableaux, mais dans un template Word
+  # on veut écrire «=Nom» et «Nom:if(present?)» plutôt que de boucler sur tout.
+  def normalize_array(array)
+    if array.size == 1 && !array.first.is_a?(Hash)
+      normalize_context(array.first)
+    elsif simple_array?(array)
+      ArrayValue.new(array)
+    else
+      array.map { |v| normalize_context(v) }
+    end
+  end
+
+
+  
   # Convertit en HTML si Markdown détecté, sinon retourne le texte tel quel
   def convert_markdown_if_detected(text)
     if MarkdownConverter.looks_like_markdown?(text)
