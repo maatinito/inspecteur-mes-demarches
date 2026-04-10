@@ -169,25 +169,21 @@ class PublipostageV3 < PublipostageV2
       value.transform_keys { |k| k.parameterize(separator: '_') }
            .transform_values { |v| normalize_context(v) }
     when Array
-      normalize_array(value)
+      # Checkbox/YesNo : ['Oui'] → true, ['Non'] → false pour que Sablon évalue correctement
+      return value.first == 'Oui' if value.size == 1 && %w[Oui Non].include?(value.first)
+
+      if simple_array?(value)
+        # Tableau de valeurs simples → ArrayValue pour double usage (boucle + string)
+        ArrayValue.new(value)
+      else
+        # Tableau de Hash ou d'objets complexes (PieceJustificativeFile...) → garder tel quel
+        value.map { |v| normalize_context(v) }
+      end
     when String
       # Conversion automatique Markdown → HTML si détecté
       convert_markdown_if_detected(value)
     else
       value
-    end
-  end
-
-  # Déplie les tableaux à un seul élément en valeur simple pour Sablon.
-  # get_fields retourne systématiquement des tableaux, mais dans un template Word
-  # on veut écrire «=Nom» et «Nom:if(present?)» plutôt que de boucler sur tout.
-  def normalize_array(array)
-    if array.size == 1 && !array.first.is_a?(Hash)
-      normalize_context(array.first)
-    elsif simple_array?(array)
-      ArrayValue.new(array)
-    else
-      array.map { |v| normalize_context(v) }
     end
   end
 
