@@ -75,6 +75,7 @@ Metrics/BlockLength:
   Exclude:
     - 'db/schema.rb'
     - 'spec/lib/avis_to_bloc_repetable_spec.rb'
+    - 'spec/lib/publipostage_v3_spec.rb'
     - 'spec/lib/baserow/client_spec.rb'
     - 'spec/lib/baserow/table_spec.rb'
     - 'spec/lib/deseti/instruction_spec.rb'

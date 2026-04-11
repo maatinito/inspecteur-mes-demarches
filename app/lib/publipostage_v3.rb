@@ -111,24 +111,68 @@ class PublipostageV3 < PublipostageV2
                              allowed_children: %i[ol li])
   end
 
-  # Surcharge de champ_value pour retourner des objets PieceJustificativeFile
-  # au lieu de parser immédiatement les fichiers Excel (comportement V1/V2).
-  # Cela permet un lazy loading et un accès unifié aux images, Excel, et liens.
+  # Surcharge de champ_value pour retourner des types natifs exploitables par
+  # Sablon (scalaires typés, booléens vrais, objets PieceJustificativeFile pour
+  # lazy loading) au lieu des chaînes préformatées de V1/V2.
   #
   # IMPORTANT : Cette surcharge ne casse pas V1/V2 car elle est uniquement
-  # dans PublipostageV3. V1 et V2 continuent d'utiliser excel_to_rows().
+  # dans PublipostageV3.
   def champ_value(champ)
     return super unless champ.respond_to?(:__typename)
 
     case champ.__typename
     when 'PieceJustificativeChamp'
-      # V3 : Retourne un tableau d'objets PieceJustificativeFile pour lazy loading
-      # (V1/V2 : appellent excel_to_rows qui retourne Array de Hash)
+      # Retourne un tableau d'objets PieceJustificativeFile pour lazy loading
       champ.files.map { |file| PieceJustificativeFile.new(file) }
+    when 'CheckboxChamp', 'YesNoChamp'
+      # Booléens natifs : «champ:if(present?)» et «=champ» («Oui»/«Non»)
+      BooleanValue.new(champ.value)
     else
       # Tous les autres types délèguent à PublipostageV2
       super
     end
+  end
+
+  # Variante typée de get_values_of qui préserve la cardinalité des champs :
+  # retourne un scalaire (String, Numeric, BooleanValue, …) quand la source
+  # est un champ unique et scalaire, une Array quand la source est une liste
+  # (MultipleDropDownList, Repetition, PieceJustificative…) ou quand le chemin
+  # croise plusieurs champs homonymes.
+  def typed_values_of(source, field, par_defaut = nil)
+    return par_defaut if field.blank?
+
+    # Valeurs calculées (@computed) — lookup défensif, cohérent avec la base
+    return @computed[field] if @computed.is_a?(Hash) && @computed[field].present?
+
+    # Source Hash (ligne Excel / CSV)
+    if source.is_a?(Hash)
+      raw = source[field.to_sym] || source[field]
+      return humanize(raw) if raw.present?
+    end
+
+    # Source avec champs (FieldList d'une répétition), puis fallback sur le dossier
+    champs = nil
+    champs = object_field_values(source, field, log_empty: false) if source.respond_to?(:champs) && source != @dossier
+    champs = object_field_values(@dossier, field, log_empty: false) if champs.blank?
+
+    return par_defaut if champs.blank?
+
+    values = champs.map { |c| champ_value(c) }.compact
+    values.size == 1 ? values.first : values
+  end
+
+  # Override de get_fields pour préserver la cardinalité native à la source.
+  # Contrairement à la route V1/V2 qui force tout en Array via get_values_of,
+  # la route V3 garde les scalaires scalaires — ce qui supprime le besoin d'un
+  # reverse-engineering dans normalize_context.
+  def get_fields(row, definitions, index)
+    result = { 'Dossier' => @dossier.number, '#index' => index + 1 }
+    definitions.each do |definition|
+      column, field, par_defaut = load_definition(definition)
+      value = typed_values_of(row, field, par_defaut)
+      expand_hash_into_result(result, column, value)
+    end
+    result
   end
 
   # Surcharge pour gérer Markdown dans les colonnes ReferentielDePolynesie
@@ -159,35 +203,25 @@ class PublipostageV3 < PublipostageV2
   end
 
   # Normalise récursivement le contexte pour Sablon :
-  # - Transforme les clés avec parameterize (accents, espaces, etc.)
-  # - Wrappe les tableaux de valeurs simples dans ArrayValue
-  # - Convertit automatiquement le Markdown en HTML
-  # - Garde les tableaux de Hash et d'objets tels quels
+  # - Transforme les clés de Hash avec parameterize (accents, espaces → underscores)
+  # - Wrappe toutes les Array dans ArrayValue (compatible to_ary + each pour les
+  #   boucles Sablon, compatible to_s pour «=champ»)
+  # - Convertit automatiquement le Markdown en HTML pour les strings
+  # - Laisse les scalaires, booléens et objets complexes intacts
+  #
+  # Aucune heuristique de reverse-engineering sur la cardinalité : la route
+  # typée (typed_values_of + champ_value) garantit déjà la forme correcte en amont.
   def normalize_context(value)
     case value
     when Hash
       value.transform_keys { |k| k.parameterize(separator: '_') }
            .transform_values { |v| normalize_context(v) }
     when Array
-      normalize_array(value)
+      ArrayValue.new(value.map { |v| normalize_context(v) })
     when String
-      # Conversion automatique Markdown → HTML si détecté
       convert_markdown_if_detected(value)
     else
       value
-    end
-  end
-
-  # Déplie les tableaux à un seul élément en valeur simple pour Sablon.
-  # get_fields retourne systématiquement des tableaux, mais dans un template Word
-  # on veut écrire «=Nom» et «Nom:if(present?)» plutôt que de boucler sur tout.
-  def normalize_array(array)
-    if array.size == 1 && !array.first.is_a?(Hash)
-      normalize_context(array.first)
-    elsif simple_array?(array)
-      ArrayValue.new(array)
-    else
-      array.map { |v| normalize_context(v) }
     end
   end
 
@@ -199,18 +233,5 @@ class PublipostageV3 < PublipostageV2
     else
       text
     end
-  end
-
-  # Détermine si un tableau contient uniquement des valeurs simples
-  # (pas de Hash, pas d'objets complexes comme PieceJustificativeFile)
-  def simple_array?(array)
-    return false if array.empty?
-
-    array.all? { |item| simple_value?(item) }
-  end
-
-  # Détermine si une valeur est simple (String, Numeric, nil, true, false)
-  def simple_value?(value)
-    value.nil? || value.is_a?(String) || value.is_a?(Numeric) || value.is_a?(TrueClass) || value.is_a?(FalseClass)
   end
 end

@@ -31,6 +31,13 @@ class ArrayValue
     @array.each(&)
   end
 
+  # Conversion implicite vers Array : Sablon::Statement::Loop appelle
+  # `value.to_ary if value.respond_to?(:to_ary)` avant d'itérer. On rend une
+  # copie défensive pour éviter qu'un consommateur ne mute notre état interne.
+  def to_ary
+    @array.dup
+  end
+
   # Affichage direct : «=valeurs» → "val1, val2, val3"
   def to_s
     @array.join(', ')
