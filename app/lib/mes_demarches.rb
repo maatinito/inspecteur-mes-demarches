@@ -223,6 +223,9 @@ module MesDemarches
               archipelago
           }
       }
+      ... on FormuleChamp {
+          value
+      }
     }
 
     fragment DossierInfo on Dossier {

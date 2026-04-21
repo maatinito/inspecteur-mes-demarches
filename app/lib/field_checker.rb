@@ -187,6 +187,8 @@ class FieldChecker < InspectorTask
       "Titre d'identité"
     when 'TeFenuaChamp'
       'TeFenuaChamp'
+    when 'FormuleChamp'
+      champ.value
     else
       raise "Unknown field type #{champ.label}:#{champ.__typename}"
     end
