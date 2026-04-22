@@ -46,13 +46,16 @@ class VerificationService
 
   def error_params(message, exception)
     {
-      message: "#{message} : #{exception.message}",
-      backtrace: exception.backtrace,
+      message: "#{message} : #{exception.class.name}: #{exception.message}",
+      backtrace: Array(exception.backtrace).first(10),
       tags: Rails.logger.formatter.current_tags.join(',')
     }
   end
 
   def report_error(message, exception)
+    # Ne pas passer l'objet Exception lui-même à deliver_later : ActiveJob ne sait
+    # pas sérialiser les objets Exception (lève ActiveJob::SerializationError).
+    # error_params extrait les informations en types primitifs (String, Array<String>).
     NotificationMailer.with(error_params(message, exception)).report_error.deliver_later
   end
 
