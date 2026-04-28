@@ -10,6 +10,11 @@ module MesDemarchesToBaserow
   # - Extraire les blocs répétables
   # - Normaliser les valeurs selon les types Baserow
   class DataExtractor
+    # Types de champs à ne jamais synchroniser vers Baserow.
+    # TitreIdentiteChamp : pièce d'identité, doit rester hors de Baserow
+    # (confidentialité — et l'API GraphQL ne donne pas accès au fichier).
+    IGNORED_CHAMP_TYPES = %w[TitreIdentiteChamp].freeze
+
     attr_reader :label_colors
 
     def initialize(field_metadata, options = {})
@@ -105,6 +110,7 @@ module MesDemarchesToBaserow
 
       champs.each do |champ|
         next if champ.__typename == 'RepetitionChamp'
+        next if ignored_champ?(champ)
 
         field_name = champ.label
         next unless @field_metadata.key?(field_name)
@@ -149,6 +155,10 @@ module MesDemarchesToBaserow
       champs.select { |c| c.__typename == 'RepetitionChamp' }
     end
 
+    def ignored_champ?(champ)
+      IGNORED_CHAMP_TYPES.include?(champ.__typename)
+    end
+
     def extract_block_rows(dossier, repetition_champ)
       rows = []
 
@@ -161,6 +171,8 @@ module MesDemarchesToBaserow
 
         # Extraire les champs de la row
         row.champs.each do |champ|
+          next if ignored_champ?(champ)
+
           field_name = champ.label
           # Pour les blocs, on utilise tous les champs (pas de filtrage par metadata)
           row_data[field_name] = normalize_value_simple(champ)
@@ -214,6 +226,7 @@ module MesDemarchesToBaserow
       return nil if %w[HeaderSectionChamp ExplicationChamp].include?(champ.__typename)
 
       # Priorité à 'value' (types simples), sinon 'string_value' (types spéciaux)
+      puts "Champ #{champ.label} n'a pas de méthode 'value' ou 'string_value'. Type: #{champ.__typename}" if !champ.respond_to?(:string_value) && !champ.respond_to?(:value)
       champ.respond_to?(:value) ? champ.value : champ.string_value
     rescue GraphQL::Client::Error => e
       Rails.logger.warn("get_champ_value : #{champ.label} (#{champ.__typename}) — #{e.message}")

@@ -156,8 +156,9 @@ module MesDemarchesToBaserow
         end
       end
 
-      # Mémoriser les échecs pour lever après l'upsert
-      @failed_uploads = failed_uploads
+      # Accumuler les échecs (plusieurs appels : table principale + chaque ligne de bloc)
+      # pour qu'ils soient tous remontés par le `raise` final de sync_dossier.
+      @failed_uploads.concat(failed_uploads)
     end
     # rubocop:enable Metrics/MethodLength
 
@@ -387,7 +388,7 @@ module MesDemarchesToBaserow
       # DataExtractor envoie le numéro (string), mais Baserow attend un array d'IDs
       row_data['Dossier'] = [main_row_id]
 
-      # Traiter les uploads de fichiers dans le bloc
+      # Traiter les uploads de fichiers dans le bloc (mute row_data en place)
       process_file_uploads(row_data, block_field_metadata)
 
       if existing
