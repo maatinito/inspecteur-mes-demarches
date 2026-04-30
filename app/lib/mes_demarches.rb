@@ -233,6 +233,9 @@ module MesDemarches
       ... on FormuleChamp {
           value
       }
+      ... on HeaderSectionChamp {
+          stringValue
+      }
     }
 
     fragment DossierInfo on Dossier {
