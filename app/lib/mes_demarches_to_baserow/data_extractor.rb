@@ -200,9 +200,15 @@ module MesDemarchesToBaserow
     # Récupère la valeur d'un champ selon son type GraphQL
     # - Types simples (TextChamp, DateChamp, CheckboxChamp, etc.) utilisent 'value'
     # - Types spéciaux (SiretChamp, PieceJustificativeChamp, etc.) utilisent 'string_value'
+    # - Types décoratifs (HeaderSectionChamp, ExplicationChamp) n'ont pas de valeur
     def get_champ_value(champ)
+      return nil if %w[HeaderSectionChamp ExplicationChamp].include?(champ.__typename)
+
       # Priorité à 'value' (types simples), sinon 'string_value' (types spéciaux)
       champ.respond_to?(:value) ? champ.value : champ.string_value
+    rescue GraphQL::Client::Error => e
+      Rails.logger.warn("get_champ_value : #{champ.label} (#{champ.__typename}) — #{e.message}")
+      nil
     end
 
     def format_date(date_string)

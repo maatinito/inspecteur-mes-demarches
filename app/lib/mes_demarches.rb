@@ -134,10 +134,17 @@ module MesDemarches
     fragment ChampInfo on Champ {
       id
       label
+      stringValue
       ... on TextChamp {
           value
       }
       ... on CheckboxChamp {
+          value
+      }
+      ... on YesNoChamp {
+          value
+      }
+      ... on DropDownListChamp {
           value
       }
       ... on IntegerNumberChamp {

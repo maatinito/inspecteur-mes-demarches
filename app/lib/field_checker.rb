@@ -189,8 +189,11 @@ class FieldChecker < InspectorTask
       'TeFenuaChamp'
     when 'FormuleChamp'
       champ.value
+    when 'HeaderSectionChamp', 'ExplicationChamp'
+      ''
     else
-      raise "Unknown field type #{champ.label}:#{champ.__typename}"
+      Rails.logger.warn("Type de champ non géré, fallback sur stringValue : #{champ.label}:#{champ.__typename}")
+      string_value_of(champ).to_s
     end
   end
 

@@ -181,7 +181,12 @@ module MesDemarchesToGrist
     end
 
     def get_champ_value(champ)
+      return nil if %w[HeaderSectionChamp ExplicationChamp].include?(champ.__typename)
+
       champ.respond_to?(:value) ? champ.value : champ.string_value
+    rescue GraphQL::Client::Error => e
+      Rails.logger.warn("get_champ_value : #{champ.label} (#{champ.__typename}) — #{e.message}")
+      nil
     end
 
     # Grist attend les dates en timestamp Unix (epoch seconds)
