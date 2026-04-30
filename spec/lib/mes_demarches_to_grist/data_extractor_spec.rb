@@ -78,14 +78,14 @@ RSpec.describe MesDemarchesToGrist::DataExtractor do
 
   describe '#normalize_integer' do
     it 'converts string to integer' do
-      champ = double('champ', value: '42')
+      champ = double('champ', __typename: 'IntegerNumberChamp', value: '42')
       allow(champ).to receive(:respond_to?).with(:value).and_return(true)
       result = extractor.send(:normalize_integer, champ)
       expect(result).to eq(42)
     end
 
     it 'returns nil for blank' do
-      champ = double('champ', value: '')
+      champ = double('champ', __typename: 'IntegerNumberChamp', value: '')
       allow(champ).to receive(:respond_to?).with(:value).and_return(true)
       result = extractor.send(:normalize_integer, champ)
       expect(result).to be_nil
@@ -94,7 +94,7 @@ RSpec.describe MesDemarchesToGrist::DataExtractor do
 
   describe '#normalize_numeric' do
     it 'converts string to float' do
-      champ = double('champ', value: '3.14')
+      champ = double('champ', __typename: 'DecimalNumberChamp', value: '3.14')
       allow(champ).to receive(:respond_to?).with(:value).and_return(true)
       result = extractor.send(:normalize_numeric, champ)
       expect(result).to eq(3.14)

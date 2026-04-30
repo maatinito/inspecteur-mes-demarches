@@ -188,22 +188,22 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
 
   describe '#normalize_number' do
     it 'convertit un string en nombre' do
-      champ = double('IntegerNumberChamp', string_value: '42')
+      champ = double('IntegerNumberChamp', __typename: 'IntegerNumberChamp', string_value: '42')
       expect(extractor.send(:normalize_number, champ)).to eq(42)
     end
 
     it 'convertit un décimal' do
-      champ = double('DecimalNumberChamp', string_value: '42.5')
+      champ = double('DecimalNumberChamp', __typename: 'DecimalNumberChamp', string_value: '42.5')
       expect(extractor.send(:normalize_number, champ)).to eq(42.5)
     end
 
     it 'retourne nil pour une valeur vide' do
-      champ = double('IntegerNumberChamp', string_value: '')
+      champ = double('IntegerNumberChamp', __typename: 'IntegerNumberChamp', string_value: '')
       expect(extractor.send(:normalize_number, champ)).to be_nil
     end
 
     it 'retourne nil pour une valeur invalide' do
-      champ = double('IntegerNumberChamp', string_value: 'abc')
+      champ = double('IntegerNumberChamp', __typename: 'IntegerNumberChamp', string_value: 'abc')
       expect(extractor.send(:normalize_number, champ)).to be_nil
     end
   end
