@@ -42,23 +42,19 @@ class DeadLineChecker < FieldChecker
     schedule_next_check(dossier, config[:seuils], jours_restants)
   end
 
-  class << self
-    private
-
-    def corrections_query
-      @corrections_query ||= MesDemarches::Client.parse <<-GRAPHQL
-        query DossierCorrections($dossier: Int!) {
-          dossier(number: $dossier) {
-            messages {
-              createdAt
-              correction {
-                dateResolution
-              }
+  def self.corrections_query
+    @corrections_query ||= MesDemarches::Client.parse <<-GRAPHQL
+      query DossierCorrections($dossier: Int!) {
+        dossier(number: $dossier) {
+          messages {
+            createdAt
+            correction {
+              dateResolution
             }
           }
         }
-      GRAPHQL
-    end
+      }
+    GRAPHQL
   end
 
   private
@@ -100,8 +96,8 @@ class DeadLineChecker < FieldChecker
   def update_annotation(annotation_name, jours_restants)
     return if annotation_name.blank?
 
-    SetAnnotationValue.set_value(@dossier, instructeur_id, annotation_name, jours_restants.to_i)
-    dossier_updated(@dossier)
+    changed = SetAnnotationValue.set_value(@dossier, instructeur_id, annotation_name, jours_restants.to_i)
+    dossier_updated(@dossier) if changed
   end
 
   def check_thresholds(seuils, jours_restants, variables)

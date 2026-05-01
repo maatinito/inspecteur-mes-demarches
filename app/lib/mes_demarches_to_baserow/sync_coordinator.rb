@@ -388,7 +388,7 @@ module MesDemarchesToBaserow
       row_data['Dossier'] = [main_row_id]
 
       # Traiter les uploads de fichiers dans le bloc
-      row_data = process_file_uploads(row_data, block_field_metadata)
+      process_file_uploads(row_data, block_field_metadata)
 
       if existing
         # Filtrer pour n'envoyer que les champs modifiés

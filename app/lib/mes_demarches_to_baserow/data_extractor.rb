@@ -39,8 +39,17 @@ module MesDemarchesToBaserow
       # Champs formulaire (toujours extraits)
       data.merge!(extract_champs(dossier))
 
-      # Annotations privées (toujours extraites)
-      data.merge!(extract_annotations(dossier))
+      # Annotations privées : on ignore celles dont le label collisionne avec un
+      # champ — le champ est la donnée canonique (saisie usager) et l'annotation
+      # homonyme ne doit pas l'écraser silencieusement dans Baserow.
+      annotations_data = extract_annotations(dossier)
+      champ_labels = dossier.champs.to_set(&:label)
+      collisions = annotations_data.keys.select { |k| champ_labels.include?(k) }
+      if collisions.any?
+        Rails.logger.warn("BaserowSync: annotation(s) ignorée(s) car nom identique à un champ : #{collisions.join(', ')}")
+        annotations_data = annotations_data.except(*collisions)
+      end
+      data.merge!(annotations_data)
 
       data
     end

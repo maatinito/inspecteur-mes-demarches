@@ -207,5 +207,60 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
       expect(extractor.send(:normalize_number, champ)).to be_nil
     end
   end
+
+  describe '#extract_main_table' do
+    let(:field_metadata) do
+      {
+        'Plan de masse' => { 'type' => 'file', 'id' => 10 },
+        'Notes' => { 'type' => 'long_text', 'id' => 11 }
+      }
+    end
+
+    let(:champ_plan) do
+      double('PieceJustificativeChamp',
+             label: 'Plan de masse',
+             __typename: 'PieceJustificativeChamp',
+             files: [double('File', filename: 'plan_user.pdf', url: 'https://md/plan_user.pdf', byte_size: 100)])
+    end
+
+    let(:annotation_plan_historique) do
+      double('PieceJustificativeChamp',
+             label: 'Plan de masse',
+             __typename: 'PieceJustificativeChamp',
+             files: [double('File', filename: 'plan_v1.pdf', url: 'https://md/plan_v1.pdf', byte_size: 50)])
+    end
+
+    let(:annotation_notes) do
+      double('TextareaChamp',
+             label: 'Notes',
+             __typename: 'TextareaChamp',
+             value: 'note interne')
+    end
+
+    let(:dossier) do
+      double('Dossier',
+             number: 42,
+             state: 'en_instruction',
+             date_depot: nil,
+             date_passage_en_instruction: nil,
+             date_traitement: nil,
+             usager: nil,
+             demandeur: nil,
+             champs: [champ_plan],
+             annotations: [annotation_plan_historique, annotation_notes])
+    end
+
+    it 'ignore les annotations homonymes d\'un champ et conserve la valeur du champ' do
+      allow(Rails.logger).to receive(:warn)
+
+      result = extractor.send(:extract_main_table, dossier)
+
+      expect(result['Plan de masse']).to contain_exactly(
+        { url: 'https://md/plan_user.pdf', visible_name: 'plan_user.pdf' }
+      )
+      expect(result['Notes']).to eq('note interne')
+      expect(Rails.logger).to have_received(:warn).with(/Plan de masse/)
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength

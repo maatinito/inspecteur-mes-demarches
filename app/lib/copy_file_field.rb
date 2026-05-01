@@ -61,8 +61,8 @@ class CopyFileField < FieldChecker
   end
 
   def copy_files_individually(champs)
-    files = champs.flat_map(&method(:download))
-    if files.blank?
+    pairs = champs.flat_map(&method(:download_with_filename))
+    if pairs.blank?
       Rails.logger.warn("Aucun fichier à copier depuis '#{@params[:champ_source]}'")
       return
     end
@@ -74,10 +74,9 @@ class CopyFileField < FieldChecker
     instructeur = instructeur_id_for(@demarche, @dossier)
     changed = false
 
-    files.each do |file|
-      filename = File.basename(file)
-      Rails.logger.info("Copying file #{filename} to #{params[:champ_cible]}")
+    pairs.each do |file, filename|
       file_changed = SetAnnotationValue.set_piece_justificative_on_annotation(@dossier, instructeur, annotation, file, filename)
+      Rails.logger.info("File #{filename} copied to #{params[:champ_cible]}") if file_changed
       changed ||= file_changed
     end
 
@@ -104,6 +103,12 @@ class CopyFileField < FieldChecker
     return unless champ.__typename == 'PieceJustificativeChamp'
 
     champ.files.map { |f| PieceJustificativeCache.get(f) }
+  end
+
+  def download_with_filename(champ)
+    return [] unless champ.__typename == 'PieceJustificativeChamp'
+
+    champ.files.map { |f| [PieceJustificativeCache.get(f), f.filename] }
   end
 
   def to_pdf(file)
