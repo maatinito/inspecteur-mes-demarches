@@ -58,7 +58,7 @@ RSpec.describe GenerateId do
       it 'marks dossier as updated' do
         checker.process(demarche, dossier)
 
-        expect(checker.updated_dossiers).to include(dossier.number)
+        expect(checker.dossier_updated?).to be true
       end
     end
 
@@ -80,7 +80,7 @@ RSpec.describe GenerateId do
       it 'does not mark dossier as updated' do
         checker.process(demarche, dossier)
 
-        expect(checker.updated_dossiers).to be_empty
+        expect(checker.dossier_updated?).to be false
       end
     end
 

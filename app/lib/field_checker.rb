@@ -2,42 +2,34 @@
 
 class FieldChecker < InspectorTask
   attr_accessor :dossier
-  attr_reader :messages, :accessed_fields, :updated_dossiers, :dossiers_to_recheck
+  attr_reader :messages, :accessed_fields, :dossiers_to_recheck
 
   attr_writer :demarche
 
   def initialize(params)
     super
-    @messages = []
-    @updated_dossiers = Set.new
-    @dossiers_to_recheck = Set.new
+    reset_state
     etat_du_dossier = @params[:etat_du_dossier] || ['en_construction']
     etat_du_dossier = etat_du_dossier.split(/\s*,\s*/) if etat_du_dossier.is_a?(String)
     @states = Set.new(etat_du_dossier)
   end
 
   def process(demarche, dossier)
-    @messages = []
-    @updated_dossiers = Set.new
-    @dossiers_to_recheck = Set.new
+    reset_state
     @dossier = dossier
     @demarche = demarche
-    # MicrosoftGraphCore::Authentication::OAuthAuthenticationProvider.new(context, nil, ['https://graph.microsoft.com/.default'])
-    #
-    # context = MicrosoftKiotaAuthenticationOAuth::ClientCredentialContext.new(tenant_id, user, password)
-    # authentication_provider = MicrosoftGraphCore::Authentication::OAuthAuthenticationProvider.new(context, nil, ['https://graph.microsoft.com/.default'])
-    # adapter = MicrosoftGraph::GraphRequestAdapter.new(authentication_provider)
-    # client = MicrosoftGraph::GraphServiceClient.new(adapter)
-    # client.sites.get.resume
   end
 
   def control(dossier)
-    @messages = []
-    @updated_dossiers = Set.new
-    @dossiers_to_recheck = Set.new
+    reset_state
     @dossier = dossier
-    @demarche = demarche
     check(dossier)
+  end
+
+  def reset_state
+    @messages = []
+    @dossiers_to_recheck = Set.new
+    @dossier_updated = false
   end
 
   def authorized_fields
@@ -252,12 +244,16 @@ class FieldChecker < InspectorTask
     @messages << Message.new(field: champ, value: valeur, message:)
   end
 
-  def dossier_updated(dossier)
-    @updated_dossiers << dossier.number
+  # Signale que LE DOSSIER COURANT a été modifié pendant ce check / process.
+  # L'argument est conservé pour rétrocompatibilité mais ignoré : tous les
+  # appelants (21 sites) passent le dossier courant, et tous les lecteurs
+  # (6 sites) ne testent que le dossier courant.
+  def dossier_updated(_dossier = nil)
+    @dossier_updated = true
   end
 
-  def dossier_updated?(dossier)
-    @updated_dossiers.include?(dossier.number)
+  def dossier_updated?(_dossier = nil)
+    @dossier_updated == true
   end
 
   def recheck(dossier)

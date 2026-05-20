@@ -262,13 +262,15 @@ class VerificationService
     @dossier_has_different_messages = false
     @second_time = false
     failed_checks = false
+    updated_dossier = nil
 
     controls.each do |control|
       check = check_control(control, demarche, md_dossier)
       checks << check
       failed_checks ||= check.failed
-      md_dossier = DossierActions.on_dossier(md_dossier.number) if control.dossier_updated?(md_dossier)
+      updated_dossier = md_dossier = DossierActions.on_dossier(md_dossier.number) if control.dossier_updated?
     end
+    avoid_useless_checks_for(updated_dossier) if updated_dossier
     unless failed_checks
       inform(md_dossier, checks, send_message: @send_messages) if @dossier_has_different_messages
       when_ok(demarche, md_dossier, checks) if @ok_tasks.present?
@@ -286,23 +288,21 @@ class VerificationService
         Rails.logger.info("task ask for processing = #{control_must_check}")
         apply_control(control, md_dossier, check) if control_must_check
         check.update(checked_at: start_time, version: control.version)
-        avoid_useless_checks(control)
         recheck_dependent_dossiers(control)
       end
       check
     end
   end
 
-  def avoid_useless_checks(control)
-    control.updated_dossiers.each do |dossier|
-      next unless dossier.present?
-
-      checked_at = Check.arel_table[:checked_at]
-      checkers = Check.where(dossier: dossier.number)
-                      .where(checked_at.gt(dossier.date_derniere_modification))
-      Rails.logger.debug("Checkers : #{checkers.map(&:checker).join(',')}")
-      checkers.update_all(checked_at: Time.zone.now)
-    end
+  # Marque les Checks du dossier dont la date_derniere_modification dépasse
+  # celle du dernier checked_at comme déjà à jour, pour éviter un re-traitement
+  # au prochain cycle. Appelé une seule fois, après la boucle des controls,
+  # avec la version la plus récente du dossier (rechargée).
+  def avoid_useless_checks_for(dossier)
+    checked_at = Check.arel_table[:checked_at]
+    Check.where(dossier: dossier.number)
+         .where(checked_at.gt(dossier.date_derniere_modification))
+         .update_all(checked_at: Time.zone.now)
   end
 
   def recheck_dependent_dossiers(control)
@@ -331,7 +331,10 @@ class VerificationService
       Check.find_or_create_by(dossier: md_dossier.number, checker: control.name) do |c|
         c.checked_at = EPOCH
         c.demarche = demarche
-        @dossier_has_different_messages = true # new check implies a message must be sent even if no error msg is triggered
+        # On NE force PAS @dossier_has_different_messages ici : un premier passage
+        # sans anomalie ne doit pas générer un mail "tout va bien" inutile.
+        # Le flag est positionné par update_check_messages (transition réelle
+        # d'anomalies) et ligne ~378 (transition failed -> ok).
       end
   end
 
