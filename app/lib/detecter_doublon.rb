@@ -130,7 +130,7 @@ class DetecterDoublon < FieldChecker
   def fire_message(duplicates, cle, context)
     return if duplicates.empty? || @params[:message].blank?
 
-    add_message(@params[:cle], cle, instanciate(@params[:message], context))
+    add_message(@params[:cle].gsub(/[{}]/, ''), cle, instanciate(@params[:message], context))
   end
 
   def build_context(duplicates, cle)
