@@ -28,14 +28,15 @@ class DetecterDoublon < FieldChecker
     super
     cle = compute_cle
     state = dossier.state.to_s
+    depose_at = parse_depose_at(dossier)
     previous_cle = DossierDoublon.find_by(dossier_number: dossier.number)&.cle
 
-    sync_registry(state, cle)
+    sync_registry(state, cle, depose_at)
     return unless @states.include?(state)
 
-    duplicates = current_duplicates(state, cle, dossier)
+    duplicates = current_duplicates(state, cle, depose_at)
     fire_actions(duplicates, cle)
-    recheck_siblings(dossier, [cle, previous_cle].compact.uniq)
+    recheck_siblings(depose_at, [cle, previous_cle].compact.uniq)
   end
 
   private
@@ -47,12 +48,20 @@ class DetecterDoublon < FieldChecker
     raw.gsub(/\s+/, '').upcase.presence
   end
 
-  def registry_eligible?(state, cle)
-    @etats_doublons.include?(state) && cle.present?
+  def parse_depose_at(dossier)
+    raw = dossier.date_depot
+    return nil if raw.blank?
+    return raw if raw.is_a?(Time) || raw.is_a?(DateTime) || raw.is_a?(Date)
+
+    DateTime.iso8601(raw)
   end
 
-  def sync_registry(state, cle)
-    if registry_eligible?(state, cle)
+  def registry_eligible?(state, cle, depose_at)
+    @etats_doublons.include?(state) && cle.present? && depose_at.present?
+  end
+
+  def sync_registry(state, cle, depose_at)
+    if registry_eligible?(state, cle, depose_at)
       now = Time.zone.now
       DossierDoublon.upsert(
         {
@@ -60,7 +69,7 @@ class DetecterDoublon < FieldChecker
           dossier_number: @dossier.number,
           cle:,
           state:,
-          date_passage_en_construction: @dossier.date_passage_en_construction,
+          depose_at:,
           updated_at: now,
           created_at: now
         },
@@ -71,13 +80,13 @@ class DetecterDoublon < FieldChecker
     end
   end
 
-  def current_duplicates(state, cle, dossier)
-    return DossierDoublon.none unless registry_eligible?(state, cle)
+  def current_duplicates(state, cle, depose_at)
+    return DossierDoublon.none unless registry_eligible?(state, cle, depose_at)
 
     DossierDoublon.duplicates_of(
       demarche_id: @demarche.id,
       cle:,
-      dossier_number: dossier.number,
+      depose_at:,
       etats: @etats_doublons.to_a,
       purge_after_months: @params[:purge_after_months]
     )
@@ -118,13 +127,11 @@ class DetecterDoublon < FieldChecker
     end
   end
 
-  def recheck_siblings(dossier, cles)
-    return if cles.empty?
-
-    siblings = DossierDoublon.for_demarche(@demarche.id)
-                             .where(cle: cles)
-                             .where.not(dossier_number: dossier.number)
-                             .pluck(:dossier_number)
-    siblings.each { |number| recheck(number) }
+  # Asymétrique : ne réveille que les dossiers déposés APRÈS celui-ci.
+  # Les antérieurs sont par construction non impactés (leur statut "légitime"
+  # ne dépend que de leurs propres antérieurs).
+  def recheck_siblings(depose_at, cles)
+    DossierDoublon.posterior_siblings(demarche_id: @demarche.id, cles:, depose_at:)
+                  .each { |number| recheck(number) }
   end
 end

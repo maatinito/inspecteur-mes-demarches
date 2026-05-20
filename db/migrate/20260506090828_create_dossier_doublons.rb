@@ -7,12 +7,12 @@ class CreateDossierDoublons < ActiveRecord::Migration[6.1]
       t.integer :dossier_number, null: false
       t.string :cle, null: false
       t.string :state, null: false
-      t.datetime :date_passage_en_construction
+      t.datetime :depose_at, null: false
 
       t.timestamps
     end
 
     add_index :dossier_doublons, :dossier_number, unique: true
-    add_index :dossier_doublons, %i[demarche_id cle]
+    add_index :dossier_doublons, %i[demarche_id cle depose_at]
   end
 end

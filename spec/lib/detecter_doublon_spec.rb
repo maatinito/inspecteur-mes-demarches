@@ -14,12 +14,13 @@ RSpec.describe DetecterDoublon do
   let(:dossier_number) { 100 }
   let(:state) { 'en_construction' }
   let(:dossier_labels) { [] }
+  let(:dossier_depose_at) { 2.days.ago }
   let(:dossier) do
     double('dossier',
            id: "gid://Dossier/#{dossier_number}",
            number: dossier_number,
            state:,
-           date_passage_en_construction: 1.day.ago,
+           date_depot: dossier_depose_at,
            champs: [champ_immat],
            annotations: [],
            labels: dossier_labels)
@@ -67,7 +68,7 @@ RSpec.describe DetecterDoublon do
 
     it 'supprime du registre quand le dossier passe à refuse' do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number:, cle: 'PY-12345',
-                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+                             state: 'en_instruction', depose_at: 2.days.ago)
       allow(dossier).to receive(:state).and_return('refuse')
       checker.process(demarche, dossier)
       expect(DossierDoublon.find_by(dossier_number:)).to be_nil
@@ -75,7 +76,7 @@ RSpec.describe DetecterDoublon do
 
     it 'supprime du registre quand la clé est vidée' do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number:, cle: 'PY-12345',
-                             state: 'en_construction', date_passage_en_construction: 1.day.ago)
+                             state: 'en_construction', depose_at: 2.days.ago)
       allow(champ_immat).to receive(:value).and_return('')
       checker.process(demarche, dossier)
       expect(DossierDoublon.find_by(dossier_number:)).to be_nil
@@ -87,7 +88,7 @@ RSpec.describe DetecterDoublon do
     let(:champ_prenom) { double('prenom', label: 'Prenom', __typename: 'TextChamp', value: 'Jacques') }
     let(:dossier_compose) do
       double('dossier_compose', id: 'd2', number: 200, state: 'en_construction',
-                                date_passage_en_construction: 1.day.ago,
+                                date_depot: 2.days.ago,
                                 champs: [champ_nom, champ_prenom], annotations: [], labels: [])
     end
     let(:checker) { described_class.new(cle: '{Nom}-{Prenom}') }
@@ -113,7 +114,7 @@ RSpec.describe DetecterDoublon do
       allow(task).to receive(:process)
       allow(InspectorTask).to receive(:create_tasks).and_return([task])
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
-                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+                             state: 'en_instruction', depose_at: 3.days.ago)
       checker_q = described_class.new(base_params.merge(quand_doublon: [{ 'fake' => {} }]))
       checker_q.process(demarche, dossier)
       expect(task).not_to have_received(:process)
@@ -122,7 +123,7 @@ RSpec.describe DetecterDoublon do
 
     it 'détecte un accepté comme doublon pour un dossier en construction' do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
-                             state: 'accepte', date_passage_en_construction: 1.day.ago)
+                             state: 'accepte', depose_at: 3.days.ago)
       task = double('task', name: 'fake', valid?: true, updated_dossiers: Set.new, dossiers_to_recheck: Set.new)
       allow(task).to receive(:demarche=)
       allow(task).to receive(:process)
@@ -134,7 +135,7 @@ RSpec.describe DetecterDoublon do
 
     it 'ignore un dossier refusé comme doublon' do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
-                             state: 'refuse', date_passage_en_construction: 1.day.ago)
+                             state: 'refuse', depose_at: 3.days.ago)
       task = double('task', name: 'fake', valid?: true, updated_dossiers: Set.new, dossiers_to_recheck: Set.new)
       allow(task).to receive(:demarche=)
       allow(task).to receive(:process)
@@ -159,7 +160,7 @@ RSpec.describe DetecterDoublon do
 
     it 'fire quand_doublon en présence de doublons' do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
-                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+                             state: 'en_instruction', depose_at: 3.days.ago)
       checker = described_class.new(base_params.merge(quand_doublon: [{ 'fake_task' => {} }]))
       checker.process(demarche, dossier)
       expect(fake_task).to have_received(:process).with(demarche, dossier)
@@ -181,9 +182,9 @@ RSpec.describe DetecterDoublon do
   describe '#process — substitution des variables' do
     it 'remplace doublons_refs, doublons_count, cle dans les params des sous-tâches' do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 50, cle: 'PY-12345',
-                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+                             state: 'en_instruction', depose_at: 4.days.ago)
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
-                             state: 'accepte', date_passage_en_construction: 2.days.ago)
+                             state: 'accepte', depose_at: 3.days.ago)
 
       captured = nil
       allow(InspectorTask).to receive(:create_tasks) do |defs|
@@ -207,7 +208,7 @@ RSpec.describe DetecterDoublon do
 
     it 'résout aussi les champs/attributs du dossier via instanciate (number, ternaire, prefix/postfix)' do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
-                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+                             state: 'en_instruction', depose_at: 3.days.ago)
       captured = nil
       allow(InspectorTask).to receive(:create_tasks) do |defs|
         captured = defs
@@ -233,12 +234,34 @@ RSpec.describe DetecterDoublon do
   end
 
   describe '#process — recheck des frères' do
-    it 'demande la re-vérification des dossiers de même clé' do
-      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
-                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+    # Asymétrie : seuls les dossiers déposés APRÈS le courant sont réveillés.
+    # Le légitime (le plus ancien) ne se remet jamais en cause à cause d'un postérieur.
+    it 'réveille les frères postérieurs (depose_at > self.depose_at) sur la même clé' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 200, cle: 'PY-12345',
+                             state: 'en_instruction', depose_at: 1.day.ago)
       checker = described_class.new(base_params)
       checker.process(demarche, dossier)
-      expect(checker.dossiers_to_recheck).to include(99)
+      expect(checker.dossiers_to_recheck).to include(200)
+    end
+
+    it 'ne réveille pas les frères antérieurs' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 50, cle: 'PY-12345',
+                             state: 'en_instruction', depose_at: 4.days.ago)
+      checker = described_class.new(base_params)
+      checker.process(demarche, dossier)
+      expect(checker.dossiers_to_recheck).not_to include(50)
+    end
+
+    it 'le plus ancien reste légitime (unique) même avec un frère postérieur' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 200, cle: 'PY-12345',
+                             state: 'en_instruction', depose_at: 1.day.ago)
+      task = double('task', name: 'fake', valid?: true, updated_dossiers: Set.new, dossiers_to_recheck: Set.new)
+      allow(task).to receive(:demarche=)
+      allow(task).to receive(:process)
+      allow(InspectorTask).to receive(:create_tasks).and_return([task])
+      checker = described_class.new(base_params.merge(quand_doublon: [{ 'fake' => {} }]))
+      checker.process(demarche, dossier)
+      expect(task).not_to have_received(:process)
     end
   end
 end

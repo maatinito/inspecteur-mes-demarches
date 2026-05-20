@@ -86,10 +86,10 @@ ActiveRecord::Schema[7.2].define(version: 20_260_506_090_828) do
     t.integer 'dossier_number', null: false
     t.string 'cle', null: false
     t.string 'state', null: false
-    t.datetime 'date_passage_en_construction', precision: nil
+    t.datetime 'depose_at', precision: nil, null: false
     t.datetime 'created_at', null: false
     t.datetime 'updated_at', null: false
-    t.index %w[demarche_id cle], name: 'index_dossier_doublons_on_demarche_id_and_cle'
+    t.index %w[demarche_id cle depose_at], name: 'index_dossier_doublons_on_demarche_id_and_cle_and_depose_at'
     t.index ['dossier_number'], name: 'index_dossier_doublons_on_dossier_number', unique: true
   end
 
