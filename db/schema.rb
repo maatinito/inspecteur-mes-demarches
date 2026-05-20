@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_260_212_041_933) do
+ActiveRecord::Schema[7.2].define(version: 20_260_506_090_828) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -79,6 +79,18 @@ ActiveRecord::Schema[7.2].define(version: 20_260_212_041_933) do
     t.datetime 'created_at', null: false
     t.datetime 'updated_at', null: false
     t.index %w[dossier label], name: 'index_dossier_data_on_dossier_and_label', unique: true
+  end
+
+  create_table 'dossier_doublons', force: :cascade do |t|
+    t.integer 'demarche_id', null: false
+    t.integer 'dossier_number', null: false
+    t.string 'cle', null: false
+    t.string 'state', null: false
+    t.datetime 'date_passage_en_construction', precision: nil
+    t.datetime 'created_at', null: false
+    t.datetime 'updated_at', null: false
+    t.index %w[demarche_id cle], name: 'index_dossier_doublons_on_demarche_id_and_cle'
+    t.index ['dossier_number'], name: 'index_dossier_doublons_on_dossier_number', unique: true
   end
 
   create_table 'messages', force: :cascade do |t|

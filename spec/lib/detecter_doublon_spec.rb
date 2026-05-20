@@ -1,0 +1,244 @@
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe DetecterDoublon do
+  let(:instructeur_id) { 'instructeur-1' }
+  let(:demarche) { instance_double(Demarche, id: 3288, instructeur: instructeur_id) }
+
+  let(:champ_immat) do
+    double('champ', id: 'c1', label: 'Immatriculation du navire (PY)',
+                    __typename: 'TextChamp', value: 'PY-12345')
+  end
+
+  let(:dossier_number) { 100 }
+  let(:state) { 'en_construction' }
+  let(:dossier_labels) { [] }
+  let(:dossier) do
+    double('dossier',
+           id: "gid://Dossier/#{dossier_number}",
+           number: dossier_number,
+           state:,
+           date_passage_en_construction: 1.day.ago,
+           champs: [champ_immat],
+           annotations: [],
+           labels: dossier_labels)
+  end
+
+  let(:base_params) do
+    { cle: '{Immatriculation du navire (PY)}' }
+  end
+
+  describe 'paramétrage' do
+    it 'requiert cle' do
+      expect(described_class.new({}).valid?).to be false
+    end
+
+    it 'accepte etats_doublons, purge_after_months, quand_*, etat_du_dossier' do
+      checker = described_class.new(base_params.merge(
+                                      etats_doublons: %w[en_instruction],
+                                      purge_after_months: 8,
+                                      etat_du_dossier: %w[en_construction],
+                                      quand_doublon: [],
+                                      quand_unique: []
+                                    ))
+      expect(checker.valid?).to be true
+    end
+  end
+
+  describe '#process — registre' do
+    let(:checker) { described_class.new(base_params) }
+
+    it 'insère une entrée pour un dossier en construction' do
+      checker.process(demarche, dossier)
+      entry = DossierDoublon.find_by(dossier_number:)
+      expect(entry).to have_attributes(
+        demarche_id: demarche.id,
+        cle: 'PY-12345',
+        state: 'en_construction'
+      )
+    end
+
+    it 'normalise la clé (majuscules + suppression espaces)' do
+      allow(champ_immat).to receive(:value).and_return('  py 1234 pl  ')
+      checker.process(demarche, dossier)
+      expect(DossierDoublon.find_by(dossier_number:).cle).to eq 'PY1234PL'
+    end
+
+    it 'supprime du registre quand le dossier passe à refuse' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number:, cle: 'PY-12345',
+                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+      allow(dossier).to receive(:state).and_return('refuse')
+      checker.process(demarche, dossier)
+      expect(DossierDoublon.find_by(dossier_number:)).to be_nil
+    end
+
+    it 'supprime du registre quand la clé est vidée' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number:, cle: 'PY-12345',
+                             state: 'en_construction', date_passage_en_construction: 1.day.ago)
+      allow(champ_immat).to receive(:value).and_return('')
+      checker.process(demarche, dossier)
+      expect(DossierDoublon.find_by(dossier_number:)).to be_nil
+    end
+  end
+
+  describe '#process — clé composite' do
+    let(:champ_nom) { double('nom', label: 'Nom', __typename: 'TextChamp', value: 'Cousteau') }
+    let(:champ_prenom) { double('prenom', label: 'Prenom', __typename: 'TextChamp', value: 'Jacques') }
+    let(:dossier_compose) do
+      double('dossier_compose', id: 'd2', number: 200, state: 'en_construction',
+                                date_passage_en_construction: 1.day.ago,
+                                champs: [champ_nom, champ_prenom], annotations: [], labels: [])
+    end
+    let(:checker) { described_class.new(cle: '{Nom}-{Prenom}') }
+
+    it 'compose la clé à partir de plusieurs champs' do
+      checker.process(demarche, dossier_compose)
+      expect(DossierDoublon.find_by(dossier_number: 200).cle).to eq 'COUSTEAU-JACQUES'
+    end
+  end
+
+  describe '#process — séparation etats_doublons / etat_du_dossier' do
+    let(:checker) do
+      described_class.new(base_params.merge(
+                            etat_du_dossier: %w[en_construction en_instruction],
+                            etats_doublons: %w[en_construction en_instruction accepte]
+                          ))
+    end
+
+    it 'ne fire pas les actions sur un accepté mais le maintient dans le registre' do
+      allow(dossier).to receive(:state).and_return('accepte')
+      task = double('task', name: 'fake', valid?: true, updated_dossiers: Set.new, dossiers_to_recheck: Set.new)
+      allow(task).to receive(:demarche=)
+      allow(task).to receive(:process)
+      allow(InspectorTask).to receive(:create_tasks).and_return([task])
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
+                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+      checker_q = described_class.new(base_params.merge(quand_doublon: [{ 'fake' => {} }]))
+      checker_q.process(demarche, dossier)
+      expect(task).not_to have_received(:process)
+      expect(DossierDoublon.find_by(dossier_number:).state).to eq 'accepte'
+    end
+
+    it 'détecte un accepté comme doublon pour un dossier en construction' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
+                             state: 'accepte', date_passage_en_construction: 1.day.ago)
+      task = double('task', name: 'fake', valid?: true, updated_dossiers: Set.new, dossiers_to_recheck: Set.new)
+      allow(task).to receive(:demarche=)
+      allow(task).to receive(:process)
+      allow(InspectorTask).to receive(:create_tasks).and_return([task])
+      checker_q = described_class.new(base_params.merge(quand_doublon: [{ 'fake' => {} }]))
+      checker_q.process(demarche, dossier)
+      expect(task).to have_received(:process)
+    end
+
+    it 'ignore un dossier refusé comme doublon' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
+                             state: 'refuse', date_passage_en_construction: 1.day.ago)
+      task = double('task', name: 'fake', valid?: true, updated_dossiers: Set.new, dossiers_to_recheck: Set.new)
+      allow(task).to receive(:demarche=)
+      allow(task).to receive(:process)
+      allow(InspectorTask).to receive(:create_tasks).and_return([task])
+      checker_q = described_class.new(base_params.merge(quand_doublon: [{ 'fake' => {} }]))
+      checker_q.process(demarche, dossier)
+      expect(task).not_to have_received(:process)
+    end
+  end
+
+  describe '#process — fire des actions' do
+    let(:fake_task) do
+      double('task', name: 'fake_task', valid?: true,
+                     updated_dossiers: Set.new, dossiers_to_recheck: Set.new)
+    end
+
+    before do
+      allow(fake_task).to receive(:demarche=)
+      allow(fake_task).to receive(:process)
+      allow(InspectorTask).to receive(:create_tasks).and_return([fake_task])
+    end
+
+    it 'fire quand_doublon en présence de doublons' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
+                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+      checker = described_class.new(base_params.merge(quand_doublon: [{ 'fake_task' => {} }]))
+      checker.process(demarche, dossier)
+      expect(fake_task).to have_received(:process).with(demarche, dossier)
+    end
+
+    it 'fire quand_unique en absence de doublons' do
+      checker = described_class.new(base_params.merge(quand_unique: [{ 'fake_task' => {} }]))
+      checker.process(demarche, dossier)
+      expect(fake_task).to have_received(:process).with(demarche, dossier)
+    end
+
+    it 'ignore une liste vide' do
+      checker = described_class.new(base_params)
+      checker.process(demarche, dossier)
+      expect(InspectorTask).not_to have_received(:create_tasks)
+    end
+  end
+
+  describe '#process — substitution des variables' do
+    it 'remplace doublons_refs, doublons_count, cle dans les params des sous-tâches' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 50, cle: 'PY-12345',
+                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
+                             state: 'accepte', date_passage_en_construction: 2.days.ago)
+
+      captured = nil
+      allow(InspectorTask).to receive(:create_tasks) do |defs|
+        captured = defs
+        []
+      end
+
+      checker = described_class.new(base_params.merge(
+                                      quand_doublon: [{
+                                        'set_annotation' => {
+                                          'annotation' => 'Doublon',
+                                          'valeur' => 'cle={cle} count={doublons_count} refs={doublons_refs}'
+                                        }
+                                      }]
+                                    ))
+      checker.process(demarche, dossier)
+
+      params = captured.first['set_annotation']
+      expect(params['valeur']).to eq 'cle=PY-12345 count=2 refs=#50, #99'
+    end
+
+    it 'résout aussi les champs/attributs du dossier via instanciate (number, ternaire, prefix/postfix)' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
+                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+      captured = nil
+      allow(InspectorTask).to receive(:create_tasks) do |defs|
+        captured = defs
+        []
+      end
+
+      checker = described_class.new(base_params.merge(
+                                      quand_doublon: [{
+                                        'set_annotation' => {
+                                          'numero' => 'PC {number}',
+                                          'phrase' => '{doublons trouvés: ;doublons_count;}',
+                                          'verdict' => '{doublons_count ? "doublon" : "ok"}'
+                                        }
+                                      }]
+                                    ))
+      checker.process(demarche, dossier)
+
+      params = captured.first['set_annotation']
+      expect(params['numero']).to eq 'PC 100'
+      expect(params['phrase']).to eq 'doublons trouvés: 1'
+      expect(params['verdict']).to eq 'doublon'
+    end
+  end
+
+  describe '#process — recheck des frères' do
+    it 'demande la re-vérification des dossiers de même clé' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
+                             state: 'en_instruction', date_passage_en_construction: 1.day.ago)
+      checker = described_class.new(base_params)
+      checker.process(demarche, dossier)
+      expect(checker.dossiers_to_recheck).to include(99)
+    end
+  end
+end
