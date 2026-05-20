@@ -9,7 +9,7 @@ class DetecterDoublon < FieldChecker
   end
 
   def authorized_fields
-    super + %i[etats_doublons purge_after_months quand_doublon quand_unique]
+    super + %i[etats_doublons purge_after_months quand_doublon quand_unique message]
   end
 
   def initialize(params)
@@ -24,8 +24,22 @@ class DetecterDoublon < FieldChecker
     true
   end
 
-  def process(demarche, dossier)
-    super
+  # Bloque l'usage dans `when_ok:` — la propagation de @dossiers_to_recheck
+  # n'est active qu'en phase `controles:` (cf. moteur VerificationService).
+  # Mettre `detecter_doublon` dans `when_ok:` ferait silencieusement perdre
+  # le réveil des frères postérieurs.
+  def process(_demarche, _dossier)
+    raise NotImplementedError,
+          'detecter_doublon doit être placé dans `controles:`, pas `when_ok:` ' \
+          '(le recheck des frères ne se propage qu\'en phase de contrôle).'
+  end
+
+  def check(dossier)
+    @messages ||= []
+    @updated_dossiers ||= Set.new
+    @dossiers_to_recheck ||= Set.new
+    @dossier = dossier
+
     cle = compute_cle
     state = dossier.state.to_s
     depose_at = parse_depose_at(dossier)
@@ -35,7 +49,9 @@ class DetecterDoublon < FieldChecker
     return unless @states.include?(state)
 
     duplicates = current_duplicates(state, cle, depose_at)
-    fire_actions(duplicates, cle)
+    context = build_context(duplicates, cle)
+    fire_actions(duplicates, context)
+    fire_message(duplicates, cle, context)
     recheck_siblings(depose_at, [cle, previous_cle].compact.uniq)
   end
 
@@ -92,11 +108,10 @@ class DetecterDoublon < FieldChecker
     )
   end
 
-  def fire_actions(duplicates, cle)
+  def fire_actions(duplicates, context)
     definitions = duplicates.any? ? @when_doublon_defs : @when_unique_defs
     return if definitions.blank?
 
-    context = build_context(duplicates, cle)
     resolved = deep_resolve(definitions, context)
     tasks = InspectorTask.create_tasks(resolved)
     tasks.each do |task|
@@ -107,6 +122,12 @@ class DetecterDoublon < FieldChecker
         @dossiers_to_recheck += task.dossiers_to_recheck if task.respond_to?(:dossiers_to_recheck)
       end
     end
+  end
+
+  def fire_message(duplicates, cle, context)
+    return if duplicates.empty? || @params[:message].blank?
+
+    add_message(@params[:cle], cle, instanciate(@params[:message], context))
   end
 
   def build_context(duplicates, cle)

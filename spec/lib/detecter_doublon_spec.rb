@@ -47,11 +47,12 @@ RSpec.describe DetecterDoublon do
     end
   end
 
-  describe '#process — registre' do
+  describe '#check — registre' do
     let(:checker) { described_class.new(base_params) }
 
     it 'insère une entrée pour un dossier en construction' do
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       entry = DossierDoublon.find_by(dossier_number:)
       expect(entry).to have_attributes(
         demarche_id: demarche.id,
@@ -62,7 +63,8 @@ RSpec.describe DetecterDoublon do
 
     it 'normalise la clé (majuscules + suppression espaces)' do
       allow(champ_immat).to receive(:value).and_return('  py 1234 pl  ')
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       expect(DossierDoublon.find_by(dossier_number:).cle).to eq 'PY1234PL'
     end
 
@@ -70,7 +72,8 @@ RSpec.describe DetecterDoublon do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number:, cle: 'PY-12345',
                              state: 'en_instruction', depose_at: 2.days.ago)
       allow(dossier).to receive(:state).and_return('refuse')
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       expect(DossierDoublon.find_by(dossier_number:)).to be_nil
     end
 
@@ -78,12 +81,13 @@ RSpec.describe DetecterDoublon do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number:, cle: 'PY-12345',
                              state: 'en_construction', depose_at: 2.days.ago)
       allow(champ_immat).to receive(:value).and_return('')
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       expect(DossierDoublon.find_by(dossier_number:)).to be_nil
     end
   end
 
-  describe '#process — clé composite' do
+  describe '#check — clé composite' do
     let(:champ_nom) { double('nom', label: 'Nom', __typename: 'TextChamp', value: 'Cousteau') }
     let(:champ_prenom) { double('prenom', label: 'Prenom', __typename: 'TextChamp', value: 'Jacques') }
     let(:dossier_compose) do
@@ -94,12 +98,13 @@ RSpec.describe DetecterDoublon do
     let(:checker) { described_class.new(cle: '{Nom}-{Prenom}') }
 
     it 'compose la clé à partir de plusieurs champs' do
-      checker.process(demarche, dossier_compose)
+      checker.demarche = demarche
+      checker.check(dossier_compose)
       expect(DossierDoublon.find_by(dossier_number: 200).cle).to eq 'COUSTEAU-JACQUES'
     end
   end
 
-  describe '#process — séparation etats_doublons / etat_du_dossier' do
+  describe '#check — séparation etats_doublons / etat_du_dossier' do
     let(:checker) do
       described_class.new(base_params.merge(
                             etat_du_dossier: %w[en_construction en_instruction],
@@ -116,7 +121,8 @@ RSpec.describe DetecterDoublon do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
                              state: 'en_instruction', depose_at: 3.days.ago)
       checker_q = described_class.new(base_params.merge(quand_doublon: [{ 'fake' => {} }]))
-      checker_q.process(demarche, dossier)
+      checker_q.demarche = demarche
+      checker_q.check(dossier)
       expect(task).not_to have_received(:process)
       expect(DossierDoublon.find_by(dossier_number:).state).to eq 'accepte'
     end
@@ -129,7 +135,8 @@ RSpec.describe DetecterDoublon do
       allow(task).to receive(:process)
       allow(InspectorTask).to receive(:create_tasks).and_return([task])
       checker_q = described_class.new(base_params.merge(quand_doublon: [{ 'fake' => {} }]))
-      checker_q.process(demarche, dossier)
+      checker_q.demarche = demarche
+      checker_q.check(dossier)
       expect(task).to have_received(:process)
     end
 
@@ -141,12 +148,13 @@ RSpec.describe DetecterDoublon do
       allow(task).to receive(:process)
       allow(InspectorTask).to receive(:create_tasks).and_return([task])
       checker_q = described_class.new(base_params.merge(quand_doublon: [{ 'fake' => {} }]))
-      checker_q.process(demarche, dossier)
+      checker_q.demarche = demarche
+      checker_q.check(dossier)
       expect(task).not_to have_received(:process)
     end
   end
 
-  describe '#process — fire des actions' do
+  describe '#check — fire des actions' do
     let(:fake_task) do
       double('task', name: 'fake_task', valid?: true,
                      updated_dossiers: Set.new, dossiers_to_recheck: Set.new)
@@ -162,24 +170,27 @@ RSpec.describe DetecterDoublon do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
                              state: 'en_instruction', depose_at: 3.days.ago)
       checker = described_class.new(base_params.merge(quand_doublon: [{ 'fake_task' => {} }]))
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       expect(fake_task).to have_received(:process).with(demarche, dossier)
     end
 
     it 'fire quand_unique en absence de doublons' do
       checker = described_class.new(base_params.merge(quand_unique: [{ 'fake_task' => {} }]))
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       expect(fake_task).to have_received(:process).with(demarche, dossier)
     end
 
     it 'ignore une liste vide' do
       checker = described_class.new(base_params)
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       expect(InspectorTask).not_to have_received(:create_tasks)
     end
   end
 
-  describe '#process — substitution des variables' do
+  describe '#check — substitution des variables' do
     it 'remplace doublons_refs, doublons_count, cle dans les params des sous-tâches' do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 50, cle: 'PY-12345',
                              state: 'en_instruction', depose_at: 4.days.ago)
@@ -200,7 +211,8 @@ RSpec.describe DetecterDoublon do
                                         }
                                       }]
                                     ))
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
 
       params = captured.first['set_annotation']
       expect(params['valeur']).to eq 'cle=PY-12345 count=2 refs=#50, #99'
@@ -224,7 +236,8 @@ RSpec.describe DetecterDoublon do
                                         }
                                       }]
                                     ))
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
 
       params = captured.first['set_annotation']
       expect(params['numero']).to eq 'PC 100'
@@ -233,14 +246,15 @@ RSpec.describe DetecterDoublon do
     end
   end
 
-  describe '#process — recheck des frères' do
+  describe '#check — recheck des frères' do
     # Asymétrie : seuls les dossiers déposés APRÈS le courant sont réveillés.
     # Le légitime (le plus ancien) ne se remet jamais en cause à cause d'un postérieur.
     it 'réveille les frères postérieurs (depose_at > self.depose_at) sur la même clé' do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 200, cle: 'PY-12345',
                              state: 'en_instruction', depose_at: 1.day.ago)
       checker = described_class.new(base_params)
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       expect(checker.dossiers_to_recheck).to include(200)
     end
 
@@ -248,7 +262,8 @@ RSpec.describe DetecterDoublon do
       DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 50, cle: 'PY-12345',
                              state: 'en_instruction', depose_at: 4.days.ago)
       checker = described_class.new(base_params)
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       expect(checker.dossiers_to_recheck).not_to include(50)
     end
 
@@ -260,8 +275,47 @@ RSpec.describe DetecterDoublon do
       allow(task).to receive(:process)
       allow(InspectorTask).to receive(:create_tasks).and_return([task])
       checker = described_class.new(base_params.merge(quand_doublon: [{ 'fake' => {} }]))
-      checker.process(demarche, dossier)
+      checker.demarche = demarche
+      checker.check(dossier)
       expect(task).not_to have_received(:process)
+    end
+  end
+
+  describe "#check — message à l'usager" do
+    it 'ajoute un message si paramètre `message` et doublon détecté (instanciation OK)' do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
+                             state: 'en_instruction', depose_at: 3.days.ago)
+      checker = described_class.new(base_params.merge(
+                                      message: 'Une demande pour le navire {cle} existe déjà ({doublons_refs}).'
+                                    ))
+      checker.demarche = demarche
+      checker.check(dossier)
+      expect(checker.messages.size).to eq 1
+      expect(checker.messages.first.message).to eq 'Une demande pour le navire PY-12345 existe déjà (#99).'
+    end
+
+    it "n'ajoute pas de message si aucun doublon" do
+      checker = described_class.new(base_params.merge(message: 'Doublon : {doublons_refs}'))
+      checker.demarche = demarche
+      checker.check(dossier)
+      expect(checker.messages).to be_empty
+    end
+
+    it "n'ajoute pas de message si paramètre `message` absent (même avec doublon)" do
+      DossierDoublon.create!(demarche_id: demarche.id, dossier_number: 99, cle: 'PY-12345',
+                             state: 'en_instruction', depose_at: 3.days.ago)
+      checker = described_class.new(base_params)
+      checker.demarche = demarche
+      checker.check(dossier)
+      expect(checker.messages).to be_empty
+    end
+  end
+
+  describe '#process — interdit' do
+    it "raise pour empêcher l'usage dans when_ok: (recheck non propagé)" do
+      checker = described_class.new(base_params)
+      expect { checker.process(demarche, dossier) }
+        .to raise_error(NotImplementedError, /controles:/)
     end
   end
 end
