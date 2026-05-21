@@ -116,10 +116,7 @@ class DetecterDoublon < FieldChecker
       Rails.logger.tagged(task.name) do
         task.demarche = @demarche
         task.process(@demarche, @dossier)
-        # Workaround : ne pas propager `task.updated_dossiers`. Le contrat actuel
-        # (`field_checker.rb:256` stocke Integer ; `verification_service.rb:297`
-        # attend un objet) provoque NoMethodError sur `dossier.number`. À retirer
-        # quand la refonte `@dossier_updated boolean` (PR dédiée) sera mergée.
+        dossier_updated if task.respond_to?(:dossier_updated?) && task.dossier_updated?
         @dossiers_to_recheck += task.dossiers_to_recheck if task.respond_to?(:dossiers_to_recheck)
       end
     end
