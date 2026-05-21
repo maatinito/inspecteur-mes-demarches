@@ -157,12 +157,16 @@ class FieldChecker < InspectorTask
 
   def graphql_champ_value(champ) # rubocop:disable Metrics/MethodLength
     case champ.__typename
-    when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp'
+    when 'TextChamp'
       champ.value || ''
+    when 'IntegerNumberChamp'
+      champ.int_value || ''
+    when 'DecimalNumberChamp'
+      champ.decimal_value || ''
     when 'CheckboxChamp', 'YesNoChamp'
-      champ.value ? 'Oui' : 'Non'
+      champ.checked ? 'Oui' : 'Non'
     when 'CiviliteChamp'
-      expand_civilite(champ.value.to_s)
+      expand_civilite(champ.civilite_value.to_s)
     when 'MultipleDropDownListChamp'
       champ.values
     when 'LinkedDropDownListChamp'
@@ -190,10 +194,20 @@ class FieldChecker < InspectorTask
   end
 
   def date_value(champ, format)
-    if champ.present? && champ.value.present?
-      Date.iso8601(champ.value).strftime(format)
+    iso = raw_date_value(champ)
+    return '' if iso.blank?
+
+    Date.iso8601(iso).strftime(format)
+  end
+
+  def raw_date_value(champ)
+    return nil unless champ.present?
+
+    case champ.__typename
+    when 'DateChamp'
+      champ.date_value
     else
-      ''
+      champ.respond_to?(:string_value) ? champ.string_value : nil
     end
   end
 

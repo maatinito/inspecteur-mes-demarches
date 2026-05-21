@@ -52,19 +52,27 @@ module Cis
           rows << bloc
           bloc = {} # starts a new block
         end
-        case champ.__typename
-        when 'NumeroDnChamp'
-          if champ.numero_dn.present?
-            bloc[champ.label] = champ.numero_dn.to_i
-            bloc[champ.label.gsub(/Num[eé]ro DN/i, 'Date de naissance')] = Date.iso8601(champ.date_de_naissance)
-          end
-        when 'TextChamp', 'CiviliteChamp', 'DecimalNumberChamp', 'CheckbowChamp'
-          bloc[champ.label] = champ.value unless champ.value.nil?
-        when 'IntegerNumberChamp'
-          bloc[champ.label] = champ.value.to_i unless champ.value.nil?
-        end
+        store_champ_in_bloc(champ, bloc)
       end
       rows << bloc
+    end
+
+    def store_champ_in_bloc(champ, bloc)
+      case champ.__typename
+      when 'NumeroDnChamp'
+        if champ.numero_dn.present?
+          bloc[champ.label] = champ.numero_dn.to_i
+          bloc[champ.label.gsub(/Num[eé]ro DN/i, 'Date de naissance')] = Date.iso8601(champ.date_de_naissance)
+        end
+      when 'TextChamp', 'CheckbowChamp'
+        bloc[champ.label] = champ.value unless champ.value.nil?
+      when 'CiviliteChamp'
+        bloc[champ.label] = champ.civilite_value unless champ.civilite_value.nil?
+      when 'DecimalNumberChamp'
+        bloc[champ.label] = champ.decimal_value unless champ.decimal_value.nil?
+      when 'IntegerNumberChamp'
+        bloc[champ.label] = champ.int_value.to_i unless champ.int_value.nil?
+      end
     end
 
     def check_iban?(line)

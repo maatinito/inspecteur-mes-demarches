@@ -78,12 +78,14 @@ module Cis
                             else
                               champ.value
                             end
-      when 'CiviliteChamp', 'CheckbowChamp'
+      when 'CiviliteChamp'
+        bloc[champ.label] = champ.civilite_value
+      when 'CheckbowChamp'
         bloc[champ.label] = champ.value
       when 'IntegerNumberChamp'
-        bloc[champ.label] = champ.value.to_i
+        bloc[champ.label] = champ.int_value.to_i
       when 'DecimalNumberChamp'
-        bloc[champ.label] = champ.value.to_f
+        bloc[champ.label] = champ.decimal_value.to_f
       end
     end
 

@@ -19,7 +19,7 @@ module Cis
     end
 
     def check_cis_demandes(cis_nb)
-      in_dossier = field(CIS_DEMANDES_FIELD)&.value&.to_i
+      in_dossier = field(CIS_DEMANDES_FIELD)&.int_value&.to_i
       return true if in_dossier == cis_nb
 
       message = @params[:message_cis_demandes] ||

@@ -22,7 +22,7 @@ class DateDeNaissance < FieldChecker
     champs = dossier_fields(dossier, @params[:champ])
     if champs.present?
       champs.map do |champ|
-        date = Date.parse(champ.value)
+        date = Date.parse(champ.__typename == 'DateChamp' ? champ.date_value : champ.string_value)
         add_message(@params[:champ], date, @params[:message]) unless range.cover?(date)
       end
     end

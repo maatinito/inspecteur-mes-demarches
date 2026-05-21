@@ -40,9 +40,9 @@ RSpec.describe SetAnnotationValue do
       let(:champ) { 'Champ entier' }
       it 'should set the value' do
         set(champ, 10)
-        expect(get(champ).value).to eq('10')
+        expect(get(champ).int_value).to eq('10')
         set(champ, 20)
-        expect(get(champ).value).to eq('20')
+        expect(get(champ).int_value).to eq('20')
       end
     end
 
@@ -50,9 +50,9 @@ RSpec.describe SetAnnotationValue do
       let(:champ) { 'Champ date' }
       it 'should set the value' do
         set(champ, Date.today)
-        expect(Date.iso8601(get(champ).value)).to eq(Date.today)
+        expect(Date.iso8601(get(champ).date_value)).to eq(Date.today)
         set(champ, 1.day.ago.to_date)
-        expect(Date.iso8601(get(champ).value)).to eq(1.day.ago.to_date)
+        expect(Date.iso8601(get(champ).date_value)).to eq(1.day.ago.to_date)
       end
     end
 
@@ -60,9 +60,9 @@ RSpec.describe SetAnnotationValue do
       let(:champ) { 'Champ checkbox' }
       it 'should set the value' do
         set(champ, true)
-        expect(get(champ).value).to eq(true)
+        expect(get(champ).checked).to eq(true)
         set(champ, false)
-        expect(get(champ).value).to eq(false)
+        expect(get(champ).checked).to eq(false)
       end
     end
 

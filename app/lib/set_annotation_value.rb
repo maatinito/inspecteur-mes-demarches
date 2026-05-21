@@ -229,15 +229,19 @@ class SetAnnotationValue
   end
 
   def self.value_of(annotation)
-    value = if annotation.respond_to?(:value)
-              annotation.value
+    value = case annotation.__typename
+            when 'DateChamp' then annotation.date_value
+            when 'IntegerNumberChamp' then annotation.int_value
+            when 'DecimalNumberChamp' then annotation.decimal_value
+            when 'CiviliteChamp' then annotation.civilite_value
+            when 'CheckboxChamp', 'YesNoChamp' then annotation.checked
             else
-              annotation.string_value
+              annotation.respond_to?(:value) ? annotation.value : annotation.string_value
             end
     if value.present?
       case annotation.__typename
       when 'DateChamp'
-        value = Date.iso8601(annotation.value)
+        value = Date.iso8601(value)
       when 'IntegerNumberChamp'
         value = value.to_i
       end

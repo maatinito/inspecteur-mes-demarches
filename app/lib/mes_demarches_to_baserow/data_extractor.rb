@@ -208,7 +208,7 @@ module MesDemarchesToBaserow
       when 'DateChamp', 'DatetimeChamp'
         format_date(get_champ_value(champ))
       when 'CheckboxChamp', 'YesNoChamp'
-        normalize_boolean(get_champ_value(champ))
+        normalize_boolean(champ.checked)
       when 'PieceJustificativeChamp'
         normalize_files(champ)
       when 'IntegerNumberChamp', 'DecimalNumberChamp'
@@ -225,9 +225,16 @@ module MesDemarchesToBaserow
     def get_champ_value(champ)
       return nil if %w[HeaderSectionChamp ExplicationChamp].include?(champ.__typename)
 
-      # Priorité à 'value' (types simples), sinon 'string_value' (types spéciaux)
-      puts "Champ #{champ.label} n'a pas de méthode 'value' ou 'string_value'. Type: #{champ.__typename}" if !champ.respond_to?(:string_value) && !champ.respond_to?(:value)
-      champ.respond_to?(:value) ? champ.value : champ.string_value
+      case champ.__typename
+      when 'IntegerNumberChamp' then champ.int_value
+      when 'DecimalNumberChamp' then champ.decimal_value
+      when 'DateChamp' then champ.date_value
+      when 'CiviliteChamp' then champ.civilite_value
+      when 'CheckboxChamp', 'YesNoChamp' then champ.checked
+      else
+        puts "Champ #{champ.label} n'a pas de méthode 'value' ou 'string_value'. Type: #{champ.__typename}" if !champ.respond_to?(:string_value) && !champ.respond_to?(:value)
+        champ.respond_to?(:value) ? champ.value : champ.string_value
+      end
     rescue GraphQL::Client::Error => e
       Rails.logger.warn("get_champ_value : #{champ.label} (#{champ.__typename}) — #{e.message}")
       nil

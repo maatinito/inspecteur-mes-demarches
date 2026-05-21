@@ -17,10 +17,14 @@ class FieldValueCheck < FieldChecker
   def check(_dossier)
     fields = param_fields(:champ)
     fields.each do |field|
-      case field.__typename
-      when 'TextChamp', 'IntegerNumberChamp', 'DecimalNumberChamp'
-        add_message(@params[:champ], field.value, "#{@params[:message]}: #{@params[:valeur]}") if normalize(field&.value) != @params[:value]
-      end
+      value = case field.__typename
+              when 'TextChamp' then field.value
+              when 'IntegerNumberChamp' then field.int_value
+              when 'DecimalNumberChamp' then field.decimal_value
+              end
+      next if value.nil?
+
+      add_message(@params[:champ], value, "#{@params[:message]}: #{@params[:valeur]}") if normalize(value) != @params[:value]
     end
   end
 

@@ -7,21 +7,21 @@ RSpec.describe PublipostageV3 do
 
   describe '#champ_value' do
     it 'transforme CheckboxChamp en BooleanValue(true)' do
-      champ = double('CheckboxChamp', __typename: 'CheckboxChamp', value: true)
+      champ = double('CheckboxChamp', __typename: 'CheckboxChamp', checked: true)
       result = publipostage.send(:champ_value, champ)
       expect(result).to be_a(BooleanValue)
       expect(result).to eq(true)
     end
 
     it 'transforme CheckboxChamp non cochée en BooleanValue(false)' do
-      champ = double('CheckboxChamp', __typename: 'CheckboxChamp', value: false)
+      champ = double('CheckboxChamp', __typename: 'CheckboxChamp', checked: false)
       result = publipostage.send(:champ_value, champ)
       expect(result).to be_a(BooleanValue)
       expect(result).to eq(false)
     end
 
     it 'transforme YesNoChamp en BooleanValue' do
-      champ = double('YesNoChamp', __typename: 'YesNoChamp', value: true)
+      champ = double('YesNoChamp', __typename: 'YesNoChamp', checked: true)
       expect(publipostage.send(:champ_value, champ)).to eq(true)
     end
 
@@ -123,7 +123,7 @@ RSpec.describe PublipostageV3 do
     end
 
     it 'retourne un BooleanValue pour un CheckboxChamp unique' do
-      cb = double('CheckboxChamp', __typename: 'CheckboxChamp', label: 'Accord', value: true)
+      cb = double('CheckboxChamp', __typename: 'CheckboxChamp', label: 'Accord', checked: true)
       allow(dossier).to receive(:champs).and_return([cb])
 
       result = publipostage.send(:typed_values_of, dossier, 'Accord', '')
@@ -167,7 +167,7 @@ RSpec.describe PublipostageV3 do
              number: 123,
              champs: [
                double('TextChamp', __typename: 'TextChamp', label: 'Nom', value: 'Dupont'),
-               double('CheckboxChamp', __typename: 'CheckboxChamp', label: 'Accord', value: true),
+               double('CheckboxChamp', __typename: 'CheckboxChamp', label: 'Accord', checked: true),
                double('Multi', __typename: 'MultipleDropDownListChamp', label: 'Options', values: %w[a b])
              ],
              annotations: [])

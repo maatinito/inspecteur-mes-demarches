@@ -68,11 +68,12 @@ class Schedule < FieldChecker
 
   def datetime_pivot
     date = field(@params[:champ_date_de_reference])
-    unless date.present? && %w[DateTimeChamp DateChamp].include?(date.__typename) && date.value.present?
+    iso = date.present? && date.__typename == 'DateChamp' ? date.date_value : date&.string_value
+    unless date.present? && %w[DateTimeChamp DateChamp].include?(date.__typename) && iso.present?
       Rails.logger.info("L'attribut #{@params[:champ]} ne donne aucune date #{date} ==> aucune tache ne sera exécutée")
       return
     end
-    date.value
+    iso
   end
 
   def run_controls(controls, method)

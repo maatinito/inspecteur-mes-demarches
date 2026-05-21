@@ -11,7 +11,9 @@ module Reservation
     private
 
     def user_requests(dossier)
-      date = DateTime.parse(param_field(:champ_date)&.value)
+      champ = param_field(:champ_date)
+      iso = champ&.__typename == 'DateChamp' ? champ.date_value : champ&.string_value
+      date = DateTime.parse(iso)
       [UserRequest.new(dossier.number, 'user', SESSION_NAME, date)]
     end
 

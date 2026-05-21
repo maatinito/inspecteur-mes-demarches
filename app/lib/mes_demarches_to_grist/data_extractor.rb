@@ -168,7 +168,7 @@ module MesDemarchesToGrist
       when 'DatetimeChamp'
         format_datetime_epoch(get_champ_value(champ))
       when 'CheckboxChamp', 'YesNoChamp'
-        normalize_boolean(get_champ_value(champ))
+        normalize_boolean(champ.checked)
       when 'PieceJustificativeChamp'
         normalize_files(champ)
       when 'IntegerNumberChamp'
@@ -183,7 +183,15 @@ module MesDemarchesToGrist
     def get_champ_value(champ)
       return nil if %w[HeaderSectionChamp ExplicationChamp].include?(champ.__typename)
 
-      champ.respond_to?(:value) ? champ.value : champ.string_value
+      case champ.__typename
+      when 'IntegerNumberChamp' then champ.int_value
+      when 'DecimalNumberChamp' then champ.decimal_value
+      when 'DateChamp' then champ.date_value
+      when 'CiviliteChamp' then champ.civilite_value
+      when 'CheckboxChamp', 'YesNoChamp' then champ.checked
+      else
+        champ.respond_to?(:value) ? champ.value : champ.string_value
+      end
     rescue GraphQL::Client::Error => e
       Rails.logger.warn("get_champ_value : #{champ.label} (#{champ.__typename}) — #{e.message}")
       nil

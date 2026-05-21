@@ -126,7 +126,7 @@ class PublipostageV3 < PublipostageV2
       champ.files.map { |file| PieceJustificativeFile.new(file) }
     when 'CheckboxChamp', 'YesNoChamp'
       # Booléens natifs : «champ:if(present?)» et «=champ» («Oui»/«Non»)
-      BooleanValue.new(champ.value)
+      BooleanValue.new(champ.checked)
     else
       # Tous les autres types délèguent à PublipostageV2
       super

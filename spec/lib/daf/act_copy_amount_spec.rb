@@ -43,9 +43,9 @@ RSpec.describe Daf::ActCopyAmount do
   context 'dossier ready but amounts already set', vcr: { cassette_name: 'daf_act_copy_amount_1' } do
     it 'amount should not be set' do
       field = controle.dossier_annotations(dossier, controle.params[:champ_montant_theorique]).first
-      expect(field).to receive(:value).and_return(100)
+      expect(field).to receive(:string_value).and_return('100')
       field = controle.dossier_annotations(dossier, controle.params[:champ_montant]).first
-      expect(field).to receive(:value).and_return(100)
+      expect(field).to receive(:string_value).and_return('100')
       expect(SetAnnotationValue).not_to receive(:set_value)
       subject
     end

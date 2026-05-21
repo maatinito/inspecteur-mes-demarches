@@ -139,22 +139,22 @@ module MesDemarches
           value
       }
       ... on CheckboxChamp {
-          value
+          checked: value
       }
       ... on YesNoChamp {
-          value
+          checked: value
       }
       ... on DropDownListChamp {
           value
       }
       ... on IntegerNumberChamp {
-          value
+          intValue: value
       }
       ... on DecimalNumberChamp  {
-          value
+          decimalValue: value
       }
       ... on DateChamp  {
-          value
+          dateValue: value
       }
       ... on LinkedDropDownListChamp {
           primaryValue
@@ -200,7 +200,7 @@ module MesDemarches
           }
       }
       ... on CiviliteChamp {
-          value
+          civiliteValue: value
       }
       ... on MultipleDropDownListChamp {
           values
