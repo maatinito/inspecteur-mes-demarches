@@ -35,9 +35,6 @@ class DetecterDoublon < FieldChecker
   end
 
   def check(dossier)
-    @messages ||= []
-    @updated_dossiers ||= Set.new
-    @dossiers_to_recheck ||= Set.new
     @dossier = dossier
 
     cle = compute_cle
@@ -89,7 +86,8 @@ class DetecterDoublon < FieldChecker
           updated_at: now,
           created_at: now
         },
-        unique_by: :dossier_number
+        unique_by: :dossier_number,
+        update_only: %i[cle state depose_at]
       )
     else
       DossierDoublon.where(dossier_number: @dossier.number).delete_all
@@ -130,7 +128,18 @@ class DetecterDoublon < FieldChecker
   def fire_message(duplicates, cle, context)
     return if duplicates.empty? || @params[:message].blank?
 
-    add_message(@params[:cle].gsub(/[{}]/, ''), cle, instanciate(@params[:message], context))
+    add_message(message_anchor, cle, instanciate(@params[:message], context))
+  end
+
+  # Point d'accroche affiché à l'usager : extrait les noms de champs de la template
+  # `@params[:cle]` (ex. "{ChampX} {ChampY}" → "ChampX, ChampY"). Fallback sur la
+  # valeur brute si la clé est un littéral sans variables.
+  def message_anchor
+    @message_anchor ||= begin
+      tpl = @params[:cle].to_s
+      names = tpl.scan(/\{([^}]+)\}/).flatten
+      names.any? ? names.join(', ') : tpl
+    end
   end
 
   def build_context(duplicates, cle)
