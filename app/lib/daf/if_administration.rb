@@ -55,7 +55,7 @@ module Daf
     def process_tasks(demarche, dossier)
       @tasks.each do |task|
         task.process(demarche, dossier) if task.valid? && task.must_check?(dossier)
-        dossier = DossierActions.on_dossier(dossier.number) if task.updated_dossiers.find { |d| d.number == dossier.number }.present?
+        dossier = DossierActions.on_dossier(dossier.number) if task.dossier_updated?
       end
     end
 

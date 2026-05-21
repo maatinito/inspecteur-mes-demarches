@@ -88,9 +88,9 @@ class Schedule < FieldChecker
         when :process
           task.process(@demarche, @dossier)
         end
-        @updated_dossiers += task.updated_dossiers
+        dossier_updated if task.dossier_updated?
         @dossiers_to_recheck += task.dossiers_to_recheck
-        @dossier = DossierActions.on_dossier(@dossier.number) if task.dossier_updated?(@dossier)
+        @dossier = DossierActions.on_dossier(@dossier.number) if task.dossier_updated?
       end
     end
   end
