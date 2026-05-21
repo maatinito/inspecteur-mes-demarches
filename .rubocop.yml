@@ -85,6 +85,7 @@ Metrics/BlockLength:
     - 'spec/lib/grist/client_spec.rb'
     - 'spec/lib/payzen/payment_order_spec.rb'
     - 'spec/lib/publipostage_v2_expansion_spec.rb'
+    - 'spec/lib/detecter_doublon_spec.rb'
     - 'spec/lib/tftn/tickets_spec.rb'
     - 'spec/lib/travail/daeth_spec.rb'
     - 'lib/lppr.rb'
