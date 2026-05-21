@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'rqrcode'
+
 # Cache pour les QR codes générés.
 # Utilise PieceJustificativeCache.get_or_generate() pour la gestion du cache.
 #
