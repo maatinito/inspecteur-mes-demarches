@@ -21,7 +21,6 @@ module MesDemarchesToBaserow
       @options = options || {}
       @field_metadata_loader = field_metadata_loader
       @structure_client = structure_client || Baserow::StructureClient.new
-      @avis_field_metadata = nil
     end
 
     # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
@@ -32,17 +31,14 @@ module MesDemarchesToBaserow
         return
       end
 
-      unless valid_structure?(table_id)
-        Rails.logger.warn "BaserowSync.avis: structure invalide pour table #{table_id}, skip"
-        return
-      end
+      return unless valid_structure?(table_id)
 
       avis_list = MesDemarches::AvisFetcher.fetch(dossier.number)
       Rails.logger.info "BaserowSync.avis: #{avis_list.length} avis à synchroniser pour dossier #{dossier.number}"
 
       avis_table = get_table(table_id)
       existing_rows = avis_table.find_by_link_row_id(LINK_FIELD, main_row_id)
-      field_metadata = (@avis_field_metadata ||= @field_metadata_loader.call(table_id))
+      field_metadata = @field_metadata_loader.call(table_id)
       extractor = DataExtractor.new(field_metadata, @options)
 
       current_ids = []
@@ -52,7 +48,10 @@ module MesDemarchesToBaserow
         existing_attachments = existing_row ? Array(existing_row['Pièces jointes']) : []
 
         row_data = extractor.extract_avis_row(avis, main_row_id, existing_attachments)
-        row_data[LINK_FIELD] = [main_row_id] # remplacer la valeur "main_row_id.to_s" par l'array d'IDs
+        # DataExtractor#extract_avis_row produit 'Dossier' => main_row_id.to_s (string),
+        # contrat partagé avec les blocs répétables (cf. sync_coordinator.rb:387-389).
+        # AvisSyncer le convertit en [main_row_id] (format link_row Baserow) ici.
+        row_data[LINK_FIELD] = [main_row_id]
 
         file_uploader_proc.call(row_data, field_metadata)
 
@@ -77,20 +76,40 @@ module MesDemarchesToBaserow
 
     private
 
+    # rubocop:disable Metrics/MethodLength
     def valid_structure?(table_id)
       primary = @structure_client.get_primary_field(table_id)
-      return false unless primary && primary['name'] == PRIMARY_FIELD
+      unless primary && primary['name'] == PRIMARY_FIELD
+        Rails.logger.warn "BaserowSync.avis: structure invalide (table #{table_id}) — primary attendu " \
+                          "'#{PRIMARY_FIELD}', trouvé '#{primary&.dig('name')}'"
+        return false
+      end
 
       link = @structure_client.get_field_by_name(table_id, LINK_FIELD)
-      return false unless link && link['type'] == 'link_row'
-      return false unless link['link_row_table_id'].to_s == @main_table_id.to_s
-      return false if link['link_row_multiple_relationships'] == true
+      unless link && link['type'] == 'link_row'
+        Rails.logger.warn "BaserowSync.avis: structure invalide (table #{table_id}) — champ " \
+                          "'#{LINK_FIELD}' link_row manquant ou type incorrect"
+        return false
+      end
+
+      unless link['link_row_table_id'].to_s == @main_table_id.to_s
+        Rails.logger.warn "BaserowSync.avis: structure invalide (table #{table_id}) — '#{LINK_FIELD}' " \
+                          "pointe vers table #{link['link_row_table_id']} au lieu de #{@main_table_id}"
+        return false
+      end
+
+      if link['link_row_multiple_relationships'] == true
+        Rails.logger.warn "BaserowSync.avis: structure invalide (table #{table_id}) — '#{LINK_FIELD}' " \
+                          'autorise plusieurs liens (link_row_multiple_relationships=true)'
+        return false
+      end
 
       true
     rescue Baserow::APIError => e
       Rails.logger.error "BaserowSync.avis: erreur validation structure: #{e.message}"
       false
     end
+    # rubocop:enable Metrics/MethodLength
 
     def delete_orphans(avis_table, existing_rows, current_ids, dossier_number)
       orphans = existing_rows.reject { |r| current_ids.include?(r[PRIMARY_FIELD].to_s) }

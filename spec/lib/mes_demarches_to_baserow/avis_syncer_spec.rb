@@ -75,6 +75,48 @@ RSpec.describe MesDemarchesToBaserow::AvisSyncer do
     end
   end
 
+  context 'quand la structure de la table Avis a un link_row mal pointé' do
+    before do
+      allow(structure_client).to receive(:get_field_by_name).with(avis_table_id, 'Dossier')
+                                                            .and_return({ 'type' => 'link_row',
+                                                                          'link_row_table_id' => 999, # mauvaise table
+                                                                          'link_row_multiple_relationships' => false })
+    end
+
+    it 'skip avec un warn mentionnant la mauvaise table' do
+      expect(Rails.logger).to receive(:warn).with(/pointe vers table 999/)
+      expect(MesDemarches::AvisFetcher).not_to receive(:fetch)
+      syncer.sync(dossier, main_row_id, noop_uploader)
+    end
+  end
+
+  context 'quand le link_row Dossier autorise plusieurs liens' do
+    before do
+      allow(structure_client).to receive(:get_field_by_name).with(avis_table_id, 'Dossier')
+                                                            .and_return({ 'type' => 'link_row',
+                                                                          'link_row_table_id' => main_table_id,
+                                                                          'link_row_multiple_relationships' => true })
+    end
+
+    it 'skip avec un warn explicite' do
+      expect(Rails.logger).to receive(:warn).with(/autorise plusieurs liens/)
+      expect(MesDemarches::AvisFetcher).not_to receive(:fetch)
+      syncer.sync(dossier, main_row_id, noop_uploader)
+    end
+  end
+
+  context 'quand le champ Dossier est absent ou n\'est pas un link_row' do
+    before do
+      allow(structure_client).to receive(:get_field_by_name).with(avis_table_id, 'Dossier').and_return(nil)
+    end
+
+    it 'skip avec un warn explicite' do
+      expect(Rails.logger).to receive(:warn).with(/link_row manquant ou type incorrect/)
+      expect(MesDemarches::AvisFetcher).not_to receive(:fetch)
+      syncer.sync(dossier, main_row_id, noop_uploader)
+    end
+  end
+
   context 'quand le dossier a 2 avis et 0 row existante' do
     let(:avis1) do
       double('Avis', id: 'AV1', question: 'Q1', reponse: 'R1', question_label: nil, question_answer: nil,
