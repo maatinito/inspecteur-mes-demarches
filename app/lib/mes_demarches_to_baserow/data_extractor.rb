@@ -291,54 +291,59 @@ module MesDemarchesToBaserow
       champ.values.map(&:to_s)
     end
 
-    # rubocop:disable Metrics/MethodLength
+    # Wrapper pour les champs MD (PieceJustificativeChamp).
+    # Délègue à normalize_file_array sur champ.files.
     def normalize_files(champ, existing_files = [])
       return existing_files if champ.__typename != 'PieceJustificativeChamp' || champ.files.blank?
 
-      # Récupérer les fichiers existants dans Baserow
-      # Format Baserow: [{ 'name' => 'hash...', 'url' => 'https://...', 'size' => 12345, 'visible_name' => '...' }]
-      baserow_files = existing_files.is_a?(Array) ? existing_files : []
+      normalize_file_array(champ.files, existing_files)
+    rescue StandardError => e
+      # Rescue propre au wrapper (entrée legacy via champ). Les callers directs de
+      # normalize_file_array (ex: avis attachments) gèrent leurs erreurs eux-mêmes.
+      Rails.logger.warn "BaserowSync: Erreur normalisation fichiers: #{e.message}"
+      raise
+    end
 
-      # Construire un index des fichiers existants par (nom visible, taille)
-      # avec leur hash Baserow pour réutilisation
+    # Normalise une Array<File> (GraphQL) en payload Baserow.
+    # Réutilisable pour PieceJustificativeChamp.files ET Avis.attachments.
+    #
+    # Stratégie : pour chaque fichier MD, chercher s'il existe déjà côté Baserow
+    # (même nom visible + même taille). Si oui, réutiliser le hash Baserow ;
+    # sinon, envoyer l'URL pour upload.
+    #
+    def normalize_file_array(files, existing_files = [])
+      return existing_files if files.blank?
+
+      baserow_files = existing_files.is_a?(Array) ? existing_files : []
       existing_file_index = baserow_files.map do |f|
         {
           visible_name: f['visible_name'],
           size: f['size'],
-          baserow_hash: f['name'] # Le hash unique Baserow
+          baserow_hash: f['name']
         }
       end.compact
 
-      # Pour CHAQUE fichier dans Mes-Démarches, déterminer s'il faut l'uploader ou le conserver
-      all_files = champ.files.filter_map do |file|
+      all_files = files.filter_map do |file|
         filename = file.filename.to_s.strip
         next if filename.blank?
 
-        # Chercher si ce fichier existe déjà dans Baserow (même nom + même taille)
         existing = existing_file_index.find do |sig|
           sig[:visible_name] == filename && sig[:size] == file.byte_size
         end
 
         if existing
-          # Fichier déjà uploadé : réutiliser le hash Baserow ET conserver le visible_name
-          # Important : inclure visible_name pour éviter qu'il soit perdu dans Baserow
           { 'name' => existing[:baserow_hash], 'visible_name' => filename }
         else
-          # Nouveau fichier : envoyer l'URL pour upload
           Rails.logger.debug "BaserowSync: Préparation upload nouveau fichier '#{filename}' depuis #{file.url}"
           { url: file.url, visible_name: filename }
         end
       end
 
-      Rails.logger.info "BaserowSync: #{all_files.count { |f| f.key?(:url) }} nouveau(x) fichier(s) à uploader pour le champ #{champ.label}" if all_files.any? { |f| f.key?(:url) }
+      new_count = all_files.count { |f| f.key?(:url) }
+      Rails.logger.info "BaserowSync: #{new_count} nouveau(x) fichier(s) à uploader" if new_count.positive?
 
-      # Si aucun fichier, retourner nil pour ne pas envoyer le champ
-      all_files.empty? ? nil : all_files
-    rescue StandardError => e
-      Rails.logger.warn "BaserowSync: Erreur normalisation fichiers: #{e.message}"
-      raise
+      all_files
     end
-    # rubocop:enable Metrics/MethodLength
 
     def normalize_number(champ)
       value = get_champ_value(champ)

@@ -129,6 +129,66 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
     end
   end
 
+  describe '#normalize_file_array' do
+    let(:file1) { double('File', filename: 'avis.pdf', url: 'https://example.com/avis.pdf', byte_size: 5000) }
+    let(:file2) { double('File', filename: 'annexe.pdf', url: 'https://example.com/annexe.pdf', byte_size: 1000) }
+
+    context 'sans fichiers existants' do
+      it 'retourne tous les fichiers comme nouveaux (avec url)' do
+        result = extractor.send(:normalize_file_array, [file1, file2], [])
+
+        expect(result).to contain_exactly(
+          { url: 'https://example.com/avis.pdf', visible_name: 'avis.pdf' },
+          { url: 'https://example.com/annexe.pdf', visible_name: 'annexe.pdf' }
+        )
+      end
+    end
+
+    context 'avec un fichier déjà présent (même nom + taille)' do
+      let(:existing_files) do
+        [{ 'name' => 'baserow_hash_avis', 'visible_name' => 'avis.pdf', 'size' => 5000 }]
+      end
+
+      it 'réutilise le hash Baserow pour le fichier existant et upload le nouveau' do
+        result = extractor.send(:normalize_file_array, [file1, file2], existing_files)
+
+        expect(result).to contain_exactly(
+          { 'name' => 'baserow_hash_avis', 'visible_name' => 'avis.pdf' },
+          { url: 'https://example.com/annexe.pdf', visible_name: 'annexe.pdf' }
+        )
+      end
+    end
+
+    context 'avec une liste vide' do
+      it 'retourne un tableau vide' do
+        result = extractor.send(:normalize_file_array, [], [])
+        expect(result).to eq([])
+      end
+    end
+
+    context 'avec liste vide mais fichiers existants' do
+      let(:existing_files) do
+        [{ 'name' => 'h1', 'visible_name' => 'avis.pdf', 'size' => 5000 }]
+      end
+
+      it 'retourne les fichiers existants (préservation)' do
+        result = extractor.send(:normalize_file_array, [], existing_files)
+        expect(result).to eq(existing_files)
+      end
+    end
+
+    context 'avec un fichier dont le filename est vide ou blanc' do
+      let(:blank_file) { double('File', filename: '   ', url: 'https://example.com/blank', byte_size: 100) }
+
+      it 'ignore les fichiers sans nom' do
+        result = extractor.send(:normalize_file_array, [blank_file, file1], [])
+        expect(result).to contain_exactly(
+          { url: 'https://example.com/avis.pdf', visible_name: 'avis.pdf' }
+        )
+      end
+    end
+  end
+
   describe '#normalize_phone' do
     it 'formate un numéro international avec texte parasite' do
       result = extractor.send(:normalize_phone, '+33766616250 (réside en métropole)')
