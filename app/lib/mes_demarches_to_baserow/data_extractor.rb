@@ -33,6 +33,38 @@ module MesDemarchesToBaserow
       }
     end
 
+    # Construit le hash de données pour une ligne de la table Baserow `Avis`.
+    #
+    # @param avis [Object] objet GraphQL Avis (id, question, reponse, expert, attachments, etc.)
+    # @param main_row_id [Integer] ID de la row principale du dossier (pour le link_row Dossier)
+    # @param existing_attachments [Array<Hash>] PJ déjà uploadées dans la row Avis existante
+    # @return [Hash] payload filtré selon les colonnes présentes dans field_metadata
+    def extract_avis_row(avis, main_row_id, existing_attachments = [])
+      candidates = {
+        'Avis' => avis.id.to_s,
+        'Dossier' => main_row_id.to_s,
+        'Question' => avis.question,
+        'Réponse' => avis.reponse,
+        'Libellé question' => avis.question_label,
+        'Réponse fermée' => avis.question_answer,
+        'Email expert' => avis.expert&.email,
+        'Email demandeur' => avis.claimant&.email
+      }
+
+      candidates['Date question'] = normalize_avis_date(avis.date_question, 'Date question')
+      candidates['Date réponse'] = normalize_avis_date(avis.date_reponse, 'Date réponse')
+      candidates['Pièces jointes'] = normalize_avis_attachments(avis.attachments, existing_attachments)
+
+      # Filtrer selon ce qui existe vraiment dans la table Baserow
+      candidates.each_with_object({}) do |(key, value), result|
+        next unless @field_metadata.key?(key)
+        next if value.nil?
+        next if value.is_a?(Array) && value.empty?
+
+        result[key] = value
+      end
+    end
+
     private
 
     def extract_main_table(dossier)
@@ -355,6 +387,31 @@ module MesDemarchesToBaserow
       (float_value % 1).zero? ? float_value.to_i : float_value
     rescue ArgumentError, TypeError
       nil
+    end
+
+    def normalize_avis_date(raw_value, column_name)
+      return nil if raw_value.blank?
+
+      type = @field_metadata.dig(column_name, 'type')
+      case type
+      when 'date'
+        format_date(raw_value)
+      when 'date_with_time', 'datetime'
+        # Baserow expose les dates avec heure via le type 'date' avec date_include_time
+        # ou via 'date_with_time'. On normalise en UTC ISO8601 dans les deux cas.
+        format_datetime(raw_value)
+      else
+        # Si la colonne n'existe pas ou n'est pas de type date, on retourne la valeur brute
+        # (sera filtrée plus tard par la présence dans field_metadata)
+        raw_value
+      end
+    end
+
+    def normalize_avis_attachments(attachments, existing_attachments)
+      list = Array(attachments)
+      return nil if list.empty? && existing_attachments.blank?
+
+      normalize_file_array(list, existing_attachments)
     end
   end
 end

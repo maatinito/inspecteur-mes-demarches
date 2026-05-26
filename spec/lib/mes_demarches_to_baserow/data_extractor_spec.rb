@@ -268,6 +268,114 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
     end
   end
 
+  describe '#extract_avis_row' do
+    let(:avis_field_metadata) do
+      {
+        'Avis' => { 'type' => 'text', 'id' => 100, 'primary' => true },
+        'Dossier' => { 'type' => 'link_row', 'id' => 101 },
+        'Question' => { 'type' => 'long_text', 'id' => 102 },
+        'Réponse' => { 'type' => 'long_text', 'id' => 103 },
+        'Libellé question' => { 'type' => 'text', 'id' => 104 },
+        'Réponse fermée' => { 'type' => 'boolean', 'id' => 105 },
+        'Date question' => { 'type' => 'date', 'id' => 106 },
+        'Date réponse' => { 'type' => 'date', 'id' => 107 },
+        'Email expert' => { 'type' => 'email', 'id' => 108 },
+        'Email demandeur' => { 'type' => 'email', 'id' => 109 },
+        'Pièces jointes' => { 'type' => 'file', 'id' => 110 }
+      }
+    end
+
+    let(:expert) { double('Profile', id: 'exp-1', email: 'expert@example.com') }
+    let(:claimant) { double('Profile', id: 'cla-1', email: 'demandeur@example.com') }
+    let(:attachment) { double('File', filename: 'avis.pdf', url: 'https://md.gp.pf/avis.pdf', byte_size: 5000) }
+
+    let(:avis) do
+      double(
+        'Avis',
+        id: 'QXZpcy0xMjM=',
+        question: 'Quel est votre avis ?',
+        reponse: 'Favorable',
+        question_label: nil,
+        question_answer: nil,
+        date_question: '2026-05-01T10:00:00Z',
+        date_reponse: '2026-05-15T14:30:00Z',
+        expert: expert,
+        claimant: claimant,
+        attachments: [attachment]
+      )
+    end
+
+    let(:extractor_avis) { described_class.new(avis_field_metadata, {}) }
+
+    it 'extrait tous les champs présents dans field_metadata' do
+      row = extractor_avis.extract_avis_row(avis, 42, [])
+
+      expect(row['Avis']).to eq('QXZpcy0xMjM=')
+      expect(row['Dossier']).to eq('42') # sera traduit en [id] côté SyncCoordinator
+      expect(row['Question']).to eq('Quel est votre avis ?')
+      expect(row['Réponse']).to eq('Favorable')
+      expect(row['Date question']).to eq('2026-05-01')
+      expect(row['Date réponse']).to eq('2026-05-15')
+      expect(row['Email expert']).to eq('expert@example.com')
+      expect(row['Email demandeur']).to eq('demandeur@example.com')
+      expect(row['Pièces jointes']).to contain_exactly(
+        { url: 'https://md.gp.pf/avis.pdf', visible_name: 'avis.pdf' }
+      )
+    end
+
+    it 'gère expert et claimant absents' do
+      allow(avis).to receive(:expert).and_return(nil)
+      allow(avis).to receive(:claimant).and_return(nil)
+
+      row = extractor_avis.extract_avis_row(avis, 42, [])
+
+      expect(row).not_to have_key('Email expert')
+      expect(row).not_to have_key('Email demandeur')
+    end
+
+    it 'skip les colonnes absentes de field_metadata' do
+      partial_metadata = { 'Avis' => { 'type' => 'text' }, 'Dossier' => { 'type' => 'link_row' } }
+      extractor = described_class.new(partial_metadata, {})
+
+      row = extractor.extract_avis_row(avis, 42, [])
+
+      expect(row.keys).to contain_exactly('Avis', 'Dossier')
+    end
+
+    it 'réutilise les PJ déjà uploadées (déduplication par nom+taille)' do
+      existing_pjs = [{ 'name' => 'hash_avis', 'visible_name' => 'avis.pdf', 'size' => 5000 }]
+      row = extractor_avis.extract_avis_row(avis, 42, existing_pjs)
+
+      expect(row['Pièces jointes']).to contain_exactly(
+        { 'name' => 'hash_avis', 'visible_name' => 'avis.pdf' }
+      )
+    end
+
+    it 'omet "Pièces jointes" quand avis.attachments est vide ET pas d\'existant' do
+      allow(avis).to receive(:attachments).and_return([])
+      row = extractor_avis.extract_avis_row(avis, 42, [])
+
+      expect(row).not_to have_key('Pièces jointes')
+    end
+
+    context 'avec une colonne de type datetime' do
+      let(:datetime_metadata) do
+        {
+          'Avis' => { 'type' => 'text', 'id' => 100 },
+          'Date question' => { 'type' => 'datetime', 'id' => 106 }
+        }
+      end
+
+      it 'normalise la date en ISO8601 UTC via format_datetime' do
+        extractor = described_class.new(datetime_metadata, {})
+        row = extractor.extract_avis_row(avis, 42, [])
+
+        # 2026-05-01T10:00:00Z is already UTC, format_datetime preserves it
+        expect(row['Date question']).to eq('2026-05-01T10:00:00Z')
+      end
+    end
+  end
+
   describe '#extract_main_table' do
     let(:field_metadata) do
       {
