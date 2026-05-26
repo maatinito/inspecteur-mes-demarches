@@ -6,6 +6,7 @@ require_relative 'mes_demarches_to_baserow/data_extractor'
 require_relative 'mes_demarches_to_baserow/field_filter'
 require_relative 'mes_demarches_to_baserow/row_upserter'
 require_relative 'mes_demarches_to_baserow/avis_syncer'
+require_relative 'mes_demarches_to_baserow/avis_table_builder'
 
 # Synchronisation des dossiers Mes-Démarches vers Baserow
 #
