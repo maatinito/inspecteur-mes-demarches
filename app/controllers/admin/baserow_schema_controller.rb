@@ -9,6 +9,7 @@ module Admin
     skip_before_action :verify_authenticity_token, only: %i[
       workspaces applications tables preview build
       preview_repetable_blocks build_repetable_blocks
+      preview_avis_table build_avis_table
     ]
 
     def index; end
@@ -179,6 +180,16 @@ module Admin
       build_repetable_blocks_with_params(params_hash, params[:blocks] || [])
     end
 
+    def preview_avis_table
+      params_hash = extract_avis_params
+      preview_avis_with_params(params_hash)
+    end
+
+    def build_avis_table
+      params_hash = extract_avis_params
+      build_avis_with_params(params_hash)
+    end
+
     private
 
     def extract_schema_options
@@ -333,6 +344,38 @@ module Admin
       render json: { success: false, error: e.message }, status: 422
     rescue StandardError => e
       render json: { success: false, error: "Erreur inattendue: #{e.message}" }, status: 500
+    end
+
+    def extract_avis_params
+      {
+        main_table_id: params.require(:main_table_id),
+        application_id: params.require(:application_id),
+        workspace_id: params.require(:workspace_id)
+      }
+    end
+
+    def preview_avis_with_params(params_hash)
+      builder = MesDemarchesToBaserow::AvisTableBuilder.new(
+        params_hash[:main_table_id],
+        params_hash[:application_id],
+        params_hash[:workspace_id]
+      )
+      preview = builder.preview
+      render json: preview
+    rescue MesDemarchesToBaserow::AvisTableBuilder::BuilderError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+
+    def build_avis_with_params(params_hash)
+      builder = MesDemarchesToBaserow::AvisTableBuilder.new(
+        params_hash[:main_table_id],
+        params_hash[:application_id],
+        params_hash[:workspace_id]
+      )
+      report = builder.build!
+      render json: report
+    rescue MesDemarchesToBaserow::AvisTableBuilder::BuilderError => e
+      render json: { error: e.message }, status: :unprocessable_entity
     end
   end
 end

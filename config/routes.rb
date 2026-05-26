@@ -25,6 +25,10 @@ Rails.application.routes.draw do
         get :repetable_blocks
         post :preview_repetable_blocks
         post :build_repetable_blocks
+
+        # Routes pour la table Avis
+        post :preview_avis_table
+        post :build_avis_table
       end
     end
 
