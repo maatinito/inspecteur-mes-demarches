@@ -71,6 +71,9 @@ module MesDemarchesToBaserow
       # Passer main_row_id pour éviter une recherche inutile
       sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks], main_row_id)
 
+      # 7b. Synchroniser les avis du dossier vers la table "Avis" (auto-découverte)
+      sync_avis(dossier, main_row_id)
+
       # 8. Si des fichiers ont échoué, lever une exception APRÈS l'upsert
       # pour que le framework marque le dossier en échec et le retente.
       # Au retry, les fichiers déjà uploadés seront détectés comme existants.
@@ -85,6 +88,28 @@ module MesDemarchesToBaserow
       # TODO: Implémenter si nécessaire (SchemaBuilder)
       # Pour l'instant, on suppose que les tables existent déjà
       @schema_ensured = true
+    end
+
+    # Synchronise les avis du dossier vers la table "Avis" (auto-découverte)
+    # Réutilise process_file_uploads via un proc pour les pièces jointes d'avis.
+    def sync_avis(dossier, main_row_id)
+      return unless main_row_id
+
+      available_tables = discover_application_tables
+      syncer = AvisSyncer.new(
+        application_tables: available_tables,
+        main_table_id: @baserow_config['table_id'],
+        baserow_config: @baserow_config,
+        options: @options,
+        field_metadata_loader: ->(table_id) { load_block_field_metadata(table_id) }
+      )
+
+      file_uploader_proc = ->(data, field_metadata) { process_file_uploads(data, field_metadata) }
+      syncer.sync(dossier, main_row_id, file_uploader_proc)
+    rescue StandardError => e
+      Rails.logger.error "BaserowSync.avis: erreur sync avis (dossier #{dossier.number}): #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      raise
     end
 
     # Construit les métadonnées des champs depuis l'API Baserow (config complète)
