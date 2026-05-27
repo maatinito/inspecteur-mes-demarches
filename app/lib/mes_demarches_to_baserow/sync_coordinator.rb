@@ -92,12 +92,14 @@ module MesDemarchesToBaserow
 
     # Synchronise les avis du dossier vers la table "Avis" (auto-découverte)
     # Réutilise process_file_uploads via un proc pour les pièces jointes d'avis.
+    #
+    # AvisSyncer est instancié paresseusement et conservé pour toute la démarche
+    # afin que sa mémoization (structure de la table Avis) survive entre dossiers.
     def sync_avis(dossier, main_row_id)
       return unless main_row_id
 
-      available_tables = discover_application_tables
-      syncer = AvisSyncer.new(
-        application_tables: available_tables,
+      @avis_syncer ||= AvisSyncer.new(
+        application_tables: discover_application_tables,
         main_table_id: @baserow_config['table_id'],
         baserow_config: @baserow_config,
         options: @options,
@@ -105,7 +107,7 @@ module MesDemarchesToBaserow
       )
 
       file_uploader_proc = ->(data, field_metadata) { process_file_uploads(data, field_metadata) }
-      syncer.sync(dossier, main_row_id, file_uploader_proc)
+      @avis_syncer.sync(dossier, main_row_id, file_uploader_proc)
     rescue StandardError => e
       Rails.logger.error "BaserowSync.avis: erreur sync avis (dossier #{dossier.number}): #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
