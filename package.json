@@ -18,17 +18,16 @@
     "sass": "^1.93.2",
     "websocket-extensions": "^0.1.4"
   },
-  "devDependencies": {
-    "webpack-dev-server": "^5.2.2"
-  },
   "scripts": {
-    "build": "NODE_OPTIONS=--openssl-legacy-provider bin/webpack",
+    "build": "bun run build:css && bun run build:js",
     "lint": "sass-lint -v",
     "lint:fix": "sass-lint-auto-fix",
     "build:css": "bun run build:css:compile && bun run build:css:prefix",
     "build:css:compile": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules",
     "build:css:prefix": "postcss ./app/assets/builds/application.css --use=autoprefixer --output=./app/assets/builds/application.css",
-    "watch:css": "nodemon --watch ./app/assets/stylesheets/ --ext scss --exec \"bun run build:css\""
+    "build:js": "cp node_modules/bootstrap/dist/js/bootstrap.bundle.min.js app/assets/builds/bootstrap.bundle.min.js",
+    "watch:css": "nodemon --watch ./app/assets/stylesheets/ --ext scss --exec \"bun run build:css\"",
+    "postinstall": "bun run build:js"
   },
   "resolutions": {
     "braces": ">=3.0.3",

@@ -424,23 +424,13 @@
           body = '<pre class="mb-0" style="white-space: pre-wrap;">' + escapeHtml(JSON.stringify(payload, null, 2)) + '</pre>';
         }
 
-        avisResult.innerHTML = '<div class="alert ' + alertClass + ' alert-dismissible" role="alert">' +
-          '<button type="button" class="close avis-close-btn" aria-label="Fermer" ' +
-            'style="border:0; background:transparent; float:right; font-size:1.5rem; line-height:1; cursor:pointer;">' +
+        avisResult.innerHTML = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+          '<button type="button" class="close" data-bs-dismiss="alert" aria-label="Fermer">' +
             '<span aria-hidden="true">&times;</span>' +
           '</button>' +
           body +
         '</div>';
         avisResult.style.display = 'block';
-
-        // Bootstrap JS n'est pas chargé dans ce projet ; bind à la main.
-        const closeBtn = avisResult.querySelector('.avis-close-btn');
-        if (closeBtn) {
-          closeBtn.addEventListener('click', function() {
-            avisResult.style.display = 'none';
-            avisResult.innerHTML = '';
-          });
-        }
       }
 
       avisPreviewBtn.addEventListener('click', function() {
@@ -587,7 +577,7 @@
 
       function showSuccess(report) {
         let html = '<div class="alert alert-success alert-dismissible" role="alert">' +
-          '<button type="button" class="close" data-dismiss="alert">' +
+          '<button type="button" class="close" data-bs-dismiss="alert">' +
             '<span>&times;</span>' +
           '</button>' +
           '<h5><i class="fas fa-check-circle"></i> Création réussie !</h5>' +
@@ -627,7 +617,7 @@
 
       function showError(message) {
         resultAlert.innerHTML = '<div class="alert alert-danger alert-dismissible" role="alert">' +
-          '<button type="button" class="close" data-dismiss="alert">' +
+          '<button type="button" class="close" data-bs-dismiss="alert">' +
             '<span>&times;</span>' +
           '</button>' +
           '<h5><i class="fas fa-exclamation-triangle"></i> Erreur</h5>' +

@@ -272,7 +272,7 @@
 
       function showSuccess(report) {
         let html = '<div class="alert alert-success alert-dismissible" role="alert">' +
-          '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+          '<button type="button" class="close" data-bs-dismiss="alert"><span>&times;</span></button>' +
           '<h5><i class="fas fa-check-circle"></i> Création réussie !</h5>' +
           '<p><strong>' + report.tables_created.length + '</strong> table(s) créée(s), ' +
           '<strong>' + report.tables_updated.length + '</strong> mise(s) à jour, ' +
@@ -295,7 +295,7 @@
 
       function showError(msg) {
         resultAlert.innerHTML = '<div class="alert alert-danger alert-dismissible" role="alert">' +
-          '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+          '<button type="button" class="close" data-bs-dismiss="alert"><span>&times;</span></button>' +
           '<h5><i class="fas fa-exclamation-triangle"></i> Erreur</h5><p>' + msg + '</p></div>';
         resultAlert.style.display = 'block';
       }
