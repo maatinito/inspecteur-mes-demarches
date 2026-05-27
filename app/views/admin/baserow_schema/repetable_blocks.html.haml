@@ -345,32 +345,37 @@
           .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       }
 
-      function renderFieldList(fields, badgeClass) {
+      function renderFieldList(fields, badgeStyle) {
         if (!fields || fields.length === 0) {
           return '<p class="text-muted mb-0"><em>aucun</em></p>';
         }
         return '<div>' + fields.map(f =>
-          '<span class="badge ' + badgeClass + ' mr-1 mb-1" style="font-size: 0.9em;">' +
+          '<span class="badge mr-1 mb-1" style="font-size: 0.9em; padding: 0.35em 0.6em; ' + badgeStyle + '">' +
             escapeHtml(f) +
           '</span>'
         ).join('') + '</div>';
       }
 
+      // Styles explicites pour garantir un bon contraste indépendamment du theme Bootstrap
+      const BADGE_EXISTING = 'background:#e9ecef; color:#212529; border:1px solid #ced4da;';
+      const BADGE_MISSING  = 'background:#0d47a1; color:#ffffff;';
+      const BADGE_CREATED  = 'background:#1b5e20; color:#ffffff;';
+
       function renderAvisPreview(preview) {
         const tableLine = preview.will_create_table
-          ? '<span class="badge badge-warning">Table « ' + escapeHtml(preview.table_name) + ' » sera créée</span>'
-          : '<span class="badge badge-success">Table « ' + escapeHtml(preview.table_name) + ' » existe déjà</span>';
+          ? '<span class="badge" style="background:#ff8f00; color:#000;">Table « ' + escapeHtml(preview.table_name) + ' » sera créée</span>'
+          : '<span class="badge" style="background:#1b5e20; color:#fff;">Table « ' + escapeHtml(preview.table_name) + ' » existe déjà</span>';
 
         return '<h5><i class="fas fa-eye"></i> Aperçu table Avis</h5>' +
           '<p>' + tableLine + '</p>' +
           '<div class="row">' +
             '<div class="col-md-6">' +
               '<strong>Colonnes déjà présentes (' + (preview.existing_fields || []).length + ')</strong>' +
-              renderFieldList(preview.existing_fields, 'badge-secondary') +
+              renderFieldList(preview.existing_fields, BADGE_EXISTING) +
             '</div>' +
             '<div class="col-md-6">' +
               '<strong>Colonnes à créer (' + (preview.missing_fields || []).length + ')</strong>' +
-              renderFieldList(preview.missing_fields, 'badge-info') +
+              renderFieldList(preview.missing_fields, BADGE_MISSING) +
             '</div>' +
           '</div>' +
           '<hr>' +
@@ -381,15 +386,15 @@
         const created = report.fields_created || [];
         const errors = report.errors || [];
         const tableBadge = report.table_created
-          ? '<span class="badge badge-success">Table créée</span>'
-          : '<span class="badge badge-info">Table existante</span>';
+          ? '<span class="badge" style="background:#1b5e20; color:#fff;">Table créée</span>'
+          : '<span class="badge" style="background:#e9ecef; color:#212529; border:1px solid #ced4da;">Table existante</span>';
 
         let html = '<h5><i class="fas fa-check-circle"></i> Résultat de la mise à jour</h5>' +
           '<p>' + tableBadge + '</p>' +
           '<div class="row">' +
             '<div class="col-md-6">' +
               '<strong>Colonnes créées (' + created.length + ')</strong>' +
-              renderFieldList(created, 'badge-success') +
+              renderFieldList(created, BADGE_CREATED) +
             '</div>' +
             '<div class="col-md-6">' +
               '<strong>Erreurs (' + errors.length + ')</strong>';
