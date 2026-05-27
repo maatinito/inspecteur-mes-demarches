@@ -309,6 +309,45 @@ Résultat de la synchro:
 
 Les dropdowns qui permettent à l'usager d'entrer une valeur personnalisée sont automatiquement détectés via `otherOption: true` dans GraphQL et mappés vers un champ `text` au lieu de `single_select`.
 
+## Synchronisation des avis
+
+Les avis d'un dossier (consultations expert) sont synchronisés vers une table Baserow dédiée `Avis`, liée à la table principale via un link_row.
+
+### Cas d'usage type
+
+Démarches de permis de construire où plusieurs services administratifs sont consultés. Chaque avis contient une réponse texte courte et souvent une PJ détaillée (avis en PDF). L'application Baserow donne accès aux deux.
+
+### Structure attendue de la table « Avis »
+
+| Colonne | Type Baserow | Source MD |
+|---|---|---|
+| `Avis` (primary) | text | `avis.id` (ID GraphQL) |
+| `Dossier` | link_row → table principale (multiple_relationships: false) | `existing_row.id` |
+| `Question` | long_text | `avis.question` |
+| `Réponse` | long_text | `avis.reponse` |
+| `Libellé question` | text | `avis.questionLabel` |
+| `Réponse fermée` | boolean | `avis.questionAnswer` |
+| `Date question` | date | `avis.dateQuestion` |
+| `Date réponse` | date | `avis.dateReponse` |
+| `Email expert` | email | `avis.expert.email` |
+| `Email demandeur` | email | `avis.claimant.email` |
+| `Pièces jointes` | file | `avis.attachments` |
+
+Toutes les colonnes sont optionnelles sauf `Avis` (primary) et `Dossier` (link_row). La sync remplit ce qui existe.
+
+### Création de la table
+
+Via l'UI admin (`/admin/baserow_schema/repetable_blocks`), section « Table Avis ». Boutons « Aperçu » et « Créer/mettre à jour ». Le builder est idempotent : il ne supprime jamais rien.
+
+### Fonctionnement de la sync
+
+1. Découverte : si la table `Avis` n'existe pas dans l'application, skip silencieux.
+2. Validation de la structure (primary `Avis` + link_row `Dossier`). Si KO, skip avec warn détaillant la raison.
+3. Fetch des avis du dossier via GraphQL (incluant `attachments`).
+4. Pour chaque avis, upsert par ID GraphQL.
+5. PJ : réutilisation de la déduplication par nom+taille (idem PJ des champs).
+6. Suppression des avis orphelins (présents en Baserow mais plus en MD) si `supprimer_orphelins: true` (défaut).
+
 ## Tests
 
 ```bash
