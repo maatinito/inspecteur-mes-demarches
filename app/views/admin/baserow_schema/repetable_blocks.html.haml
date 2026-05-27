@@ -80,6 +80,29 @@
     .col
       %div#result-alert{ style: "display: none;" }
 
+%section.mt-5
+  .row
+    .col
+      %h3.mb-3 Table « Avis »
+      %p.text-muted
+        Ce builder crée (ou met à jour) une table Baserow nommée «&nbsp;Avis&nbsp;»
+        dans la même application que la table principale. La table contiendra un champ
+        de liaison vers les dossiers ainsi que les colonnes standards (email instructeur,
+        question, réponse, date, etc.).
+
+  .row
+    .col.text-center.mb-3
+      %button.btn.btn-success.mr-4#avis-build-btn{ type: "button", disabled: true }
+        %i.fas.fa-hammer.mr-1
+        Créer/mettre à jour table Avis
+      %button.btn.btn-outline-primary#avis-preview-btn{ type: "button", disabled: true }
+        %i.fas.fa-eye.mr-1
+        Aperçu table Avis
+
+  .row
+    .col
+      %div#avis-table-result{ style: "display: none;" }
+
 :javascript
   (function() {
     console.log('Repetable blocks page loaded');
@@ -289,6 +312,102 @@
           workspace_id: workspaceSelect.value
         };
       }
+
+      // ---- Section "Table Avis" ----
+      const avisPreviewBtn = document.getElementById('avis-preview-btn');
+      const avisBuildBtn = document.getElementById('avis-build-btn');
+      const avisResult = document.getElementById('avis-table-result');
+
+      function getAvisFormData() {
+        return {
+          main_table_id: mainTableSelect.value,
+          application_id: applicationSelect.value,
+          workspace_id: workspaceSelect.value
+        };
+      }
+
+      function updateAvisButtons() {
+        const canRun = mainTableSelect.value &&
+                       !mainTableSelect.disabled &&
+                       applicationSelect.value &&
+                       workspaceSelect.value;
+        avisPreviewBtn.disabled = !canRun;
+        avisBuildBtn.disabled = !canRun;
+      }
+
+      ['workspace_select', 'application_select', 'main_table_select'].forEach(id => {
+        document.getElementById(id).addEventListener('change', updateAvisButtons);
+      });
+
+      function showAvisResult(payload, kind) {
+        const alertClass = kind === 'error' ? 'alert-danger' : (kind === 'success' ? 'alert-success' : 'alert-info');
+        const icon = kind === 'error' ? 'fa-exclamation-triangle' : (kind === 'success' ? 'fa-check-circle' : 'fa-info-circle');
+        const title = kind === 'error' ? 'Erreur' : (kind === 'success' ? 'Opération réussie' : 'Aperçu table Avis');
+
+        avisResult.innerHTML = '<div class="alert ' + alertClass + ' alert-dismissible" role="alert">' +
+          '<button type="button" class="close" data-dismiss="alert">' +
+            '<span>&times;</span>' +
+          '</button>' +
+          '<h5><i class="fas ' + icon + '"></i> ' + title + '</h5>' +
+          '<pre class="mb-0" style="white-space: pre-wrap;">' + JSON.stringify(payload, null, 2) + '</pre>' +
+        '</div>';
+        avisResult.style.display = 'block';
+      }
+
+      avisPreviewBtn.addEventListener('click', function() {
+        const formData = getAvisFormData();
+        avisPreviewBtn.disabled = true;
+        avisPreviewBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Chargement...";
+
+        fetch('/admin/baserow_schema/preview_avis_table', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json().then(data => ({ ok: response.ok, data: data })))
+        .then(result => {
+          showAvisResult(result.data, result.ok ? 'info' : 'error');
+        })
+        .catch(error => showAvisResult({ error: error.message }, 'error'))
+        .finally(() => {
+          avisPreviewBtn.innerHTML = "<i class=\"fas fa-eye mr-1\"></i>Aperçu table Avis";
+          updateAvisButtons();
+        });
+      });
+
+      avisBuildBtn.addEventListener('click', function() {
+        if (!confirm('Confirmer la création/mise à jour de la table « Avis » ?')) {
+          return;
+        }
+
+        const formData = getAvisFormData();
+        avisBuildBtn.disabled = true;
+        avisBuildBtn.innerHTML = "<i class=\"fas fa-spinner fa-spin mr-1\"></i>Création en cours...";
+
+        fetch('/admin/baserow_schema/build_avis_table', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json().then(data => ({ ok: response.ok, data: data })))
+        .then(result => {
+          const hasErrors = result.data && result.data.errors && result.data.errors.length > 0;
+          showAvisResult(result.data, (result.ok && !hasErrors) ? 'success' : 'error');
+        })
+        .catch(error => showAvisResult({ error: error.message }, 'error'))
+        .finally(() => {
+          avisBuildBtn.innerHTML = "<i class=\"fas fa-hammer mr-1\"></i>Créer/mettre à jour table Avis";
+          updateAvisButtons();
+        });
+      });
 
       function showPreview(preview) {
         selectedBlocks.clear();
