@@ -99,12 +99,12 @@ RSpec.describe BaserowSync do
       allow(structure_client).to receive(:list_tables).with(1).and_return([
                                                                             { 'id' => avis_table_id, 'name' => 'Avis' }
                                                                           ])
-      allow(structure_client).to receive(:get_primary_field).with(avis_table_id)
-                                                            .and_return({ 'name' => 'Avis', 'type' => 'text' })
-      allow(structure_client).to receive(:get_field_by_name).with(avis_table_id, 'Dossier')
-                                                            .and_return({ 'type' => 'link_row',
-                                                                          'link_row_table_id' => main_table_id,
-                                                                          'link_row_multiple_relationships' => false })
+      allow(structure_client).to receive(:get_table_fields).with(avis_table_id).and_return([
+                                                                                             { 'name' => 'Avis', 'type' => 'text', 'primary' => true },
+                                                                                             { 'name' => 'Dossier', 'type' => 'link_row',
+                                                                                               'link_row_table_id' => main_table_id,
+                                                                                               'link_row_multiple_relationships' => false }
+                                                                                           ])
 
       # Pas de rows Avis existantes pour ce dossier
       allow(avis_table).to receive(:find_by_link_row_id).with('Dossier', 42).and_return([])

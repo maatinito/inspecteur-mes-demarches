@@ -42,14 +42,20 @@ RSpec.describe MesDemarchesToBaserow::AvisSyncer do
   let(:main_row_id) { 42 }
   let(:noop_uploader) { ->(_data, _meta) {} }
 
+  # Liste de champs Baserow valide pour la table Avis (utilisée par
+  # check_structure pour trouver primary + link via un seul get_table_fields).
+  let(:valid_avis_fields) do
+    [
+      { 'name' => 'Avis', 'type' => 'text', 'primary' => true },
+      { 'name' => 'Dossier', 'type' => 'link_row',
+        'link_row_table_id' => main_table_id,
+        'link_row_multiple_relationships' => false }
+    ]
+  end
+
   before do
     allow(Baserow::Config).to receive(:table).with(avis_table_id, anything).and_return(avis_table)
-    allow(structure_client).to receive(:get_field_by_name).with(avis_table_id, 'Dossier')
-                                                          .and_return({ 'type' => 'link_row',
-                                                                        'link_row_table_id' => main_table_id,
-                                                                        'link_row_multiple_relationships' => false })
-    allow(structure_client).to receive(:get_primary_field).with(avis_table_id)
-                                                          .and_return({ 'name' => 'Avis', 'type' => 'text' })
+    allow(structure_client).to receive(:get_table_fields).with(avis_table_id).and_return(valid_avis_fields)
   end
 
   context 'quand la table Avis n\'existe pas dans l\'application' do
@@ -62,10 +68,14 @@ RSpec.describe MesDemarchesToBaserow::AvisSyncer do
     end
   end
 
-  context 'quand la structure de la table Avis est invalide' do
-    before do
-      allow(structure_client).to receive(:get_primary_field).with(avis_table_id)
-                                                            .and_return({ 'name' => 'Mauvais', 'type' => 'text' })
+  context 'quand la structure de la table Avis est invalide (mauvais primary)' do
+    let(:valid_avis_fields) do
+      [
+        { 'name' => 'Mauvais', 'type' => 'text', 'primary' => true },
+        { 'name' => 'Dossier', 'type' => 'link_row',
+          'link_row_table_id' => main_table_id,
+          'link_row_multiple_relationships' => false }
+      ]
     end
 
     it 'skip avec un warn explicite' do
@@ -76,11 +86,13 @@ RSpec.describe MesDemarchesToBaserow::AvisSyncer do
   end
 
   context 'quand la structure de la table Avis a un link_row mal pointé' do
-    before do
-      allow(structure_client).to receive(:get_field_by_name).with(avis_table_id, 'Dossier')
-                                                            .and_return({ 'type' => 'link_row',
-                                                                          'link_row_table_id' => 999, # mauvaise table
-                                                                          'link_row_multiple_relationships' => false })
+    let(:valid_avis_fields) do
+      [
+        { 'name' => 'Avis', 'type' => 'text', 'primary' => true },
+        { 'name' => 'Dossier', 'type' => 'link_row',
+          'link_row_table_id' => 999, # mauvaise table
+          'link_row_multiple_relationships' => false }
+      ]
     end
 
     it 'skip avec un warn mentionnant la mauvaise table' do
@@ -91,11 +103,13 @@ RSpec.describe MesDemarchesToBaserow::AvisSyncer do
   end
 
   context 'quand le link_row Dossier autorise plusieurs liens' do
-    before do
-      allow(structure_client).to receive(:get_field_by_name).with(avis_table_id, 'Dossier')
-                                                            .and_return({ 'type' => 'link_row',
-                                                                          'link_row_table_id' => main_table_id,
-                                                                          'link_row_multiple_relationships' => true })
+    let(:valid_avis_fields) do
+      [
+        { 'name' => 'Avis', 'type' => 'text', 'primary' => true },
+        { 'name' => 'Dossier', 'type' => 'link_row',
+          'link_row_table_id' => main_table_id,
+          'link_row_multiple_relationships' => true }
+      ]
     end
 
     it 'skip avec un warn explicite' do
@@ -106,8 +120,8 @@ RSpec.describe MesDemarchesToBaserow::AvisSyncer do
   end
 
   context 'quand le champ Dossier est absent ou n\'est pas un link_row' do
-    before do
-      allow(structure_client).to receive(:get_field_by_name).with(avis_table_id, 'Dossier').and_return(nil)
+    let(:valid_avis_fields) do
+      [{ 'name' => 'Avis', 'type' => 'text', 'primary' => true }]
     end
 
     it 'skip avec un warn explicite' do
@@ -180,6 +194,27 @@ RSpec.describe MesDemarchesToBaserow::AvisSyncer do
       expect(avis_table).to receive(:delete_row).with(2)
       expect(avis_table).not_to receive(:delete_row).with(1)
       syncer.sync(dossier, main_row_id, noop_uploader)
+    end
+  end
+
+  context 'mémoization de la validation de structure' do
+    let(:avis) do
+      double('Avis', id: 'AV1', question: 'Q', reponse: 'R', question_label: nil, question_answer: nil,
+                     date_question: nil, date_reponse: nil,
+                     expert: nil, claimant: nil, attachments: [])
+    end
+
+    before do
+      allow(MesDemarches::AvisFetcher).to receive(:fetch).and_return([avis])
+      allow(avis_table).to receive(:find_by_link_row_id).and_return([])
+      allow(avis_table).to receive(:create_row).and_return({ 'id' => 1 })
+    end
+
+    it 'n\'appelle get_table_fields qu\'une seule fois sur plusieurs dossiers' do
+      syncer.sync(dossier, main_row_id, noop_uploader)
+      syncer.sync(dossier, main_row_id, noop_uploader)
+      syncer.sync(dossier, main_row_id, noop_uploader)
+      expect(structure_client).to have_received(:get_table_fields).with(avis_table_id).once
     end
   end
 end

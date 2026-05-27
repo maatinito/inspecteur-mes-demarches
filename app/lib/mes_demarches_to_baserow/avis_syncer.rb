@@ -21,6 +21,7 @@ module MesDemarchesToBaserow
       @options = options || {}
       @field_metadata_loader = field_metadata_loader
       @structure_client = structure_client || Baserow::StructureClient.new
+      @structure_cache = {} # table_id => true|false (résultat de valid_structure?)
     end
 
     # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
@@ -76,16 +77,27 @@ module MesDemarchesToBaserow
 
     private
 
-    # rubocop:disable Metrics/MethodLength
+    # Mémoization : la structure d'une table Avis ne change pas au cours d'une
+    # session — on évite ainsi les list_fields répétés à chaque dossier.
     def valid_structure?(table_id)
-      primary = @structure_client.get_primary_field(table_id)
+      return @structure_cache[table_id] if @structure_cache.key?(table_id)
+
+      @structure_cache[table_id] = check_structure(table_id)
+    end
+
+    # rubocop:disable Metrics/MethodLength
+    def check_structure(table_id)
+      # Un seul list_fields par table : on récupère tous les champs puis on
+      # trouve primary et link localement.
+      fields = @structure_client.get_table_fields(table_id)
+      primary = fields.find { |f| f['primary'] == true }
       unless primary && primary['name'] == PRIMARY_FIELD
         Rails.logger.warn "BaserowSync.avis: structure invalide (table #{table_id}) — primary attendu " \
                           "'#{PRIMARY_FIELD}', trouvé '#{primary&.dig('name')}'"
         return false
       end
 
-      link = @structure_client.get_field_by_name(table_id, LINK_FIELD)
+      link = fields.find { |f| f['name']&.downcase == LINK_FIELD.downcase }
       unless link && link['type'] == 'link_row'
         Rails.logger.warn "BaserowSync.avis: structure invalide (table #{table_id}) — champ " \
                           "'#{LINK_FIELD}' link_row manquant ou type incorrect"
