@@ -7,8 +7,31 @@ module Baserow
   class AuthService
     class AuthError < StandardError; end
 
-    def self.jwt_token
-      new.jwt_token
+    # Durée de cache du JWT.
+    # Baserow émet par défaut des tokens valides 60 min ; on rafraîchit avant.
+    CACHE_TTL = 3000
+
+    class << self
+      # Retourne un JWT, depuis le cache si dispo et frais, sinon login.
+      def jwt_token
+        return @cached_token if cached?
+
+        @cached_token = new.fetch_token
+        @cached_at = Time.now.to_i
+        @cached_token
+      end
+
+      # À appeler en cas de 401 pour forcer un re-login au prochain accès.
+      def clear_cache
+        @cached_token = nil
+        @cached_at = nil
+      end
+
+      private
+
+      def cached?
+        @cached_token && @cached_at && (Time.now.to_i - @cached_at) < CACHE_TTL
+      end
     end
 
     def initialize
@@ -19,10 +42,15 @@ module Baserow
       raise AuthError, "Variable d'environnement manquante: #{e.key}"
     end
 
-    def jwt_token
+    # Login HTTP brut — pas de cache. Utilisé par AuthService.jwt_token (qui cache).
+    def fetch_token
       response = make_login_request
       handle_login_response(response)
     end
+
+    # Alias rétrocompat : `AuthService.new.jwt_token` continue à fonctionner
+    # (mais bypass le cache — préférer `AuthService.jwt_token`).
+    alias jwt_token fetch_token
 
     private
 
