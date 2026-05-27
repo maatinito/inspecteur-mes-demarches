@@ -46,38 +46,59 @@ class CopyFileField < FieldChecker
   end
 
   def copy_as_combined_pdf(champs)
+    source_files = champs.flat_map(&:files)
+    if source_files.blank?
+      Rails.logger.warn("Aucun fichier à copier depuis '#{@params[:champ_source]}'")
+      return
+    end
+
+    annotation = param_annotation(:champ_cible)
+    raise "Unable to find annotation '#{params[:champ_cible]}' on dossier #{@dossier.number}" unless annotation.present?
+
+    signature = sources_signature(source_files)
+    if annotation.files&.any? { |f| f.filename.include?("-#{signature}.pdf") }
+      Rails.logger.info("Sources déjà fusionnées dans '#{params[:champ_cible]}' (signature #{signature}), pas de reconversion")
+      return
+    end
+
     pdfs = champs.flat_map(&method(:download)).flat_map(&method(:to_pdf))
     if pdfs.blank?
       Rails.logger.warn("Aucun fichier à copier depuis '#{@params[:champ_source]}'")
       return
     end
 
-    filename = target_filename
-    Rails.logger.info("Joining files #{champs.flat_map(&:files).flat_map(&:filename).join(',')} to #{filename}")
+    filename = target_filename(signature)
+    Rails.logger.info("Joining files #{source_files.map(&:filename).join(',')} to #{filename}")
     combine_pdf(pdfs, filename) do |pdf_file|
-      changed = SetAnnotationValue.set_piece_justificative(@dossier, instructeur_id_for(@demarche, @dossier), params[:champ_cible], pdf_file.path)
+      changed = SetAnnotationValue.set_piece_justificative_on_annotation(@dossier, instructeur_id_for(@demarche, @dossier), annotation, pdf_file.path, filename)
       dossier_updated(@dossier) if changed
     end
   end
 
   def copy_files_individually(champs)
-    pairs = champs.flat_map(&method(:download_with_filename))
-    if pairs.blank?
+    source_files = champs.flat_map(&:files)
+    if source_files.blank?
       Rails.logger.warn("Aucun fichier à copier depuis '#{@params[:champ_source]}'")
       return
     end
 
-    # Récupérer l'objet annotation une seule fois
     annotation = param_annotation(:champ_cible)
     raise "Unable to find annotation '#{params[:champ_cible]}' on dossier #{@dossier.number}" unless annotation.present?
+
+    to_upload = source_files.reject { |src| annotation.files&.any? { |f| f.checksum == src.checksum } }
+    if to_upload.empty?
+      Rails.logger.info("Tous les fichiers sources sont déjà présents dans '#{params[:champ_cible]}', rien à copier")
+      return
+    end
 
     instructeur = instructeur_id_for(@demarche, @dossier)
     changed = false
 
-    pairs.each do |file, filename|
-      file_changed = SetAnnotationValue.set_piece_justificative_on_annotation(@dossier, instructeur, annotation, file, filename)
-      Rails.logger.info("File #{filename} copied to #{params[:champ_cible]}") if file_changed
-      changed ||= file_changed
+    to_upload.each do |source_file|
+      local_path = PieceJustificativeCache.get(source_file)
+      SetAnnotationValue.set_piece_justificative_on_annotation(@dossier, instructeur, annotation, local_path, source_file.filename)
+      Rails.logger.info("File #{source_file.filename} copied to #{params[:champ_cible]}")
+      changed = true
     end
 
     dossier_updated(@dossier) if changed
@@ -89,10 +110,14 @@ class CopyFileField < FieldChecker
     File.delete(file)
   end
 
-  def target_filename
+  def target_filename(signature)
     timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
     template = @params[:nom_fichier].presence || "#{@params[:champ_cible]} {horodatage}"
-    "#{instanciate(template, { horodatage: timestamp })}.pdf"
+    "#{instanciate(template, { horodatage: timestamp })}-#{signature}.pdf"
+  end
+
+  def sources_signature(source_files)
+    Digest::SHA1.hexdigest(source_files.map(&:checksum).sort.join('|'))[0..7]
   end
 
   def file_fields(field_names)
@@ -103,12 +128,6 @@ class CopyFileField < FieldChecker
     return unless champ.__typename == 'PieceJustificativeChamp'
 
     champ.files.map { |f| PieceJustificativeCache.get(f) }
-  end
-
-  def download_with_filename(champ)
-    return [] unless champ.__typename == 'PieceJustificativeChamp'
-
-    champ.files.map { |f| [PieceJustificativeCache.get(f), f.filename] }
   end
 
   def to_pdf(file)
