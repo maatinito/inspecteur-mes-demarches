@@ -1,9 +1,4 @@
 %h1= "Démarche ##{@demarche.id} — #{@demarche.libelle}"
 
 %section.schema-builder{ data: { controller: 'schema-builder' } }
-  - if @schema_targets.empty?
-    %p Aucune cible configurée.
-  - else
-    %ul
-      - @schema_targets.each do |target|
-        %li= target.target_type
+  = render 'target_tabs', demarche: @demarche, targets: @schema_targets
