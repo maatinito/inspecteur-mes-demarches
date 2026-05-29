@@ -108,13 +108,26 @@ module Baserow
 
     def make_request(method, path, options = {})
       url = "#{@base_url}#{path}"
+      response = perform_request(method, url, options)
 
+      # Retry transparent une fois sur 401 : le JWT en cache est probablement
+      # expiré. On clear le cache, on rafraîchit le token, on rejoue.
+      if response.code == 401
+        AuthService.clear_cache
+        @jwt_token = AuthService.jwt_token
+        @headers['Authorization'] = "JWT #{@jwt_token}"
+        response = perform_request(method, url, options)
+      end
+
+      response
+    end
+
+    def perform_request(method, url, options)
       request_options = {
         method:,
         headers: @headers,
         timeout: 30
       }
-
       request_options.merge!(options)
       Typhoeus::Request.new(url, request_options).run
     end
