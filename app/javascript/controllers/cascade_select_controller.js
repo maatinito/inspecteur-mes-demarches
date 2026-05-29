@@ -12,6 +12,9 @@ export default class extends Controller {
     const url = `/admin/demarches/${this.demarcheIdValue}/schema/targets/${this.targetTypeValue}/workspaces`
     const list = await this.#fetchJson(url)
     this.#populate(this.workspaceTarget, list, "Sélectionnez un workspace")
+    if (this.workspaceTarget.value) {
+      await this.#loadApplications(this.workspaceTarget.value)
+    }
   }
 
   async onWorkspaceChange(event) {
@@ -21,9 +24,7 @@ export default class extends Controller {
       this.#reset(this.tableTarget, "—")
       return
     }
-    const url = `/admin/demarches/${this.demarcheIdValue}/schema/targets/${this.targetTypeValue}/applications/${wsId}`
-    const list = await this.#fetchJson(url)
-    this.#populate(this.applicationTarget, list, "Sélectionnez une application")
+    await this.#loadApplications(wsId)
     this.#reset(this.tableTarget, "—")
   }
 
@@ -33,6 +34,19 @@ export default class extends Controller {
       this.#reset(this.tableTarget, "—")
       return
     }
+    await this.#loadTables(appId)
+  }
+
+  async #loadApplications(wsId) {
+    const url = `/admin/demarches/${this.demarcheIdValue}/schema/targets/${this.targetTypeValue}/applications/${wsId}`
+    const list = await this.#fetchJson(url)
+    this.#populate(this.applicationTarget, list, "Sélectionnez une application")
+    if (this.applicationTarget.value) {
+      await this.#loadTables(this.applicationTarget.value)
+    }
+  }
+
+  async #loadTables(appId) {
     const url = `/admin/demarches/${this.demarcheIdValue}/schema/targets/${this.targetTypeValue}/tables/${appId}`
     const list = await this.#fetchJson(url)
     this.#populate(this.tableTarget, list, "Sélectionnez une table principale")
