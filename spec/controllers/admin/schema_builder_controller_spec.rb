@@ -4,6 +4,8 @@ require 'rails_helper'
 
 # rubocop:disable Metrics/BlockLength
 RSpec.describe Admin::SchemaBuilderController, type: :controller do
+  include ActiveSupport::Testing::TimeHelpers
+
   render_views
 
   let(:user) { create(:user) }
@@ -207,6 +209,45 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
     it "404 si la target n'existe pas" do
       expect do
         post :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
+      end.to raise_error(ActiveRecord::RecordNotFound)
+    end
+  end
+
+  describe 'POST #build_main_table' do
+    let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: nil) }
+    let(:build_result) { { table_id: 99, table_name: 'Dossiers', action: :created, fields: [] } }
+    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder, build!: build_result) }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
+      allow_any_instance_of(described_class).to receive(:main_table_builder_for).and_return(builder_double)
+    end
+
+    it 'met à jour main_table_external_id et last_synced_at' do
+      freeze_time = Time.zone.parse('2026-05-28 12:00')
+      travel_to(freeze_time) do
+        post :build_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        target.reload
+        expect(target.main_table_external_id).to eq('99')
+        expect(target.last_synced_at).to be_within(1.second).of(freeze_time)
+      end
+    end
+
+    it 'retourne un Turbo Stream avec "créée" quand action: :created' do
+      post :build_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('créée')
+    end
+
+    it 'retourne un Turbo Stream avec "mise à jour" quand action: :updated' do
+      allow(builder_double).to receive(:build!).and_return(build_result.merge(action: :updated))
+      post :build_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response.body).to include('mise à jour')
+    end
+
+    it "404 si la target n'existe pas" do
+      expect do
+        post :build_main_table, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
       end.to raise_error(ActiveRecord::RecordNotFound)
     end
   end
