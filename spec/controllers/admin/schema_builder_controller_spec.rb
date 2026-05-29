@@ -251,5 +251,75 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       end.to raise_error(ActiveRecord::RecordNotFound)
     end
   end
+
+  describe 'POST #preview_avis' do
+    let!(:target_baserow) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+    let(:preview_result) do
+      {
+        table_name: 'Avis',
+        application_id: '17',
+        main_table_id: '101',
+        fields: [{ name: 'Dossier', type: 'link_row' }, { name: 'Question', type: 'long_text' }]
+      }
+    end
+    let(:builder_double) { instance_double(SchemaBuilders::AvisBuilder, preview: preview_result) }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:avis_builder_for).and_return(builder_double)
+    end
+
+    it 'renvoie un Turbo Stream avec le preview' do
+      post :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Dossier')
+    end
+
+    it 'refuse pour target_type grist' do
+      create(:schema_target, demarche: demarche, target_type: 'grist', application_external_id: '17', main_table_external_id: '101')
+      post :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it 'renvoie 412 si la table principale n\'est pas construite' do
+      target_baserow.update!(main_table_external_id: nil)
+      post :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response).to have_http_status(:precondition_failed)
+    end
+  end
+
+  describe 'POST #build_avis' do
+    let!(:target_baserow) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+    let(:build_result) { { table_id: 'a99', table_name: 'Avis', action: :created } }
+    let(:builder_double) { instance_double(SchemaBuilders::AvisBuilder, build!: build_result) }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:avis_builder_for).and_return(builder_double)
+    end
+
+    it 'met à jour avis_table_external_id et last_synced_at' do
+      post :build_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      target_baserow.reload
+      expect(target_baserow.avis_table_external_id).to eq('a99')
+      expect(target_baserow.last_synced_at).to be_present
+    end
+
+    it 'retourne un Turbo Stream avec "créée" quand action: :created' do
+      post :build_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('créée')
+    end
+
+    it 'refuse pour target_type grist' do
+      create(:schema_target, demarche: demarche, target_type: 'grist', application_external_id: '17', main_table_external_id: '101')
+      post :build_avis, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it 'renvoie 412 si la table principale n\'est pas construite' do
+      target_baserow.update!(main_table_external_id: nil)
+      post :build_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response).to have_http_status(:precondition_failed)
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength

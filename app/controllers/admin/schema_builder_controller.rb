@@ -85,6 +85,38 @@ module Admin
       )
     end
 
+    def preview_avis
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      return head :bad_request if target.target_type == 'grist'
+      return head :precondition_failed if target.main_table_external_id.blank?
+
+      builder = avis_builder_for(target)
+      result = builder.preview(application_id: target.application_external_id, main_table_id: target.main_table_external_id)
+
+      render turbo_stream: turbo_stream.replace(
+        "avis-#{target.id}",
+        partial: 'avis_section',
+        locals: { target: target, preview: result }
+      )
+    end
+
+    def build_avis
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      return head :bad_request if target.target_type == 'grist'
+      return head :precondition_failed if target.main_table_external_id.blank?
+
+      builder = avis_builder_for(target)
+      result = builder.build!(application_id: target.application_external_id, main_table_id: target.main_table_external_id)
+      # TODO: last_synced_at est partagé entre main_table et avis ; envisager un avis_last_synced_at dédié.
+      target.update!(avis_table_external_id: result[:table_id].to_s, last_synced_at: Time.current)
+
+      render turbo_stream: turbo_stream.replace(
+        "avis-#{target.id}",
+        partial: 'avis_section',
+        locals: { target: target, build_result: result }
+      )
+    end
+
     private
 
     def set_demarche
@@ -109,6 +141,12 @@ module Admin
       field_filter = build_field_filter(target)
 
       SchemaBuilders::MainTableBuilder.new(target: adapter, type_mapper: type_mapper, field_filter: field_filter)
+    end
+
+    def avis_builder_for(target)
+      adapter = target_adapter_for(target)
+      type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
+      SchemaBuilders::AvisBuilder.new(target: adapter, type_mapper: type_mapper)
     end
 
     def target_adapter_for(target)
