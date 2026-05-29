@@ -148,8 +148,8 @@ module Admin
       revision
     end
 
-    def main_table_name_for(target)
-      target.main_table_external_id.presence || "Dossiers démarche #{@demarche.id}"
+    def main_table_name_for(_target)
+      "Dossiers démarche #{@demarche.id}"
     end
   end
 end
