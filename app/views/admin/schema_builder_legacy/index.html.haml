@@ -1,0 +1,30 @@
+- content_for :title, 'Schéma de copie — interface évoluée'
+
+.container-fluid
+  .row
+    .col
+      %h1.mb-4 Schéma de copie — interface évoluée
+
+      .alert.alert-info
+        %p.mb-1
+          Cette interface a évolué pour offrir un tableau de bord par démarche,
+          supportant à la fois Baserow et Grist.
+        %p.mb-0
+          Sélectionnez une démarche ci-dessous pour accéder au nouveau dashboard.
+
+      - if @demarches.any?
+        %table.table.table-striped.mt-3
+          %thead
+            %tr
+              %th Démarche
+              %th.text-right Action
+          %tbody
+            - @demarches.each do |d|
+              %tr
+                %td= d.libelle
+                %td.text-right
+                  = link_to 'Ouvrir le dashboard',
+                            admin_demarche_schema_path(demarche_demarche_id: d.id),
+                            class: 'btn btn-sm btn-primary'
+      - else
+        %p.text-muted.mt-3 Aucune démarche disponible.

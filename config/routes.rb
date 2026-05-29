@@ -12,6 +12,11 @@ Rails.application.routes.draw do
 
   # Admin routes
   namespace :admin do
+    # Page de transition pour les anciennes URLs /admin/baserow_schema* et
+    # /admin/grist_schema*. Liste les démarches accessibles avec un lien vers
+    # le nouveau dashboard scopé par démarche.
+    get 'schema_builder_legacy', to: 'schema_builder_legacy#index'
+
     resources :baserow_schema, only: [:index] do
       collection do
         get :workspaces
