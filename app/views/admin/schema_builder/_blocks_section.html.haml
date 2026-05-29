@@ -1,0 +1,60 @@
+%turbo-frame{ id: "blocks-#{target.id}" }
+  %div.card.mt-3
+    %div.card-header.d-flex.justify-content-between.align-items-center
+      %h5.mb-0
+        Blocs répétables
+        - blocks_count = target.schema_block_targets.count
+        - if blocks_count.positive?
+          %span.badge.bg-secondary.ms-2= "#{blocks_count} blocs"
+    %div.card-body
+      - if target.main_table_external_id.blank?
+        %p.text-muted.mb-3 La table principale doit être créée avant les blocs répétables.
+      - else
+        - if target.schema_block_targets.any?
+          %table.table.table-sm.mb-3
+            %thead
+              %tr
+                %th Bloc
+                %th Statut
+                %th Dernière sync
+            %tbody
+              - target.schema_block_targets.order(:block_descriptor_id).each do |block|
+                %tr
+                  %td= block.block_descriptor_id
+                  %td= block_status_label(block)
+                  %td
+                    - if block.last_synced_at.present?
+                      = l block.last_synced_at, format: :short
+                    - else
+                      —
+        - else
+          %p.text-muted.mb-3 Aucun bloc répétable synchronisé. Cliquez sur "Aperçu" pour voir les blocs disponibles dans la démarche.
+
+        = button_to 'Aperçu', preview_blocks_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type), method: :post, class: 'btn btn-outline-primary me-2', form: { data: { turbo_frame: "blocks-#{target.id}" } }, data: { controller: 'build-action', action: 'click->build-action#start' }
+        = button_to 'Build tous', build_blocks_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type), method: :post, class: 'btn btn-primary', form: { data: { turbo_frame: "blocks-#{target.id}", turbo_confirm: 'Créer/maj tous les blocs ?' } }, data: { controller: 'build-action', action: 'click->build-action#start' }
+
+        - if local_assigns[:preview]
+          %div.mt-3
+            %h6 Aperçu des blocs
+            - preview.each do |block|
+              %div.mb-3
+                %strong= block[:table_name]
+                %table.table.table-sm
+                  %thead
+                    %tr
+                      %th Nom
+                      %th Type
+                  %tbody
+                    - block[:fields].each do |field|
+                      %tr
+                        %td= field[:name] || field['name'] || field.dig(:fields, :label)
+                        %td
+                          %code= field[:type] || field['type'] || field.dig(:fields, :type)
+        - if local_assigns[:build_result]
+          %div.mt-3
+            %h6 Résultat
+            %ul.list-unstyled
+              - build_result.each do |block|
+                %li
+                  %strong= block[:table_name]
+                  %span.badge.ms-2{ class: block[:action] == :created ? 'bg-success' : 'bg-info' }= block[:action]

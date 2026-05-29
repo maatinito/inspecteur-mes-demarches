@@ -16,4 +16,14 @@ module SchemaBuilderHelper
       'Jamais sync'
     end
   end
+
+  def block_status_label(block)
+    if block.last_synced_at.present? && block.backend_table_id.present?
+      'Sync OK'
+    elsif block.backend_table_id.blank?
+      'Jamais sync'
+    else
+      'Erreur'
+    end
+  end
 end

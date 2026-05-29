@@ -31,4 +31,21 @@ RSpec.describe SchemaBuilderHelper do
       expect(helper.avis_status_label(target)).to include('Sync OK')
     end
   end
+
+  describe '#block_status_label' do
+    it 'retourne "Jamais sync" sans backend_table_id' do
+      block = build(:schema_block_target, last_synced_at: nil, backend_table_id: nil)
+      expect(helper.block_status_label(block)).to eq('Jamais sync')
+    end
+
+    it 'retourne "Sync OK" si last_synced_at et backend_table_id sont présents' do
+      block = build(:schema_block_target, last_synced_at: Time.zone.now, backend_table_id: 'bt1')
+      expect(helper.block_status_label(block)).to eq('Sync OK')
+    end
+
+    it 'retourne "Erreur" si backend_table_id présent mais last_synced_at absent' do
+      block = build(:schema_block_target, last_synced_at: nil, backend_table_id: 'bt1')
+      expect(helper.block_status_label(block)).to eq('Erreur')
+    end
+  end
 end
