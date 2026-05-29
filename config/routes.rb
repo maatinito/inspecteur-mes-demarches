@@ -47,6 +47,13 @@ Rails.application.routes.draw do
         post :build_repetable_blocks
       end
     end
+
+    # Refonte UI : SchemaBuilder scopé par démarche
+    resources :demarches, only: [], param: :demarche_id do
+      resource :schema, only: [:show], controller: 'schema_builder' do
+        # placeholders pour les endpoints futurs (Phase E/F/G/H) — câblés progressivement
+      end
+    end
   end
 
   # view jobs
