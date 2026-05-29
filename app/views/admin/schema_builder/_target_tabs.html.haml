@@ -1,0 +1,19 @@
+%div#schema-targets{ data: { controller: 'target-tabs' } }
+  - if targets.any?
+    %nav.nav.nav-tabs.mb-3
+      - targets.each_with_index do |target, idx|
+        %li.nav-item
+          %a.nav-link{ href: "##{target.target_type}-panel", class: ('active' if idx.zero?), data: { action: 'click->target-tabs#switch' } }
+            = target.target_type.titleize
+        %li.nav-item.d-flex.align-items-center
+          = button_to '✕', admin_demarche_schema_destroy_target_path(demarche_demarche_id: demarche.id, target_type: target.target_type), method: :delete, form: { data: { turbo_confirm: 'Supprimer cette cible ?' } }, class: 'btn btn-sm btn-link text-danger p-0 ms-1'
+    .tab-content
+      - targets.each_with_index do |target, idx|
+        .tab-pane.fade{ id: "#{target.target_type}-panel", class: ('show active' if idx.zero?), data: { target_tabs_target: 'panel' } }
+          = render 'target_panel', target: target
+
+  - missing_types = %w[baserow grist] - targets.map(&:target_type)
+  - if missing_types.any?
+    %div.mt-3
+      - missing_types.each do |type|
+        = button_to "+ Ajouter #{type.titleize}", admin_demarche_schema_create_target_path(demarche_demarche_id: demarche.id, target_type: type), method: :post, class: 'btn btn-outline-primary me-2'

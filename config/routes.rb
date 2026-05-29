@@ -51,7 +51,12 @@ Rails.application.routes.draw do
     # Refonte UI : SchemaBuilder scopé par démarche
     resources :demarches, only: [], param: :demarche_id do
       resource :schema, only: [:show], controller: 'schema_builder' do
-        # placeholders pour les endpoints futurs (Phase E/F/G/H) — câblés progressivement
+        post   'targets',                          to: 'schema_builder#create_target',           as: :create_target
+        delete 'targets/:target_type',             to: 'schema_builder#destroy_target',          as: :destroy_target
+        patch  'targets/:target_type/selection',   to: 'schema_builder#update_target_selection', as: :update_target_selection
+        get    'targets/:target_type/workspaces',                  to: 'schema_builder#list_workspaces',   as: :list_workspaces
+        get    'targets/:target_type/applications/:workspace_id',  to: 'schema_builder#list_applications', as: :list_applications
+        get    'targets/:target_type/tables/:application_id',      to: 'schema_builder#list_tables',       as: :list_tables
       end
     end
   end
