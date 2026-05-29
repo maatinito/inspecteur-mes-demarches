@@ -149,7 +149,50 @@ module SchemaBuilders
       prefix ? "#{prefix} - #{base_name}" : base_name
     end
 
+    # Produit un spec de champ au format natif de la cible.
+    # - Baserow: { type:, name:, ...config }
+    # - Grist:   { id:, fields: { label:, type:, isFormula: false, ... } }
+    #
+    # `field_name` : nom du champ déjà calculé (via generate_field_name ou autre).
+    # `mes_demarches_type` : type Mes-Démarches (ex: 'TextChampDescriptor').
+    # `field_descriptor` : hash brut du descripteur (pour options dropdown).
+    def field_spec(field_name, mes_demarches_type, field_descriptor = {})
+      mapping = map_field_type(mes_demarches_type, field_descriptor)
+      case @target
+      when :baserow then baserow_field_spec(field_name, mapping)
+      when :grist   then grist_field_spec(field_name, mapping)
+      end
+    end
+
+    # Produit un spec de champ "littéral" (système / Avis) sans descripteur Mes-Démarches.
+    # `target_type` est déjà la valeur native (ex: 'long_text' Baserow ou 'Text' Grist).
+    # `config` est un hash de configuration native déjà prêt.
+    def literal_field_spec(field_name, target_type, config = {})
+      case @target
+      when :baserow then baserow_field_spec(field_name, { type: target_type, config: config })
+      when :grist   then grist_field_spec(field_name, { type: target_type, config: config })
+      end
+    end
+
     private
+
+    def baserow_field_spec(field_name, mapping)
+      spec = { type: mapping[:type], name: field_name }
+      spec.merge!(mapping[:config]) if mapping[:config].is_a?(Hash) && mapping[:config].any?
+      spec
+    end
+
+    def grist_field_spec(field_name, mapping)
+      fields = { label: field_name, type: mapping[:type], isFormula: false }
+      fields[:widgetOptions] = mapping[:config][:widgetOptions].to_json if mapping[:config].is_a?(Hash) && mapping[:config].key?(:widgetOptions)
+      { id: sanitize_id(field_name), fields: fields }
+    end
+
+    def sanitize_id(label)
+      id = label.to_s.parameterize(separator: '_')
+      id = "c_#{id}" if id.match?(/\A\d/)
+      id
+    end
 
     def ensure_supported!(mes_demarches_type)
       return if @mappings.key?(mes_demarches_type)
