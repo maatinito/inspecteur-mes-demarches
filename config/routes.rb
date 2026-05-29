@@ -57,6 +57,8 @@ Rails.application.routes.draw do
         get    'targets/:target_type/workspaces',                  to: 'schema_builder#list_workspaces',   as: :list_workspaces
         get    'targets/:target_type/applications/:workspace_id',  to: 'schema_builder#list_applications', as: :list_applications
         get    'targets/:target_type/tables/:application_id',      to: 'schema_builder#list_tables',       as: :list_tables
+        post   'targets/:target/main_table/preview',               to: 'schema_builder#preview_main_table', as: :preview_main_table
+        post   'targets/:target/main_table/build',                 to: 'schema_builder#build_main_table',   as: :build_main_table
       end
     end
   end

@@ -1,0 +1,14 @@
+%turbo-frame{ id: "main-table-#{target.id}" }
+  %div.card.mt-3
+    %div.card-header.d-flex.justify-content-between.align-items-center
+      %h5.mb-0
+        Table principale
+        %span.badge.bg-secondary.ms-2= main_table_status_label(target)
+    %div.card-body
+      = button_to 'Aperçu', preview_main_table_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type), method: :post, class: 'btn btn-outline-primary me-2', form: { data: { turbo_frame: "main-table-#{target.id}" } }, data: { controller: 'build-action', action: 'click->build-action#start' }
+      = button_to 'Build', build_main_table_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type), method: :post, class: 'btn btn-primary', form: { data: { turbo_frame: "main-table-#{target.id}", turbo_confirm: 'Confirmer la création/maj de la table ?' } }, data: { controller: 'build-action', action: 'click->build-action#start' }
+
+      - if local_assigns[:preview]
+        = render 'preview_result', preview: preview
+      - if local_assigns[:build_result]
+        = render 'build_result', build_result: build_result
