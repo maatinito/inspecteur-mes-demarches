@@ -105,6 +105,26 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       expect(target.application_external_id).to eq('20')
       expect(target.main_table_external_id).to eq('30')
     end
+
+    it 'accepte une mise à jour partielle (juste le workspace)' do
+      patch :update_target_selection, params: {
+        demarche_demarche_id: demarche.id,
+        target_type: 'baserow',
+        workspace_external_id: '99'
+      }
+      expect(response).to have_http_status(:ok)
+      expect(target.reload.workspace_external_id).to eq('99')
+    end
+
+    it "renvoie 404 si la target n'existe pas" do
+      expect do
+        patch :update_target_selection, params: {
+          demarche_demarche_id: demarche.id,
+          target_type: 'grist',
+          workspace_external_id: '1'
+        }
+      end.to raise_error(ActiveRecord::RecordNotFound)
+    end
   end
 
   describe 'GET #list_workspaces' do
