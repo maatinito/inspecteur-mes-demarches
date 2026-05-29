@@ -6,9 +6,9 @@
       - else
         = link_to 'Vérifier', demarche_verify_path,class: "btn btn-primary"
       - if user_signed_in?
-        = link_to admin_baserow_schema_index_path, class: "btn btn-outline-info ml-3" do
+        = link_to admin_schema_builder_legacy_path, class: "btn btn-outline-info ml-3" do
           %i.fas.fa-database.mr-1
-          Schéma Baserow
+          Schéma de copie
   .row
     .col
       %nav

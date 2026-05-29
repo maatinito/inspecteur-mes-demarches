@@ -17,7 +17,15 @@ Rails.application.routes.draw do
     # le nouveau dashboard scopé par démarche.
     get 'schema_builder_legacy', to: 'schema_builder_legacy#index'
 
-    resources :baserow_schema, only: [:index] do
+    # Redirections des anciennes pages d'accueil (interfaces remplacées par
+    # le dashboard par démarche). Les endpoints POST/JSON restent fonctionnels
+    # jusqu'au cleanup de Phase K.
+    get 'baserow_schema',                  to: redirect('/admin/schema_builder_legacy'), as: :baserow_schema_legacy
+    get 'baserow_schema/repetable_blocks', to: redirect('/admin/schema_builder_legacy'), as: :baserow_schema_repetable_blocks_legacy
+    get 'grist_schema',                    to: redirect('/admin/schema_builder_legacy'), as: :grist_schema_legacy
+    get 'grist_schema/repetable_blocks',   to: redirect('/admin/schema_builder_legacy'), as: :grist_schema_repetable_blocks_legacy
+
+    resources :baserow_schema, only: [] do
       collection do
         get :workspaces
         get :applications
@@ -26,8 +34,7 @@ Rails.application.routes.draw do
         post :preview
         post :build
 
-        # Routes pour blocs répétables
-        get :repetable_blocks
+        # Routes pour blocs répétables (POST uniquement — le GET est redirigé)
         post :preview_repetable_blocks
         post :build_repetable_blocks
 
@@ -37,7 +44,7 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :grist_schema, only: [:index] do
+    resources :grist_schema, only: [] do
       collection do
         get :organizations
         get :workspaces
@@ -46,8 +53,7 @@ Rails.application.routes.draw do
         post :preview
         post :build
 
-        # Routes pour blocs répétables
-        get :repetable_blocks
+        # Routes pour blocs répétables (POST uniquement — le GET est redirigé)
         post :preview_repetable_blocks
         post :build_repetable_blocks
       end
