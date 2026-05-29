@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_260_529_031_655) do
+ActiveRecord::Schema[7.2].define(version: 20_260_529_032_041) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -114,6 +114,17 @@ ActiveRecord::Schema[7.2].define(version: 20_260_529_031_655) do
     t.index ['run_at'], name: 'by_date'
   end
 
+  create_table 'schema_block_targets', force: :cascade do |t|
+    t.bigint 'schema_target_id', null: false
+    t.string 'block_descriptor_id', null: false
+    t.string 'backend_table_id'
+    t.datetime 'last_synced_at'
+    t.datetime 'created_at', null: false
+    t.datetime 'updated_at', null: false
+    t.index %w[schema_target_id block_descriptor_id], name: 'idx_schema_block_targets_unique', unique: true
+    t.index ['schema_target_id'], name: 'index_schema_block_targets_on_schema_target_id'
+  end
+
   create_table 'schema_targets', force: :cascade do |t|
     t.bigint 'demarche_id', null: false
     t.string 'target_type', null: false
@@ -170,5 +181,6 @@ ActiveRecord::Schema[7.2].define(version: 20_260_529_031_655) do
     t.index ['unlock_token'], name: 'index_users_on_unlock_token', unique: true
   end
 
+  add_foreign_key 'schema_block_targets', 'schema_targets'
   add_foreign_key 'schema_targets', 'demarches'
 end
