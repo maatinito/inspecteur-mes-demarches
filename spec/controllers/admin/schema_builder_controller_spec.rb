@@ -321,5 +321,70 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       expect(response).to have_http_status(:precondition_failed)
     end
   end
+
+  describe 'POST #preview_blocks' do
+    let!(:target_baserow) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+    let(:builder_double) do
+      instance_double(SchemaBuilders::BlockBuilder, preview: [
+                        { block_descriptor_id: 'b1', table_name: 'Membres', fields: [{ name: 'Nom', type: 'text' }] }
+                      ])
+    end
+
+    before do
+      allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
+      allow_any_instance_of(described_class).to receive(:block_builder_for).and_return(builder_double)
+    end
+
+    it 'renvoie un Turbo Stream avec le preview des blocs' do
+      post :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Membres')
+    end
+
+    it 'refuse si main_table_external_id absent' do
+      target_baserow.update!(main_table_external_id: nil)
+      post :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response).to have_http_status(:precondition_failed)
+    end
+  end
+
+  describe 'POST #build_blocks' do
+    let!(:target_baserow) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+    let(:builder_double) do
+      instance_double(SchemaBuilders::BlockBuilder, build!: [
+                        { block_descriptor_id: 'b1', table_name: 'Membres', table_id: 'bt1', action: :created },
+                        { block_descriptor_id: 'b2', table_name: 'Activités', table_id: 'bt2', action: :updated }
+                      ])
+    end
+
+    before do
+      allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
+      allow_any_instance_of(described_class).to receive(:block_builder_for).and_return(builder_double)
+    end
+
+    it 'crée des SchemaBlockTarget pour chaque résultat' do
+      expect do
+        post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      end.to change { target_baserow.schema_block_targets.count }.by(2)
+    end
+
+    it 'idempotent (réexécution ne duplique pas les SchemaBlockTarget)' do
+      post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect do
+        post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      end.not_to(change { target_baserow.schema_block_targets.count })
+    end
+
+    it 'retourne un Turbo Stream avec le résumé' do
+      post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response.body).to include('Membres').and include('created')
+    end
+
+    it 'refuse si main_table_external_id absent' do
+      target_baserow.update!(main_table_external_id: nil)
+      post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response).to have_http_status(:precondition_failed)
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength

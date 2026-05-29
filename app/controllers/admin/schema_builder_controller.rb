@@ -117,6 +117,47 @@ module Admin
       )
     end
 
+    def preview_blocks
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      return head :precondition_failed if target.main_table_external_id.blank?
+
+      builder = block_builder_for(target)
+      result = builder.preview(
+        demarche_descriptor,
+        application_id: target.application_external_id,
+        main_table_id: target.main_table_external_id
+      )
+
+      render turbo_stream: turbo_stream.replace(
+        "blocks-#{target.id}",
+        partial: 'blocks_section',
+        locals: { target: target, preview: result }
+      )
+    end
+
+    def build_blocks
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      return head :precondition_failed if target.main_table_external_id.blank?
+
+      builder = block_builder_for(target)
+      results = builder.build!(
+        demarche_descriptor,
+        application_id: target.application_external_id,
+        main_table_id: target.main_table_external_id
+      )
+
+      results.each do |r|
+        block = target.schema_block_targets.find_or_initialize_by(block_descriptor_id: r[:block_descriptor_id])
+        block.update!(backend_table_id: r[:table_id].to_s, last_synced_at: Time.current)
+      end
+
+      render turbo_stream: turbo_stream.replace(
+        "blocks-#{target.id}",
+        partial: 'blocks_section',
+        locals: { target: target.reload, build_result: results }
+      )
+    end
+
     private
 
     def set_demarche
@@ -147,6 +188,13 @@ module Admin
       adapter = target_adapter_for(target)
       type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
       SchemaBuilders::AvisBuilder.new(target: adapter, type_mapper: type_mapper)
+    end
+
+    def block_builder_for(target)
+      adapter = target_adapter_for(target)
+      type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
+      field_filter = build_field_filter(target)
+      SchemaBuilders::BlockBuilder.new(target: adapter, type_mapper: type_mapper, field_filter: field_filter)
     end
 
     def target_adapter_for(target)

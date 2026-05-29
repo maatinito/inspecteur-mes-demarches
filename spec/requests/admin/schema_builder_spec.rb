@@ -75,4 +75,25 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
       end
     end
   end
+
+  describe 'section Blocs sur le dashboard' do
+    context 'avec une cible Baserow et main_table créée' do
+      before { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
+
+      it 'affiche la section Blocs avec boutons' do
+        get "/admin/demarches/#{demarche.id}/schema"
+        expect(response.body).to include('Blocs répétables')
+        expect(response.body).to include('Aperçu')
+      end
+    end
+
+    context 'avec une cible Baserow sans main_table' do
+      before { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: nil) }
+
+      it "affiche un message d'attente sans boutons d'action sur la section Blocs" do
+        get "/admin/demarches/#{demarche.id}/schema"
+        expect(response.body).to include('table principale doit être créée avant les blocs')
+      end
+    end
+  end
 end

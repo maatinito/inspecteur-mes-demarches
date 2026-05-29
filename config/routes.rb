@@ -61,6 +61,8 @@ Rails.application.routes.draw do
         post   'targets/:target/main_table/build',                 to: 'schema_builder#build_main_table',   as: :build_main_table
         post   'targets/:target/avis/preview',                     to: 'schema_builder#preview_avis',       as: :preview_avis
         post   'targets/:target/avis/build',                       to: 'schema_builder#build_avis',         as: :build_avis
+        post   'targets/:target/blocks/preview',                   to: 'schema_builder#preview_blocks',     as: :preview_blocks
+        post   'targets/:target/blocks/build',                     to: 'schema_builder#build_blocks',       as: :build_blocks
       end
     end
   end
