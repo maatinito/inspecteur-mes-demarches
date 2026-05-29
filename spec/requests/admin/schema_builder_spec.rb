@@ -42,4 +42,37 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
       expect(response.body).to include('+ Ajouter Grist')
     end
   end
+
+  describe 'section Avis sur le dashboard' do
+    context 'avec une cible Baserow et une table principale construite' do
+      before { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
+
+      it 'affiche la section Avis avec boutons Aperçu et Build' do
+        get "/admin/demarches/#{demarche.id}/schema"
+        expect(response.body).to include('Table Avis')
+        expect(response.body).to include('Aperçu')
+        expect(response.body).to include('Build')
+      end
+    end
+
+    context 'avec une cible Baserow sans table principale' do
+      before { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: nil) }
+
+      it 'affiche la section Avis avec message attendant la table principale' do
+        get "/admin/demarches/#{demarche.id}/schema"
+        expect(response.body).to include('Table Avis')
+        expect(response.body).to include('table principale doit être créée')
+      end
+    end
+
+    context 'avec une cible Grist' do
+      before { create(:schema_target, demarche: demarche, target_type: 'grist') }
+
+      it 'affiche la section Avis avec message indisponible (pas de boutons)' do
+        get "/admin/demarches/#{demarche.id}/schema"
+        expect(response.body).to include('Table Avis')
+        expect(response.body).to include('indisponible pour Grist')
+      end
+    end
+  end
 end
