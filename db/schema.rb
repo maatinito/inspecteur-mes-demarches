@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_260_506_090_828) do
+ActiveRecord::Schema[7.2].define(version: 20_260_529_031_655) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -114,6 +114,20 @@ ActiveRecord::Schema[7.2].define(version: 20_260_506_090_828) do
     t.index ['run_at'], name: 'by_date'
   end
 
+  create_table 'schema_targets', force: :cascade do |t|
+    t.bigint 'demarche_id', null: false
+    t.string 'target_type', null: false
+    t.string 'workspace_external_id'
+    t.string 'application_external_id'
+    t.string 'main_table_external_id'
+    t.string 'avis_table_external_id'
+    t.datetime 'last_synced_at'
+    t.datetime 'created_at', null: false
+    t.datetime 'updated_at', null: false
+    t.index %w[demarche_id target_type], name: 'index_schema_targets_on_demarche_id_and_target_type', unique: true
+    t.index ['demarche_id'], name: 'index_schema_targets_on_demarche_id'
+  end
+
   create_table 'sessions', force: :cascade do |t|
     t.string 'name'
     t.datetime 'date', precision: nil
@@ -155,4 +169,6 @@ ActiveRecord::Schema[7.2].define(version: 20_260_506_090_828) do
     t.index ['reset_password_token'], name: 'index_users_on_reset_password_token', unique: true
     t.index ['unlock_token'], name: 'index_users_on_unlock_token', unique: true
   end
+
+  add_foreign_key 'schema_targets', 'demarches'
 end
