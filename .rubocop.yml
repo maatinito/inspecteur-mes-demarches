@@ -88,6 +88,7 @@ Metrics/BlockLength:
     - 'spec/lib/detecter_doublon_spec.rb'
     - 'spec/lib/tftn/tickets_spec.rb'
     - 'spec/lib/travail/daeth_spec.rb'
+    - 'spec/lib/schema_builders/type_mapper_spec.rb'
     - 'lib/lppr.rb'
   Max: 100
 
