@@ -60,6 +60,31 @@ module Admin
       render json: target_adapter.list_tables(params[:application_id])
     end
 
+    def preview_main_table
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      builder = main_table_builder_for(target)
+      result = builder.preview(demarche_descriptor, application_id: target.application_external_id, table_name: main_table_name_for(target))
+
+      render turbo_stream: turbo_stream.replace(
+        "main-table-#{target.id}",
+        partial: 'main_table_section',
+        locals: { target: target, preview: result }
+      )
+    end
+
+    def build_main_table
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      builder = main_table_builder_for(target)
+      result = builder.build!(demarche_descriptor, application_id: target.application_external_id, table_name: main_table_name_for(target))
+      target.update!(main_table_external_id: result[:table_id].to_s, last_synced_at: Time.current)
+
+      render turbo_stream: turbo_stream.replace(
+        "main-table-#{target.id}",
+        partial: 'main_table_section',
+        locals: { target: target, build_result: result }
+      )
+    end
+
     private
 
     def set_demarche
@@ -76,6 +101,55 @@ module Admin
       when 'grist'   then SchemaBuilders::GristTarget.new
       else raise ActionController::ParameterMissing, 'unknown target_type'
       end
+    end
+
+    def main_table_builder_for(target)
+      adapter = target_adapter_for(target)
+      type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
+      field_filter = build_field_filter(target)
+
+      SchemaBuilders::MainTableBuilder.new(target: adapter, type_mapper: type_mapper, field_filter: field_filter)
+    end
+
+    def target_adapter_for(target)
+      case target.target_type
+      when 'baserow' then SchemaBuilders::BaserowTarget.new
+      when 'grist'   then SchemaBuilders::GristTarget.new
+      end
+    end
+
+    # FieldFilter exclut les champs read-only existants côté cible.
+    # Nécessite la table cible : avant build initial (main_table_external_id absent),
+    # on retourne nil (pas de filtre) — le builder traitera tous les champs supportés.
+    def build_field_filter(target)
+      return nil if target.main_table_external_id.blank?
+
+      case target.target_type
+      when 'baserow'
+        SchemaBuilders::FieldFilter.for(:baserow, table_id: target.main_table_external_id, token_config: nil)
+      when 'grist'
+        SchemaBuilders::FieldFilter.for(:grist, doc_id: target.application_external_id, table_id: target.main_table_external_id, config_name: nil)
+      end
+    end
+
+    # Charge le descripteur GraphQL de la démarche et retourne sa révision (draft
+    # ou published) qui expose `champ_descriptors` / `annotation_descriptors`
+    # consommés par MainTableBuilder.
+    def demarche_descriptor
+      result = MesDemarches.query(MesDemarches::Queries::DemarcheRevision, variables: { demarche: @demarche.id })
+      raise "Erreur accès démarche #{@demarche.id}: #{result.errors.map(&:message).join(', ')}" if result.errors.any?
+
+      demarche = result.data&.demarche
+      raise "Démarche #{@demarche.id} introuvable ou accès non autorisé" if demarche.nil?
+
+      revision = demarche.draft_revision || demarche.published_revision
+      raise "Démarche #{@demarche.id} sans révision disponible" unless revision
+
+      revision
+    end
+
+    def main_table_name_for(target)
+      target.main_table_external_id.presence || "Dossiers démarche #{@demarche.id}"
     end
   end
 end

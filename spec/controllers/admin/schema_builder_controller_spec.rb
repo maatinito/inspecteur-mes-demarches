@@ -4,6 +4,8 @@ require 'rails_helper'
 
 # rubocop:disable Metrics/BlockLength
 RSpec.describe Admin::SchemaBuilderController, type: :controller do
+  render_views
+
   let(:user) { create(:user) }
   let(:demarche) { create(:demarche) }
 
@@ -171,6 +173,41 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       expect(response).to have_http_status(:ok)
       json = JSON.parse(response.body)
       expect(json).to eq([{ 'id' => 5, 'name' => 'Table Y' }])
+    end
+  end
+
+  describe 'POST #preview_main_table' do
+    let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+    let(:preview_result) do
+      {
+        table_name: 'Dossiers démarche X',
+        application_id: '17',
+        fields: [{ name: 'Nom', type: 'text' }]
+      }
+    end
+    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder, preview: preview_result) }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
+      allow_any_instance_of(described_class).to receive(:main_table_builder_for).and_return(builder_double)
+    end
+
+    it 'rend un Turbo Stream remplaçant la frame main-table' do
+      post :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("main-table-#{target.id}")
+    end
+
+    it "contient le contenu de l'aperçu (nom du champ)" do
+      post :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      expect(response.body).to include('Nom')
+      expect(response.body).to include('Aperçu')
+    end
+
+    it "404 si la target n'existe pas" do
+      expect do
+        post :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
+      end.to raise_error(ActiveRecord::RecordNotFound)
     end
   end
 end

@@ -1,0 +1,17 @@
+%div.mt-3
+  %h6 Aperçu — #{preview[:table_name]}
+  %p.text-muted
+    #{preview[:fields].size} champ(s)
+  %table.table.table-sm
+    %thead
+      %tr
+        %th Nom
+        %th Type
+    %tbody
+      - preview[:fields].each do |field|
+        - name = field[:name] || field['name'] || field.dig(:fields, :label) || field.dig('fields', 'label')
+        - type = field[:type] || field['type'] || field.dig(:fields, :type) || field.dig('fields', 'type')
+        %tr
+          %td= name
+          %td
+            %code= type
