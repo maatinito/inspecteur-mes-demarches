@@ -1,0 +1,21 @@
+%turbo-frame{ id: "avis-#{target.id}" }
+  %div.card.mt-3
+    %div.card-header.d-flex.justify-content-between.align-items-center
+      %h5.mb-0
+        Table Avis
+        %span.badge.bg-secondary.ms-2= avis_status_label(target)
+    %div.card-body
+      - if target.target_type == 'grist'
+        %p.text-muted.mb-0{ title: "Non supporté par Grist pour l'instant" }
+          Fonctionnalité indisponible pour Grist
+      - elsif target.main_table_external_id.blank?
+        %p.text-muted.mb-0
+          La table principale doit être créée avant la table Avis.
+      - else
+        = button_to 'Aperçu', preview_avis_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type), method: :post, class: 'btn btn-outline-primary me-2', form: { data: { turbo_frame: "avis-#{target.id}" } }, data: { controller: 'build-action', action: 'click->build-action#start' }
+        = button_to 'Build', build_avis_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type), method: :post, class: 'btn btn-primary', form: { data: { turbo_frame: "avis-#{target.id}", turbo_confirm: 'Créer/maj la table Avis ?' } }, data: { controller: 'build-action', action: 'click->build-action#start' }
+
+        - if local_assigns[:preview]
+          = render 'preview_result', preview: preview
+        - if local_assigns[:build_result]
+          = render 'build_result', build_result: build_result
