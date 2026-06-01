@@ -64,11 +64,18 @@ module Admin
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       diff = differ_for(target).main_table_diff
 
-      render turbo_stream: turbo_stream.replace(
-        "main-table-#{target.id}",
-        partial: 'main_table_section',
-        locals: { target: target, diff: diff }
-      )
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "main-table-#{target.id}",
+            partial: 'main_table_section',
+            locals: { target: target, diff: diff }
+          )
+        end
+        format.html do
+          render partial: 'main_table_section', locals: { target: target, diff: diff }
+        end
+      end
     end
 
     def build_main_table
@@ -97,11 +104,18 @@ module Admin
       builder = avis_builder_for(target)
       result = builder.preview(application_id: target.application_external_id, main_table_id: target.main_table_external_id)
 
-      render turbo_stream: turbo_stream.replace(
-        "avis-#{target.id}",
-        partial: 'avis_section',
-        locals: { target: target, preview: result }
-      )
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "avis-#{target.id}",
+            partial: 'avis_section',
+            locals: { target: target, preview: result }
+          )
+        end
+        format.html do
+          render partial: 'avis_section', locals: { target: target, preview: result }
+        end
+      end
     end
 
     def build_avis
@@ -127,11 +141,18 @@ module Admin
 
       diff = differ_for(target).blocks_diff
 
-      render turbo_stream: turbo_stream.replace(
-        "blocks-#{target.id}",
-        partial: 'blocks_section',
-        locals: { target: target, diff: diff }
-      )
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "blocks-#{target.id}",
+            partial: 'blocks_section',
+            locals: { target: target, diff: diff }
+          )
+        end
+        format.html do
+          render partial: 'blocks_section', locals: { target: target, diff: diff }
+        end
+      end
     end
 
     def build_blocks

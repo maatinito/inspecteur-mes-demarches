@@ -26,4 +26,24 @@ module SchemaBuilderHelper
       'Erreur'
     end
   end
+
+  # Construit l'URL PATCH d'exclusion pour un champ (table principale ou bloc).
+  # Utilisé par le Stimulus controller `exclusion-toggle`.
+  def toggle_url_for(target, scope, field, block_id: nil)
+    case scope
+    when :main_table
+      toggle_main_table_field_exclusion_admin_demarche_schema_path(
+        demarche_demarche_id: target.demarche_id,
+        target: target.target_type,
+        field_id: field[:id]
+      )
+    when :block_field
+      toggle_block_field_exclusion_admin_demarche_schema_path(
+        demarche_demarche_id: target.demarche_id,
+        target: target.target_type,
+        block_id: block_id,
+        field_id: field[:id]
+      )
+    end
+  end
 end

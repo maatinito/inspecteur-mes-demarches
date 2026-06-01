@@ -194,19 +194,19 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
     end
 
     it 'rend un Turbo Stream remplaçant la frame main-table' do
-      post :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      get :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("main-table-#{target.id}")
     end
 
     it 'délègue le calcul au Differ et lui passe la target' do
       expect(SchemaBuilders::Differ).to receive(:new).with(hash_including(target: target)).and_return(differ_double)
-      post :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      get :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
     end
 
     it "404 si la target n'existe pas" do
       expect do
-        post :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
+        get :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
       end.to raise_error(ActiveRecord::RecordNotFound)
     end
   end
@@ -276,20 +276,20 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
     end
 
     it 'renvoie un Turbo Stream avec le preview' do
-      post :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      get :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('Dossier')
     end
 
     it 'refuse pour target_type grist' do
       create(:schema_target, demarche: demarche, target_type: 'grist', application_external_id: '17', main_table_external_id: '101')
-      post :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
+      get :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
       expect(response).to have_http_status(:bad_request)
     end
 
     it 'renvoie 412 si la table principale n\'est pas construite' do
       target_baserow.update!(main_table_external_id: nil)
-      post :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      get :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
       expect(response).to have_http_status(:precondition_failed)
     end
   end
@@ -342,19 +342,19 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
     end
 
     it 'renvoie un Turbo Stream remplaçant la frame blocks' do
-      post :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      get :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("blocks-#{target_baserow.id}")
     end
 
     it 'délègue le calcul au Differ et lui passe la target' do
       expect(SchemaBuilders::Differ).to receive(:new).with(hash_including(target: target_baserow)).and_return(differ_double)
-      post :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      get :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
     end
 
     it 'refuse si main_table_external_id absent' do
       target_baserow.update!(main_table_external_id: nil)
-      post :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      get :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
       expect(response).to have_http_status(:precondition_failed)
     end
   end

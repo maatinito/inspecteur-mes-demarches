@@ -47,10 +47,9 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
     context 'avec une cible Baserow et une table principale construite' do
       before { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
 
-      it 'affiche la section Avis avec boutons Aperçu et Build' do
+      it 'affiche la section Avis avec le bouton Build' do
         get "/admin/demarches/#{demarche.id}/schema"
         expect(response.body).to include('Table Avis')
-        expect(response.body).to include('Aperçu')
         expect(response.body).to include('Build')
       end
     end
@@ -78,22 +77,39 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
 
   describe 'section Blocs sur le dashboard' do
     context 'avec une cible Baserow et main_table créée' do
-      before { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
 
-      it 'affiche la section Blocs avec boutons' do
+      it 'affiche la section Blocs avec un Turbo Frame lazy' do
         get "/admin/demarches/#{demarche.id}/schema"
-        expect(response.body).to include('Blocs répétables')
-        expect(response.body).to include('Aperçu')
+        expect(response.body).to include("blocks-#{target.id}")
+        expect(response.body).to include('loading="lazy"')
+        expect(response.body).to include('/blocks/preview')
       end
     end
 
     context 'avec une cible Baserow sans main_table' do
       before { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: nil) }
 
-      it "affiche un message d'attente sans boutons d'action sur la section Blocs" do
+      it "affiche un message d'attente sur la section Blocs" do
         get "/admin/demarches/#{demarche.id}/schema"
-        expect(response.body).to include('table principale doit être créée avant les blocs')
+        expect(response.body).to include('Blocs répétables')
       end
+    end
+  end
+
+  describe 'section Table principale sur le dashboard (mode lazy)' do
+    let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow') }
+
+    it 'rend un Turbo Frame lazy avec src vers preview_main_table' do
+      get "/admin/demarches/#{demarche.id}/schema"
+      expect(response.body).to include("main-table-#{target.id}")
+      expect(response.body).to include('loading="lazy"')
+      expect(response.body).to include('/main_table/preview')
+    end
+
+    it 'rend le skeleton "Chargement de l\'aperçu" pour la table principale' do
+      get "/admin/demarches/#{demarche.id}/schema"
+      expect(response.body).to include('Chargement')
     end
   end
 end

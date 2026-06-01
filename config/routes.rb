@@ -34,11 +34,11 @@ Rails.application.routes.draw do
         get    'targets/:target_type/workspaces',                  to: 'schema_builder#list_workspaces',   as: :list_workspaces
         get    'targets/:target_type/applications/:workspace_id',  to: 'schema_builder#list_applications', as: :list_applications
         get    'targets/:target_type/tables/:application_id',      to: 'schema_builder#list_tables',       as: :list_tables
-        post   'targets/:target/main_table/preview',               to: 'schema_builder#preview_main_table', as: :preview_main_table
+        get    'targets/:target/main_table/preview',               to: 'schema_builder#preview_main_table', as: :preview_main_table
         post   'targets/:target/main_table/build',                 to: 'schema_builder#build_main_table',   as: :build_main_table
-        post   'targets/:target/avis/preview',                     to: 'schema_builder#preview_avis',       as: :preview_avis
+        get    'targets/:target/avis/preview',                     to: 'schema_builder#preview_avis',       as: :preview_avis
         post   'targets/:target/avis/build',                       to: 'schema_builder#build_avis',         as: :build_avis
-        post   'targets/:target/blocks/preview',                   to: 'schema_builder#preview_blocks',     as: :preview_blocks
+        get    'targets/:target/blocks/preview',                   to: 'schema_builder#preview_blocks',     as: :preview_blocks
         post   'targets/:target/blocks/build',                     to: 'schema_builder#build_blocks',       as: :build_blocks
         patch  'targets/:target/main_table/fields/:field_id/exclusion',
                to: 'schema_builder#toggle_main_table_field_exclusion',

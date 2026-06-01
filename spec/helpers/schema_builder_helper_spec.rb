@@ -48,4 +48,24 @@ RSpec.describe SchemaBuilderHelper do
       expect(helper.block_status_label(block)).to eq('Erreur')
     end
   end
+
+  describe '#toggle_url_for' do
+    let(:demarche) { create(:demarche) }
+    let(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow') }
+    let(:field) { { id: 'champ_xyz', label: 'Nom', type: 'text' } }
+
+    it 'génère l\'URL d\'exclusion pour la table principale' do
+      url = helper.toggle_url_for(target, :main_table, field)
+      expect(url).to include("/admin/demarches/#{demarche.id}/schema/targets/baserow/main_table/fields/champ_xyz/exclusion")
+    end
+
+    it 'génère l\'URL d\'exclusion pour un champ de bloc' do
+      url = helper.toggle_url_for(target, :block_field, field, block_id: 'b1')
+      expect(url).to include("/admin/demarches/#{demarche.id}/schema/targets/baserow/blocks/b1/fields/champ_xyz/exclusion")
+    end
+
+    it 'retourne nil pour un scope inconnu' do
+      expect(helper.toggle_url_for(target, :unknown, field)).to be_nil
+    end
+  end
 end
