@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_260_601_183_249) do
+ActiveRecord::Schema[7.2].define(version: 20_260_601_183_458) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -121,6 +121,7 @@ ActiveRecord::Schema[7.2].define(version: 20_260_601_183_249) do
     t.datetime 'last_synced_at'
     t.datetime 'created_at', null: false
     t.datetime 'updated_at', null: false
+    t.jsonb 'excluded_field_ids', default: [], null: false
     t.index %w[schema_target_id block_descriptor_id], name: 'idx_schema_block_targets_unique', unique: true
     t.index ['schema_target_id'], name: 'index_schema_block_targets_on_schema_target_id'
   end
