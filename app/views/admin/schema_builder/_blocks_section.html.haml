@@ -1,60 +1,84 @@
-%turbo-frame{ id: "blocks-#{target.id}" }
-  %div.card.mt-3
-    %div.card-header.d-flex.justify-content-between.align-items-center
-      %h5.mb-0
-        Blocs répétables
-        - blocks_count = target.schema_block_targets.count
-        - if blocks_count.positive?
-          %span.badge.bg-secondary.ms-2= "#{blocks_count} blocs"
-    %div.card-body
-      - if target.main_table_external_id.blank?
-        %p.text-muted.mb-3 La table principale doit être créée avant les blocs répétables.
-      - else
-        - if target.schema_block_targets.any?
-          %table.table.table-sm.mb-3
-            %thead
-              %tr
-                %th Bloc
-                %th Statut
-                %th Dernière sync
-            %tbody
-              - target.schema_block_targets.order(:block_descriptor_id).each do |block|
-                %tr
-                  %td= block.block_descriptor_id
-                  %td= block_status_label(block)
-                  %td
-                    - if block.last_synced_at.present?
-                      = l block.last_synced_at, format: :short
-                    - else
-                      —
+-# Section "Blocs répétables" — modes :
+-#   - lazy (initial render)          : skeleton + spinner, Turbo Frame avec src lazy
+-#   - diff (preview / toggle)        : 2 niveaux d'exclusion (bloc + champs) + Build
+-#   - build_result (après Build)     : résumé de l'opération
+- lazy_src = (local_assigns[:diff].nil? && local_assigns[:build_result].nil? && target.main_table_external_id.present?) ? preview_blocks_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type) : nil
+
+%turbo-frame{ id: "blocks-#{target.id}", src: lazy_src, loading: :lazy }
+  - if local_assigns[:diff]
+    .card.mt-3
+      .card-header.d-flex.justify-content-between.align-items-center
+        %h5.mb-0 Blocs répétables
+      .card-body
+        - if diff[:blocks].empty? && diff[:blocks_excluded].empty?
+          %p.text-muted.mb-0 Aucun bloc répétable dans cette démarche.
+        - diff[:blocks].each do |entry|
+          .mb-4.border-bottom.pb-3
+            - block_data = { controller: 'exclusion-toggle', action: 'change->exclusion-toggle#toggle', exclusion_toggle_url_value: toggle_block_exclusion_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type, block_id: entry[:id]) }
+            .form-check
+              = check_box_tag "block_excl_#{entry[:id]}", '1', true, class: 'form-check-input', data: block_data
+              %label.form-check-label
+                %strong= entry[:label]
+            .ms-4.mt-2
+              - inner = entry[:diff]
+              - if inner[:to_add].any?
+                %strong.text-success 🟢 À ajouter (#{inner[:to_add].size})
+                - inner[:to_add].each do |field|
+                  = render 'field_checkbox', target: target, field: field, scope: :block_field, block_id: entry[:id], checked: true
+              - if inner[:to_modify].any?
+                %strong.text-warning.d-block.mt-2 🟡 À modifier (#{inner[:to_modify].size})
+                - inner[:to_modify].each do |field|
+                  = render 'field_checkbox', target: target, field: field, scope: :block_field, block_id: entry[:id], checked: true, divergence: field[:divergence]
+              - if inner[:ok].any?
+                %details.mt-2
+                  %summary.text-muted ▶ #{inner[:ok].size} champs conformes
+                  %ul.list-unstyled.ms-3
+                    - inner[:ok].each do |field|
+                      %li.text-muted
+                        = field[:label]
+                        %code.ms-2= field[:type]
+              - if inner[:excluded].any?
+                %strong.text-secondary.d-block.mt-2 ⛔ Ignorés (#{inner[:excluded].size})
+                - inner[:excluded].each do |field|
+                  = render 'field_checkbox', target: target, field: field, scope: :block_field, block_id: entry[:id], checked: false
+        - diff[:blocks_excluded].each do |b|
+          - block_data = { controller: 'exclusion-toggle', action: 'change->exclusion-toggle#toggle', exclusion_toggle_url_value: toggle_block_exclusion_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type, block_id: b[:id]) }
+          .form-check.mb-2
+            = check_box_tag "block_excl_#{b[:id]}", '1', false, class: 'form-check-input', data: block_data
+            %label.form-check-label.text-muted= b[:label]
+        - total_to_sync = diff[:blocks].sum { |b| b[:diff][:to_add].size + b[:diff][:to_modify].size }
+        .mt-4
+          = button_to "Synchroniser les blocs (#{total_to_sync} champs)",
+                      build_blocks_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
+                      method: :post,
+                      class: "btn btn-primary #{'disabled' if total_to_sync.zero?}",
+                      form: { data: { turbo_frame: "blocks-#{target.id}", turbo_confirm: 'Synchroniser ?' } },
+                      data: { controller: 'build-action', action: 'click->build-action#start' },
+                      disabled: total_to_sync.zero?
+  - elsif local_assigns[:build_result]
+    .card.mt-3
+      .card-header
+        %h5.mb-0 Blocs répétables
+      .card-body
+        %h6 Résultat
+        %ul.list-unstyled
+          - build_result.each do |block|
+            %li
+              %strong= block[:table_name]
+              %span.badge.ms-2{ class: block[:action] == :created ? 'bg-success' : 'bg-info' }= block[:action]
+        .mt-3
+          = button_to 'Recharger l\'aperçu',
+                      preview_blocks_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
+                      method: :get,
+                      class: 'btn btn-outline-secondary',
+                      form: { data: { turbo_frame: "blocks-#{target.id}" } }
+  - else
+    .card.mt-3
+      .card-header
+        %h5.mb-0 Blocs répétables
+      .card-body.text-center.text-muted
+        - if target.main_table_external_id.blank?
+          %p.mb-0 La table principale doit être créée avant les blocs répétables.
         - else
-          %p.text-muted.mb-3 Aucun bloc répétable synchronisé. Cliquez sur "Aperçu" pour voir les blocs disponibles dans la démarche.
-
-        = button_to 'Aperçu', preview_blocks_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type), method: :post, class: 'btn btn-outline-primary me-2', form: { data: { turbo_frame: "blocks-#{target.id}" } }, data: { controller: 'build-action', action: 'click->build-action#start' }
-        = button_to 'Build tous', build_blocks_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type), method: :post, class: 'btn btn-primary', form: { data: { turbo_frame: "blocks-#{target.id}", turbo_confirm: 'Créer/maj tous les blocs ?' } }, data: { controller: 'build-action', action: 'click->build-action#start' }
-
-        - if local_assigns[:preview]
-          %div.mt-3
-            %h6 Aperçu des blocs
-            - preview.each do |block|
-              %div.mb-3
-                %strong= block[:table_name]
-                %table.table.table-sm
-                  %thead
-                    %tr
-                      %th Nom
-                      %th Type
-                  %tbody
-                    - block[:fields].each do |field|
-                      %tr
-                        %td= field[:name] || field['name'] || field.dig(:fields, :label)
-                        %td
-                          %code= field[:type] || field['type'] || field.dig(:fields, :type)
-        - if local_assigns[:build_result]
-          %div.mt-3
-            %h6 Résultat
-            %ul.list-unstyled
-              - build_result.each do |block|
-                %li
-                  %strong= block[:table_name]
-                  %span.badge.ms-2{ class: block[:action] == :created ? 'bg-success' : 'bg-info' }= block[:action]
+          .spinner-border.spinner-border-sm.me-2
+          Chargement…
