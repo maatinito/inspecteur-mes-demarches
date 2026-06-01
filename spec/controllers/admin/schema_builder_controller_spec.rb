@@ -396,6 +396,107 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
     end
   end
 
+  describe 'PATCH #toggle_block_exclusion' do
+    let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+    let(:differ_double) do
+      instance_double(SchemaBuilders::Differ, blocks_diff: { blocks_excluded: [], blocks: [] })
+    end
+
+    before do
+      allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
+      allow_any_instance_of(described_class).to receive(:target_adapter_for).and_return(double(:adapter))
+      allow(SchemaBuilders::Differ).to receive(:new).and_return(differ_double)
+    end
+
+    it 'exclut le bloc quand excluded=true' do
+      patch :toggle_block_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', block_id: 'b1', excluded: 'true' },
+            format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(target.reload.excluded_block_descriptor_ids).to include('b1')
+    end
+
+    it 'réintègre le bloc quand excluded=false' do
+      target.update!(excluded_block_descriptor_ids: ['b1'])
+      patch :toggle_block_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', block_id: 'b1', excluded: 'false' },
+            format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(target.reload.excluded_block_descriptor_ids).not_to include('b1')
+    end
+
+    it 'renvoie un Turbo Stream remplaçant la frame blocks' do
+      patch :toggle_block_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', block_id: 'b1', excluded: 'true' },
+            format: :turbo_stream
+      expect(response.body).to include("blocks-#{target.id}")
+      expect(response.media_type).to eq('text/vnd.turbo-stream.html')
+    end
+
+    it "404 si la target n'existe pas" do
+      expect do
+        patch :toggle_block_exclusion,
+              params: { demarche_demarche_id: demarche.id, target: 'grist', block_id: 'b1', excluded: 'true' },
+              format: :turbo_stream
+      end.to raise_error(ActiveRecord::RecordNotFound)
+    end
+  end
+
+  describe 'PATCH #toggle_block_field_exclusion' do
+    let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+    let!(:block_target) { create(:schema_block_target, schema_target: target, block_descriptor_id: 'b1') }
+    let(:differ_double) do
+      instance_double(SchemaBuilders::Differ, blocks_diff: { blocks_excluded: [], blocks: [] })
+    end
+
+    before do
+      allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
+      allow_any_instance_of(described_class).to receive(:target_adapter_for).and_return(double(:adapter))
+      allow(SchemaBuilders::Differ).to receive(:new).and_return(differ_double)
+    end
+
+    it 'exclut le champ dans le bloc quand excluded=true' do
+      patch :toggle_block_field_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', block_id: 'b1', field_id: 'champ_xyz', excluded: 'true' },
+            format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(block_target.reload.excluded_field_ids).to include('champ_xyz')
+    end
+
+    it 'réintègre le champ dans le bloc quand excluded=false' do
+      block_target.update!(excluded_field_ids: ['champ_xyz'])
+      patch :toggle_block_field_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', block_id: 'b1', field_id: 'champ_xyz', excluded: 'false' },
+            format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(block_target.reload.excluded_field_ids).not_to include('champ_xyz')
+    end
+
+    it 'renvoie un Turbo Stream remplaçant la frame blocks' do
+      patch :toggle_block_field_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', block_id: 'b1', field_id: 'champ_xyz', excluded: 'true' },
+            format: :turbo_stream
+      expect(response.body).to include("blocks-#{target.id}")
+      expect(response.media_type).to eq('text/vnd.turbo-stream.html')
+    end
+
+    it "404 si la target n'existe pas" do
+      expect do
+        patch :toggle_block_field_exclusion,
+              params: { demarche_demarche_id: demarche.id, target: 'grist', block_id: 'b1', field_id: 'champ_xyz', excluded: 'true' },
+              format: :turbo_stream
+      end.to raise_error(ActiveRecord::RecordNotFound)
+    end
+
+    it "404 si le bloc n'existe pas" do
+      expect do
+        patch :toggle_block_field_exclusion,
+              params: { demarche_demarche_id: demarche.id, target: 'baserow', block_id: 'inexistant', field_id: 'champ_xyz', excluded: 'true' },
+              format: :turbo_stream
+      end.to raise_error(ActiveRecord::RecordNotFound)
+    end
+  end
+
   describe 'POST #build_blocks' do
     let!(:target_baserow) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
     let(:builder_double) do

@@ -176,6 +176,41 @@ module Admin
       )
     end
 
+    def toggle_block_exclusion
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      excluded = ActiveModel::Type::Boolean.new.cast(params[:excluded])
+      if excluded
+        target.exclude_block!(params[:block_id])
+      else
+        target.include_block!(params[:block_id])
+      end
+
+      diff = differ_for(target).blocks_diff
+      render turbo_stream: turbo_stream.replace(
+        "blocks-#{target.id}",
+        partial: 'blocks_section',
+        locals: { target: target, diff: diff }
+      )
+    end
+
+    def toggle_block_field_exclusion
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      block_target = target.schema_block_targets.find_by!(block_descriptor_id: params[:block_id])
+      excluded = ActiveModel::Type::Boolean.new.cast(params[:excluded])
+      if excluded
+        block_target.exclude_field!(params[:field_id])
+      else
+        block_target.include_field!(params[:field_id])
+      end
+
+      diff = differ_for(target).blocks_diff
+      render turbo_stream: turbo_stream.replace(
+        "blocks-#{target.id}",
+        partial: 'blocks_section',
+        locals: { target: target, diff: diff }
+      )
+    end
+
     private
 
     def differ_for(target)
