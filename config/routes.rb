@@ -40,6 +40,9 @@ Rails.application.routes.draw do
         post   'targets/:target/avis/build',                       to: 'schema_builder#build_avis',         as: :build_avis
         post   'targets/:target/blocks/preview',                   to: 'schema_builder#preview_blocks',     as: :preview_blocks
         post   'targets/:target/blocks/build',                     to: 'schema_builder#build_blocks',       as: :build_blocks
+        patch  'targets/:target/main_table/fields/:field_id/exclusion',
+               to: 'schema_builder#toggle_main_table_field_exclusion',
+               as: :toggle_main_table_field_exclusion
       end
     end
   end

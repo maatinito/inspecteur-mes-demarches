@@ -158,7 +158,33 @@ module Admin
       )
     end
 
+    def toggle_main_table_field_exclusion
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      excluded = ActiveModel::Type::Boolean.new.cast(params[:excluded])
+      if excluded
+        target.exclude_field!(params[:field_id])
+      else
+        target.include_field!(params[:field_id])
+      end
+
+      diff = differ_for(target).main_table_diff
+
+      render turbo_stream: turbo_stream.replace(
+        "main-table-#{target.id}",
+        partial: 'main_table_section',
+        locals: { target: target, diff: diff }
+      )
+    end
+
     private
+
+    def differ_for(target)
+      SchemaBuilders::Differ.new(
+        target: target,
+        adapter: target_adapter_for(target),
+        demarche_descriptor: demarche_descriptor
+      )
+    end
 
     def set_demarche
       @demarche = Demarche.find(params[:demarche_demarche_id])

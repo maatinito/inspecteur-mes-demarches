@@ -348,6 +348,54 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
     end
   end
 
+  describe 'PATCH #toggle_main_table_field_exclusion' do
+    let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+    let(:differ_double) do
+      instance_double(SchemaBuilders::Differ, main_table_diff: {
+                        to_add: [], to_modify: [], ok: [], excluded: []
+                      })
+    end
+
+    before do
+      allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
+      allow_any_instance_of(described_class).to receive(:target_adapter_for).and_return(double(:adapter))
+      allow(SchemaBuilders::Differ).to receive(:new).and_return(differ_double)
+    end
+
+    it 'exclut le champ quand excluded=true' do
+      patch :toggle_main_table_field_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', field_id: 'champ_xyz', excluded: 'true' },
+            format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(target.reload.excluded_field_ids).to include('champ_xyz')
+    end
+
+    it 'réintègre le champ quand excluded=false' do
+      target.update!(excluded_field_ids: ['champ_xyz'])
+      patch :toggle_main_table_field_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', field_id: 'champ_xyz', excluded: 'false' },
+            format: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(target.reload.excluded_field_ids).not_to include('champ_xyz')
+    end
+
+    it 'renvoie un Turbo Stream remplaçant la frame main-table' do
+      patch :toggle_main_table_field_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', field_id: 'champ_xyz', excluded: 'true' },
+            format: :turbo_stream
+      expect(response.body).to include("main-table-#{target.id}")
+      expect(response.media_type).to eq('text/vnd.turbo-stream.html')
+    end
+
+    it "404 si la target n'existe pas" do
+      expect do
+        patch :toggle_main_table_field_exclusion,
+              params: { demarche_demarche_id: demarche.id, target: 'grist', field_id: 'champ_xyz', excluded: 'true' },
+              format: :turbo_stream
+      end.to raise_error(ActiveRecord::RecordNotFound)
+    end
+  end
+
   describe 'POST #build_blocks' do
     let!(:target_baserow) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
     let(:builder_double) do
