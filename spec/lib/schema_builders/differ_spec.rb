@@ -33,6 +33,7 @@ TestDifferDemarcheDescriptor = Struct.new(:champ_descriptors)
 
 # rubocop:enable Style/OneClassPerFile, Naming/MethodParameterName
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe SchemaBuilders::Differ do
   let(:demarche) { create(:demarche) }
   let(:schema_target) do
@@ -124,4 +125,112 @@ RSpec.describe SchemaBuilders::Differ do
       end
     end
   end
+
+  describe '#blocks_diff' do
+    # Trois blocs : excluded (déjà dans excluded_block_descriptor_ids),
+    # new (pas de SchemaBlockTarget encore), existing (avec backend_table_id).
+    let(:block_excluded) do
+      TestDifferBlockDescriptor.new(
+        id: 'bloc_excluded', label: 'Activités annexes', champ_descriptors: []
+      )
+    end
+    let(:block_new) do
+      TestDifferBlockDescriptor.new(
+        id: 'bloc_new', label: 'Pièces jointes',
+        champ_descriptors: [
+          TestDifferDescriptor.new(id: 'pj1', label: 'Document 1', typename: 'TextChampDescriptor')
+        ]
+      )
+    end
+    let(:block_existing) do
+      TestDifferBlockDescriptor.new(
+        id: 'bloc_existing', label: 'Membres',
+        champ_descriptors: [
+          TestDifferDescriptor.new(id: 'm_montant', label: 'Montant',
+                                   typename: 'IntegerNumberChampDescriptor'),
+          TestDifferDescriptor.new(id: 'm_nom', label: 'Nom', typename: 'TextChampDescriptor')
+        ]
+      )
+    end
+
+    let(:demarche_descriptor) do
+      TestDifferDemarcheDescriptor.new([champ_a, block_excluded, block_new, block_existing])
+    end
+
+    before do
+      schema_target.update!(excluded_block_descriptor_ids: ['bloc_excluded'])
+      # SchemaBlockTarget existant pour bloc_existing
+      create(:schema_block_target,
+             schema_target: schema_target,
+             block_descriptor_id: 'bloc_existing',
+             backend_table_id: '500')
+      # Stub minimal pour la table principale (appelée via main_table_diff si invoquée,
+      # mais blocks_diff seul ne devrait pas la solliciter)
+      allow(adapter).to receive(:get_table_fields).with('500').and_return([
+                                                                            { 'name' => 'Nom', 'type' => 'text' },
+                                                                            { 'name' => 'Montant', 'type' => 'text' }
+                                                                          ])
+    end
+
+    it 'retourne le bloc exclus dans blocks_excluded' do
+      diff = differ.blocks_diff
+      expect(diff[:blocks_excluded]).to eq([{ id: 'bloc_excluded', label: 'Activités annexes' }])
+    end
+
+    it 'retourne les blocs inclus dans blocks (sans le bloc exclus)' do
+      diff = differ.blocks_diff
+      ids = diff[:blocks].map { |b| b[:id] }
+      expect(ids).to contain_exactly('bloc_new', 'bloc_existing')
+    end
+
+    it 'auto-crée un SchemaBlockTarget pour un nouveau bloc' do
+      expect { differ.blocks_diff }
+        .to change { schema_target.schema_block_targets.where(block_descriptor_id: 'bloc_new').count }
+        .from(0).to(1)
+    end
+
+    it 'crée le SchemaBlockTarget avec backend_table_id nil' do
+      differ.blocks_diff
+      new_bt = schema_target.schema_block_targets.find_by(block_descriptor_id: 'bloc_new')
+      expect(new_bt.backend_table_id).to be_nil
+    end
+
+    it 'pour un bloc neuf (backend_table_id nil), tous les champs vont dans to_add' do
+      diff = differ.blocks_diff
+      entry = diff[:blocks].find { |b| b[:id] == 'bloc_new' }
+      expect(entry[:diff][:to_add].map { |f| f[:id] }).to eq(['pj1'])
+    end
+
+    it 'pour un bloc existant, détecte le champ avec type divergent (to_modify)' do
+      diff = differ.blocks_diff
+      entry = diff[:blocks].find { |b| b[:id] == 'bloc_existing' }
+      expect(entry[:diff][:to_modify].map { |f| f[:id] }).to include('m_montant')
+      expect(entry[:diff][:ok].map { |f| f[:id] }).to include('m_nom')
+    end
+
+    it 'expose le schema_block_target dans chaque entrée bloc' do
+      diff = differ.blocks_diff
+      entry = diff[:blocks].find { |b| b[:id] == 'bloc_existing' }
+      expect(entry[:schema_block_target]).to be_a(SchemaBlockTarget)
+      expect(entry[:schema_block_target].block_descriptor_id).to eq('bloc_existing')
+    end
+
+    it 'est idempotent : un second appel ne crée pas de doublon' do
+      differ.blocks_diff
+      expect { differ.blocks_diff }
+        .not_to(change { SchemaBlockTarget.count })
+    end
+
+    it 'respecte les exclusions de champ DANS un bloc' do
+      block_existing_target = schema_target.schema_block_targets
+                                           .find_by(block_descriptor_id: 'bloc_existing')
+      block_existing_target.exclude_field!('m_nom')
+
+      diff = differ.blocks_diff
+      entry = diff[:blocks].find { |b| b[:id] == 'bloc_existing' }
+      expect(entry[:diff][:excluded].map { |f| f[:id] }).to include('m_nom')
+      expect(entry[:diff][:ok].map { |f| f[:id] }).not_to include('m_nom')
+    end
+  end
 end
+# rubocop:enable Metrics/BlockLength

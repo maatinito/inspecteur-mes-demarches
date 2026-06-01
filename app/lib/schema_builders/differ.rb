@@ -32,7 +32,57 @@ module SchemaBuilders
                excluded_predicate: ->(f) { @target.field_excluded?(f[:id]) })
     end
 
+    # Calcule le diff par bloc répétable :
+    #   - Les blocs entiers exclus sont retournés à part (id + label seuls).
+    #   - Pour les autres, on auto-crée le SchemaBlockTarget si absent et on
+    #     calcule un diff interne identique à celui de la table principale.
+    #
+    # Retourne :
+    # {
+    #   blocks_excluded: [{ id:, label: }, ...],
+    #   blocks: [
+    #     { id:, label:, excluded: false, schema_block_target:, diff: {...} },
+    #     ...
+    #   ]
+    # }
+    def blocks_diff
+      blocks = Array(@demarche_descriptor.champ_descriptors)
+               .select { |c| c.__typename == REPETITION_TYPENAME }
+      excluded, included = blocks.partition { |b| @target.block_excluded?(b.id) }
+
+      {
+        blocks_excluded: excluded.map { |b| { id: b.id, label: b.label } },
+        blocks: included.map { |b| block_entry(b) }
+      }
+    end
+
     private
+
+    # Entrée diff pour un bloc inclus : auto-création du SchemaBlockTarget,
+    # puis classification de ses champs internes.
+    def block_entry(block)
+      block_target = ensure_block_target(block)
+      inner_md_fields = Array(block.champ_descriptors).map { |c| descriptor_to_field(c) }
+      inner_target_fields = fetch_target_fields(block_target.backend_table_id)
+
+      inner_diff = classify(inner_md_fields, inner_target_fields,
+                            excluded_predicate: ->(f) { block_target.field_excluded?(f[:id]) })
+
+      {
+        id: block.id,
+        label: block.label,
+        excluded: false,
+        schema_block_target: block_target,
+        diff: inner_diff
+      }
+    end
+
+    # Auto-crée le SchemaBlockTarget s'il n'existe pas encore.
+    # backend_table_id reste nil jusqu'au premier Build du bloc — c'est juste
+    # un porteur d'état pour stocker les exclusions de champs.
+    def ensure_block_target(block)
+      @target.schema_block_targets.find_or_create_by!(block_descriptor_id: block.id)
+    end
 
     # Champs candidats pour la table principale (hors blocs répétables).
     def filterable_main_fields
