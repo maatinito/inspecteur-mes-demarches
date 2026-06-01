@@ -62,13 +62,12 @@ module Admin
 
     def preview_main_table
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
-      builder = main_table_builder_for(target)
-      result = builder.preview(demarche_descriptor, application_id: target.application_external_id, table_name: main_table_name_for(target))
+      diff = differ_for(target).main_table_diff
 
       render turbo_stream: turbo_stream.replace(
         "main-table-#{target.id}",
         partial: 'main_table_section',
-        locals: { target: target, preview: result }
+        locals: { target: target, diff: diff }
       )
     end
 
@@ -121,17 +120,12 @@ module Admin
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       return head :precondition_failed if target.main_table_external_id.blank?
 
-      builder = block_builder_for(target)
-      result = builder.preview(
-        demarche_descriptor,
-        application_id: target.application_external_id,
-        main_table_id: target.main_table_external_id
-      )
+      diff = differ_for(target).blocks_diff
 
       render turbo_stream: turbo_stream.replace(
         "blocks-#{target.id}",
         partial: 'blocks_section',
-        locals: { target: target, preview: result }
+        locals: { target: target, diff: diff }
       )
     end
 

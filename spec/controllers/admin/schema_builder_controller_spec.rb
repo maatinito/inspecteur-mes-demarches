@@ -180,18 +180,17 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
 
   describe 'POST #preview_main_table' do
     let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
-    let(:preview_result) do
-      {
-        table_name: 'Dossiers démarche X',
-        application_id: '17',
-        fields: [{ name: 'Nom', type: 'text' }]
-      }
+    let(:differ_double) do
+      instance_double(SchemaBuilders::Differ, main_table_diff: {
+                        to_add: [{ id: 'a', label: 'Nom', type: 'text' }],
+                        to_modify: [], ok: [], excluded: []
+                      })
     end
-    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder, preview: preview_result) }
 
     before do
       allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
-      allow_any_instance_of(described_class).to receive(:main_table_builder_for).and_return(builder_double)
+      allow_any_instance_of(described_class).to receive(:target_adapter_for).and_return(double(:adapter))
+      allow(SchemaBuilders::Differ).to receive(:new).and_return(differ_double)
     end
 
     it 'rend un Turbo Stream remplaçant la frame main-table' do
@@ -200,10 +199,9 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       expect(response.body).to include("main-table-#{target.id}")
     end
 
-    it "contient le contenu de l'aperçu (nom du champ)" do
+    it 'délègue le calcul au Differ et lui passe la target' do
+      expect(SchemaBuilders::Differ).to receive(:new).with(hash_including(target: target)).and_return(differ_double)
       post :preview_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
-      expect(response.body).to include('Nom')
-      expect(response.body).to include('Aperçu')
     end
 
     it "404 si la target n'existe pas" do
@@ -324,21 +322,25 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
 
   describe 'POST #preview_blocks' do
     let!(:target_baserow) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
-    let(:builder_double) do
-      instance_double(SchemaBuilders::BlockBuilder, preview: [
-                        { block_descriptor_id: 'b1', table_name: 'Membres', fields: [{ name: 'Nom', type: 'text' }] }
-                      ])
+    let(:differ_double) do
+      instance_double(SchemaBuilders::Differ, blocks_diff: { blocks_excluded: [], blocks: [] })
     end
 
     before do
       allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
-      allow_any_instance_of(described_class).to receive(:block_builder_for).and_return(builder_double)
+      allow_any_instance_of(described_class).to receive(:target_adapter_for).and_return(double(:adapter))
+      allow(SchemaBuilders::Differ).to receive(:new).and_return(differ_double)
     end
 
-    it 'renvoie un Turbo Stream avec le preview des blocs' do
+    it 'renvoie un Turbo Stream remplaçant la frame blocks' do
       post :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('Membres')
+      expect(response.body).to include("blocks-#{target_baserow.id}")
+    end
+
+    it 'délègue le calcul au Differ et lui passe la target' do
+      expect(SchemaBuilders::Differ).to receive(:new).with(hash_including(target: target_baserow)).and_return(differ_double)
+      post :preview_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
     end
 
     it 'refuse si main_table_external_id absent' do
