@@ -69,5 +69,11 @@ module SchemaBuilders
     def field_exists?(table_id, name)
       @client.field_exists?(table_id, name)
     end
+
+    # Liste les champs d'une table (utilisé notamment par SchemaBuilders::Differ).
+    # Retourne un tableau de hashes Baserow brut (clés strings : 'name', 'type', etc.).
+    def get_table_fields(table_id)
+      @client.get_table_fields(table_id)
+    end
   end
 end

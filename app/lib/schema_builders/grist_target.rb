@@ -90,6 +90,22 @@ module SchemaBuilders
       false
     end
 
+    # Liste les colonnes d'une table Grist (utilisé notamment par SchemaBuilders::Differ).
+    # `table_id` doit être au format composite "doc_id:table_id".
+    # Retourne un tableau de hashes normalisés au format { 'name' => ..., 'type' => ... }
+    # pour rester compatible avec la convention BaserowTarget.
+    def get_table_fields(table_id)
+      doc_id, real_table_id = parse_composite_id(table_id)
+      columns = list_columns_safe(doc_id, real_table_id)
+      columns.map do |c|
+        fields = c['fields'] || c[:fields] || {}
+        {
+          'name' => (c['id'] || c[:id]).to_s,
+          'type' => (fields['type'] || fields[:type]).to_s
+        }
+      end
+    end
+
     # `table_id` doit être au format composite "doc_id:table_id".
     def field_exists?(table_id, name)
       doc_id, real_table_id = parse_composite_id(table_id)
