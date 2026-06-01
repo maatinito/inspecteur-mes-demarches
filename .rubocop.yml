@@ -90,6 +90,7 @@ Metrics/BlockLength:
     - 'spec/lib/travail/daeth_spec.rb'
     - 'spec/lib/schema_builders/type_mapper_spec.rb'
     - 'spec/lib/schema_builders/field_filter_spec.rb'
+    - 'spec/models/schema_target_spec.rb'
     - 'lib/lppr.rb'
   Max: 100
 
