@@ -248,6 +248,15 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         post :build_main_table, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
       end.to raise_error(ActiveRecord::RecordNotFound)
     end
+
+    it 'passe excluded_field_ids de la target au builder' do
+      target.update!(excluded_field_ids: %w[champ_a champ_b])
+      expect(builder_double).to receive(:build!).with(
+        anything,
+        hash_including(excluded_field_ids: %w[champ_a champ_b])
+      ).and_return(build_result)
+      post :build_main_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+    end
   end
 
   describe 'POST #preview_avis' do
@@ -535,6 +544,19 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       target_baserow.update!(main_table_external_id: nil)
       post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
       expect(response).to have_http_status(:precondition_failed)
+    end
+
+    it 'passe excluded_block_ids et excluded_fields_per_block au builder' do
+      target_baserow.update!(excluded_block_descriptor_ids: ['b3'])
+      create(:schema_block_target, schema_target: target_baserow, block_descriptor_id: 'b1', excluded_field_ids: ['champ_a'])
+      expect(builder_double).to receive(:build!).with(
+        anything,
+        hash_including(
+          excluded_block_ids: ['b3'],
+          excluded_fields_per_block: hash_including('b1' => ['champ_a'])
+        )
+      ).and_return([])
+      post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
     end
   end
 end

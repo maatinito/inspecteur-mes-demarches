@@ -37,6 +37,7 @@ TestBlockDemarcheDescriptor = Struct.new(:champ_descriptors, :annotation_descrip
 
 # rubocop:enable Style/OneClassPerFile, Naming/MethodParameterName
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe SchemaBuilders::BlockBuilder do
   let(:inner_fields) do
     [
@@ -127,6 +128,66 @@ RSpec.describe SchemaBuilders::BlockBuilder do
         expect(pieces).to include(table_id: 50, action: :updated)
       end
     end
+
+    describe '#build! avec exclusions' do
+      let(:inner_fields_with_ids) do
+        [
+          TestBlockDescriptor.new(id: 'champ_nom', label: 'Nom item', typename: 'TextChampDescriptor'),
+          TestBlockDescriptor.new(id: 'champ_qty', label: 'Quantité', typename: 'IntegerNumberChampDescriptor')
+        ]
+      end
+      let(:block_excl) do
+        TestBlockRepetition.new(label: 'Articles', id: 'B1', champ_descriptors: inner_fields_with_ids)
+      end
+      let(:block_other) do
+        TestBlockRepetition.new(label: 'Pièces', id: 'B2', champ_descriptors: [
+                                  TestBlockDescriptor.new(id: 'champ_type', label: 'Type', typename: 'TextChampDescriptor')
+                                ])
+      end
+      let(:descriptor_with_ids) do
+        TestBlockDemarcheDescriptor.new([block_excl, block_other], [])
+      end
+
+      it 'saute entièrement un bloc présent dans excluded_block_ids' do
+        allow(target).to receive(:table_exists?).and_return(false)
+        allow(target).to receive(:create_table).and_return({ 'id' => 1 })
+
+        results = builder.build!(
+          descriptor_with_ids,
+          application_id: 17,
+          main_table_id: 100,
+          excluded_block_ids: ['B1']
+        )
+
+        names = results.map { |r| r[:table_name] }
+        expect(names).to contain_exactly('Pièces')
+      end
+
+      it "filtre les champs d'un bloc présents dans excluded_fields_per_block" do
+        captured = {}
+        allow(target).to receive(:table_exists?).and_return(false)
+        allow(target).to receive(:create_table) do |_app, name, fields|
+          captured[name] = fields
+          { 'id' => 1 }
+        end
+
+        builder.build!(
+          descriptor_with_ids,
+          application_id: 17,
+          main_table_id: 100,
+          excluded_fields_per_block: { 'B1' => ['champ_qty'] }
+        )
+
+        articles_fields = captured['Articles']
+        business_names = articles_fields.map { |f| f[:name] }.reject { |n| %w[Ligne Dossier].include?(n) }
+        expect(business_names).to contain_exactly('Nom item')
+
+        # Le bloc B2 reste synchronisé avec son champ
+        pieces_fields = captured['Pièces']
+        business_names_b2 = pieces_fields.map { |f| f[:name] }.reject { |n| %w[Ligne Dossier].include?(n) }
+        expect(business_names_b2).to contain_exactly('Type')
+      end
+    end
   end
 
   describe 'avec une cible Grist' do
@@ -157,3 +218,4 @@ RSpec.describe SchemaBuilders::BlockBuilder do
     end
   end
 end
+# rubocop:enable Metrics/BlockLength

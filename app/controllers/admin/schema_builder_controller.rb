@@ -74,7 +74,12 @@ module Admin
     def build_main_table
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       builder = main_table_builder_for(target)
-      result = builder.build!(demarche_descriptor, application_id: target.application_external_id, table_name: main_table_name_for(target))
+      result = builder.build!(
+        demarche_descriptor,
+        application_id: target.application_external_id,
+        table_name: main_table_name_for(target),
+        excluded_field_ids: target.excluded_field_ids
+      )
       target.update!(main_table_external_id: result[:table_id].to_s, last_synced_at: Time.current)
 
       render turbo_stream: turbo_stream.replace(
@@ -134,10 +139,15 @@ module Admin
       return head :precondition_failed if target.main_table_external_id.blank?
 
       builder = block_builder_for(target)
+      excluded_fields_per_block = target.schema_block_targets.to_h do |bt|
+        [bt.block_descriptor_id, bt.excluded_field_ids]
+      end
       results = builder.build!(
         demarche_descriptor,
         application_id: target.application_external_id,
-        main_table_id: target.main_table_external_id
+        main_table_id: target.main_table_external_id,
+        excluded_block_ids: target.excluded_block_descriptor_ids,
+        excluded_fields_per_block: excluded_fields_per_block
       )
 
       results.each do |r|

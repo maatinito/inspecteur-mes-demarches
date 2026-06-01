@@ -24,8 +24,11 @@ module SchemaBuilders
     # Retourne le plan de construction sans rien créer côté cible.
     # `demarche_descriptor` est une démarche GraphQL (objet répondant à
     # `champ_descriptors`/`annotation_descriptors` ou contenant une révision).
-    def preview(demarche_descriptor, application_id:, table_name:, include_annotations: true)
-      fields = build_field_specs(demarche_descriptor, include_annotations: include_annotations)
+    # `excluded_field_ids`: IDs MD (champ_descriptor.id) à filtrer avant
+    # transformation en field-spec natif.
+    def preview(demarche_descriptor, application_id:, table_name:, include_annotations: true, excluded_field_ids: [])
+      fields = build_field_specs(demarche_descriptor, include_annotations: include_annotations,
+                                                      excluded_field_ids: excluded_field_ids)
       {
         table_name: table_name,
         application_id: application_id,
@@ -35,8 +38,9 @@ module SchemaBuilders
 
     # Crée la table si absente, sinon synchronise ses champs.
     # Retourne `{ table_id:, table_name:, action: :created | :updated, fields: [...] }`.
-    def build!(demarche_descriptor, application_id:, table_name:, include_annotations: true)
-      fields = build_field_specs(demarche_descriptor, include_annotations: include_annotations)
+    def build!(demarche_descriptor, application_id:, table_name:, include_annotations: true, excluded_field_ids: [])
+      fields = build_field_specs(demarche_descriptor, include_annotations: include_annotations,
+                                                      excluded_field_ids: excluded_field_ids)
 
       if target.table_exists?(application_id, table_name)
         existing = find_existing_table(application_id, table_name)
@@ -62,18 +66,21 @@ module SchemaBuilders
       descriptors
     end
 
-    def build_field_specs(demarche_descriptor, include_annotations:)
+    def build_field_specs(demarche_descriptor, include_annotations:, excluded_field_ids: [])
+      excluded_set = Array(excluded_field_ids).to_set(&:to_s)
       collect_descriptors(demarche_descriptor, include_annotations: include_annotations).filter_map do |descriptor|
-        spec_for_descriptor(descriptor)
+        spec_for_descriptor(descriptor, excluded_set: excluded_set)
       end
     end
 
     # Construit un field spec natif pour un descripteur Mes-Démarches.
-    # Renvoie nil si le type est ignoré, non supporté, ou rejeté par le filtre.
-    def spec_for_descriptor(descriptor)
+    # Renvoie nil si le type est ignoré, non supporté, exclu explicitement,
+    # ou rejeté par le filtre.
+    def spec_for_descriptor(descriptor, excluded_set: Set.new)
       field_type = descriptor.__typename
       return nil if TypeMapper.should_ignore_type?(field_type)
       return nil unless type_mapper.supported_type?(field_type)
+      return nil if descriptor.respond_to?(:id) && excluded_set.include?(descriptor.id.to_s)
       return nil if field_filter && !filter_accepts?(descriptor)
 
       field_name = type_mapper.generate_field_name(descriptor.label)

@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
-# Stub minimal mimant un descripteur de champ GraphQL : expose les méthodes
-# `label`, `__typename`, et `to_h` (utilisée par TypeMapper).
-class TestMainTableDescriptor
-  attr_reader :label, :__typename, :options
+# rubocop:disable Naming/MethodParameterName
 
-  def initialize(label:, typename:, options: nil)
+# Stub minimal mimant un descripteur de champ GraphQL : expose les méthodes
+# `id`, `label`, `__typename`, et `to_h` (utilisée par TypeMapper).
+class TestMainTableDescriptor
+  attr_reader :id, :label, :__typename, :options
+
+  def initialize(label:, typename:, options: nil, id: nil)
+    @id = id
     @label = label
     @__typename = typename
     @options = options
@@ -13,6 +16,7 @@ class TestMainTableDescriptor
 
   def to_h
     h = { 'label' => label, '__typename' => __typename }
+    h['id'] = id if id
     h['options'] = options if options
     h
   end
@@ -25,8 +29,8 @@ require 'rails_helper'
 
 # rubocop:disable Metrics/BlockLength
 RSpec.describe SchemaBuilders::MainTableBuilder do
-  def descriptor(label:, typename:, options: nil)
-    TestMainTableDescriptor.new(label: label, typename: typename, options: options)
+  def descriptor(label:, typename:, options: nil, id: nil)
+    TestMainTableDescriptor.new(label: label, typename: typename, options: options, id: id)
   end
 
   # Démarche descriptor stub avec deux champs et une section ignorée.
@@ -144,6 +148,48 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
         names = captured_fields.map { |f| f[:name] }
         expect(names).to contain_exactly('Nom', 'Montant')
       end
+
+      it 'filtre les champs présents dans excluded_field_ids' do
+        descriptor_with_ids = TestMainTableDemarcheDescriptor.new(
+          [
+            descriptor(id: 'champ_nom', label: 'Nom', typename: 'TextChampDescriptor'),
+            descriptor(id: 'champ_montant', label: 'Montant', typename: 'IntegerNumberChampDescriptor')
+          ],
+          []
+        )
+
+        captured_fields = nil
+        allow(target).to receive(:table_exists?).and_return(false)
+        allow(target).to receive(:create_table) do |_app, _name, fields|
+          captured_fields = fields
+          { 'id' => 1 }
+        end
+
+        builder.build!(descriptor_with_ids, application_id: 17, table_name: 'Dossiers',
+                                            excluded_field_ids: ['champ_montant'])
+
+        names = captured_fields.map { |f| f[:name] }
+        expect(names).to contain_exactly('Nom')
+      end
+
+      it 'accepte des excluded_field_ids en symbol ou en string' do
+        descriptor_with_ids = TestMainTableDemarcheDescriptor.new(
+          [descriptor(id: 'a', label: 'Nom', typename: 'TextChampDescriptor')],
+          []
+        )
+
+        captured_fields = nil
+        allow(target).to receive(:table_exists?).and_return(false)
+        allow(target).to receive(:create_table) do |_app, _name, fields|
+          captured_fields = fields
+          { 'id' => 1 }
+        end
+
+        builder.build!(descriptor_with_ids, application_id: 17, table_name: 'X',
+                                            excluded_field_ids: [:a])
+
+        expect(captured_fields).to be_empty
+      end
     end
   end
 
@@ -162,3 +208,4 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
   end
 end
 # rubocop:enable Metrics/BlockLength
+# rubocop:enable Naming/MethodParameterName

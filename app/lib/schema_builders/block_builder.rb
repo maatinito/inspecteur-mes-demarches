@@ -28,20 +28,31 @@ module SchemaBuilders
     # `main_table_id` requis car les champs Dossier (link_row/Ref) en dépendent.
     # `application_id` n'est pas utilisé ici mais conservé pour la symétrie avec
     # build! et faciliter d'éventuelles évolutions (filtrage par app, etc.).
-    def preview(demarche_descriptor, application_id:, main_table_id:) # rubocop:disable Lint/UnusedMethodArgument
-      blocks_from(demarche_descriptor).map do |block|
+    # `excluded_block_ids` : ids MD des blocs à sauter entièrement.
+    # `excluded_fields_per_block` : { block_id => [field_id, ...] } — filtre les
+    # champs métier (les champs structurels Ligne/Dossier ne sont jamais filtrés).
+    def preview(demarche_descriptor, application_id:, main_table_id:, # rubocop:disable Lint/UnusedMethodArgument
+                excluded_block_ids: [], excluded_fields_per_block: {})
+      excluded_blocks_set = Array(excluded_block_ids).to_set(&:to_s)
+      blocks_from(demarche_descriptor).reject { |b| excluded_blocks_set.include?(block_id_for(b).to_s) }.map do |block|
+        inner_excluded = inner_excluded_for(block, excluded_fields_per_block)
         {
           block_descriptor_id: block_id_for(block),
           table_name: block.label,
-          fields: fields_for(block, main_table_id)
+          fields: fields_for(block, main_table_id, excluded_set: inner_excluded)
         }
       end
     end
 
     # Pour chaque bloc, crée la table si absente sinon synchronise ses champs.
     # Retourne un tableau de specs avec `table_id` et `action: :created|:updated`.
-    def build!(demarche_descriptor, application_id:, main_table_id:)
-      preview(demarche_descriptor, application_id: application_id, main_table_id: main_table_id).map do |spec|
+    def build!(demarche_descriptor, application_id:, main_table_id:,
+               excluded_block_ids: [], excluded_fields_per_block: {})
+      preview(demarche_descriptor,
+              application_id: application_id,
+              main_table_id: main_table_id,
+              excluded_block_ids: excluded_block_ids,
+              excluded_fields_per_block: excluded_fields_per_block).map do |spec|
         if target.table_exists?(application_id, spec[:table_name])
           existing = find_existing_table(application_id, spec[:table_name])
           table_id = existing && (existing['id'] || existing[:id])
@@ -69,21 +80,34 @@ module SchemaBuilders
       block.respond_to?(:id) ? block.id : nil
     end
 
+    # Récupère les IDs de champs à exclure pour un bloc donné, en supportant
+    # les clés sym ou string dans excluded_fields_per_block.
+    def inner_excluded_for(block, excluded_fields_per_block)
+      key = block_id_for(block)
+      list = excluded_fields_per_block[key] ||
+             excluded_fields_per_block[key.to_s] ||
+             (key.respond_to?(:to_sym) ? excluded_fields_per_block[key.to_sym] : nil) ||
+             []
+      Array(list).to_set(&:to_s)
+    end
+
     # Construit les champs d'une table de bloc : structurels + métier.
-    def fields_for(block, main_table_id)
-      structural_fields(main_table_id) + business_fields(block)
+    # `excluded_set` (Set<String>) : ids MD des champs métier à filtrer.
+    def fields_for(block, main_table_id, excluded_set: Set.new)
+      structural_fields(main_table_id) + business_fields(block, excluded_set: excluded_set)
     end
 
     # Champs métier (les champ_descriptors du bloc).
-    def business_fields(block)
+    def business_fields(block, excluded_set: Set.new)
       inner = block.respond_to?(:champ_descriptors) ? Array(block.champ_descriptors) : []
-      inner.filter_map { |c| spec_for_descriptor(c) }
+      inner.filter_map { |c| spec_for_descriptor(c, excluded_set: excluded_set) }
     end
 
-    def spec_for_descriptor(descriptor)
+    def spec_for_descriptor(descriptor, excluded_set: Set.new)
       field_type = descriptor.__typename
       return nil if TypeMapper.should_ignore_type?(field_type)
       return nil unless type_mapper.supported_type?(field_type)
+      return nil if descriptor.respond_to?(:id) && excluded_set.include?(descriptor.id.to_s)
       return nil if field_filter && !filter_accepts?(descriptor)
 
       field_name = type_mapper.generate_field_name(descriptor.label)
