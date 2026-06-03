@@ -22,7 +22,10 @@ module Baserow
     end
 
     def list_applications(workspace_id)
-      response = make_request(:get, "/api/applications/?workspace=#{workspace_id}")
+      # /api/applications/?workspace=ID est ignoré par Baserow : il renvoie
+      # TOUTES les applications accessibles à l'utilisateur, peu importe le
+      # workspace. Utiliser le path-endpoint qui filtre correctement.
+      response = make_request(:get, "/api/applications/workspace/#{workspace_id}/")
       handle_response(response)
     end
 
