@@ -222,8 +222,14 @@ module SchemaBuilders
     end
 
     # Sérialise les attributs du descripteur GraphQL utiles au TypeMapper
-    # (string keys, alignés avec ce qu'attend map_field_type).
+    # (string keys camelCase, alignés avec ce qu'attend map_field_type).
+    # On privilégie #to_h (utilisé par l'ancien MesDemarchesToBaserow::SchemaBuilder)
+    # car le graphql-client gem expose les champs en camelCase via to_h, alors
+    # que les accesseurs Ruby peuvent varier selon la version. Fallback sur
+    # accesseurs si l'objet n'a pas to_h (cas des stubs de test).
     def descriptor_attrs(champ)
+      return champ.to_h if champ.respond_to?(:to_h) && !champ.is_a?(Struct)
+
       {
         'otherOption' => (champ.respond_to?(:other_option) ? champ.other_option : nil),
         'options' => (champ.respond_to?(:options) ? champ.options : nil)
