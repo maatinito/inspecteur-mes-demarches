@@ -29,7 +29,13 @@ class TestDifferBlockDescriptor
 end
 
 # Stub minimal d'un demarche_descriptor GraphQL.
-TestDifferDemarcheDescriptor = Struct.new(:champ_descriptors)
+# annotation_descriptors est optionnel — quand fourni, le Differ doit le
+# concaténer aux champ_descriptors (comportement symétrique avec MainTableBuilder).
+TestDifferDemarcheDescriptor = Struct.new(:champ_descriptors, :annotation_descriptors) do
+  def initialize(champs, annotations = nil)
+    super
+  end
+end
 
 # rubocop:enable Style/OneClassPerFile, Naming/MethodParameterName
 
@@ -228,6 +234,23 @@ RSpec.describe SchemaBuilders::Differ do
         differ.main_table_diff
       end
     end
+
+    context 'avec annotations privées' do
+      it 'inclut les annotation_descriptors dans le diff main_table' do
+        annotation = TestDifferDescriptor.new(id: 'ann1', label: 'Note interne',
+                                              typename: 'TextChampDescriptor')
+        descriptor_with_annotations = TestDifferDemarcheDescriptor.new(
+          [champ_a], [annotation]
+        )
+        d = described_class.new(target: schema_target, adapter: adapter,
+                                demarche_descriptor: descriptor_with_annotations)
+        allow(adapter).to receive(:get_table_fields).with('101').and_return([])
+
+        diff = d.main_table_diff
+        all_ids = diff.values.flatten.map { |f| f[:id] }
+        expect(all_ids).to include('ann1')
+      end
+    end
   end
 
   describe '#blocks_diff' do
@@ -324,6 +347,24 @@ RSpec.describe SchemaBuilders::Differ do
       differ.blocks_diff
       expect { differ.blocks_diff }
         .not_to(change { SchemaBlockTarget.count })
+    end
+
+    context 'avec annotations privées' do
+      it 'inclut les blocs trouvés dans annotation_descriptors' do
+        block_in_annotation = TestDifferBlockDescriptor.new(
+          id: 'bloc_annot', label: 'Pièces contrôlées', champ_descriptors: []
+        )
+        descriptor_with_annotations = TestDifferDemarcheDescriptor.new(
+          [champ_a], [block_in_annotation]
+        )
+        schema_target.update!(excluded_block_descriptor_ids: [])
+        d = described_class.new(target: schema_target, adapter: adapter,
+                                demarche_descriptor: descriptor_with_annotations)
+
+        diff = d.blocks_diff
+        ids = diff[:blocks].map { |b| b[:id] }
+        expect(ids).to include('bloc_annot')
+      end
     end
 
     context 'auto-détection de table existante par nom' do

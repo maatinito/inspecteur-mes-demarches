@@ -47,8 +47,7 @@ module SchemaBuilders
     #   ]
     # }
     def blocks_diff
-      blocks = Array(@demarche_descriptor.champ_descriptors)
-               .select { |c| c.__typename == REPETITION_TYPENAME }
+      blocks = all_descriptors.select { |c| c.__typename == REPETITION_TYPENAME }
       excluded, included = blocks.partition { |b| @target.block_excluded?(b.id) }
 
       {
@@ -113,12 +112,25 @@ module SchemaBuilders
 
     # Champs candidats pour la table principale (hors blocs répétables,
     # hors types ignorés / non supportés via TypeMapper, dédupés par label).
+    # Inclut champ_descriptors ET annotation_descriptors — cohérent avec
+    # MainTableBuilder#build! (include_annotations: true par défaut).
     def filterable_main_fields
-      fields = Array(@demarche_descriptor.champ_descriptors)
+      fields = all_descriptors
                .reject { |c| c.__typename == REPETITION_TYPENAME }
                .reject { |c| ignored_descriptor?(c) }
                .map { |c| descriptor_to_field(c) }
       dedupe_by_label(fields, context: 'table principale')
+    end
+
+    # Concatène champs utilisateur + annotations privées du descripteur.
+    # Les deux collections sont peuplées symétriquement par MainTableBuilder
+    # et BlockBuilder à la sync — le Differ doit donc voir la même union
+    # pour ne pas afficher de faux "à ajouter".
+    def all_descriptors
+      list = []
+      list.concat(Array(@demarche_descriptor.champ_descriptors)) if @demarche_descriptor.respond_to?(:champ_descriptors)
+      list.concat(Array(@demarche_descriptor.annotation_descriptors)) if @demarche_descriptor.respond_to?(:annotation_descriptors)
+      list
     end
 
     # Conserve la première occurrence de chaque label et logue les doublons.
