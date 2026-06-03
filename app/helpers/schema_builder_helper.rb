@@ -9,12 +9,20 @@ module SchemaBuilderHelper
     end
   end
 
+  def main_table_status_class(target)
+    target.last_synced_at.present? && target.main_table_external_id.present? ? 'bg-success' : 'bg-secondary'
+  end
+
   def avis_status_label(target)
     if target.last_synced_at.present? && target.avis_table_external_id.present?
       "Sync OK le #{l target.last_synced_at, format: :short}"
     else
       'Jamais sync'
     end
+  end
+
+  def avis_status_class(target)
+    target.last_synced_at.present? && target.avis_table_external_id.present? ? 'bg-success' : 'bg-secondary'
   end
 
   def block_status_label(block)
@@ -24,6 +32,16 @@ module SchemaBuilderHelper
       'Jamais sync'
     else
       'Erreur'
+    end
+  end
+
+  def block_status_class(block)
+    if block.last_synced_at.present? && block.backend_table_id.present?
+      'bg-success'
+    elsif block.backend_table_id.blank?
+      'bg-secondary'
+    else
+      'bg-danger'
     end
   end
 
