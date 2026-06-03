@@ -7,6 +7,11 @@ module Admin
 
     def show
       @schema_targets = @demarche.schema_targets.order(:target_type)
+      # Auto-détection (best-effort) de la table Avis existante côté Baserow.
+      # Permet d'afficher le badge "Sync OK" plutôt que "Jamais sync" pour les
+      # démarches déjà synchronisées via l'ancien builder. Idempotent : skip
+      # si avis_table_external_id déjà connu.
+      @schema_targets.each { |t| autodetect_avis_table(t) }
     end
 
     def create_target
@@ -323,6 +328,23 @@ module Admin
 
     def main_table_name_for(_target)
       "Dossiers démarche #{@demarche.id}"
+    end
+
+    # Best-effort : si la table Avis existe déjà côté cible (cas typique des
+    # démarches synchronisées par l'ancien builder), on persiste son ID pour
+    # éviter le faux "Jamais sync" dans le dashboard. Cible Grist ignorée
+    # (AvisBuilder non supporté). Erreurs silencieuses pour ne pas casser le show.
+    def autodetect_avis_table(target)
+      return if target.avis_table_external_id.present?
+      return if target.target_type == 'grist'
+      return if target.application_external_id.blank?
+
+      adapter = target_adapter_for(target)
+      tables = Array(adapter.list_tables(target.application_external_id))
+      match = tables.find { |t| (t['name'] || t[:name]) == SchemaBuilders::AvisBuilder::TABLE_NAME }
+      target.update!(avis_table_external_id: (match['id'] || match[:id]).to_s) if match
+    rescue StandardError => e
+      Rails.logger.warn "autodetect_avis_table: #{e.message} (target #{target.id})"
     end
   end
 end
