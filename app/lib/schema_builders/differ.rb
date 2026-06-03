@@ -142,33 +142,35 @@ module SchemaBuilders
     end
 
     # Transforme un champ_descriptor MD en hash normalisé.
+    # `:typename` (interne) garde le __typename d'origine pour permettre au
+    # diff de calculer le type cible attendu via TypeMapper.
     def descriptor_to_field(champ)
       {
         id: champ.id,
         label: champ.label,
-        type: simple_type_for(champ),
+        typename: champ.__typename.to_s,
+        type: expected_target_type(champ),
         options: (champ.respond_to?(:options) ? champ.options : nil)
       }
     end
 
-    # 'TextChampDescriptor' -> 'text', 'IntegerNumberChampDescriptor' -> 'integer_number'
-    def simple_type_for(champ)
-      type = champ.__typename.to_s.sub('ChampDescriptor', '')
-      type.gsub(/(.)([A-Z])/, '\1_\2').downcase
+    # Type natif cible attendu pour ce descripteur (via TypeMapper).
+    # Retourne nil si le mapping n'est pas trouvable (ne doit normalement plus
+    # arriver après filterable_main_fields qui rejette les types non supportés).
+    def expected_target_type(champ)
+      @type_mapper.map_field_type(champ.__typename.to_s)[:type]
+    rescue TypeMapper::UnsupportedTypeError
+      nil
     end
 
-    # Heuristique de compatibilité v1, volontairement laxiste :
-    # on flag uniquement si l'un est numérique et l'autre non.
+    # Compatibilité de type : on compare le type cible ATTENDU (calculé par
+    # le TypeMapper depuis le __typename MD) au type cible RÉEL côté Baserow/Grist.
     def compatible?(md_field, target_field)
-      numeric?(md_field[:type]) == numeric?(target_field[:type])
-    end
-
-    def numeric?(type)
-      type.to_s.match?(/integer|decimal|number|float/)
+      md_field[:type].to_s == target_field[:type].to_s
     end
 
     def divergence_label(md_field, target_field)
-      "Type cible '#{target_field[:type]}' ne correspond pas à '#{md_field[:type]}'"
+      "Type cible '#{target_field[:type]}' ne correspond pas au type attendu '#{md_field[:type]}'"
     end
   end
 end

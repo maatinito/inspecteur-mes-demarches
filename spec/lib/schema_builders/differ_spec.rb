@@ -133,6 +133,31 @@ RSpec.describe SchemaBuilders::Differ do
         all_ids = diff.values.flatten.map { |f| f[:id] }
         expect(all_ids).not_to include('u1')
       end
+
+      it 'classe PhoneChampDescriptor vs phone_number côté Baserow comme ok' do
+        phone = TestDifferDescriptor.new(id: 'p1', label: 'Téléphone', typename: 'PhoneChampDescriptor')
+        descriptor = TestDifferDemarcheDescriptor.new([phone])
+        d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: descriptor)
+        allow(adapter).to receive(:get_table_fields).with('101').and_return([
+                                                                              { 'name' => 'Téléphone',
+                                                                                'type' => 'phone_number' }
+                                                                            ])
+        diff = d.main_table_diff
+        expect(diff[:ok].map { |f| f[:id] }).to include('p1')
+        expect(diff[:to_modify].map { |f| f[:id] }).not_to include('p1')
+      end
+
+      it 'classe TextChampDescriptor vs long_text côté Baserow comme to_modify' do
+        text = TestDifferDescriptor.new(id: 't1', label: 'Notes courtes', typename: 'TextChampDescriptor')
+        descriptor = TestDifferDemarcheDescriptor.new([text])
+        d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: descriptor)
+        allow(adapter).to receive(:get_table_fields).with('101').and_return([
+                                                                              { 'name' => 'Notes courtes',
+                                                                                'type' => 'long_text' }
+                                                                            ])
+        diff = d.main_table_diff
+        expect(diff[:to_modify].map { |f| f[:id] }).to include('t1')
+      end
     end
 
     context 'avec une table inexistante (premier Build)' do
