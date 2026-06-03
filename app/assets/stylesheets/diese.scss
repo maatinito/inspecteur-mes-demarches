@@ -30,3 +30,83 @@ code {
   font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.875em;
 }
+
+// === Schema builder dashboard ===
+.schema-builder {
+  // Cards : plus de respiration entre les 3 sections + ombre subtile pour la
+  // hiérarchie verticale (Table principale > Avis > Blocs).
+  .card {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    border-radius: 6px;
+    margin-top: 1.5rem !important;
+
+    .card-header {
+      background-color: #fafbfc;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      padding: 0.875rem 1.25rem;
+
+      h2, .h5 {
+        color: #1c2128;
+        font-weight: 600;
+      }
+    }
+
+    .card-body {
+      padding: 1.25rem;
+    }
+  }
+
+  // Zone titles (À ajouter, À modifier) : weight + spacing
+  h3.h6 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.5rem;
+  }
+
+  // Bouton "Synchroniser X champs" : plus prominent + padding généreux
+  .card-body > div:last-child .btn-primary {
+    font-weight: 600;
+    padding: 0.625rem 1.25rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  // Cases à cocher : alignement vertical propre + hover discret
+  .form-check {
+    padding: 0.25rem 0 0.25rem 1.75rem;
+
+    .form-check-input {
+      margin-top: 0.3rem;
+    }
+
+    .form-check-label {
+      cursor: pointer;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.02);
+      border-radius: 3px;
+    }
+  }
+
+  // Détails (Ignorés, champs conformes) : look discret
+  details {
+    summary {
+      cursor: pointer;
+      user-select: none;
+      padding: 0.25rem 0;
+
+      &:hover {
+        color: #1c2128 !important;
+      }
+    }
+  }
+
+  // Badges status : un peu de padding pour respirer
+  .badge {
+    font-weight: 500;
+    padding: 0.4em 0.65em;
+    font-size: 0.75em;
+  }
+}
