@@ -391,6 +391,38 @@ RSpec.describe SchemaBuilders::Differ do
         .not_to(change { SchemaBlockTarget.count })
     end
 
+    context 'DropDownList avec otherOption=true DANS un bloc' do
+      it 'considère le champ dropdown libre interne au bloc comme text' do
+        dropdown_in_block = TestDifferDescriptor.new(
+          id: 'bdd1', label: 'Catégorie',
+          typename: 'DropDownListChampDescriptor',
+          options: %w[A B Autre],
+          other_option: true
+        )
+        bloc = TestDifferBlockDescriptor.new(
+          id: 'bloc_with_dropdown', label: 'Membres',
+          champ_descriptors: [dropdown_in_block]
+        )
+        descriptor_with_bloc = TestDifferDemarcheDescriptor.new([bloc])
+        schema_target.update!(excluded_block_descriptor_ids: [])
+        create(:schema_block_target,
+               schema_target: schema_target,
+               block_descriptor_id: 'bloc_with_dropdown',
+               backend_table_id: '600')
+        allow(adapter).to receive(:get_table_fields).with('600').and_return([
+                                                                              { 'name' => 'Catégorie',
+                                                                                'type' => 'text' }
+                                                                            ])
+
+        d = described_class.new(target: schema_target, adapter: adapter,
+                                demarche_descriptor: descriptor_with_bloc)
+        diff = d.blocks_diff
+        entry = diff[:blocks].find { |b| b[:id] == 'bloc_with_dropdown' }
+        expect(entry[:diff][:ok].map { |f| f[:id] }).to include('bdd1')
+        expect(entry[:diff][:to_modify].map { |f| f[:id] }).not_to include('bdd1')
+      end
+    end
+
     context 'avec annotations privées' do
       it 'inclut les blocs trouvés dans annotation_descriptors' do
         block_in_annotation = TestDifferBlockDescriptor.new(
