@@ -29,9 +29,11 @@
                   = field[:label]
                   %code.ms-2= field[:type]
         - if diff[:excluded].any?
-          %h3.h6.text-secondary.mt-3 ⛔ Ignorés (#{diff[:excluded].size})
-          - diff[:excluded].each do |field|
-            = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: false
+          %details.mt-3.text-muted
+            %summary.h6.text-secondary ⛔ Ignorés (#{diff[:excluded].size}) (cliquer pour déplier)
+            .ms-3.mt-2
+              - diff[:excluded].each do |field|
+                = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: false
         - to_sync_count = diff[:to_add].size + diff[:to_modify].size
         %div.mt-4
           = button_to "Synchroniser #{to_sync_count} champ#{'s' if to_sync_count > 1}",

@@ -38,9 +38,11 @@
                         = field[:label]
                         %code.ms-2= field[:type]
               - if inner[:excluded].any?
-                %strong.text-secondary.d-block.mt-2 ⛔ Ignorés (#{inner[:excluded].size})
-                - inner[:excluded].each do |field|
-                  = render 'field_checkbox', target: target, field: field, scope: :block_field, block_id: entry[:id], checked: false
+                %details.mt-2.text-muted
+                  %summary.text-secondary ⛔ Ignorés (#{inner[:excluded].size})
+                  .ms-3.mt-1
+                    - inner[:excluded].each do |field|
+                      = render 'field_checkbox', target: target, field: field, scope: :block_field, block_id: entry[:id], checked: false
         - diff[:blocks_excluded].each do |b|
           - block_data = { controller: 'exclusion-toggle', action: 'change->exclusion-toggle#toggle', exclusion_toggle_url_value: toggle_block_exclusion_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type, block_id: b[:id]) }
           .form-check.mb-2
