@@ -1,3 +1,32 @@
 // Place all the styles related to the diese controller here.
 // They will automatically be included in application.css.
 // You can use Sass (SCSS) here: http://sass-lang.com/
+
+// Typography: Inter via Google Fonts — remplace le system-ui Bootstrap par défaut
+// (qui tombait sur Times New Roman dans certains contextes).
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body,
+.fr-py-5w,
+h1, h2, h3, h4, h5, h6,
+.btn,
+.form-control,
+.form-select,
+.form-label,
+.card,
+.nav,
+.alert,
+.badge {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+// Évite les fallbacks serif involontaires
+* {
+  font-family: inherit;
+}
+
+// Numeric monospace pour les codes types affichés dans les diff
+code {
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.875em;
+}
