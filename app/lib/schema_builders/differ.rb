@@ -165,7 +165,12 @@ module SchemaBuilders
 
     # Compatibilité de type : on compare le type cible ATTENDU (calculé par
     # le TypeMapper depuis le __typename MD) au type cible RÉEL côté Baserow/Grist.
+    # Cas spécial : les formules MD tolèrent N'IMPORTE quel type cible existant
+    # (l'utilisateur peut avoir manuellement converti le champ text initial en
+    # number, date ou formula Baserow).
     def compatible?(md_field, target_field)
+      return true if TypeMapper.formula_type?(md_field[:typename])
+
       md_field[:type].to_s == target_field[:type].to_s
     end
 

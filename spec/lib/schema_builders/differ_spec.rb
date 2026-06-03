@@ -158,6 +158,43 @@ RSpec.describe SchemaBuilders::Differ do
         diff = d.main_table_diff
         expect(diff[:to_modify].map { |f| f[:id] }).to include('t1')
       end
+
+      it 'crée un FormuleChampDescriptor en text quand le champ n\'existe pas côté cible' do
+        formule = TestDifferDescriptor.new(id: 'f1', label: 'Total calculé', typename: 'FormuleChampDescriptor')
+        descriptor = TestDifferDemarcheDescriptor.new([formule])
+        d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: descriptor)
+        allow(adapter).to receive(:get_table_fields).with('101').and_return([])
+        diff = d.main_table_diff
+        added = diff[:to_add].find { |f| f[:id] == 'f1' }
+        expect(added).to be_present
+        expect(added[:type]).to eq('text')
+      end
+
+      it 'tolère n\'importe quel type cible pour un FormuleChampDescriptor déjà présent' do
+        formule = TestDifferDescriptor.new(id: 'f1', label: 'Total calculé', typename: 'FormuleChampDescriptor')
+        descriptor = TestDifferDemarcheDescriptor.new([formule])
+        d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: descriptor)
+        # L'utilisateur a manuellement converti la formule en type number côté Baserow
+        allow(adapter).to receive(:get_table_fields).with('101').and_return([
+                                                                              { 'name' => 'Total calculé',
+                                                                                'type' => 'number' }
+                                                                            ])
+        diff = d.main_table_diff
+        expect(diff[:ok].map { |f| f[:id] }).to include('f1')
+        expect(diff[:to_modify].map { |f| f[:id] }).not_to include('f1')
+      end
+
+      it 'tolère aussi le type formula côté cible pour un FormuleChampDescriptor' do
+        formule = TestDifferDescriptor.new(id: 'f1', label: 'Total calculé', typename: 'FormuleChampDescriptor')
+        descriptor = TestDifferDemarcheDescriptor.new([formule])
+        d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: descriptor)
+        allow(adapter).to receive(:get_table_fields).with('101').and_return([
+                                                                              { 'name' => 'Total calculé',
+                                                                                'type' => 'formula' }
+                                                                            ])
+        diff = d.main_table_diff
+        expect(diff[:ok].map { |f| f[:id] }).to include('f1')
+      end
     end
 
     context 'avec une table inexistante (premier Build)' do

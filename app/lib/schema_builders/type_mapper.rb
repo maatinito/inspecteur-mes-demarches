@@ -37,7 +37,11 @@ module SchemaBuilders
       'DropDownListChampDescriptor' => { type: 'single_select', config: {} },
       'MultipleDropDownListChampDescriptor' => { type: 'multiple_select', config: {} },
       'CiviliteChampDescriptor' => { type: 'single_select', config: {} },
-      'PieceJustificativeChampDescriptor' => { type: 'file', config: {} }
+      'PieceJustificativeChampDescriptor' => { type: 'file', config: {} },
+      # Formules MD : créées en texte côté Baserow ; l'utilisateur peut ensuite
+      # changer manuellement le type (number, date, formula...). Le Differ
+      # tolère donc n'importe quel type cible existant pour ces champs.
+      'FormuleChampDescriptor' => { type: 'text', config: {} }
     }.freeze
 
     GRIST_MAPPINGS = {
@@ -55,8 +59,20 @@ module SchemaBuilders
       'DropDownListChampDescriptor' => { type: 'Choice', config: {} },
       'MultipleDropDownListChampDescriptor' => { type: 'ChoiceList', config: {} },
       'CiviliteChampDescriptor' => { type: 'Choice', config: {} },
-      'PieceJustificativeChampDescriptor' => { type: 'Attachments', config: {} }
+      'PieceJustificativeChampDescriptor' => { type: 'Attachments', config: {} },
+      # Formules MD : créées en texte côté Grist ; l'utilisateur peut ensuite
+      # changer manuellement le type. Le Differ tolère n'importe quel type cible.
+      'FormuleChampDescriptor' => { type: 'Text', config: {} }
     }.freeze
+
+    # Descripteurs MD considérés comme "formules" / calculs : le Differ
+    # accepte N'IMPORTE quel type côté cible pour ces champs (l'utilisateur
+    # peut avoir converti le text initial en number/date/formula Baserow).
+    FORMULA_TYPENAMES = %w[FormuleChampDescriptor].freeze
+
+    def self.formula_type?(mes_demarches_type)
+      FORMULA_TYPENAMES.include?(mes_demarches_type)
+    end
 
     IGNORED_TYPES = %w[
       ExplicationChampDescriptor
