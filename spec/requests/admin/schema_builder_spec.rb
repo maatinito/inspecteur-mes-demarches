@@ -46,12 +46,21 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
 
   describe 'section Avis sur le dashboard' do
     context 'avec une cible Baserow et une table principale construite' do
-      before { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
 
-      it 'affiche la section Avis avec le bouton Build' do
+      before do
+        adapter = instance_double(SchemaBuilders::BaserowTarget)
+        allow(adapter).to receive(:list_tables).with('17').and_return([])
+        allow_any_instance_of(Admin::SchemaBuilderController)
+          .to receive(:target_adapter_for).and_return(adapter)
+      end
+
+      it 'affiche la section Avis en lazy load (Turbo Frame vers preview_avis)' do
         get "/admin/demarches/#{demarche.id}/schema"
         expect(response.body).to include('Table Avis')
-        expect(response.body).to include('Build')
+        expect(response.body).to include("avis-#{target.id}")
+        expect(response.body).to include('/avis/preview')
+        expect(response.body).to include('loading="lazy"')
       end
     end
 

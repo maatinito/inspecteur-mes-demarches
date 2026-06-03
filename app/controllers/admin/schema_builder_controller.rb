@@ -106,19 +106,18 @@ module Admin
       return head :bad_request if target.target_type == 'grist'
       return head :precondition_failed if target.main_table_external_id.blank?
 
-      builder = avis_builder_for(target)
-      result = builder.preview(application_id: target.application_external_id, main_table_id: target.main_table_external_id)
+      diff = compute_avis_diff(target)
 
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "avis-#{target.id}",
             partial: 'avis_section',
-            locals: { target: target, preview: result }
+            locals: { target: target, diff: diff }
           )
         end
         format.html do
-          render partial: 'avis_section', locals: { target: target, preview: result }
+          render partial: 'avis_section', locals: { target: target, diff: diff }
         end
       end
     end
@@ -328,6 +327,52 @@ module Admin
 
     def main_table_name_for(_target)
       "Dossiers démarche #{@demarche.id}"
+    end
+
+    # Calcule un diff léger entre les 6 champs Avis attendus et la table Avis
+    # côté Baserow (si elle existe). 3 zones : to_add / to_modify / ok.
+    # Pas de notion d'exclusion (schéma fixe).
+    def compute_avis_diff(target)
+      builder = avis_builder_for(target)
+      expected_fields = builder.preview(
+        application_id: target.application_external_id,
+        main_table_id: target.main_table_external_id
+      )[:fields]
+      actual_fields = fetch_avis_target_fields(target)
+      classify_avis_fields(expected_fields, actual_fields)
+    end
+
+    def fetch_avis_target_fields(target)
+      return [] if target.avis_table_external_id.blank?
+
+      Array(target_adapter_for(target).get_table_fields(target.avis_table_external_id)).map do |f|
+        { name: f['name'] || f[:name], type: f['type'] || f[:type] }
+      end
+    rescue StandardError => e
+      Rails.logger.warn "fetch_avis_target_fields: #{e.message}"
+      []
+    end
+
+    def classify_avis_fields(expected, actual)
+      result = { to_add: [], to_modify: [], ok: [] }
+      actual_by_name = actual.index_by { |f| f[:name].to_s }
+
+      expected.each do |field|
+        name = (field[:name] || field['name']).to_s
+        type = (field[:type] || field['type']).to_s
+        existing = actual_by_name[name]
+        normalized = { name: name, type: type }
+
+        if existing.nil?
+          result[:to_add] << normalized
+        elsif existing[:type].to_s == type
+          result[:ok] << normalized
+        else
+          result[:to_modify] << normalized.merge(divergence: "Type cible '#{existing[:type]}' ne correspond pas à '#{type}'")
+        end
+      end
+
+      result
     end
 
     # Best-effort : si la table Avis existe déjà côté cible (cas typique des
