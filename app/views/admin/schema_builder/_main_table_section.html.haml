@@ -8,16 +8,16 @@
   - if local_assigns[:diff]
     %div.card.mt-3
       %div.card-header.d-flex.justify-content-between.align-items-center
-        %h5.mb-0
+        %h2.h5.mb-0
           Table principale
           %span.badge.bg-secondary.ms-2= main_table_status_label(target)
       %div.card-body
         - if diff[:to_add].any?
-          %h6.text-success 🟢 À ajouter (#{diff[:to_add].size})
+          %h3.h6.text-success 🟢 À ajouter (#{diff[:to_add].size})
           - diff[:to_add].each do |field|
             = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: true
         - if diff[:to_modify].any?
-          %h6.text-warning.mt-3 🟡 À modifier (#{diff[:to_modify].size})
+          %h3.h6.text-warning.mt-3 🟡 À modifier (#{diff[:to_modify].size})
           - diff[:to_modify].each do |field|
             = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: true, divergence: field[:divergence]
         - if diff[:ok].any?
@@ -29,7 +29,7 @@
                   = field[:label]
                   %code.ms-2= field[:type]
         - if diff[:excluded].any?
-          %h6.text-secondary.mt-3 ⛔ Ignorés (#{diff[:excluded].size})
+          %h3.h6.text-secondary.mt-3 ⛔ Ignorés (#{diff[:excluded].size})
           - diff[:excluded].each do |field|
             = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: false
         - to_sync_count = diff[:to_add].size + diff[:to_modify].size
@@ -44,7 +44,7 @@
   - elsif local_assigns[:build_result]
     %div.card.mt-3
       %div.card-header.d-flex.justify-content-between.align-items-center
-        %h5.mb-0
+        %h2.h5.mb-0
           Table principale
           %span.badge.bg-secondary.ms-2= main_table_status_label(target)
       %div.card-body
@@ -58,7 +58,7 @@
   - else
     %div.card.mt-3
       %div.card-header
-        %h5.mb-0 Table principale
+        %h2.h5.mb-0 Table principale
       %div.card-body.text-center.text-muted
         %div.spinner-border.spinner-border-sm.me-2
         Chargement de l'aperçu…

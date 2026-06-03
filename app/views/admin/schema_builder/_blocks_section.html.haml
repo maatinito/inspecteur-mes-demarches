@@ -8,7 +8,7 @@
   - if local_assigns[:diff]
     .card.mt-3
       .card-header.d-flex.justify-content-between.align-items-center
-        %h5.mb-0 Blocs répétables
+        %h2.h5.mb-0 Blocs répétables
       .card-body
         - if diff[:blocks].empty? && diff[:blocks_excluded].empty?
           %p.text-muted.mb-0 Aucun bloc répétable dans cette démarche.
@@ -58,9 +58,9 @@
   - elsif local_assigns[:build_result]
     .card.mt-3
       .card-header
-        %h5.mb-0 Blocs répétables
+        %h2.h5.mb-0 Blocs répétables
       .card-body
-        %h6 Résultat
+        %h3.h6 Résultat
         %ul.list-unstyled
           - build_result.each do |block|
             %li
@@ -75,7 +75,7 @@
   - else
     .card.mt-3
       .card-header
-        %h5.mb-0 Blocs répétables
+        %h2.h5.mb-0 Blocs répétables
       .card-body.text-center.text-muted
         - if target.main_table_external_id.blank?
           %p.mb-0 La table principale doit être créée avant les blocs répétables.
