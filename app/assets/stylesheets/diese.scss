@@ -33,6 +33,20 @@ code {
 
 // === Schema builder dashboard ===
 .schema-builder {
+  // Header bloc en haut du dashboard : eyebrow + titre + sous-info
+  .schema-builder-header {
+    padding: 1rem 0 0.5rem;
+
+    .schema-builder-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      line-height: 1.25;
+      color: #1c2128;
+      margin: 0.25rem 0;
+      letter-spacing: -0.01em;
+    }
+  }
+
   // Cards : plus de respiration entre les 3 sections + ombre subtile pour la
   // hiérarchie verticale (Table principale > Avis > Blocs).
   .card {
