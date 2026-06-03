@@ -106,6 +106,33 @@ RSpec.describe SchemaBuilders::Differ do
         all_ids = diff.values.flatten.map { |f| f[:id] }
         expect(all_ids).not_to include('rep')
       end
+
+      it 'ignore les HeaderSectionChampDescriptor (jamais dans aucune zone)' do
+        header = TestDifferDescriptor.new(id: 'h1', label: 'Section', typename: 'HeaderSectionChampDescriptor')
+        descriptor = TestDifferDemarcheDescriptor.new([champ_a, header])
+        d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: descriptor)
+        diff = d.main_table_diff
+        all_ids = diff.values.flatten.map { |f| f[:id] }
+        expect(all_ids).not_to include('h1')
+      end
+
+      it 'ignore les ExplicationChampDescriptor (jamais dans aucune zone)' do
+        explication = TestDifferDescriptor.new(id: 'e1', label: 'Info', typename: 'ExplicationChampDescriptor')
+        descriptor = TestDifferDemarcheDescriptor.new([champ_a, explication])
+        d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: descriptor)
+        diff = d.main_table_diff
+        all_ids = diff.values.flatten.map { |f| f[:id] }
+        expect(all_ids).not_to include('e1')
+      end
+
+      it 'ignore les types non supportés par le TypeMapper' do
+        unsupported = TestDifferDescriptor.new(id: 'u1', label: 'Siret', typename: 'SiretChampDescriptor')
+        descriptor = TestDifferDemarcheDescriptor.new([champ_a, unsupported])
+        d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: descriptor)
+        diff = d.main_table_diff
+        all_ids = diff.values.flatten.map { |f| f[:id] }
+        expect(all_ids).not_to include('u1')
+      end
     end
 
     context 'avec une table inexistante (premier Build)' do

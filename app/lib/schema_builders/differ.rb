@@ -18,10 +18,11 @@ module SchemaBuilders
   class Differ
     REPETITION_TYPENAME = 'RepetitionChampDescriptor'
 
-    def initialize(target:, adapter:, demarche_descriptor:)
+    def initialize(target:, adapter:, demarche_descriptor:, type_mapper: nil)
       @target = target
       @adapter = adapter
       @demarche_descriptor = demarche_descriptor
+      @type_mapper = type_mapper || TypeMapper.for(target.target_type.to_sym)
     end
 
     def main_table_diff
@@ -62,7 +63,9 @@ module SchemaBuilders
     # puis classification de ses champs internes.
     def block_entry(block)
       block_target = ensure_block_target(block)
-      inner_md_fields = Array(block.champ_descriptors).map { |c| descriptor_to_field(c) }
+      inner_md_fields = Array(block.champ_descriptors)
+                        .reject { |c| ignored_descriptor?(c) }
+                        .map { |c| descriptor_to_field(c) }
       inner_target_fields = fetch_target_fields(block_target.backend_table_id)
 
       inner_diff = classify(inner_md_fields, inner_target_fields,
@@ -84,11 +87,20 @@ module SchemaBuilders
       @target.schema_block_targets.find_or_create_by!(block_descriptor_id: block.id)
     end
 
-    # Champs candidats pour la table principale (hors blocs répétables).
+    # Champs candidats pour la table principale (hors blocs répétables,
+    # hors types ignorés / non supportés via TypeMapper).
     def filterable_main_fields
       Array(@demarche_descriptor.champ_descriptors)
         .reject { |c| c.__typename == REPETITION_TYPENAME }
+        .reject { |c| ignored_descriptor?(c) }
         .map { |c| descriptor_to_field(c) }
+    end
+
+    # Vrai si le descripteur doit être totalement ignoré du diff (sections
+    # d'en-tête, explications, types non mappables).
+    def ignored_descriptor?(champ)
+      typename = champ.__typename.to_s
+      TypeMapper.should_ignore_type?(typename) || !@type_mapper.supported_type?(typename)
     end
 
     # Récupère la liste des champs côté cible pour une table donnée.
