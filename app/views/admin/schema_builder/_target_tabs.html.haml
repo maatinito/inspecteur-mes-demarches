@@ -1,15 +1,23 @@
 %div#schema-targets{ data: { controller: 'target-tabs' } }
   - if targets.any?
-    %nav.nav.nav-tabs.mb-3
-      - targets.each_with_index do |target, idx|
-        %li.nav-item
-          %a.nav-link{ href: "##{target.target_type}-panel", class: ('active' if idx.zero?), data: { action: 'click->target-tabs#switch' } }
-            = target.target_type.titleize
-        %li.nav-item.d-flex.align-items-center
-          = button_to '✕', destroy_target_admin_demarche_schema_path(demarche_demarche_id: demarche.id, target_type: target.target_type), method: :delete, form: { data: { turbo_confirm: 'Supprimer cette cible ?' } }, class: 'btn btn-sm btn-link text-danger p-0 ms-1'
+    -# Nav-tabs cachée si une seule cible (incongrue visuellement)
+    - if targets.size > 1
+      %nav.nav.nav-tabs.mb-3
+        - targets.each_with_index do |target, idx|
+          %li.nav-item
+            %a.nav-link{ href: "##{target.target_type}-panel", class: ('active' if idx.zero?), data: { action: 'click->target-tabs#switch' } }
+              = target.target_type.titleize
+          %li.nav-item.d-flex.align-items-center
+            = button_to '✕', destroy_target_admin_demarche_schema_path(demarche_demarche_id: demarche.id, target_type: target.target_type), method: :delete, form: { data: { turbo_confirm: 'Supprimer cette cible ?' } }, class: 'btn btn-sm btn-link text-danger px-2 ms-1', title: 'Supprimer cette cible'
+    - elsif targets.size == 1
+      -# Une seule cible : juste un mini-titre + lien suppression discret
+      %div.d-flex.justify-content-between.align-items-center.mb-3.text-muted
+        %small.text-uppercase.fw-semibold Cible : #{targets.first.target_type.titleize}
+        = button_to '✕ retirer', destroy_target_admin_demarche_schema_path(demarche_demarche_id: demarche.id, target_type: targets.first.target_type), method: :delete, form: { data: { turbo_confirm: 'Supprimer cette cible ?' } }, class: 'btn btn-sm btn-link text-danger p-0', title: 'Supprimer cette cible'
+
     .tab-content
       - targets.each_with_index do |target, idx|
-        .tab-pane.fade{ id: "#{target.target_type}-panel", class: ('show active' if idx.zero?), data: { target_tabs_target: 'panel' } }
+        .tab-pane.fade{ id: "#{target.target_type}-panel", class: ('show active' if idx.zero? || targets.size == 1), data: { target_tabs_target: 'panel' } }
           = render 'target_panel', target: target
 
   - missing_types = %w[baserow grist] - targets.map(&:target_type)
