@@ -6,13 +6,14 @@ require 'rails_helper'
 
 # Stub minimal d'un champ_descriptor GraphQL pour le Differ.
 class TestDifferDescriptor
-  attr_reader :id, :label, :__typename, :options
+  attr_reader :id, :label, :__typename, :options, :other_option
 
-  def initialize(id:, label:, typename:, options: nil)
+  def initialize(id:, label:, typename:, options: nil, other_option: nil)
     @id = id
     @label = label
     @__typename = typename
     @options = options
+    @other_option = other_option
   end
 end
 
@@ -232,6 +233,47 @@ RSpec.describe SchemaBuilders::Differ do
       it 'ne fait pas d\'appel à adapter.get_table_fields' do
         expect(adapter).not_to receive(:get_table_fields)
         differ.main_table_diff
+      end
+    end
+
+    context 'DropDownList avec otherOption=true' do
+      it 'considère le type cible attendu comme text (pas single_select)' do
+        dropdown = TestDifferDescriptor.new(
+          id: 'dd1', label: 'Catégorie',
+          typename: 'DropDownListChampDescriptor',
+          options: %w[A B Autre],
+          other_option: true
+        )
+        descriptor = TestDifferDemarcheDescriptor.new([dropdown])
+        d = described_class.new(target: schema_target, adapter: adapter,
+                                demarche_descriptor: descriptor)
+        allow(adapter).to receive(:get_table_fields).with('101').and_return([
+                                                                              { 'name' => 'Catégorie',
+                                                                                'type' => 'text' }
+                                                                            ])
+
+        diff = d.main_table_diff
+        expect(diff[:ok].map { |f| f[:id] }).to include('dd1')
+        expect(diff[:to_modify].map { |f| f[:id] }).not_to include('dd1')
+      end
+
+      it 'garde single_select pour otherOption=false (comportement par défaut)' do
+        dropdown = TestDifferDescriptor.new(
+          id: 'dd2', label: 'Civilité',
+          typename: 'DropDownListChampDescriptor',
+          options: %w[M Mme],
+          other_option: false
+        )
+        descriptor = TestDifferDemarcheDescriptor.new([dropdown])
+        d = described_class.new(target: schema_target, adapter: adapter,
+                                demarche_descriptor: descriptor)
+        allow(adapter).to receive(:get_table_fields).with('101').and_return([
+                                                                              { 'name' => 'Civilité',
+                                                                                'type' => 'text' }
+                                                                            ])
+
+        diff = d.main_table_diff
+        expect(diff[:to_modify].map { |f| f[:id] }).to include('dd2')
       end
     end
 

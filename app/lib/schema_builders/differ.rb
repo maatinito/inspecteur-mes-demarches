@@ -210,12 +210,24 @@ module SchemaBuilders
     end
 
     # Type natif cible attendu pour ce descripteur (via TypeMapper).
-    # Retourne nil si le mapping n'est pas trouvable (ne doit normalement plus
-    # arriver après filterable_main_fields qui rejette les types non supportés).
+    # Passe le descripteur sérialisé en hash pour que le TypeMapper applique
+    # ses règles contextuelles (notamment : DropDownListChampDescriptor avec
+    # otherOption=true devient `text` au lieu de `single_select` car la valeur
+    # libre saisie par l'usager ne tient pas dans une enum).
+    # Retourne nil si le mapping n'est pas trouvable.
     def expected_target_type(champ)
-      @type_mapper.map_field_type(champ.__typename.to_s)[:type]
+      @type_mapper.map_field_type(champ.__typename.to_s, descriptor_attrs(champ))[:type]
     rescue TypeMapper::UnsupportedTypeError
       nil
+    end
+
+    # Sérialise les attributs du descripteur GraphQL utiles au TypeMapper
+    # (string keys, alignés avec ce qu'attend map_field_type).
+    def descriptor_attrs(champ)
+      {
+        'otherOption' => (champ.respond_to?(:other_option) ? champ.other_option : nil),
+        'options' => (champ.respond_to?(:options) ? champ.options : nil)
+      }
     end
 
     # Compatibilité de type : on compare le type cible ATTENDU (calculé par
