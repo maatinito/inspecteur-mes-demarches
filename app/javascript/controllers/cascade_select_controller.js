@@ -59,7 +59,7 @@ export default class extends Controller {
       main_table_external_id: this.tableTarget.value
     }
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
-    await fetch(`/admin/demarches/${this.demarcheIdValue}/schema/targets/${this.targetTypeValue}/selection`, {
+    const response = await fetch(`/admin/demarches/${this.demarcheIdValue}/schema/targets/${this.targetTypeValue}/selection`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -67,6 +67,24 @@ export default class extends Controller {
         'Accept': 'text/vnd.turbo-stream.html'
       },
       body: JSON.stringify(payload)
+    })
+
+    // Après update de la sélection, on relance le diff des 3 sections (main_table,
+    // avis, blocs) pour qu'elles reflètent la nouvelle cible — sinon l'utilisateur
+    // verrait des anciennes infos jusqu'à un reload manuel.
+    if (response.ok) {
+      this.#reloadSectionFrames()
+    }
+  }
+
+  #reloadSectionFrames() {
+    const id = this.schemaTargetIdValue
+    if (!id) return
+    ;["main-table-", "avis-", "blocks-"].forEach((prefix) => {
+      const frame = document.getElementById(`${prefix}${id}`)
+      if (frame && typeof frame.reload === "function") {
+        frame.reload()
+      }
     })
   }
 
