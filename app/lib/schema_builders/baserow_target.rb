@@ -27,8 +27,13 @@ module SchemaBuilders
       @client.list_workspaces
     end
 
+    # Le schema builder ne peut synchroniser que vers des "databases" Baserow
+    # (qui contiennent des tables). On exclut les "builder" (UI builder sans
+    # tables) et "dashboard" qui pollueraient le dropdown Application.
     def list_applications(workspace_id)
-      @client.list_applications(workspace_id)
+      Array(@client.list_applications(workspace_id)).select do |app|
+        (app['type'] || app[:type]).to_s == 'database'
+      end
     end
 
     def list_tables(application_id)

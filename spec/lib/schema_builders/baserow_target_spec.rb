@@ -18,9 +18,14 @@ RSpec.describe SchemaBuilders::BaserowTarget do
   end
 
   describe '#list_applications' do
-    it 'délègue avec le workspace_id' do
-      expect(client).to receive(:list_applications).with(42).and_return([{ 'id' => 10 }])
-      expect(target.list_applications(42)).to eq([{ 'id' => 10 }])
+    it 'délègue avec le workspace_id et filtre sur le type "database"' do
+      expect(client).to receive(:list_applications).with(42).and_return([
+                                                                          { 'id' => 10, 'type' => 'database', 'name' => 'BD' },
+                                                                          { 'id' => 11, 'type' => 'builder', 'name' => 'UI builder' },
+                                                                          { 'id' => 12, 'type' => 'dashboard', 'name' => 'Dashboard' }
+                                                                        ])
+      result = target.list_applications(42)
+      expect(result.map { |a| a['id'] }).to eq([10])
     end
   end
 
