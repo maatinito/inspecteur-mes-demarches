@@ -66,6 +66,7 @@ module SchemaBuilders
       inner_md_fields = Array(block.champ_descriptors)
                         .reject { |c| ignored_descriptor?(c) }
                         .map { |c| descriptor_to_field(c) }
+      inner_md_fields = dedupe_by_label(inner_md_fields, context: "bloc '#{block.label}'")
       inner_target_fields = fetch_target_fields(block_target.backend_table_id)
 
       inner_diff = classify(inner_md_fields, inner_target_fields,
@@ -88,12 +89,31 @@ module SchemaBuilders
     end
 
     # Champs candidats pour la table principale (hors blocs répétables,
-    # hors types ignorés / non supportés via TypeMapper).
+    # hors types ignorés / non supportés via TypeMapper, dédupés par label).
     def filterable_main_fields
-      Array(@demarche_descriptor.champ_descriptors)
-        .reject { |c| c.__typename == REPETITION_TYPENAME }
-        .reject { |c| ignored_descriptor?(c) }
-        .map { |c| descriptor_to_field(c) }
+      fields = Array(@demarche_descriptor.champ_descriptors)
+               .reject { |c| c.__typename == REPETITION_TYPENAME }
+               .reject { |c| ignored_descriptor?(c) }
+               .map { |c| descriptor_to_field(c) }
+      dedupe_by_label(fields, context: 'table principale')
+    end
+
+    # Conserve la première occurrence de chaque label et logue les doublons.
+    # Défensif : la plupart des doublons sont déjà filtrés par ignored_descriptor?
+    # (un label "Superficie" porté à la fois par un HeaderSection et un
+    # IntegerNumber disparaît après le filtre). Ce dédup attrape les cas
+    # résiduels (deux champs métier de même label) pour éviter qu'un même
+    # nom soit envoyé deux fois à la cible.
+    def dedupe_by_label(fields, context:)
+      fields.group_by { |f| f[:label] }.flat_map do |label, group|
+        if group.size > 1
+          Rails.logger.warn(
+            "SchemaBuilders::Differ: doublon de label '#{label}' dans #{context}, " \
+            "on garde le premier (ids: #{group.map { |f| f[:id] }.inspect})"
+          )
+        end
+        [group.first]
+      end
     end
 
     # Vrai si le descripteur doit être totalement ignoré du diff (sections

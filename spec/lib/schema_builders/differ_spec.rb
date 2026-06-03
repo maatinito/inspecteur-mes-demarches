@@ -195,6 +195,21 @@ RSpec.describe SchemaBuilders::Differ do
         diff = d.main_table_diff
         expect(diff[:ok].map { |f| f[:id] }).to include('f1')
       end
+
+      it 'dédupe les champs MD ayant le même label (garde le premier)' do
+        first = TestDifferDescriptor.new(id: 'first', label: 'Superficie', typename: 'IntegerNumberChampDescriptor')
+        second = TestDifferDescriptor.new(id: 'second', label: 'Superficie', typename: 'IntegerNumberChampDescriptor')
+        descriptor = TestDifferDemarcheDescriptor.new([first, second])
+        d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: descriptor)
+        allow(adapter).to receive(:get_table_fields).with('101').and_return([])
+        allow(Rails.logger).to receive(:warn)
+
+        diff = d.main_table_diff
+        all_ids = diff.values.flatten.map { |f| f[:id] }
+        expect(all_ids.count('first')).to eq(1)
+        expect(all_ids).not_to include('second')
+        expect(Rails.logger).to have_received(:warn).with(/doublon de label 'Superficie'/)
+      end
     end
 
     context 'avec une table inexistante (premier Build)' do
