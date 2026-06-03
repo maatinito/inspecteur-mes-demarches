@@ -81,11 +81,34 @@ module SchemaBuilders
       }
     end
 
-    # Auto-crée le SchemaBlockTarget s'il n'existe pas encore.
-    # backend_table_id reste nil jusqu'au premier Build du bloc — c'est juste
-    # un porteur d'état pour stocker les exclusions de champs.
+    # Auto-crée le SchemaBlockTarget s'il n'existe pas encore. Si backend_table_id
+    # est absent, on tente de détecter une table existante côté cible par nom
+    # (convention historique : table_name = block.label, cf. l'ancien
+    # MesDemarchesToBaserow::RepetableBlockBuilder). Si détectée, on persiste
+    # le backend_table_id — l'utilisateur n'a pas besoin de rejouer le backfill.
     def ensure_block_target(block)
-      @target.schema_block_targets.find_or_create_by!(block_descriptor_id: block.id)
+      block_target = @target.schema_block_targets.find_or_create_by!(block_descriptor_id: block.id)
+      if block_target.backend_table_id.blank? && @target.application_external_id.present?
+        detected_id = detect_existing_block_table_id(block.label)
+        block_target.update!(backend_table_id: detected_id.to_s) if detected_id
+      end
+      block_target
+    end
+
+    # Recherche une table dans l'application cible par nom. Cache la liste pour
+    # éviter N+1 appels API quand il y a plusieurs blocs.
+    def detect_existing_block_table_id(name)
+      tables_by_name[name]
+    end
+
+    def tables_by_name
+      @tables_by_name ||= begin
+        list = Array(@adapter.list_tables(@target.application_external_id))
+        list.to_h { |t| [t['name'] || t[:name], t['id'] || t[:id]] }
+      rescue StandardError => e
+        Rails.logger.warn "SchemaBuilders::Differ: unable to list tables for detection: #{e.message}"
+        {}
+      end
     end
 
     # Champs candidats pour la table principale (hors blocs répétables,

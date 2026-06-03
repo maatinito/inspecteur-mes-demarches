@@ -268,12 +268,13 @@ RSpec.describe SchemaBuilders::Differ do
              schema_target: schema_target,
              block_descriptor_id: 'bloc_existing',
              backend_table_id: '500')
-      # Stub minimal pour la table principale (appelée via main_table_diff si invoquée,
-      # mais blocks_diff seul ne devrait pas la solliciter)
       allow(adapter).to receive(:get_table_fields).with('500').and_return([
                                                                             { 'name' => 'Nom', 'type' => 'text' },
                                                                             { 'name' => 'Montant', 'type' => 'text' }
                                                                           ])
+      # Stub par défaut : aucune table détectée par nom. Les tests qui veulent
+      # vérifier l'auto-détection re-stubbent avec une liste non vide.
+      allow(adapter).to receive(:list_tables).and_return([])
     end
 
     it 'retourne le bloc exclus dans blocks_excluded' do
@@ -323,6 +324,36 @@ RSpec.describe SchemaBuilders::Differ do
       differ.blocks_diff
       expect { differ.blocks_diff }
         .not_to(change { SchemaBlockTarget.count })
+    end
+
+    context 'auto-détection de table existante par nom' do
+      it 'persiste backend_table_id quand une table cible a le même nom que le bloc' do
+        allow(adapter).to receive(:list_tables).with('17').and_return([
+                                                                        { 'id' => 700, 'name' => 'Pièces jointes' },
+                                                                        { 'id' => 701, 'name' => 'Autre' }
+                                                                      ])
+        allow(adapter).to receive(:get_table_fields).with('700').and_return([])
+
+        differ.blocks_diff
+        new_bt = schema_target.schema_block_targets.find_by(block_descriptor_id: 'bloc_new')
+        expect(new_bt.backend_table_id).to eq('700')
+      end
+
+      it 'ne touche pas au backend_table_id si déjà persisté' do
+        allow(adapter).to receive(:list_tables).with('17').and_return([
+                                                                        { 'id' => 999, 'name' => 'Membres' }
+                                                                      ])
+        existing = schema_target.schema_block_targets.find_by(block_descriptor_id: 'bloc_existing')
+        original = existing.backend_table_id
+        differ.blocks_diff
+        expect(existing.reload.backend_table_id).to eq(original)
+      end
+
+      it "n'appelle list_tables qu'une fois même avec plusieurs blocs neufs" do
+        allow(adapter).to receive(:list_tables).with('17').and_return([])
+        differ.blocks_diff
+        expect(adapter).to have_received(:list_tables).with('17').once
+      end
     end
 
     it 'respecte les exclusions de champ DANS un bloc' do
