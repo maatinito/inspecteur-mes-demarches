@@ -19,11 +19,18 @@ RSpec.describe 'Admin::SchemaBuilderLegacy', type: :request do
       expect(response.body).to include('dashboard')
     end
 
-    it 'liste les démarches avec un lien vers le nouveau dashboard' do
+    it 'liste les démarches dont le user est instructeur, avec un lien vers le dashboard' do
       demarche = create(:demarche, libelle: 'Démarche A')
+      user.demarches << demarche
       get '/admin/schema_builder_legacy'
       expect(response.body).to include('Démarche A')
       expect(response.body).to include("/admin/demarches/#{demarche.id}/schema")
+    end
+
+    it "ne liste pas les démarches dont le user n'est pas instructeur (scoping sécurité)" do
+      create(:demarche, libelle: 'Démarche autre instructeur')
+      get '/admin/schema_builder_legacy'
+      expect(response.body).not_to include('Démarche autre instructeur')
     end
 
     it 'redirige vers login si non authentifié' do

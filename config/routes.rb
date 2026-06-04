@@ -2,7 +2,14 @@
 
 Rails.application.routes.draw do
   root 'demarche#show'
-  devise_for :users
+
+  # Inscription publique désactivée via controller override (sécurité : éviter
+  # le scénario phishing où un attaquant s'inscrit avec l'email d'un instructeur
+  # légitime et hérite de ses droits via update_instructeurs au prochain
+  # InspectJob). Les comptes sont créés manuellement via rails console.
+  # On garde les helpers Devise (les templates les référencent) mais les actions
+  # new/create du RegistrationsController custom retournent une erreur.
+  devise_for :users, controllers: { registrations: 'users/registrations' }
 
   get 'demarche/verify'
   get 'demarche/report'

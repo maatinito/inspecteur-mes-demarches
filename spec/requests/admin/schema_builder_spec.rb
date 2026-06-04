@@ -7,7 +7,12 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
   let(:user) { create(:user) }
   let(:demarche) { create(:demarche) }
 
-  before { sign_in user }
+  before do
+    # Le scoping de sécurité requiert que le user soit instructeur de la démarche
+    # (lien demarches_users peuplé par update_instructeurs en prod).
+    user.demarches << demarche
+    sign_in user
+  end
 
   describe 'GET /admin/demarches/:demarche_id/schema' do
     it 'rend le dashboard (200)' do

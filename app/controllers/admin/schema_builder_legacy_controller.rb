@@ -13,15 +13,12 @@ module Admin
 
     private
 
-    # Reproduit le scoping utilisé ailleurs : User has_and_belongs_to_many :demarches.
-    # En fallback (association non disponible ou vide pour un super-utilisateur),
-    # on retourne toutes les démarches — cohérent avec l'absence de scoping dans
-    # Admin::SchemaBuilderController et les anciens BaserowSchema/GristSchema.
+    # Scope strict : un utilisateur ne voit QUE les démarches dont il est
+    # instructeur (lien demarches_users peuplé par update_instructeurs au
+    # moment de la vérification). Pas de fallback Demarche.all — ce serait
+    # un trou de sécurité (un auto-inscrit verrait toutes les démarches).
     def accessible_demarches
-      scoped = current_user.demarches.order(:libelle)
-      scoped.any? ? scoped : Demarche.order(:libelle)
-    rescue NoMethodError
-      Demarche.order(:libelle)
+      current_user.demarches.order(:libelle)
     end
   end
 end

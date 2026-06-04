@@ -252,7 +252,9 @@ module Admin
     end
 
     def set_demarche
-      @demarche = Demarche.find(params[:demarche_demarche_id])
+      # Scope par current_user.demarches : 404 si la démarche n'est pas
+      # assignée au user. Évite l'IDOR (accès à une démarche par devinette d'ID).
+      @demarche = current_user.demarches.find(params[:demarche_demarche_id])
     end
 
     def target_selection_params
