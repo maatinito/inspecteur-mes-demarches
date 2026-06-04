@@ -3,13 +3,13 @@
 Rails.application.routes.draw do
   root 'demarche#show'
 
-  # Inscription publique désactivée via controller override (sécurité : éviter
-  # le scénario phishing où un attaquant s'inscrit avec l'email d'un instructeur
-  # légitime et hérite de ses droits via update_instructeurs au prochain
-  # InspectJob). Les comptes sont créés manuellement via rails console.
-  # On garde les helpers Devise (les templates les référencent) mais les actions
-  # new/create du RegistrationsController custom retournent une erreur.
-  devise_for :users, controllers: { registrations: 'users/registrations' }
+  # Inscription publique réactivée : un auto-inscrit a admin: false par défaut.
+  # L'accès au schema builder est gated par require_admin! (cf.
+  # Admin::SchemaBuilderController). Le scénario phishing (inscrire avec
+  # email victim → hériter de ses démarches via update_instructeurs) reste
+  # possible côté DemarcheController, mais l'attaquant n'accède qu'à
+  # l'interface de vérification, pas au méta-modèle Baserow.
+  devise_for :users
 
   get 'demarche/verify'
   get 'demarche/report'

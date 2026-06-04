@@ -3,12 +3,12 @@
 require 'rails_helper'
 
 RSpec.describe 'Admin::SchemaBuilderLegacy', type: :request do
-  let(:user) { create(:user) }
+  let(:user) { create(:user, :admin) }
 
   before { sign_in user }
 
   describe 'GET /admin/schema_builder_legacy' do
-    it 'retourne 200' do
+    it 'retourne 200 pour un admin' do
       get '/admin/schema_builder_legacy'
       expect(response).to have_http_status(:ok)
     end
@@ -19,24 +19,26 @@ RSpec.describe 'Admin::SchemaBuilderLegacy', type: :request do
       expect(response.body).to include('dashboard')
     end
 
-    it 'liste les démarches dont le user est instructeur, avec un lien vers le dashboard' do
+    it 'liste toutes les démarches (admin = sysadmin technique)' do
       demarche = create(:demarche, libelle: 'Démarche A')
-      user.demarches << demarche
       get '/admin/schema_builder_legacy'
       expect(response.body).to include('Démarche A')
       expect(response.body).to include("/admin/demarches/#{demarche.id}/schema")
-    end
-
-    it "ne liste pas les démarches dont le user n'est pas instructeur (scoping sécurité)" do
-      create(:demarche, libelle: 'Démarche autre instructeur')
-      get '/admin/schema_builder_legacy'
-      expect(response.body).not_to include('Démarche autre instructeur')
     end
 
     it 'redirige vers login si non authentifié' do
       sign_out user
       get '/admin/schema_builder_legacy'
       expect(response).to redirect_to(new_user_session_path)
+    end
+
+    it 'redirige un user NON admin vers root (require_admin!)' do
+      sign_out user
+      non_admin = create(:user)
+      sign_in non_admin
+      get '/admin/schema_builder_legacy'
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to match(/administrateur/i)
     end
   end
 end

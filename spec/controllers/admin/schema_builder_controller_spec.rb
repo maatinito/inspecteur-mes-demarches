@@ -8,14 +8,8 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
 
   render_views
 
-  let(:user) { create(:user) }
-  let(:demarche) do
-    # Le scoping de sécurité requiert que le user soit instructeur de la démarche
-    # (lien demarches_users peuplé par update_instructeurs en prod).
-    d = create(:demarche)
-    user.demarches << d
-    d
-  end
+  let(:user) { create(:user, :admin) }
+  let(:demarche) { create(:demarche) }
 
   before { sign_in user }
 

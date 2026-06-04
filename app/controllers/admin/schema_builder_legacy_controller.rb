@@ -6,6 +6,7 @@ module Admin
   # connecté et propose un lien vers le nouveau dashboard scopé par démarche.
   class SchemaBuilderLegacyController < ApplicationController
     before_action :authenticate_user!
+    before_action :require_admin!
 
     def index
       @demarches = accessible_demarches
@@ -13,12 +14,11 @@ module Admin
 
     private
 
-    # Scope strict : un utilisateur ne voit QUE les démarches dont il est
-    # instructeur (lien demarches_users peuplé par update_instructeurs au
-    # moment de la vérification). Pas de fallback Demarche.all — ce serait
-    # un trou de sécurité (un auto-inscrit verrait toutes les démarches).
+    # L'accès au controller est déjà restreint aux admins via require_admin!.
+    # Un admin voit toutes les démarches (sysadmin = opérateur technique,
+    # pas instructeur métier).
     def accessible_demarches
-      current_user.demarches.order(:libelle)
+      Demarche.order(:libelle)
     end
   end
 end

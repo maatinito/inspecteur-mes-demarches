@@ -5,6 +5,7 @@
 # Table name: users
 #
 #  id                     :bigint           not null, primary key
+#  admin                  :boolean          default(FALSE), not null
 #  confirmation_sent_at   :datetime
 #  confirmation_token     :string
 #  confirmed_at           :datetime
@@ -38,5 +39,11 @@ FactoryBot.define do
     password { 'password123' }
     password_confirmation { 'password123' }
     confirmed_at { Time.zone.now }
+
+    # Trait pour les specs qui touchent le schema_builder
+    # (réservé aux admins via require_admin!).
+    trait :admin do
+      admin { true }
+    end
   end
 end

@@ -4,14 +4,20 @@ require 'rails_helper'
 
 # rubocop:disable Metrics/BlockLength
 RSpec.describe 'Admin::SchemaBuilder', type: :request do
-  let(:user) { create(:user) }
+  let(:user) { create(:user, :admin) }
   let(:demarche) { create(:demarche) }
 
-  before do
-    # Le scoping de sécurité requiert que le user soit instructeur de la démarche
-    # (lien demarches_users peuplé par update_instructeurs en prod).
-    user.demarches << demarche
-    sign_in user
+  before { sign_in user }
+
+  context 'sécurité require_admin!' do
+    it 'redirige un user non-admin vers root avec un flash' do
+      sign_out user
+      non_admin = create(:user)
+      sign_in non_admin
+      get "/admin/demarches/#{demarche.id}/schema"
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to match(/administrateur/i)
+    end
   end
 
   describe 'GET /admin/demarches/:demarche_id/schema' do
