@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_260_506_090_828) do
+ActiveRecord::Schema[7.2].define(version: 20_260_604_013_631) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -114,6 +114,34 @@ ActiveRecord::Schema[7.2].define(version: 20_260_506_090_828) do
     t.index ['run_at'], name: 'by_date'
   end
 
+  create_table 'schema_block_targets', force: :cascade do |t|
+    t.bigint 'schema_target_id', null: false
+    t.string 'block_descriptor_id', null: false
+    t.string 'backend_table_id'
+    t.datetime 'last_synced_at'
+    t.datetime 'created_at', null: false
+    t.datetime 'updated_at', null: false
+    t.jsonb 'excluded_field_ids', default: [], null: false
+    t.index %w[schema_target_id block_descriptor_id], name: 'idx_schema_block_targets_unique', unique: true
+    t.index ['schema_target_id'], name: 'index_schema_block_targets_on_schema_target_id'
+  end
+
+  create_table 'schema_targets', force: :cascade do |t|
+    t.bigint 'demarche_id', null: false
+    t.string 'target_type', null: false
+    t.string 'workspace_external_id'
+    t.string 'application_external_id'
+    t.string 'main_table_external_id'
+    t.string 'avis_table_external_id'
+    t.datetime 'last_synced_at'
+    t.datetime 'created_at', null: false
+    t.datetime 'updated_at', null: false
+    t.jsonb 'excluded_field_ids', default: [], null: false
+    t.jsonb 'excluded_block_descriptor_ids', default: [], null: false
+    t.index %w[demarche_id target_type], name: 'index_schema_targets_on_demarche_id_and_target_type', unique: true
+    t.index ['demarche_id'], name: 'index_schema_targets_on_demarche_id'
+  end
+
   create_table 'sessions', force: :cascade do |t|
     t.string 'name'
     t.datetime 'date', precision: nil
@@ -150,9 +178,13 @@ ActiveRecord::Schema[7.2].define(version: 20_260_506_090_828) do
     t.integer 'failed_attempts', default: 0, null: false
     t.string 'unlock_token'
     t.datetime 'locked_at', precision: nil
+    t.boolean 'admin', default: false, null: false
     t.index ['confirmation_token'], name: 'index_users_on_confirmation_token', unique: true
     t.index ['email'], name: 'index_users_on_email', unique: true
     t.index ['reset_password_token'], name: 'index_users_on_reset_password_token', unique: true
     t.index ['unlock_token'], name: 'index_users_on_unlock_token', unique: true
   end
+
+  add_foreign_key 'schema_block_targets', 'schema_targets'
+  add_foreign_key 'schema_targets', 'demarches'
 end

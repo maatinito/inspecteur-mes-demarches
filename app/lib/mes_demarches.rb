@@ -481,6 +481,7 @@ module MesDemarches
             __typename
             ... on DropDownListChampDescriptor {
               options
+              otherOption
             }
             ... on MultipleDropDownListChampDescriptor {
               options
@@ -510,6 +511,7 @@ module MesDemarches
             __typename
             ... on DropDownListChampDescriptor {
               options
+              otherOption
             }
             ... on MultipleDropDownListChampDescriptor {
               options

@@ -1,0 +1,66 @@
+-# Section "Table principale" — modes :
+-#   - lazy (initial render)          : skeleton + spinner, Turbo Frame avec src lazy
+-#   - diff (preview / toggle)        : affichage 4 zones + checkboxes + bouton Build
+-#   - build_result (après Build)     : résumé de l'opération
+- lazy_src = (local_assigns[:diff].nil? && local_assigns[:build_result].nil?) ? preview_main_table_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type) : nil
+
+%turbo-frame{ id: "main-table-#{target.id}", src: lazy_src, loading: :lazy }
+  - if local_assigns[:diff]
+    %div.card.mt-3
+      %div.card-header.d-flex.justify-content-between.align-items-center
+        %h2.h5.mb-0.schema-builder-card-title
+          Table principale
+          %span.badge.ms-2{ class: main_table_status_class(target) }= main_table_status_label(target)
+      %div.card-body
+        - if diff[:to_add].any?
+          %h3.h6.schema-builder-zone-title.text-success 🟢 À ajouter (#{diff[:to_add].size})
+          - diff[:to_add].each do |field|
+            = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: true
+        - if diff[:to_modify].any?
+          %h3.h6.schema-builder-zone-title.text-warning.mt-3 🟡 À modifier (#{diff[:to_modify].size})
+          - diff[:to_modify].each do |field|
+            = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: true, divergence: field[:divergence]
+        - if diff[:ok].any?
+          %details.mt-3
+            %summary.text-muted ▶ #{diff[:ok].size} champs conformes (cliquer pour déplier)
+            %ul.list-unstyled.ms-3.mt-2
+              - diff[:ok].each do |field|
+                %li.text-muted
+                  = field[:label]
+                  %code.ms-2= field[:type]
+        - if diff[:excluded].any?
+          %details.mt-3.text-muted
+            %summary.h6.text-secondary ⛔ Ignorés (#{diff[:excluded].size}) (cliquer pour déplier)
+            .ms-3.mt-2
+              - diff[:excluded].each do |field|
+                = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: false
+        - to_sync_count = diff[:to_add].size + diff[:to_modify].size
+        %div.mt-4
+          = button_to "Synchroniser #{to_sync_count} champ#{'s' if to_sync_count > 1}",
+                      build_main_table_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
+                      method: :post,
+                      class: "btn btn-primary schema-builder-sync-btn #{'disabled' if to_sync_count.zero?}",
+                      form: { data: { turbo_frame: "main-table-#{target.id}", turbo_confirm: 'Synchroniser ?' } },
+                      data: { controller: 'build-action', action: 'click->build-action#start' },
+                      disabled: to_sync_count.zero?
+  - elsif local_assigns[:build_result]
+    %div.card.mt-3
+      %div.card-header.d-flex.justify-content-between.align-items-center
+        %h2.h5.mb-0.schema-builder-card-title
+          Table principale
+          %span.badge.ms-2{ class: main_table_status_class(target) }= main_table_status_label(target)
+      %div.card-body
+        = render 'build_result', build_result: build_result
+        %div.mt-3
+          = button_to 'Recharger l\'aperçu',
+                      preview_main_table_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
+                      method: :get,
+                      class: 'btn btn-outline-secondary',
+                      form: { data: { turbo_frame: "main-table-#{target.id}" } }
+  - else
+    %div.card.mt-3
+      %div.card-header
+        %h2.h5.mb-0.schema-builder-card-title Table principale
+      %div.card-body.text-center.text-muted
+        %div.spinner-border.spinner-border-sm.me-2
+        Chargement de l'aperçu…

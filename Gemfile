@@ -13,7 +13,10 @@ gem 'pg', '>= 0.18', '< 2.0'
 gem 'puma', '>= 3.12.6'
 # Use SCSS for stylesheets
 gem 'cssbundling-rails'
+gem 'importmap-rails', '~> 2.0'
 gem 'json', '>= 2.10.0'
+gem 'stimulus-rails', '~> 1.3'
+gem 'turbo-rails', '~> 2.0'
 # Use Uglifier as compressor for JavaScript assets
 gem 'uglifier', '>= 1.3.0'
 # See https://github.com/rails/execjs#readme for more supported runtimes

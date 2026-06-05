@@ -1,0 +1,5 @@
+%div.alert.mt-3{ class: build_result[:action] == :created ? 'alert-success' : 'alert-info' }
+  - if build_result[:action] == :created
+    Table créée (ID #{build_result[:table_id]})
+  - else
+    Table mise à jour (ID #{build_result[:table_id]})

@@ -15,10 +15,12 @@
 
     = stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload'
     = javascript_include_tag 'application', 'data-turbolinks-track': 'reload'
+    = javascript_importmap_tags 'hotwire'
   %body
     = render partial: "layouts/header"
-    - flash.each do |type, msg|
-      - tag = type == 'notice' ? 'info' : 'warning'
-      %div{ class: "alert alert-#{tag}"}= msg
-    = yield
+    %main.container.py-3
+      - flash.each do |type, msg|
+        - tag = type == 'notice' ? 'info' : 'warning'
+        %div{ class: "alert alert-#{tag}"}= msg
+      = yield
 

@@ -1,0 +1,24 @@
+%div{ data: {
+  controller: 'cascade-select',
+  cascade_select_target_type_value: target.target_type,
+  cascade_select_demarche_id_value: target.demarche_id,
+  cascade_select_schema_target_id_value: target.id
+} }
+  %div.row.g-3.mt-3
+    %div.col-md-4
+      %label.form-label Workspace
+      %select.form-select{ data: { cascade_select_target: 'workspace', action: 'change->cascade-select#onWorkspaceChange change->cascade-select#onSelectionChange', selected_value: target.workspace_external_id } }
+        %option{ value: '' } Chargement…
+    %div.col-md-4
+      %label.form-label Application
+      %select.form-select{ data: { cascade_select_target: 'application', action: 'change->cascade-select#onApplicationChange change->cascade-select#onSelectionChange', selected_value: target.application_external_id } }
+        %option{ value: '' } —
+    %div.col-md-4
+      %label.form-label Table principale
+      %select.form-select{ data: { cascade_select_target: 'table', action: 'change->cascade-select#onSelectionChange', selected_value: target.main_table_external_id } }
+        %option{ value: '' } —
+
+  %hr
+  = render 'main_table_section', target: target
+  = render 'avis_section', target: target
+  = render 'blocks_section', target: target

@@ -63,3 +63,4 @@ schema.json
 /analyze_*.rb
 production.log
 *.lock
+.gstack/

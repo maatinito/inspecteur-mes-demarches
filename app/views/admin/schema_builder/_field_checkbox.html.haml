@@ -1,0 +1,16 @@
+-# Checkbox d'exclusion d'un champ (table principale ou bloc).
+-# Locals attendus :
+-#   target    : SchemaTarget
+-#   field     : { id:, label:, type:, [divergence:] }
+-#   scope     : :main_table | :block_field
+-#   checked   : Boolean (cochée si le champ N'est PAS exclu)
+-#   block_id  : (optionnel) requis pour scope :block_field
+-#   divergence: (optionnel) message à afficher pour les champs à modifier
+- checkbox_data = { controller: 'exclusion-toggle', action: 'change->exclusion-toggle#toggle', exclusion_toggle_url_value: toggle_url_for(target, scope, field, block_id: local_assigns[:block_id]) }
+.form-check
+  = check_box_tag "exclusion_#{field[:id]}", '1', checked, class: 'form-check-input', data: checkbox_data
+  %label.form-check-label
+    = field[:label]
+    %code.ms-2= field[:type]
+    - if local_assigns[:divergence].present?
+      %small.text-muted.ms-2= "(#{divergence})"

@@ -1,0 +1,7 @@
+%section.schema-builder{ data: { controller: 'schema-builder' } }
+  .schema-builder-header.mb-3
+    .text-muted.text-uppercase.small.fw-semibold Schéma de synchronisation
+    %h1.schema-builder-title= @demarche.libelle
+    .text-muted.small Démarche n° #{@demarche.id}
+
+  = render 'target_tabs', demarche: @demarche, targets: @schema_targets

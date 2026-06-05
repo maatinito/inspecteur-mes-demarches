@@ -1,0 +1,65 @@
+-# Section "Table Avis" — schéma fixe (6 champs définis dans AvisBuilder).
+-# 3 modes : lazy (src=preview_avis) / diff chargé / résultat de Build.
+- lazy_src = (local_assigns[:diff].nil? && local_assigns[:build_result].nil? && target.target_type != 'grist' && target.main_table_external_id.present?) ? preview_avis_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type) : nil
+
+%turbo-frame{ id: "avis-#{target.id}", src: lazy_src, loading: :lazy }
+  .card.mt-3
+    .card-header.d-flex.justify-content-between.align-items-center
+      %h2.h5.mb-0.schema-builder-card-title
+        Table Avis
+        %span.badge.ms-2{ class: avis_status_class(target) }= avis_status_label(target)
+
+    .card-body
+      - if target.target_type == 'grist'
+        %p.text-muted.mb-0{ title: "Non supporté par Grist pour l'instant" }
+          Fonctionnalité indisponible pour Grist
+      - elsif target.main_table_external_id.blank?
+        %p.text-muted.mb-0
+          La table principale doit être créée avant la table Avis.
+      - elsif local_assigns[:diff]
+        - if diff[:to_add].any?
+          %h3.h6.schema-builder-zone-title.text-success 🟢 À ajouter (#{diff[:to_add].size})
+          %ul.list-unstyled.ms-3
+            - diff[:to_add].each do |field|
+              %li
+                = field[:name]
+                %code.ms-2= field[:type]
+        - if diff[:to_modify].any?
+          %h3.h6.schema-builder-zone-title.text-warning.mt-3 🟡 À modifier (#{diff[:to_modify].size})
+          %ul.list-unstyled.ms-3
+            - diff[:to_modify].each do |field|
+              %li
+                = field[:name]
+                %code.ms-2= field[:type]
+                %small.text-muted.ms-2= "(#{field[:divergence]})"
+        - if diff[:ok].any?
+          %details.mt-3
+            %summary.text-muted ▶ #{diff[:ok].size} champs conformes (cliquer pour déplier)
+            %ul.list-unstyled.ms-3.mt-2
+              - diff[:ok].each do |field|
+                %li.text-muted= "#{field[:name]} (#{field[:type]})"
+
+        - to_sync = diff[:to_add].size + diff[:to_modify].size
+        .mt-4
+          - if to_sync.zero?
+            %p.text-success.mb-0 ✅ Table Avis conforme — rien à synchroniser.
+          - else
+            = button_to "Synchroniser #{to_sync} champ#{'s' if to_sync > 1}",
+                        build_avis_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
+                        method: :post,
+                        class: 'btn btn-primary',
+                        form: { data: { turbo_frame: "avis-#{target.id}", turbo_confirm: 'Synchroniser ?' } },
+                        data: { controller: 'build-action', action: 'click->build-action#start' }
+      - elsif local_assigns[:build_result]
+        = render 'build_result', build_result: build_result
+        .mt-3
+          = button_to 'Reconstruire',
+                      build_avis_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
+                      method: :post,
+                      class: 'btn btn-outline-secondary btn-sm',
+                      form: { data: { turbo_frame: "avis-#{target.id}", turbo_confirm: 'Reconstruire la table Avis ?' } },
+                      data: { controller: 'build-action', action: 'click->build-action#start' }
+      - else
+        .text-center.text-muted
+          .spinner-border.spinner-border-sm.me-2
+          Chargement de l'aperçu…

@@ -14,5 +14,6 @@
 #
 class Demarche < ApplicationRecord
   has_many :checks, dependent: :destroy
+  has_many :schema_targets, dependent: :destroy
   has_and_belongs_to_many :instructeurs, class_name: 'User'
 end
