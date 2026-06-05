@@ -40,6 +40,10 @@ RUN bundle config specific_platform x86_64-linux &&\
     bundle config without "development test" &&\
     bundle install
 
+# Créer le dossier de build assets avant bun install
+# (le postinstall script build:js y copie des fichiers avant COPY . .)
+RUN mkdir -p app/assets/builds
+
 # Install JS dependencies with bun
 RUN bun install
 
