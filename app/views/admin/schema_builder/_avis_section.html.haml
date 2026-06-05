@@ -5,7 +5,7 @@
 %turbo-frame{ id: "avis-#{target.id}", src: lazy_src, loading: :lazy }
   .card.mt-3
     .card-header.d-flex.justify-content-between.align-items-center
-      %h2.h5.mb-0
+      %h2.h5.mb-0.schema-builder-card-title
         Table Avis
         %span.badge.ms-2{ class: avis_status_class(target) }= avis_status_label(target)
 
@@ -18,14 +18,14 @@
           La table principale doit être créée avant la table Avis.
       - elsif local_assigns[:diff]
         - if diff[:to_add].any?
-          %h3.h6.text-success 🟢 À ajouter (#{diff[:to_add].size})
+          %h3.h6.schema-builder-zone-title.text-success 🟢 À ajouter (#{diff[:to_add].size})
           %ul.list-unstyled.ms-3
             - diff[:to_add].each do |field|
               %li
                 = field[:name]
                 %code.ms-2= field[:type]
         - if diff[:to_modify].any?
-          %h3.h6.text-warning.mt-3 🟡 À modifier (#{diff[:to_modify].size})
+          %h3.h6.schema-builder-zone-title.text-warning.mt-3 🟡 À modifier (#{diff[:to_modify].size})
           %ul.list-unstyled.ms-3
             - diff[:to_modify].each do |field|
               %li
