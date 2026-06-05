@@ -30,6 +30,11 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do
       allow(MesDemarchesToBaserow::AvisSyncer).to receive(:new).and_return(avis_syncer)
       allow(avis_syncer).to receive(:sync)
 
+      # FileUploader appelle TokenManager.get_token → ENV['BASEROW_API_TOKEN'].
+      # On stubbe la construction pour éviter la dépendance à l'env en CI.
+      file_uploader = instance_double(Baserow::FileUploader, download_and_upload: nil)
+      allow(Baserow::FileUploader).to receive(:new).and_return(file_uploader)
+
       structure_client = instance_double(Baserow::StructureClient)
       allow(Baserow::StructureClient).to receive(:new).and_return(structure_client)
       allow(structure_client).to receive(:get_table).and_return({ 'database_id' => 1 })
