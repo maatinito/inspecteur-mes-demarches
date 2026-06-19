@@ -73,9 +73,12 @@ ses colonnes au runtime. Garde-fous remplaçant la revue humaine : type par déf
 ## 4. Composants
 
 ### 4.1 `Excel::GetSheets` (étendu)
-Nouveaux paramètres optionnels (défaut = comportement actuel : toutes feuilles) :
-- `feuille` : `Integer` → position (1-based) ; `String` → nom. Absent → 1ʳᵉ feuille
-  (ou comportement actuel « toutes feuilles » si non précisé, à confirmer en plan).
+Nouveaux paramètres optionnels :
+- `feuille` : `Integer` → position (1-based) ; `String` → nom. **Absent → 1ʳᵉ feuille**
+  (décision tranchée : conforme à l'usage réel des projets existants). Caveat
+  d'implémentation : vérifier qu'aucune config existante de `GetSheets` ne repose
+  sur l'extraction « toutes feuilles » avant de basculer le défaut ; le multi-feuilles
+  reste atteignable explicitement si un besoin réapparaît.
 - exposition, par feuille, d'un descripteur de colonnes : `{ nom_sanitizé, type_inféré, en_tête_brut }`.
 
 Inchangé : lecture du `.xlsx` du champ PieceJustificative, `header_line`,
@@ -139,14 +142,14 @@ Le mapping se déploie sans rebuild d'image (fichiers YAML poussés via
 | Ce plugin | **hors périmètre** (on ne recopie pas le `.xlsx`) | **nécessaire** |
 
 - Source du signal : le champ `checksum` (MD5 base64) exposé par le type `File` de
-  l'API GraphQL Mes-Démarches (confirmé dans `schema.json`). Tâche d'implémentation :
-  **ajouter `checksum` au fragment fichier de la requête dossier** (aujourd'hui seul
-  `avis_fetcher` récupère `filename`/`byteSize`/`contentType`).
+  l'API GraphQL Mes-Démarches. **Déjà récupéré** par le fragment `ChampInfo`
+  (`app/lib/mes_demarches.rb`, lignes 166 & 173 : `checksum`/`filename`/`byteSize`
+  sur `files`). **Aucune modification de requête nécessaire.**
 - Ni Grist ni Baserow n'exposent de checksum de contenu (uniquement `nom+taille`) →
   le signal robuste vient **de la source**, pas de la cible.
 - **Multi-fichiers** : un PieceJustificative peut porter plusieurs fichiers → la
-  colonne stocke l'ensemble des checksums **triés puis concaténés** (comparaison
-  insensible à l'ordre).
+  colonne stocke l'ensemble des checksums **triés puis concaténés en CSV** (texte,
+  séparés par virgule ; tri = comparaison insensible à l'ordre).
 - **Stockage : colonne sur la main row** (pas une annotation MD). Raisons : la main
   row est déjà lue à chaque passage (lecture gratuite) ; co-localisation
   données/garde (si la table Grist est vidée, le marqueur disparaît avec → re-sync
@@ -214,8 +217,8 @@ Le plan d'implémentation de B doit déclarer cette dépendance.
 - `ensure_columns` : création, opt-out, type figé sur colonne existante.
 - Upsert : création, mise à jour partielle, idempotence (re-run sans changement).
 
-## 11. Décisions ouvertes (pour le plan)
-1. `GetSheets` sans `feuille` : conserver « toutes les feuilles » (actuel) ou basculer
-   le défaut sur « 1ʳᵉ feuille » ? (impact rétrocompat des configs existantes).
-2. Emplacement exact du fragment fichier de la requête dossier à étendre avec `checksum`.
-3. Forme de stockage de la colonne checksum (texte concaténé vs hash de la concaténation).
+## 11. Décisions tranchées
+1. **Défaut feuille = 1ʳᵉ feuille** (usage réel des projets). Caveat rétrocompat en §4.1.
+2. **Aucune modif de requête** : `checksum` déjà présent dans le fragment `ChampInfo`
+   (`app/lib/mes_demarches.rb:166,173`).
+3. **Colonne checksum = texte CSV** (checksums triés, concaténés par virgule).
