@@ -74,11 +74,12 @@ ses colonnes au runtime. Garde-fous remplaçant la revue humaine : type par déf
 
 ### 4.1 `Excel::GetSheets` (étendu)
 Nouveaux paramètres optionnels :
-- `feuille` : `Integer` → position (1-based) ; `String` → nom. **Absent → 1ʳᵉ feuille**
-  (décision tranchée : conforme à l'usage réel des projets existants). Caveat
-  d'implémentation : vérifier qu'aucune config existante de `GetSheets` ne repose
-  sur l'extraction « toutes feuilles » avant de basculer le défaut ; le multi-feuilles
-  reste atteignable explicitement si un besoin réapparaît.
+- `feuille` : `Integer` → position (1-based) ; `String` → nom. **Absent → 1ʳᵉ feuille**.
+  Rétrocompat : **non bloquant** — vérification faite, `excel/get_sheets` n'est utilisé
+  dans **aucune** config déployée (prod ni staging : 0 occurrence, seules
+  `excel/partition`/`group`/`from_repetitions` le sont) ni dans aucune classe
+  applicative (uniquement `spec/factories/publipostage_v2.rb:48`). On peut donc
+  basculer le défaut et refactorer `GetSheets` librement.
 - exposition, par feuille, d'un descripteur de colonnes : `{ nom_sanitizé, type_inféré, en_tête_brut }`.
 
 Inchangé : lecture du `.xlsx` du champ PieceJustificative, `header_line`,
@@ -208,9 +209,10 @@ Le plan d'implémentation de B doit déclarer cette dépendance.
 - Échec partiel : ne **pas** écrire le checksum (sinon on figerait un état incomplet).
 
 ## 10. Tests
-- **`ExcelTableExtractor` / `GetSheets` étendu** : corpus de **vrais fichiers tordus**
-  (préambule, feuilles multiples, en-têtes sales, colonnes vides/doublons, codes à
-  zéro de tête) — c'est la pièce à tester en priorité.
+- **`GetSheets` étendu** : corpus de **vrais fichiers tordus** (préambule, feuilles
+  multiples, en-têtes sales, colonnes vides/doublons, codes à zéro de tête) — c'est
+  la pièce à tester en priorité. Note : `GetSheets` n'étant **pas exercé en prod**
+  (cf. §4.1), ce corpus est la **validation principale**, pas un filet anti-régression.
 - Inférence de type : cas Float/Int/Date/DateTime/Bool/mixte/vide.
 - Sanitization : doublons, en-têtes vides, ponctuation, retours-ligne.
 - Gate checksum : inchangé → skip ; modifié → retraitement ; multi-fichiers (ordre).
