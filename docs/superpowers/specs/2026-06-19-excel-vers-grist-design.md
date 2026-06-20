@@ -42,6 +42,10 @@ en réutilisant au maximum l'existant, et en supprimant la dépendance à n8n po
   basique mais **éprouvée sur les fichiers réels**. On ne va pas plus loin.
 - **Recopie du binaire `.xlsx` dans Grist** : on stocke les lignes, pas le fichier.
   Le « checksum #1 / re-upload » (cf. §6) ne concerne donc pas ce plugin.
+- **Synchro des avis vers Grist** : non nécessaire pour ce projet (décision). C'est
+  une feature Baserow-only, explicitement gardée côté Grist
+  (`SchemaBuilders::AvisBuilder` lève `NotImplementedError` pour `GristTarget`).
+  Trou de parité connu, hors périmètre A + B.
 
 ## 3. Décision d'architecture
 
@@ -185,22 +189,40 @@ réordonnancement. Un renommage d'en-tête casse le rattachement (acceptable, à
 documenter). Dérive de schéma (nouvelle colonne dans un dossier ultérieur) :
 auto-ajout si `creer_colonnes_manquantes` (défaut), tracé dans le rapport.
 
-## 8. Prérequis / dépendance — durcissement de `GristSync` (chantier A, SÉPARÉ)
-
-⚠️ **Risque principal du projet, à ne pas sous-estimer ni masquer dans ce plugin.**
+## 8. Prérequis / dépendance — durcissement de `GristSync` (chantier A)
 
 `GristSync` n'a **jamais été déployé ni testé en prod** (4 commits, vs 28 pour
-Baserow) et il lui manque vraisemblablement le **diff ligne-à-ligne**
-(`filter_changed_fields`) présent côté Baserow (`mes_demarches_to_baserow/row_upserter.rb`).
-Or ce plugin explose un Excel en N lignes : sans ce diff, chaque passage réécrit tout.
+Baserow), mais l'analyse de dé-risquage (2026-06-19) montre qu'il est
+**fonctionnellement complet et architecturalement sain**, pas un chantier de
+construction :
 
-Avant de pouvoir s'appuyer sur l'upsert Grist, il faut (chantier A, idéalement
-**sa propre spec/plan**) :
-- porter le diff ligne-à-ligne côté Grist,
-- ajouter des tests réels sur le chemin bloc répétable Grist,
-- valider sur une vraie démarche en **staging** avant prod.
+- Pipeline complet (extract→filter→upload→upsert main→sync blocs), découverte de
+  tables, upsert bloc par `(Dossier, Ligne)`, suppression des orphelins, réutilisation
+  des attachments : **déjà présents**.
+- **Le diff ligne-à-ligne EXISTE déjà** (`RowUpserter.filter_changed_fields` :
+  Integer/Numeric/ChoiceList/Bool/Attachments/Text/Date). Correction d'une affirmation
+  antérieure : rien à porter depuis Baserow.
+- Couche de typage **bien testée** (`TypeMapper`, `DataExtractor`, `RowUpserter`).
 
-Le plan d'implémentation de B doit déclarer cette dépendance.
+### Contrat Grist validé en live (MCP grist-server, 2026-06-19)
+6 des 7 hypothèses confirmées sur instance réelle : Choice (string), ChoiceList
+(`["L",…]`), Date/DateTime (epoch **secondes** → date correcte), Bool, Ref bloc→main
+(id entier), structure `{id, fields:{…}}`. Le `DataExtractor`/`RowUpserter` sont
+alignés sur la réalité de l'API.
+
+### Reste à faire (chantier A réel, ~1 j avec Claude)
+1. Écrire `spec/lib/mes_demarches_to_grist/sync_coordinator_spec.rb` (client stubbé,
+   miroir du spec Baserow) → flush des bugs de câblage hors-ligne. ~0,5 j.
+2. **Seule inconnue résiduelle** : sémantique de l'upsert natif `PUT /records` avec
+   `require:` — match-et-update vs doublon, **surtout le match sur colonne `Ref`**
+   pour les lignes de bloc (`require: {Dossier: ref_id, Ligne}`). Non testable via le
+   MCP. → valider par un **run staging** sur une démarche bac-à-sable (observer si les
+   re-syncs créent des doublons). ~0,5 j.
+3. (Option, perf) Router les lignes de bloc via `RowUpserter` pour bénéficier du diff
+   (`upsert_block_row` envoie aujourd'hui tous les champs ; l'upsert natif reste
+   idempotent côté serveur). ~0,2 j.
+
+Le plan d'implémentation de B déclare A (point 2) comme dépendance.
 
 ## 9. Gestion d'erreurs
 - Champ absent / pas de `.xlsx` : log + skip (pas d'erreur fatale).
