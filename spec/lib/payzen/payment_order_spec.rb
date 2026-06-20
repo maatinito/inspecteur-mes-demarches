@@ -200,6 +200,27 @@ RSpec.describe Payzen::PaymentOrder do
       end
     end
 
+    context 'amount given by a NUMERIC annotation (regression: aliased value field)', vcr: { cassette_name: 'payzen_payment_order_1' } do
+      let(:order) { created_order }
+      let(:task) { controle.when_asked.first }
+      before do
+        allow(Payzen::API).to receive(:new).and_return(payzen_api)
+        allow(ScheduledTask).to receive(:enqueue)
+        # Champ numérique : `value` est aliasé en `int_value` dans le fragment GraphQL,
+        # donc l'appeler directement lève `unfetched field 'value'`.
+        numeric_field = double('IntegerNumberChamp', __typename: 'IntegerNumberChamp', int_value: '100')
+        allow(numeric_field).to receive(:value).and_raise("unfetched field `value'")
+        allow(controle).to receive(:annotation).and_call_original
+        allow(controle).to receive(:annotation).with(controle.params[:champ_montant]).and_return(numeric_field)
+      end
+
+      it 'reads the amount via the typed accessor without raising' do
+        allow(task).to receive(:process_order)
+        expect(SetAnnotationValue).to receive(:set_value).with(dossier, instructeur, controle.params[:champ_ordre_de_paiement], order_id)
+        expect { subject }.not_to raise_error
+      end
+    end
+
     context 'amount given configuration' do
       let(:controle) do
         FactoryBot.build :payment_order, :with_fixed_amount, quand_demandé: test_order_task, quand_payé: test_order_task, quand_expiré: test_order_task

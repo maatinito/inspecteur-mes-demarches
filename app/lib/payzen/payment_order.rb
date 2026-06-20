@@ -59,11 +59,11 @@ module Payzen
       @dossier = dossier
       @demarche = demarche
 
-      montant = annotation(@params[:champ_montant])&.value || @params[:montant]
+      montant = champ_value(annotation(@params[:champ_montant])).presence || @params[:montant]
       return if montant.blank?
 
       montant = montant.to_i
-      payment_id = annotation(@params[:champ_ordre_de_paiement])&.value
+      payment_id = champ_value(annotation(@params[:champ_ordre_de_paiement]))
       if montant.positive?
         if payment_id.blank?
           ask_for_payment(montant)
@@ -112,7 +112,7 @@ module Payzen
 
     def create_order(amount)
       reference = "#{@reference_prefix}-#{@dossier.number}"
-      phone_number = param_field(:champ_telephone)&.value
+      phone_number = champ_value(param_field(:champ_telephone))
       return_url = "https://www.mes-demarches.gov.pf/dossiers/#{@dossier.number}/messagerie"
       receipt_email = @dossier.usager.email
       if phone_number.present? && phone_number.match?(/8[789][0-9]{6}/)
@@ -131,7 +131,7 @@ module Payzen
     end
 
     def check_payment
-      order_id = annotation(@params[:champ_ordre_de_paiement])&.value
+      order_id = champ_value(annotation(@params[:champ_ordre_de_paiement]))
       unless order_id.present? && order_id.match(/^[a-f0-9]{32}$/)
         Rails.logger.warn("Vérification de l'état du paiement ignoré: L'id #{order_id} de la demande de paiement ne corresponds pas à une demande PayZen.")
         return
