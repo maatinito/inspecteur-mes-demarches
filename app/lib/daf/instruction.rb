@@ -48,7 +48,7 @@ module Daf
     end
 
     def exempted?
-      fields('Administration')&.any? { |champ| champ.value.present? }
+      fields('Administration')&.any? { |champ| champ_value(champ).present? }
     end
 
     def ask_prepayment?
@@ -57,7 +57,7 @@ module Daf
     end
 
     def set_certification_date(demarche, dossier)
-      certification_date_blank = annotation('DATE DE CERTIFICATION')&.value.blank?
+      certification_date_blank = champ_value(annotation('DATE DE CERTIFICATION')).blank?
       SetAnnotationValue.set_value(dossier, demarche.instructeur, 'DATE DE CERTIFICATION', DateTime.iso8601(dossier.date_depot)) if certification_date_blank
     end
 
@@ -67,7 +67,7 @@ module Daf
     # end
 
     def set_amount(demarche, dossier, champ_declencheur, champ_montant)
-      amount = field(champ_declencheur)&.value ? 500 : 0
+      amount = champ_value(field(champ_declencheur)).present? ? 500 : 0
       SetAnnotationValue.set_value(dossier, demarche.instructeur, champ_montant, amount)
     end
 
@@ -100,7 +100,7 @@ module Daf
 
       changed = set_amounts(demarche, dossier)
 
-      pp = annotation(PAYMENT_PROCESS_ATT).value
+      pp = champ_value(annotation(PAYMENT_PROCESS_ATT))
       if pp.blank?
         pp = payment_process
         changed |= SetAnnotationValue.set_value(dossier, demarche.instructeur, PAYMENT_PROCESS_ATT, pp)
@@ -155,7 +155,7 @@ module Daf
     end
 
     def must_pay?
-      annotation(PAYMENT_PROCESS_ATT).value != EXEMPTED
+      champ_value(annotation(PAYMENT_PROCESS_ATT)) != EXEMPTED
     end
   end
 end
