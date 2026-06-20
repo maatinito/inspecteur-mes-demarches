@@ -59,7 +59,7 @@ module Payzen
       @dossier = dossier
       @demarche = demarche
 
-      montant = annotation(@params[:champ_montant])&.value || @params[:montant]
+      montant = champ_value(annotation(@params[:champ_montant])) || @params[:montant]
       return if montant.blank?
 
       montant = montant.to_i
