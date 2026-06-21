@@ -39,21 +39,21 @@ module Sti
     end
 
     def price_for_words
-      word_nb = annotation('Nombre de mots')&.value.to_i
+      word_nb = champ_value(annotation('Nombre de mots')).to_i
       return 0 if word_nb.zero?
 
       (word_nb / 100.0).ceil.to_i * 1500
     end
 
     def price_for_copies
-      page_nb = annotation('Pages de copies')&.value.to_i
+      page_nb = champ_value(annotation('Pages de copies')).to_i
       return 0 if page_nb.zero?
 
       page_nb * 100
     end
 
     def price_for(doc_type)
-      doc_count = annotation("Traductions à #{doc_type}")&.value.to_i
+      doc_count = champ_value(annotation("Traductions à #{doc_type}")).to_i
       doc_count * doc_type
     end
   end

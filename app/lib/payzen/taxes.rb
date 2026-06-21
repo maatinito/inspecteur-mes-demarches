@@ -20,7 +20,7 @@ module Payzen
       super
       return unless must_check?(dossier)
 
-      amount = annotation(@params[:champ_montant_ht])&.value
+      amount = champ_value(annotation(@params[:champ_montant_ht]))
       return if amount.blank?
 
       amount = amount.to_i

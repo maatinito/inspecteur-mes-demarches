@@ -39,7 +39,7 @@ module Daf
 
     def send_mail(demarche, dossier, message, mails)
       if @timestamp_field
-        last_sent = annotation(@timestamp_field)&.value
+        last_sent = annotation(@timestamp_field)&.string_value
         return if sent_less_than_one_day_ago(last_sent)
 
         SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @timestamp_field, Time.zone.now.iso8601)

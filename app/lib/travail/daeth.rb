@@ -172,9 +172,9 @@ module Travail
 
     def default_numbers
       base = {
-        LATE_FEE => annotation(LATE_FEE, warn_if_empty: false)&.value.to_i,
-        SURCHARGE => annotation(SURCHARGE, warn_if_empty: false)&.value.to_i,
-        OUTSOURCING => param_field(:champ_prestations, warn_if_empty: false)&.value.presence.to_f
+        LATE_FEE => champ_value(annotation(LATE_FEE, warn_if_empty: false)).to_i,
+        SURCHARGE => champ_value(annotation(SURCHARGE, warn_if_empty: false)).to_i,
+        OUTSOURCING => champ_value(param_field(:champ_prestations, warn_if_empty: false)).presence.to_f
       }
       effectif = param_field(:champ_effectif, warn_if_empty: false)
       base.merge!(effectif.present? ? default_numbers_based_on_size(effectif) : default_numbers_based_on_excel)

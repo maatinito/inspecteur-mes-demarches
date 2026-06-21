@@ -20,7 +20,7 @@ class SendMail < FieldChecker
     super
     return unless must_check?(dossier)
 
-    last_sent = annotation(@timestamp_field)&.value
+    last_sent = annotation(@timestamp_field)&.string_value
     return if last_sent.present?
 
     message = instanciate(@params[:message])

@@ -10,7 +10,7 @@ module Daf
 
     def process_row(_row, output)
       TYPES.each do |type|
-        output[type.camelize] = annotation("Montant #{type}")&.value.to_i + annotation("Complément #{type}")&.value.to_i
+        output[type.camelize] = champ_value(annotation("Montant #{type}")).to_i + champ_value(annotation("Complément #{type}")).to_i
       end
       output['Total'] = TYPES.map { |type| output[type.camelize] }.reduce(&:+)
       output

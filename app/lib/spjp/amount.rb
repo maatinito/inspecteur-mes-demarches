@@ -43,7 +43,7 @@ module Spjp
     private
 
     def compute_bill
-      durations = @duration_fields.map { |field| annotation(field).value.to_i }
+      durations = @duration_fields.map { |field| champ_value(annotation(field)).to_i }
       electricity = field(@champ_electricite).value
       prices = unit_prices(electricity)
       @zone_fields.flat_map do |zone|
