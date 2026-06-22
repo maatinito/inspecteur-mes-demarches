@@ -224,6 +224,20 @@ alignés sur la réalité de l'API.
 
 Le plan d'implémentation de B déclare A (point 2) comme dépendance.
 
+### Bug de ré-upload des pièces jointes (trouvé + corrigé, 2026-06-21)
+`GristFileUploader` écrivait le téléchargement dans un `Tempfile` au nom aléatoire
+(`grist_upload-XXXX.xlsx`) ; Grist stockait ce nom comme `fileName`, donc la dé-dup
+nom+taille (`DataExtractor#normalize_files`) ne matchait jamais → ré-upload à chaque
+synchro. **Corrigé** (commit `9163976`) : écrire le binaire sous le vrai nom visible.
+Diagnostic confirmé sur la prod (doc `tYVZeA7kfoWQ`, dossier 404982) : nom stocké =
+tempfile, taille = identique.
+
+**Évolution à réévaluer en B (double sécurité, sans colonne)** : ajouter au critère
+nom+taille une comparaison de timestamps `File.createdAt (MD) > attachment.timeUploaded
+(Grist)` → détecte un remplacement même à nom+taille inchangés. Les deux dates existent
+déjà (GraphQL `File.createdAt`, métadonnées Grist `timeUploaded`). Seule réserve :
+comparaison inter-horloges MD↔Grist (tolérable vu NTP + sync espacées de ~10 min).
+
 ## 9. Gestion d'erreurs
 - Champ absent / pas de `.xlsx` : log + skip (pas d'erreur fatale).
 - Table cible introuvable : skip silencieux (aligné sur le comportement sync existant).
