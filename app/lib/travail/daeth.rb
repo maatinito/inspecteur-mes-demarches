@@ -196,7 +196,7 @@ module Travail
     end
 
     def default_numbers_based_on_size(effectif)
-      effectif = effectif&.value&.to_f
+      effectif = champ_value(effectif)&.to_f
       {
         YEAR => year_from_date_depot,
         FTE => effectif,
