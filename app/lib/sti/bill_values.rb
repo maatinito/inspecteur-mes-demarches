@@ -27,7 +27,7 @@ module Sti
     private
 
     def add_product(row, bill, annotation, produit = annotation)
-      quantite = dossier_annotations(row, annotation)&.first&.value.to_i
+      quantite = champ_value(dossier_annotations(row, annotation)&.first).to_i
       bill << { produit:, quantité: quantite, total: yield(quantite) } if quantite.positive?
     end
   end
