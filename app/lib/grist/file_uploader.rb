@@ -1,12 +1,19 @@
 # frozen_string_literal: true
 
 require 'typhoeus'
-require 'tempfile'
+require 'tmpdir'
+require 'fileutils'
 
 module Grist
   # Gère le téléchargement et l'upload de fichiers vers Grist
   # Download depuis S3 (Mes-Démarches) + upload vers Grist attachments
   # L'appelant formate ensuite en ["L", attachment_id] pour le champ Attachments
+  #
+  # IMPORTANT : Grist déduit le nom stocké de la pièce jointe du basename multipart,
+  # qui correspond au basename du fichier on-disk uploadé. On écrit donc le
+  # téléchargement sous le vrai nom visible (et non un nom de tempfile aléatoire),
+  # faute de quoi la dé-duplication nom+taille de DataExtractor#normalize_files ne
+  # matche jamais et chaque synchro ré-uploade le fichier.
   class FileUploader
     def initialize(client, doc_id)
       @client = client
@@ -20,22 +27,25 @@ module Grist
     def download_and_upload(url, visible_name)
       Rails.logger.info "GristFileUploader: Téléchargement de #{visible_name} depuis #{url[0..100]}..."
 
-      tempfile = download_file(url, visible_name)
-      return nil unless tempfile
+      dir = Dir.mktmpdir('grist_upload')
+      path = File.join(dir, safe_basename(visible_name))
+      return nil unless download_file(url, path, visible_name)
 
-      upload_to_grist(tempfile, visible_name)
+      upload_to_grist(path, visible_name)
     ensure
-      tempfile&.close
-      tempfile&.unlink
+      FileUtils.remove_entry(dir) if dir && Dir.exist?(dir)
     end
 
     private
 
-    def download_file(url, filename)
-      extension = File.extname(filename)
-      tempfile = Tempfile.new(['grist_upload', extension])
-      tempfile.binmode
+    # Nom de fichier sûr pour le système de fichiers : on retire uniquement les
+    # séparateurs de chemin (Grist préserve accents/espaces, qu'on garde donc).
+    def safe_basename(visible_name)
+      name = visible_name.to_s.gsub(%r{[/\\]}, '_').strip
+      name.empty? ? 'fichier' : name
+    end
 
+    def download_file(url, path, filename)
       response = Typhoeus.get(
         url,
         followlocation: true,
@@ -45,26 +55,21 @@ module Grist
 
       unless response.success?
         Rails.logger.error "GristFileUploader: Erreur téléchargement #{filename}: #{response.code}"
-        tempfile.close
-        tempfile.unlink
-        return nil
+        return false
       end
 
-      tempfile.write(response.body)
-      tempfile.rewind
+      File.binwrite(path, response.body)
 
       Rails.logger.debug "GristFileUploader: #{filename} téléchargé (#{response.body.bytesize} octets)"
-      tempfile
+      true
     rescue StandardError => e
       Rails.logger.error "GristFileUploader: Erreur téléchargement #{filename}: #{e.message}"
-      tempfile&.close
-      tempfile&.unlink
-      nil
+      false
     end
 
     # Upload vers Grist et retourne l'attachment_id
-    def upload_to_grist(file, visible_name)
-      result = @client.upload_attachment(@doc_id, file.path, visible_name)
+    def upload_to_grist(path, visible_name)
+      result = @client.upload_attachment(@doc_id, path, visible_name)
 
       # Grist retourne un array d'IDs d'attachments
       attachment_ids = result.is_a?(Array) ? result : [result]
