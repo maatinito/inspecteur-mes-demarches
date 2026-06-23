@@ -98,6 +98,9 @@ Responsabilités :
 - `ensure_columns` : créer colonnes manquantes (opt-out) + colonne checksum technique.
 - Upsert des lignes via `MesDemarchesToGrist::RowUpserter`.
 - Écriture du checksum sur la main row en fin de traitement réussi.
+- **Collecte des erreurs métier** (fichier non-`.xlsx`, non parsable/corrompu, feuille
+  introuvable, en-têtes/colonnes mappées absentes, lignes rejetées…) et, si
+  `colonne_erreurs` configurée, écriture du message sur la main row (cf. §9).
 - Capture Sentry + `continuer_si_erreur` (aligné sur `GristSync`).
 
 ### 4.3 Réutilisations
@@ -122,6 +125,8 @@ sync_excel_dossiers:
         options:
           creer_colonnes_manquantes: true     # défaut true ; false = pas d'auto-création
           continuer_si_erreur: true
+          colonne_erreurs: "Erreurs sync"     # optionnel : colonne (main row) où reporter
+                                              # les erreurs ; absent → erreurs en logs/Sentry seulement
         # Mapping optionnel. Absent → en-têtes Excel (sanitizés) = noms de colonnes.
         # Source seule → cible = source. Type optionnel.
         colonnes:
@@ -244,6 +249,25 @@ comparaison inter-horloges MD↔Grist (tolérable vu NTP + sync espacées de ~10
 - Erreur d'upsert : capture Sentry ; `raise` sauf si `continuer_si_erreur: true`.
 - Échec partiel : ne **pas** écrire le checksum (sinon on figerait un état incomplet).
 
+### Colonne d'erreurs (optionnelle) — `colonne_erreurs`
+Rend les erreurs visibles **dans Grist** (au niveau du dossier) plutôt que noyées dans
+les logs/Sentry — utile pour l'instructeur et le débogage de configs sur des Excel legacy.
+
+- **Emplacement** : une colonne Text sur la **main row** (un message par dossier), comme
+  la colonne checksum. **Auto-créée** (ensure-once) dès que `colonne_erreurs` est défini,
+  indépendamment de `creer_colonnes_manquantes` (c'est une colonne technique requise par
+  l'option).
+- **Contenu** : messages métier lisibles, concaténés — p.ex. « Le fichier n'est pas un
+  .xlsx », « Fichier illisible/corrompu », « Feuille "X" introuvable », « Colonnes
+  attendues absentes : A, B », « 3 ligne(s) ignorée(s) (vides) ».
+- **Cycle de vie** : écrite en fin de traitement ; **vidée (`''`) en cas de succès** pour
+  ne pas laisser une erreur obsolète d'un passage précédent. En cas d'erreur, le checksum
+  #2 n'est **pas** écrit → le dossier est re-traité au passage suivant et le message se
+  rafraîchit (idempotent).
+- **Complémentaire** de Sentry : Sentry capte les exceptions techniques ; cette colonne
+  expose les erreurs métier/données attendues, sans interrompre le traitement des autres
+  dossiers (cf. `continuer_si_erreur`).
+
 ## 10. Tests
 - **`GetSheets` étendu** : corpus de **vrais fichiers tordus** (préambule, feuilles
   multiples, en-têtes sales, colonnes vides/doublons, codes à zéro de tête) — c'est
@@ -254,6 +278,8 @@ comparaison inter-horloges MD↔Grist (tolérable vu NTP + sync espacées de ~10
 - Gate checksum : inchangé → skip ; modifié → retraitement ; multi-fichiers (ordre).
 - `ensure_columns` : création, opt-out, type figé sur colonne existante.
 - Upsert : création, mise à jour partielle, idempotence (re-run sans changement).
+- Colonne d'erreurs : message écrit en cas d'erreur (non-xlsx, illisible, colonnes
+  absentes) ; **vidée en cas de succès** ; auto-création quand `colonne_erreurs` est défini.
 
 ## 11. Décisions tranchées
 1. **Défaut feuille = 1ʳᵉ feuille** (usage réel des projets). Caveat rétrocompat en §4.1.
