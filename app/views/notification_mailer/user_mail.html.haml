@@ -2,4 +2,8 @@
   %p
     = sanitize(@message)
     %br/
-
+  - if @dossier_url.present?
+    %p
+      Dossier:
+      %a{ href: @dossier_url }
+        = @dossier

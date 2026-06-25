@@ -12,6 +12,13 @@ class VerificationService
     [BOOT_TIME, last_8am].max
   end
 
+  # Points d'entrée d'un fichier de config : les blocs (Hash) possédant une clé
+  # 'demarches'. Les autres valeurs racine (ancres partagées, listes, scalaires)
+  # sont ignorées sans planter — d.key? n'existe que sur un Hash.
+  def self.procedures(data)
+    data.select { |_k, d| d.is_a?(Hash) && d.key?('demarches') }
+  end
+
   def initialize(user_email = nil)
     @user_email = user_email
   end
@@ -21,7 +28,7 @@ class VerificationService
 
     VerificationService.configs.each do |filename, data|
       Rails.logger.tagged(File.basename(filename)) do
-        data.filter { |_k, d| d.key? 'demarches' }.each do |procedure_name, procedure|
+        VerificationService.procedures(data).each do |procedure_name, procedure|
           Rails.logger.tagged(procedure_name) do
             @pieces_messages = get_pieces_messages(procedure_name, procedure)
             @instructeur_email = instructeur_email(procedure)

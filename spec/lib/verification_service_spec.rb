@@ -20,6 +20,26 @@ RSpec.describe VerificationService do
     end
   end
 
+  describe '.procedures' do
+    it 'ne garde que les blocs Hash possédant une clé demarches' do
+      data = {
+        'entree' => { 'demarches' => [3602], 'when_ok' => [] },
+        'template' => { 'champs' => [] }
+      }
+      expect(VerificationService.procedures(data).keys).to eq(['entree'])
+    end
+
+    it 'ignore sans planter les valeurs racine non-Hash (ancre liste, scalaire)' do
+      data = {
+        'etat_remplissage_carte' => %w[en_construction en_instruction],
+        'version' => 3,
+        'entree' => { 'demarches' => [3602] }
+      }
+      expect { VerificationService.procedures(data) }.not_to raise_error
+      expect(VerificationService.procedures(data).keys).to eq(['entree'])
+    end
+  end
+
   describe '#report_error' do
     let(:mailer_double) { double('NotificationMailer') }
     let(:exception) { StandardError.new('Something went wrong') }

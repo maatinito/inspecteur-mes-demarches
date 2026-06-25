@@ -27,7 +27,7 @@ class SendMail < FieldChecker
     subject = instanciate(@params[:objet])
     recipients = @mails.map(&method(:instanciate)).join(',')
 
-    NotificationMailer.with({ subject:, message:, recipients: }).user_mail.deliver_later
+    NotificationMailer.with({ subject:, message:, recipients:, demarche: demarche.id, dossier: dossier.number }).user_mail.deliver_later
 
     SetAnnotationValue.set_value(@dossier, demarche.instructeur, @timestamp_field, Time.zone.now.iso8601)
     dossier_updated(dossier)

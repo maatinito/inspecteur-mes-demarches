@@ -37,6 +37,9 @@ class NotificationMailer < ApplicationMailer
 
   def user_mail
     @message = params[:message].gsub(/\n\r?/, "<br>\n")
+    @dossier = params[:dossier]
+    @demarche = params[:demarche]
+    @dossier_url = [MesDemarches.public_url, 'procedures', @demarche, 'dossiers', @dossier].join('/') if @dossier.present? && @demarche.present?
     attachments[params[:filename]] = params[:file] if params[:file] && params[:filename]
     mail(to: recipients, subject: params[:subject]) do |format|
       format.html { render layout: 'md_mailer' } # Layout spécifique pour ce mail
