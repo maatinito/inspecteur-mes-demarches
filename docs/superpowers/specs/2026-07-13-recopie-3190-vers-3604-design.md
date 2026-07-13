@@ -111,8 +111,8 @@ justification:
                   Il ne manque plus que le bilan moral et financier de votre projet pour
                   clore votre dossier.
 
-                  Merci de le joindre directement dans votre dossier, dans le champ
-                  « Bilan moral et financier » (modèle fourni dans le formulaire).
+                  Merci de nous le transmettre en réponse à ce message, en pièce jointe
+                  via la messagerie de votre dossier (modèle disponible dans le formulaire).
 
                   Cordialement,
                   La Direction de l'environnement
