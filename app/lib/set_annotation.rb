@@ -9,7 +9,8 @@ class SetAnnotation < FieldChecker
     super
     return unless must_check?(dossier)
 
-    already_set = param_annotation(:annotation, warn_if_empty: false)&.value.present?
+    annotation = param_annotation(:annotation, warn_if_empty: false)
+    already_set = annotation.present? && SetAnnotationValue.value_of(annotation).present?
     if already_set
       Rails.logger.info("#{@params[:annotation]} ignored as it already contains value")
     else
