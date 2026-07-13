@@ -79,6 +79,7 @@ Metrics/BlockLength:
     - 'spec/lib/baserow/client_spec.rb'
     - 'spec/lib/baserow/table_spec.rb'
     - 'spec/lib/deseti/instruction_spec.rb'
+    - 'spec/lib/set_annotation_value_spec.rb'
     - 'spec/lib/field_checker_referentiel_spec.rb'
     - 'spec/lib/field_checker_spec.rb'
     - 'spec/lib/generate_id_spec.rb'

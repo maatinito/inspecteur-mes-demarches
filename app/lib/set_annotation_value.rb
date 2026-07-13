@@ -5,6 +5,7 @@ class SetAnnotationValue
     annotation = get_annotation(md_dossier, annotation_name)
     raise "Unable to find annotation '#{annotation_name}' on dossier #{md_dossier.number}" unless annotation.present?
 
+    value = coerce_to_annotation_type(annotation, value)
     old_value = value_of(annotation)
     different_value = old_value != value
     if different_value
@@ -194,6 +195,28 @@ class SetAnnotationValue
     }
 
   GRAPHQL
+
+  # typed_query choisit la mutation GraphQL selon la classe Ruby de la valeur :
+  # une String envoyée sur une annotation typée partirait en mutation Text et le
+  # serveur répondrait « L'annotation ... n'existe pas ».
+  def self.coerce_to_annotation_type(annotation, value)
+    return value unless value.is_a?(String)
+
+    case annotation.__typename
+    when 'IntegerNumberChamp'
+      value.to_i
+    when 'CheckboxChamp', 'YesNoChamp'
+      %w[true oui].include?(value.downcase)
+    when 'DateChamp'
+      begin
+        Date.iso8601(value)
+      rescue Date::Error
+        Date.parse(value)
+      end
+    else
+      value
+    end
+  end
 
   def self.typed_query(value)
     case value

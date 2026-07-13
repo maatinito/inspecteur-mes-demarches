@@ -22,6 +22,71 @@ RSpec.describe SetAnnotationValue do
     end
   end
 
+  # Régression : set_annotation (templating) passe toujours des String ;
+  # typed_query choisit la mutation GraphQL selon la classe Ruby de la valeur.
+  # Une String sur une annotation IntegerNumber partait en mutation Text et le
+  # serveur répondait « L'annotation ... n'existe pas ». set_value doit coercer
+  # la String vers le type de l'annotation destination.
+  context 'coercion des String vers le type de l’annotation' do
+    let(:instructeur) { 'instructeur' }
+    let(:dossier) { double('dossier', number: 653_455, id: 'RG9zc2llci02NTM0NTU=') }
+
+    def annotation_double(typename, **readers)
+      double('annotation', __typename: typename, id: 'Q2hhbXAtMTg3Njkx', label: 'annotation', **readers)
+    end
+
+    before { allow(SetAnnotationValue).to receive(:get_annotation).and_return(annotation) }
+
+    context 'annotation IntegerNumber' do
+      let(:annotation) { annotation_double('IntegerNumberChamp', int_value: nil) }
+
+      it 'convertit la String en Integer avant la mutation' do
+        expect(SetAnnotationValue).to receive(:raw_set_value)
+          .with(dossier.id, instructeur, annotation.id, 1_000_000)
+        expect(SetAnnotationValue.set_value(dossier, instructeur, 'annotation', '1000000')).to be true
+      end
+
+      context 'déjà à la même valeur' do
+        let(:annotation) { annotation_double('IntegerNumberChamp', int_value: 1_000_000) }
+
+        it 'ne réécrit pas (comparaison typée)' do
+          expect(SetAnnotationValue).not_to receive(:raw_set_value)
+          expect(SetAnnotationValue.set_value(dossier, instructeur, 'annotation', '1000000')).to be false
+        end
+      end
+    end
+
+    context 'annotation Checkbox' do
+      let(:annotation) { annotation_double('CheckboxChamp', checked: false) }
+
+      it "convertit 'Oui' en booléen avant la mutation" do
+        expect(SetAnnotationValue).to receive(:raw_set_value)
+          .with(dossier.id, instructeur, annotation.id, true)
+        SetAnnotationValue.set_value(dossier, instructeur, 'annotation', 'Oui')
+      end
+    end
+
+    context 'annotation Date' do
+      let(:annotation) { annotation_double('DateChamp', date_value: nil) }
+
+      it 'convertit une date au format français en Date avant la mutation' do
+        expect(SetAnnotationValue).to receive(:raw_set_value)
+          .with(dossier.id, instructeur, annotation.id, Date.new(2026, 7, 13))
+        SetAnnotationValue.set_value(dossier, instructeur, 'annotation', '13/07/2026')
+      end
+    end
+
+    context 'annotation Text' do
+      let(:annotation) { annotation_double('TextChamp', value: nil) }
+
+      it 'laisse la String telle quelle' do
+        expect(SetAnnotationValue).to receive(:raw_set_value)
+          .with(dossier.id, instructeur, annotation.id, 'libellé')
+        SetAnnotationValue.set_value(dossier, instructeur, 'annotation', 'libellé')
+      end
+    end
+  end
+
   context 'when parameters are good' do
     let(:dossier) { 308_727 }
     let(:demarche) { DemarcheActions.get_demarche(1488, 'test') }
