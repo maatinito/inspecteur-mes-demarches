@@ -59,6 +59,10 @@ messagerie du dossier :
 - L'annotation YesNo « Bilan moral et financier fourni » initialement envisagée a été
   remplacée par cette checkbox : une YesNo non renseignée est lue « Non » par le
   framework, ce qui aurait déclenché la relance sur des dossiers non évalués.
+- Évolution prévue : ajouter plus tard au message un lien de téléchargement du modèle
+  de bilan (l'usager n'a plus accès au formulaire une fois le dossier en instruction).
+  Attention : changer le texte du message fera repartir un envoi sur les dossiers ayant
+  reçu l'ancienne version (anti-doublon par comparaison du texte exact).
 
 ## Configuration
 
@@ -112,7 +116,7 @@ justification:
                   clore votre dossier.
 
                   Merci de nous le transmettre en réponse à ce message, en pièce jointe
-                  via la messagerie de votre dossier (modèle disponible dans le formulaire).
+                  via la messagerie de votre dossier.
 
                   Cordialement,
                   La Direction de l'environnement
