@@ -120,8 +120,11 @@ module MesDemarchesToBaserow
     end
 
     # Compare single_select : new est une string, existing est { "id" => X, "value" => "..." }
+    # Une valeur vide ('' ou nil) n'est jamais considérée comme un changement :
+    # Baserow rejette '' comme option de select (400), et le vidage explicite
+    # de la cellule est un chantier séparé.
     def values_differ_single_select?(new_value, existing_value)
-      return true if new_value.nil? != existing_value.nil?
+      new_value = new_value.presence
       return false if new_value.nil?
 
       existing_str = existing_value.is_a?(Hash) ? existing_value['value'] : existing_value

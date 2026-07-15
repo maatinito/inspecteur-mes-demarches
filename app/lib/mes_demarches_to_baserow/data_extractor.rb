@@ -91,43 +91,31 @@ module MesDemarchesToBaserow
       data
     end
 
-    # rubocop:disable Metrics/MethodLength
+    # Métadonnées système + identité demandeur, depuis la source unique
+    # SchemaBuilders::MetadataFields (noms uniformes Grist/Baserow). Le mode
+    # demandeur vient du __typename du dossier (jamais mixte sur une démarche).
     def extract_system_fields(dossier)
-      data = {
-        'Dossier' => dossier.number,
-        'Statut' => dossier.state,
-        'Date de dépôt' => format_datetime(dossier.date_depot),
-        'Date de passage en instruction' => format_datetime(dossier.date_passage_en_instruction),
-        'Date de traitement' => format_datetime(dossier.date_traitement),
-        'Email usager' => dossier.usager&.email,
-        'Labels' => extract_labels(dossier)
-      }
+      typename = dossier.demandeur.respond_to?(:__typename) ? dossier.demandeur&.__typename : nil
+      modes = [SchemaBuilders::MetadataFields.mode_for_typename(typename)].compact
 
-      # Extraction selon le type de demandeur (PersonnePhysique ou PersonneMorale)
-      if dossier.demandeur
-        demandeur_type = dossier.demandeur.respond_to?(:__typename) ? dossier.demandeur.__typename : nil
-
-        case demandeur_type
-        when 'PersonnePhysique'
-          data.merge!(
-            'Civilité' => dossier.demandeur.civilite,
-            'Nom' => dossier.demandeur.nom,
-            'Prénom' => dossier.demandeur.prenom
-          )
-        when 'PersonneMorale'
-          data.merge!(
-            'Numéro TAHITI' => dossier.demandeur.siret,
-            'Raison sociale' => dossier.demandeur.entreprise&.raison_sociale,
-            'Nom commercial' => dossier.demandeur.entreprise&.nom_commercial,
-            'Forme juridique' => dossier.demandeur.entreprise&.forme_juridique,
-            'Libellé NAF' => dossier.demandeur.libelle_naf
-          )
-        end
-      end
-
-      data.compact
+      SchemaBuilders::MetadataFields.all(modes).to_h do |field|
+        [field.name, format_metadata_value(field, field.source.call(dossier))]
+      end.compact
     end
-    # rubocop:enable Metrics/MethodLength
+
+    # Mise en forme Baserow : dates → ISO8601 UTC ; multi-choix → liste de noms
+    # (en capturant les couleurs des labels) ; sinon valeur brute.
+    def format_metadata_value(field, raw)
+      return nil if raw.nil?
+
+      if field.datetime?
+        format_datetime(raw)
+      elsif field.multiple?
+        extract_label_names(raw)
+      else
+        raw
+      end
+    end
 
     def extract_champs(dossier)
       extract_fields(dossier.champs)
@@ -230,7 +218,11 @@ module MesDemarchesToBaserow
         normalize_number(champ)
       when 'phone_number'
         normalize_phone(get_champ_value(champ))
-      else # single_select, email, url, text, long_text
+      when 'single_select'
+        # Baserow rejette '' comme option de select : un champ vide devient nil
+        # (donc non envoyé — le vidage explicite de la cellule est un chantier séparé)
+        get_champ_value(champ).presence
+      else # email, url, text, long_text
         get_champ_value(champ)
       end
     end
@@ -306,21 +298,26 @@ module MesDemarchesToBaserow
       phone.valid? ? phone.full_international : value.gsub(/[^+\d]/, '')
     end
 
-    def extract_labels(dossier)
-      return [] unless dossier.respond_to?(:labels) && dossier.labels.present?
+    # Noms des labels + capture des couleurs (consommées par SyncCoordinator
+    # pour créer les options du select). `labels` : collection de labels du
+    # dossier (objets répondant à #name / #color).
+    def extract_label_names(labels)
+      labels = Array(labels)
+      return [] if labels.empty?
 
       @label_colors = {}
-      dossier.labels.each do |label|
+      labels.each do |label|
         @label_colors[label.name] = label.color if label.respond_to?(:color) && label.color.present?
       end
 
-      dossier.labels.map(&:name)
+      labels.map { |label| label.respond_to?(:name) ? label.name : label.to_s }
     end
 
     def normalize_multiple_select(champ)
       return [] if champ.values.blank?
 
-      champ.values.map(&:to_s)
+      # reject(&:blank?) : Baserow rejette '' comme option de select
+      champ.values.map(&:to_s).reject(&:blank?)
     end
 
     # Wrapper pour les champs MD (PieceJustificativeChamp).

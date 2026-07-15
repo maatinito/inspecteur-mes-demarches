@@ -268,6 +268,30 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
     end
   end
 
+  describe '#normalize_value' do
+    context 'avec un champ single_select' do
+      it "retourne nil pour une chaîne vide (Baserow rejette '' comme option de select)" do
+        champ = double('TextChamp', __typename: 'TextChamp', label: 'Programme', value: '')
+        expect(extractor.send(:normalize_value, champ, 'single_select')).to be_nil
+      end
+
+      it 'retourne la valeur quand elle est renseignée' do
+        champ = double('TextChamp', __typename: 'TextChamp', label: 'Programme', value: '962 01')
+        expect(extractor.send(:normalize_value, champ, 'single_select')).to eq('962 01')
+      end
+    end
+
+    context 'avec un champ multiple_select contenant des valeurs vides' do
+      it 'écarte les valeurs vides (Baserow les rejette comme options)' do
+        champ = double('MultipleDropDownListChamp',
+                       __typename: 'MultipleDropDownListChamp',
+                       label: 'Thèmes',
+                       values: ['Sport', '', nil])
+        expect(extractor.send(:normalize_value, champ, 'multiple_select')).to eq(['Sport'])
+      end
+    end
+  end
+
   describe '#extract_avis_row' do
     let(:avis_field_metadata) do
       {
@@ -413,6 +437,7 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
              date_passage_en_instruction: nil,
              date_traitement: nil,
              usager: nil,
+             groupe_instructeur: nil,
              demandeur: nil,
              champs: [champ_plan],
              annotations: [annotation_plan_historique, annotation_notes])
