@@ -244,6 +244,59 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
       expect(extractor.send(:normalize_boolean, '')).to be_nil
       expect(extractor.send(:normalize_boolean, nil)).to be_nil
     end
+
+    it 'préserve false (une case décochée doit repasser à false dans Baserow)' do
+      expect(extractor.send(:normalize_boolean, false)).to be(false)
+      expect(extractor.send(:normalize_boolean, true)).to be(true)
+    end
+  end
+
+  describe '#extract_fields' do
+    let(:field_metadata) do
+      {
+        'Notes' => { 'type' => 'long_text', 'id' => 1 },
+        'Programme' => { 'type' => 'single_select', 'id' => 2 },
+        'Section' => { 'type' => 'long_text', 'id' => 3 },
+        'Casse' => { 'type' => 'text', 'id' => 4 }
+      }
+    end
+
+    it 'conserve les valeurs nil pour permettre la réinitialisation de la cellule Baserow' do
+      champ = double('TextChamp', __typename: 'TextChamp', label: 'Notes', value: nil)
+
+      data = extractor.send(:extract_fields, [champ])
+
+      expect(data).to have_key('Notes')
+      expect(data['Notes']).to be_nil
+    end
+
+    it 'convertit un single_select vide en nil (réinitialisation de la cellule)' do
+      champ = double('TextChamp', __typename: 'TextChamp', label: 'Programme', value: '')
+
+      data = extractor.send(:extract_fields, [champ])
+
+      expect(data).to have_key('Programme')
+      expect(data['Programme']).to be_nil
+    end
+
+    it 'ignore les champs décoratifs (leur nil ne doit pas vider une cellule homonyme)' do
+      champ = double('HeaderSectionChamp', __typename: 'HeaderSectionChamp', label: 'Section')
+
+      data = extractor.send(:extract_fields, [champ])
+
+      expect(data).not_to have_key('Section')
+    end
+
+    it 'laisse la cellule intacte quand la lecture du champ échoue (pas de vidage sur erreur)' do
+      champ = double('TextChamp', __typename: 'TextChamp', label: 'Casse')
+      allow(champ).to receive(:value).and_raise(GraphQL::Client::UnfetchedFieldError, 'unfetched field')
+      allow(Rails.logger).to receive(:warn)
+
+      data = extractor.send(:extract_fields, [champ])
+
+      expect(data).not_to have_key('Casse')
+      expect(Rails.logger).to have_received(:warn).with(/Casse/)
+    end
   end
 
   describe '#normalize_number' do

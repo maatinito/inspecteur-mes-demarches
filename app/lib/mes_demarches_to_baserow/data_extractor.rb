@@ -15,6 +15,14 @@ module MesDemarchesToBaserow
     # (confidentialité — et l'API GraphQL ne donne pas accès au fichier).
     IGNORED_CHAMP_TYPES = %w[TitreIdentiteChamp].freeze
 
+    # Types décoratifs sans valeur : leur nil ne doit jamais vider une cellule.
+    DECORATIVE_CHAMP_TYPES = %w[HeaderSectionChamp ExplicationChamp].freeze
+
+    # Erreurs de lecture d'un champ GraphQL : le champ est ignoré (cellule laissée
+    # intacte) plutôt que de propager un nil qui viderait la cellule Baserow.
+    # UnfetchedFieldError hérite de NoMethodError, pas de GraphQL::Client::Error.
+    CHAMP_READ_ERRORS = [GraphQL::Client::Error, GraphQL::Client::UnfetchedFieldError].freeze
+
     attr_reader :label_colors
 
     def initialize(field_metadata, options = {})
@@ -98,9 +106,11 @@ module MesDemarchesToBaserow
       typename = dossier.demandeur.respond_to?(:__typename) ? dossier.demandeur&.__typename : nil
       modes = [SchemaBuilders::MetadataFields.mode_for_typename(typename)].compact
 
+      # Les nil sont conservés : une métadonnée redevenue vide (ex: date de
+      # traitement après repassage en instruction) réinitialise la cellule Baserow.
       SchemaBuilders::MetadataFields.all(modes).to_h do |field|
         [field.name, format_metadata_value(field, field.source.call(dossier))]
-      end.compact
+      end
     end
 
     # Mise en forme Baserow : dates → ISO8601 UTC ; multi-choix → liste de noms
@@ -131,6 +141,7 @@ module MesDemarchesToBaserow
       champs.each do |champ|
         next if champ.__typename == 'RepetitionChamp'
         next if ignored_champ?(champ)
+        next if DECORATIVE_CHAMP_TYPES.include?(champ.__typename)
 
         field_name = champ.label
         next unless @field_metadata.key?(field_name)
@@ -146,9 +157,12 @@ module MesDemarchesToBaserow
                   normalize_value(champ, baserow_type)
                 end
 
-        # Ne pas ajouter les champs avec des valeurs nil
-        # (important pour les fichiers : si aucun nouveau fichier, on ne modifie pas le champ)
-        data[field_name] = value unless value.nil?
+        # Les nil sont conservés : ils signifient « champ vidé côté Mes-Démarches »
+        # et déclenchent la réinitialisation de la cellule Baserow dans RowUpserter.
+        # (les fichiers ne sont jamais nil : normalize_files préserve l'existant)
+        data[field_name] = value
+      rescue *CHAMP_READ_ERRORS => e
+        Rails.logger.warn("BaserowSync: champ #{field_name} illisible (#{champ.__typename}), cellule laissée intacte — #{e.message}")
       end
 
       data
@@ -192,10 +206,13 @@ module MesDemarchesToBaserow
         # Extraire les champs de la row
         row.champs.each do |champ|
           next if ignored_champ?(champ)
+          next if DECORATIVE_CHAMP_TYPES.include?(champ.__typename)
 
           field_name = champ.label
           # Pour les blocs, on utilise tous les champs (pas de filtrage par metadata)
           row_data[field_name] = normalize_value_simple(champ)
+        rescue *CHAMP_READ_ERRORS => e
+          Rails.logger.warn("BaserowSync: champ de bloc #{field_name} illisible (#{champ.__typename}), ignoré — #{e.message}")
         end
 
         rows << row_data
@@ -220,7 +237,7 @@ module MesDemarchesToBaserow
         normalize_phone(get_champ_value(champ))
       when 'single_select'
         # Baserow rejette '' comme option de select : un champ vide devient nil
-        # (donc non envoyé — le vidage explicite de la cellule est un chantier séparé)
+        # (RowUpserter enverra null pour réinitialiser la cellule)
         get_champ_value(champ).presence
       else # email, url, text, long_text
         get_champ_value(champ)
@@ -259,9 +276,6 @@ module MesDemarchesToBaserow
         puts "Champ #{champ.label} n'a pas de méthode 'value' ou 'string_value'. Type: #{champ.__typename}" if !champ.respond_to?(:string_value) && !champ.respond_to?(:value)
         champ.respond_to?(:value) ? champ.value : champ.string_value
       end
-    rescue GraphQL::Client::Error => e
-      Rails.logger.warn("get_champ_value : #{champ.label} (#{champ.__typename}) — #{e.message}")
-      nil
     end
 
     def format_date(date_string)
@@ -286,6 +300,9 @@ module MesDemarchesToBaserow
     end
 
     def normalize_boolean(value)
+      # Ne pas utiliser blank? en premier : false.blank? == true, or une case
+      # décochée doit bien repasser à false dans Baserow.
+      return value if [true, false].include?(value)
       return nil if value.blank?
 
       value.to_s.downcase.in?(%w[oui true 1 yes])

@@ -42,8 +42,9 @@ module MesDemarchesToBaserow
 
         existing_row['id']
       else
-        # S'assurer que le champ Dossier est présent
-        data_with_dossier = data.merge('Dossier' => dossier_number)
+        # S'assurer que le champ Dossier est présent.
+        # Les nil sont écartés à la création : rien à réinitialiser sur une nouvelle row.
+        data_with_dossier = data.merge('Dossier' => dossier_number).compact
         new_row = @table.create_row(data_with_dossier)
         Rails.logger.info "BaserowSync: Row créée (dossier #{dossier_number}, row_id #{new_row['id']})"
 
@@ -75,30 +76,50 @@ module MesDemarchesToBaserow
         existing_value = existing_row[field_name]
         field_type = @field_metadata[field_name]['type']
 
-        # Comparer selon le type de champ
-        has_changed = case field_type
-                      when 'number'
-                        values_differ_number?(new_value, existing_value)
-                      when 'single_select'
-                        values_differ_single_select?(new_value, existing_value)
-                      when 'multiple_select'
-                        values_differ_multiple_select?(new_value, existing_value)
-                      when 'file'
-                        values_differ_file?(new_value, existing_value)
-                      when 'link_row'
-                        values_differ_link_row?(new_value, existing_value)
-                      when 'phone_number'
-                        values_differ_phone_number?(new_value, existing_value)
-                      else
-                        # Pour text, long_text, date, boolean, email, url
-                        # Comparaison directe (en normalisant nil vs vide)
-                        normalize_value(new_value) != normalize_value(existing_value)
-                      end
-
-        changed_fields[field_name] = new_value if has_changed
+        changed_fields[field_name] = outgoing_value(new_value, field_type) if values_differ?(field_type, new_value, existing_value)
       end
 
       changed_fields
+    end
+
+    # Compare selon le type de champ Baserow
+    def values_differ?(field_type, new_value, existing_value)
+      case field_type
+      when 'number'
+        values_differ_number?(new_value, existing_value)
+      when 'single_select'
+        values_differ_single_select?(new_value, existing_value)
+      when 'multiple_select'
+        values_differ_multiple_select?(new_value, existing_value)
+      when 'file'
+        values_differ_file?(new_value, existing_value)
+      when 'link_row'
+        values_differ_link_row?(new_value, existing_value)
+      when 'phone_number'
+        values_differ_phone_number?(new_value, existing_value)
+      when 'boolean'
+        values_differ_boolean?(new_value, existing_value)
+      else
+        # Pour text, long_text, date, email, url
+        # Comparaison directe (en normalisant nil vs vide)
+        normalize_value(new_value) != normalize_value(existing_value)
+      end
+    end
+
+    # Forme envoyée à Baserow : un champ vidé côté Mes-Démarches réinitialise la
+    # cellule, avec la représentation « vide » que Baserow accepte pour chaque type
+    # (null pour text/date/number/select..., [] pour les listes, false pour boolean).
+    def outgoing_value(value, field_type)
+      case field_type
+      when 'single_select'
+        value.presence
+      when 'multiple_select', 'link_row'
+        Array(value).compact
+      when 'boolean'
+        value.nil? ? false : value
+      else
+        value
+      end
     end
 
     # Normalise une valeur pour comparaison (traite nil, "", [] comme équivalents)
@@ -120,15 +141,12 @@ module MesDemarchesToBaserow
     end
 
     # Compare single_select : new est une string, existing est { "id" => X, "value" => "..." }
-    # Une valeur vide ('' ou nil) n'est jamais considérée comme un changement :
-    # Baserow rejette '' comme option de select (400), et le vidage explicite
-    # de la cellule est un chantier séparé.
+    # '' et nil sont équivalents (champ vidé) : le changement n'est détecté que si
+    # la cellule existante est renseignée, et outgoing_value enverra alors null
+    # (Baserow rejette '' comme option de select).
     def values_differ_single_select?(new_value, existing_value)
-      new_value = new_value.presence
-      return false if new_value.nil?
-
       existing_str = existing_value.is_a?(Hash) ? existing_value['value'] : existing_value
-      new_value.to_s != existing_str.to_s
+      new_value.presence.to_s != existing_str.presence.to_s
     end
 
     # Compare multiple_select : new est [strings], existing est [{ "id" => X, "value" => "..." }]
@@ -168,6 +186,12 @@ module MesDemarchesToBaserow
       existing_ids = existing_array.map { |item| item.is_a?(Hash) ? item['id'] : item }.compact.map(&:to_i).sort
 
       new_array != existing_ids
+    end
+
+    # Compare boolean : nil équivaut à false (champ vidé → case décochée),
+    # Baserow n'acceptant pas null sur ce type
+    def values_differ_boolean?(new_value, existing_value)
+      (new_value || false) != (existing_value || false)
     end
 
     # Compare phone_number : normalise en retirant espaces, tirets, points
