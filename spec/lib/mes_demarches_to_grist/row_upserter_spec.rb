@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe MesDemarchesToGrist::RowUpserter do
   let(:client) { instance_double(Grist::Client) }
   let(:doc_id) { 'aBC123xYz' }
@@ -108,5 +109,87 @@ RSpec.describe MesDemarchesToGrist::RowUpserter do
       result = upserter.send(:filter_changed_fields, new_data, existing)
       expect(result).to be_empty
     end
+
+    context 'quand un champ MD est vidé, la cellule Grist est réinitialisée' do
+      let(:field_metadata) do
+        {
+          'Statut' => { type: 'Choice', id: 'Statut', isFormula: false },
+          'Nom' => { type: 'Text', id: 'Nom', isFormula: false },
+          'Age' => { type: 'Integer', id: 'Age', isFormula: false },
+          'Actif' => { type: 'Bool', id: 'Actif', isFormula: false },
+          'Thèmes' => { type: 'ChoiceList', id: 'Themes', isFormula: false },
+          'PJ' => { type: 'Attachments', id: 'PJ', isFormula: false }
+        }
+      end
+
+      it 'envoie nil pour un Text vidé quand la cellule est renseignée' do
+        existing = { 'fields' => { 'Nom' => 'Dupont' } }
+
+        result = upserter.send(:filter_changed_fields, { 'Nom' => nil }, existing)
+
+        expect(result).to have_key('Nom')
+        expect(result['Nom']).to be_nil
+      end
+
+      it "envoie nil pour un Choice vidé ('' devient nil)" do
+        existing = { 'fields' => { 'Statut' => 'en_construction' } }
+
+        result = upserter.send(:filter_changed_fields, { 'Statut' => '' }, existing)
+
+        expect(result).to have_key('Statut')
+        expect(result['Statut']).to be_nil
+      end
+
+      it 'envoie nil pour un Integer vidé quand la cellule est renseignée' do
+        existing = { 'fields' => { 'Age' => 25 } }
+
+        result = upserter.send(:filter_changed_fields, { 'Age' => nil }, existing)
+
+        expect(result).to have_key('Age')
+        expect(result['Age']).to be_nil
+      end
+
+      it 'envoie false pour un Bool vidé quand la cellule est à true' do
+        existing = { 'fields' => { 'Actif' => true } }
+
+        result = upserter.send(:filter_changed_fields, { 'Actif' => nil }, existing)
+
+        expect(result['Actif']).to be(false)
+      end
+
+      it "n'envoie rien pour un Bool vidé quand la cellule est déjà false" do
+        existing = { 'fields' => { 'Actif' => false } }
+
+        result = upserter.send(:filter_changed_fields, { 'Actif' => nil }, existing)
+
+        expect(result).not_to have_key('Actif')
+      end
+
+      it 'envoie nil pour une ChoiceList vidée quand la cellule est renseignée' do
+        existing = { 'fields' => { 'Thèmes' => %w[L Sport] } }
+
+        result = upserter.send(:filter_changed_fields, { 'Thèmes' => ['L'] }, existing)
+
+        expect(result).to have_key('Thèmes')
+        expect(result['Thèmes']).to be_nil
+      end
+
+      it "ne considère pas ['L'] différent d'une cellule ChoiceList vide (null)" do
+        existing = { 'fields' => { 'Thèmes' => nil } }
+
+        result = upserter.send(:filter_changed_fields, { 'Thèmes' => ['L'] }, existing)
+
+        expect(result).not_to have_key('Thèmes')
+      end
+
+      it 'ne touche pas aux Attachments quand la nouvelle valeur est nil' do
+        existing = { 'fields' => { 'PJ' => ['L', 12] } }
+
+        result = upserter.send(:filter_changed_fields, { 'PJ' => nil }, existing)
+
+        expect(result).not_to have_key('PJ')
+      end
+    end
   end
 end
+# rubocop:enable Metrics/BlockLength

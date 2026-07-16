@@ -9,6 +9,18 @@ module MesDemarchesToGrist
   # - ChoiceList → ["L", "val1", "val2"] (encoding Grist)
   # - Fichiers → {url:, visible_name:} (upload géré par SyncCoordinator)
   class DataExtractor
+    # Types de champs à ne jamais synchroniser (même règle que Baserow).
+    # TitreIdentiteChamp : pièce d'identité, confidentialité.
+    IGNORED_CHAMP_TYPES = %w[TitreIdentiteChamp].freeze
+
+    # Types décoratifs sans valeur : leur nil ne doit jamais vider une cellule.
+    DECORATIVE_CHAMP_TYPES = %w[HeaderSectionChamp ExplicationChamp].freeze
+
+    # Erreurs de lecture d'un champ GraphQL : le champ est ignoré (cellule laissée
+    # intacte) plutôt que de propager un nil qui viderait la cellule Grist.
+    # UnfetchedFieldError hérite de NoMethodError, pas de GraphQL::Client::Error.
+    CHAMP_READ_ERRORS = [GraphQL::Client::Error, GraphQL::Client::UnfetchedFieldError].freeze
+
     def initialize(field_metadata, options = {}, attachment_metadata: {})
       @field_metadata = field_metadata
       @options = options
@@ -32,42 +44,34 @@ module MesDemarchesToGrist
       data
     end
 
-    # rubocop:disable Metrics/MethodLength
+    # Métadonnées système + identité demandeur, depuis la source unique
+    # SchemaBuilders::MetadataFields (noms uniformes Grist/Baserow). Le mode
+    # demandeur vient du __typename du dossier (jamais mixte sur une démarche).
     def extract_system_fields(dossier)
-      data = {
-        'Dossier' => dossier.number,
-        'Statut' => dossier.state,
-        'Date de depot' => format_datetime_epoch(dossier.date_depot),
-        'Date de passage en instruction' => format_datetime_epoch(dossier.date_passage_en_instruction),
-        'Date de traitement' => format_datetime_epoch(dossier.date_traitement),
-        'Email usager' => dossier.usager&.email,
-        'Groupe instructeur' => dossier.groupe_instructeur&.label
-      }
+      typename = dossier.demandeur.respond_to?(:__typename) ? dossier.demandeur&.__typename : nil
+      modes = [SchemaBuilders::MetadataFields.mode_for_typename(typename)].compact
 
-      if dossier.demandeur
-        demandeur_type = dossier.demandeur.respond_to?(:__typename) ? dossier.demandeur.__typename : nil
-
-        case demandeur_type
-        when 'PersonnePhysique'
-          data.merge!(
-            'Civilite' => dossier.demandeur.civilite,
-            'Nom' => dossier.demandeur.nom,
-            'Prenom' => dossier.demandeur.prenom
-          )
-        when 'PersonneMorale'
-          data.merge!(
-            'Numero TAHITI' => dossier.demandeur.siret,
-            'Raison sociale' => dossier.demandeur.entreprise&.raison_sociale,
-            'Nom commercial' => dossier.demandeur.entreprise&.nom_commercial,
-            'Forme juridique' => dossier.demandeur.entreprise&.forme_juridique,
-            'Libelle NAF' => dossier.demandeur.libelle_naf
-          )
-        end
+      # Les nil sont conservés : une métadonnée redevenue vide (ex: date de
+      # traitement après repassage en instruction) réinitialise la cellule Grist.
+      SchemaBuilders::MetadataFields.all(modes).to_h do |field|
+        [field.name, format_metadata_value(field, field.source.call(dossier))]
       end
-
-      data.compact
     end
-    # rubocop:enable Metrics/MethodLength
+
+    # Mise en forme Grist : dates → epoch ; multi-choix → encoding ChoiceList
+    # ["L", ...] ; sinon valeur brute.
+    def format_metadata_value(field, raw)
+      return nil if raw.nil?
+
+      if field.datetime?
+        format_datetime_epoch(raw)
+      elsif field.multiple?
+        names = Array(raw).map { |l| l.respond_to?(:name) ? l.name : l.to_s }
+        names.empty? ? nil : (['L'] + names)
+      else
+        raw
+      end
+    end
 
     def extract_champs(dossier)
       extract_fields(dossier.champs)
@@ -82,6 +86,8 @@ module MesDemarchesToGrist
 
       champs.each do |champ|
         next if champ.__typename == 'RepetitionChamp'
+        next if IGNORED_CHAMP_TYPES.include?(champ.__typename)
+        next if DECORATIVE_CHAMP_TYPES.include?(champ.__typename)
 
         field_name = champ.label
         next unless @field_metadata.key?(field_name)
@@ -94,7 +100,12 @@ module MesDemarchesToGrist
                   normalize_value(champ, grist_type)
                 end
 
-        data[field_name] = value unless value.nil?
+        # Les nil sont conservés : ils signifient « champ vidé côté Mes-Démarches »
+        # et déclenchent la réinitialisation de la cellule Grist dans RowUpserter.
+        # Exception : Attachments (nil = ne pas toucher, préservation des PJ).
+        data[field_name] = value unless grist_type == 'Attachments' && value.nil?
+      rescue *CHAMP_READ_ERRORS => e
+        Rails.logger.warn("GristSync: champ #{field_name} illisible (#{champ.__typename}), cellule laissée intacte — #{e.message}")
       end
 
       data
@@ -130,8 +141,13 @@ module MesDemarchesToGrist
         }
 
         row.champs.each do |champ|
+          next if IGNORED_CHAMP_TYPES.include?(champ.__typename)
+          next if DECORATIVE_CHAMP_TYPES.include?(champ.__typename)
+
           field_name = champ.label
           row_data[field_name] = normalize_value_simple(champ)
+        rescue *CHAMP_READ_ERRORS => e
+          Rails.logger.warn("GristSync: champ de bloc #{field_name} illisible (#{champ.__typename}), ignoré — #{e.message}")
         end
 
         rows << row_data
@@ -156,7 +172,11 @@ module MesDemarchesToGrist
         normalize_integer(champ)
       when 'Numeric'
         normalize_numeric(champ)
-      else # Choice, Text
+      when 'Choice'
+        # Un Choice vide devient nil (RowUpserter enverra null pour réinitialiser
+        # la cellule — même philosophie que single_select côté Baserow)
+        get_champ_value(champ).presence
+      else # Text
         get_champ_value(champ)
       end
     end
@@ -192,9 +212,6 @@ module MesDemarchesToGrist
       else
         champ.respond_to?(:value) ? champ.value : champ.string_value
       end
-    rescue GraphQL::Client::Error => e
-      Rails.logger.warn("get_champ_value : #{champ.label} (#{champ.__typename}) — #{e.message}")
-      nil
     end
 
     # Grist attend les dates en timestamp Unix (epoch seconds)
@@ -215,6 +232,9 @@ module MesDemarchesToGrist
     end
 
     def normalize_boolean(value)
+      # Ne pas utiliser blank? en premier : false.blank? == true, or une case
+      # décochée doit bien repasser à false dans Grist.
+      return value if [true, false].include?(value)
       return nil if value.blank?
 
       value.to_s.downcase.in?(%w[oui true 1 yes])

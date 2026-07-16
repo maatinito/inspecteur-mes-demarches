@@ -37,6 +37,9 @@ module MesDemarchesToGrist
         end
 
         data = changed_data
+      else
+        # Création : les nil sont écartés (rien à réinitialiser sur un nouveau record)
+        data = data.compact
       end
 
       # Assurer que la colonne Dossier est dans les données
@@ -59,7 +62,9 @@ module MesDemarchesToGrist
       records.first&.dig('id')
     end
 
-    # Filtre les champs pour ne retourner que ceux qui ont réellement changé
+    # Filtre les champs pour ne retourner que ceux qui ont réellement changé.
+    # Un champ vidé côté Mes-Démarches réinitialise la cellule Grist (via outgoing_value),
+    # sauf les Attachments (nil = ne pas toucher, préservation des PJ).
     def filter_changed_fields(new_data, existing_record)
       existing_fields = existing_record['fields'] || {}
       changed_fields = {}
@@ -67,26 +72,45 @@ module MesDemarchesToGrist
       new_data.each do |field_name, new_value|
         next unless @field_metadata.key?(field_name)
 
-        existing_value = existing_fields[field_name]
         col_type = @field_metadata[field_name][:type]
+        next if col_type == 'Attachments' && new_value.nil?
 
-        has_changed = case col_type
-                      when 'Integer', 'Numeric'
-                        values_differ_number?(new_value, existing_value)
-                      when 'ChoiceList'
-                        values_differ_choice_list?(new_value, existing_value)
-                      when 'Bool'
-                        new_value != existing_value
-                      when 'Attachments'
-                        Array(new_value) != Array(existing_value)
-                      else # Choice, Text, Date, DateTime:UTC
-                        normalize_value(new_value) != normalize_value(existing_value)
-                      end
-
-        changed_fields[field_name] = new_value if has_changed
+        existing_value = existing_fields[field_name]
+        changed_fields[field_name] = outgoing_value(new_value, col_type) if values_differ?(col_type, new_value, existing_value)
       end
 
       changed_fields
+    end
+
+    # Compare selon le type de colonne Grist
+    def values_differ?(col_type, new_value, existing_value)
+      case col_type
+      when 'Integer', 'Numeric'
+        values_differ_number?(new_value, existing_value)
+      when 'ChoiceList'
+        values_differ_choice_list?(new_value, existing_value)
+      when 'Bool'
+        values_differ_boolean?(new_value, existing_value)
+      when 'Attachments'
+        Array(new_value) != Array(existing_value)
+      else # Choice, Text, Date, DateTime:UTC
+        normalize_value(new_value) != normalize_value(existing_value)
+      end
+    end
+
+    # Forme envoyée à Grist : un champ vidé côté Mes-Démarches réinitialise la
+    # cellule (null pour Text/Choice/Date/Number/ChoiceList, false pour Bool).
+    def outgoing_value(value, col_type)
+      case col_type
+      when 'Choice'
+        value.presence
+      when 'ChoiceList'
+        choice_values(value).empty? ? nil : value
+      when 'Bool'
+        value.nil? ? false : value
+      else
+        value
+      end
     end
 
     def normalize_value(value)
@@ -106,11 +130,20 @@ module MesDemarchesToGrist
     end
 
     # Grist ChoiceList : ["L", "val1", "val2"]
+    # nil et ["L"] sont équivalents (liste vide)
     def values_differ_choice_list?(new_value, existing_value)
-      new_array = Array(new_value)
-      existing_array = Array(existing_value)
+      choice_values(new_value) != choice_values(existing_value)
+    end
 
-      new_array != existing_array
+    # Extrait les valeurs d'une ChoiceList en retirant le marqueur "L" de tête
+    def choice_values(value)
+      array = Array(value)
+      array.first == 'L' ? array[1..] : array
+    end
+
+    # Compare Bool : nil équivaut à false (champ vidé → case décochée)
+    def values_differ_boolean?(new_value, existing_value)
+      (new_value || false) != (existing_value || false)
     end
 
     def handle_api_error(error, dossier_number, data, existing_record, attempt)
