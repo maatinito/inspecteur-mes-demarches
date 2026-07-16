@@ -15,6 +15,7 @@ RSpec.describe BaserowSync do
              demandeur: nil,
              usager: nil,
              labels: nil,
+             groupe_instructeur: nil,
              date_depot: nil,
              date_passage_en_instruction: nil,
              date_traitement: nil)

@@ -16,7 +16,7 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do
     let(:dossier) do
       double('Dossier', number: 12_345, champs: [], annotations: [], demandeur: nil, usager: nil,
                         labels: nil, date_depot: nil, date_passage_en_instruction: nil,
-                        date_traitement: nil, state: 'en_instruction')
+                        date_traitement: nil, groupe_instructeur: nil, state: 'en_instruction')
     end
 
     before do
