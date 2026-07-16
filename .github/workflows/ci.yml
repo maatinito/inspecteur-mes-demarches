@@ -45,7 +45,15 @@ jobs:
           GRAPHQL_BEARER: ${{ secrets.GRAPHQL_BEARER }}
         run: |
           bundle exec rake lint
-          bundle exec rake zeitwerk:check
+          # zeitwerk:check eager-load l'app, qui charge le schéma GraphQL
+          # Mes-Démarches au boot (introspection réseau authentifiée).
+          # Les runs Dependabot n'ont pas accès aux secrets du repo :
+          # sans token on saute ce check plutôt que d'échouer sur un 403.
+          if [ -n "$GRAPHQL_BEARER" ]; then
+            bundle exec rake zeitwerk:check
+          else
+            echo "GRAPHQL_BEARER absent (run Dependabot ?) : zeitwerk:check ignoré"
+          fi
 
 
   unit_tests:
