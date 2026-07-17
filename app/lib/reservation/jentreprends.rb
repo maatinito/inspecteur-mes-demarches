@@ -18,11 +18,12 @@ module Reservation
     end
 
     def find_or_create_session(name, date)
+      session = Session.find_by(name:, date:)
+      return session if session.present?
+
       return nil if date.wday != 5 || date < Date.today
 
-      Session.find_or_create_by(name:, date:) do |session|
-        session.update(capacity: @params[:capacite])
-      end
+      Session.create(name:, date:, capacity: @params[:capacite])
     end
 
     def find_available_sessions(_name, _date)
