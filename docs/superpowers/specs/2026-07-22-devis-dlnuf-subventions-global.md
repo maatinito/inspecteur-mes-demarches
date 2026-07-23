@@ -121,13 +121,23 @@ Le devis est **global** : chaque ligne est facturée pour elle-même.
 | **B — Dites-le-nous une fois** | Détection du mode via la colonne « propriétaire » (table méta) + **fail-closed si id mort** + diagnostic ; scope titulaire `dossier.user.email` ; endpoint acceptant un **`q` vide** quand scopé ; ergonomie **liste des 0/1/N lignes de l'usager + auto-remplissage si une seule** au focus ; messages n'échoant jamais le mail ; tests. | **~2,5–3 j** |
 | **C — Préremplissage des pièces jointes** | Branche PJ dans `update_prefillable_champ` ; **job asynchrone** download + attach + **re-scan antivirus** (pas de `SAFE` forcé) + **purge idempotente** (seulement si champ `prefilled?`) + échec gracieux ; UI d'attente via refresh Turbo ; éditeur de mapping (cible PJ + validation colonne fichier) ; tests unitaires + système. | **~4–5 j** |
 
-**Total dev : ~15–17,5 j.**
+**Sous-total construction : ~15–17,5 j.**
+
+### 3.1 Déploiement
+
+| Lot | Contenu | Charge |
+|---|---|---|
+| **D1 — Recopie initiale (reprise de l'existant)** | Alimentation du socle avec les dossiers **déjà déposés** (indispensable pour que le DLNUF propose des données dès l'ouverture) : reprise par démarche via remise du curseur `demarche.checked_at` à `EPOCH` (`app/lib/verification_service.rb:157`, mécanisme `reset?` existant), **contrôle qualité du mapping sur données réelles** (champs combinés, PJ conditionnelles N→1), correctifs de cartographie induits. | **~1,5–2 j** |
+| **D2 — Accompagnement des services** | Un jour par service : cadrage du `mapping:` de la démarche, recette du prefill sur un dossier réel, points de vigilance (consentement, libellés), transfert. **6 services** (DIREN, Sport/DJS, Jeunesse, Santé, DSFE, Papeete). | **~6 j** (1 j × 6) |
+
+**Total devis : ~22,5–25,5 j.**
 
 ---
 
 ## 4. Périmètre et hors périmètre
 
-**Dans le périmètre (dev) :** P0, W1, W2 (écriture) ; L0, B, C (lecture).
+**Dans le périmètre :** P0, W1, W2 (construction écriture) ; L0, B, C (construction lecture) ;
+D1, D2 (déploiement : recopie initiale + accompagnement des services).
 
 **Hors périmètre :**
 - **Gouvernance RGPD inter-services** : base légale du partage, rétention, habilitations,
