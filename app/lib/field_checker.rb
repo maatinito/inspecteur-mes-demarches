@@ -157,7 +157,7 @@ class FieldChecker < InspectorTask
 
   def graphql_champ_value(champ) # rubocop:disable Metrics/MethodLength
     case champ.__typename
-    when 'TextChamp'
+    when 'TextChamp', 'DropDownListChamp'
       champ.value || ''
     when 'IntegerNumberChamp'
       champ.int_value || ''

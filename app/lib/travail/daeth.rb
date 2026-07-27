@@ -116,7 +116,7 @@ module Travail
       dates = initialize_year_dates(year)
       rows = param_field(:champ_travailleurs, warn_if_empty: false)&.rows || []
       rows.map do |row|
-        fields = row.champs.to_h { |c| [c.label, c.respond_to?(:value) ? c.value : c] }
+        fields = row.champs.to_h { |c| [c.label, row_champ_value(c)] }
         disabled_worker_attributes(fields).merge!(disabled_worker_complement(fields, dates))
       end
     end
@@ -215,13 +215,29 @@ module Travail
       date_depot >= june_first ? date_depot.year : date_depot.year - 1
     end
 
+    # Les `value` typés du fragment ChampInfo sont aliasés (dateValue, intValue,
+    # checked…) : un champ ne répond donc pas forcément à `value`. On lit via le
+    # dispatch par __typename en gardant les types natifs dont les calculs ont
+    # besoin : Date pour les bornes de contrat, booléen pour la rente.
+    def row_champ_value(champ)
+      case champ.__typename
+      when 'DateChamp', 'DatetimeChamp'
+        iso = raw_date_value(champ)
+        iso.present? ? Date.iso8601(iso) : nil
+      when 'CheckboxChamp', 'YesNoChamp'
+        champ.checked
+      else
+        champ_value(champ)
+      end
+    end
+
     def disabled_worker_attributes(fields)
       {
         status: fields[@status],
         contract_type: fields[@contract_type],
-        contract_begin: fields[@contract_begin].present? ? Date.parse(fields[@contract_begin]) : nil,
-        contract_end: fields[@contract_end].present? ? Date.parse(fields[@contract_end]) : nil,
-        contract_hours: fields[@contract_hours]&.to_i
+        contract_begin: fields[@contract_begin].presence,
+        contract_end: fields[@contract_end].presence,
+        contract_hours: fields[@contract_hours].presence&.to_i
       }
     end
 
@@ -230,8 +246,8 @@ module Travail
       when STATUS_COTOREP
         {
           cotorep_category: fields[@cotorep_category],
-          cotorep_begin: fields[@cotorep_begin].present? ? Date.parse(fields[@cotorep_begin]) : dates[:year_start],
-          cotorep_end: fields[@cotorep_end].present? ? Date.parse(fields[@cotorep_end]) : dates[:year_end]
+          cotorep_begin: fields[@cotorep_begin].presence || dates[:year_start],
+          cotorep_end: fields[@cotorep_end].presence || dates[:year_end]
         }
       when STATUS_PDD
         {

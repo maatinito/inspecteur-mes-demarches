@@ -30,6 +30,96 @@ RSpec.describe Travail::Daeth do
     end
   end
 
+  # Régression 0ad4ea8 : les `value` typés du fragment ChampInfo sont aliasés
+  # (dateValue, checked, intValue…). L'ancienne lecture
+  # `c.respond_to?(:value) ? c.value : c` rangeait l'objet GraphQL lui-même dans le
+  # hash : `Date.parse` levait « no implicit conversion of DateChamp into String » et
+  # la rente était toujours vue comme vraie.
+  describe '#disabled_workers' do
+    let(:date_depot) { Date.new(2025, 1, 1) }
+
+    # Champ dont le `value` est aliasé côté GraphQL : comme en production, il ne
+    # répond pas du tout à `value`.
+    def aliased_champ(label, typename, accessors)
+      double(label, { label:, __typename: typename }.merge(accessors))
+    end
+
+    def date_champ(label, iso) = aliased_champ(label, 'DateChamp', date_value: iso)
+    def yes_no_champ(label, checked) = aliased_champ(label, 'YesNoChamp', checked:)
+    def integer_champ(label, int) = aliased_champ(label, 'IntegerNumberChamp', int_value: int)
+    def text_champ(label, value) = double(label, label:, __typename: 'TextChamp', value:)
+    def list_champ(label, value) = double(label, label:, __typename: 'DropDownListChamp', value:)
+
+    let(:cotorep_begin) { '2024-03-01' }
+    let(:cotorep_end) { '2025-09-01' }
+    let(:cotorep_row) do
+      double('Row',
+             champs: [
+               list_champ('Situation', Travail::Daeth::STATUS_COTOREP),
+               list_champ('Type de contrat', 'CDI'),
+               date_champ('Date de début du contrat', '2024-07-01'),
+               date_champ('Date de fin du contrat', nil),
+               text_champ('Heures par semaine', '39'),
+               list_champ('Catégorie de handicap', 'C'),
+               date_champ('Date de début des droits COTOREP', cotorep_begin),
+               date_champ('Date de fin des droits COTOREP', cotorep_end)
+             ])
+    end
+    let(:pdd_row) do
+      double('Row',
+             champs: [
+               list_champ('Situation', Travail::Daeth::STATUS_PDD),
+               list_champ('Type de contrat', 'CDD'),
+               date_champ('Date de début du contrat', '2024-01-15'),
+               date_champ('Date de fin du contrat', '2024-12-31'),
+               text_champ('Heures par semaine', ''),
+               integer_champ("Taux d'IPP", 30),
+               yes_no_champ('Rente', false)
+             ])
+    end
+
+    before do
+      allow(controle).to receive(:declaration_year).and_return(2024)
+      allow(controle).to receive(:param_field).with(:champ_travailleurs, warn_if_empty: false)
+                                              .and_return(double('RepetitionChamp', rows: [cotorep_row, pdd_row]))
+    end
+
+    it 'lit les dates comme des Date sans lever' do
+      workers = nil
+      expect { workers = controle.disabled_workers }.not_to raise_error
+      expect(workers.first).to include(
+        status: Travail::Daeth::STATUS_COTOREP,
+        contract_type: 'CDI',
+        contract_begin: Date.new(2024, 7, 1),
+        contract_end: nil,
+        contract_hours: 39,
+        cotorep_category: 'C',
+        cotorep_begin: Date.new(2024, 3, 1),
+        cotorep_end: Date.new(2025, 9, 1)
+      )
+    end
+
+    context 'dates COTOREP vides' do
+      let(:cotorep_begin) { nil }
+      let(:cotorep_end) { nil }
+
+      it 'les remplace par les bornes de l’année de déclaration' do
+        worker = controle.disabled_workers.first
+        expect(worker[:cotorep_begin]).to eq(Date.new(2024, 1, 1))
+        expect(worker[:cotorep_end]).to eq(Date.new(2025, 1, 1))
+      end
+    end
+
+    it 'lit la rente comme un booléen et les heures vides comme nil' do
+      expect(controle.disabled_workers.last).to include(
+        status: Travail::Daeth::STATUS_PDD,
+        contract_hours: nil,
+        pdd_rate: 30,
+        annuity: false
+      )
+    end
+  end
+
   context 'params correct' do
     let(:date_depot) { Date.new(2025, 1, 1) }
     let(:fte) { 170.0 }
