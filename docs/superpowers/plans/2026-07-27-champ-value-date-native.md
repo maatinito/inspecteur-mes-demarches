@@ -162,8 +162,6 @@ class DateValue < Date
   def to_s
     strftime('%d/%m/%Y')
   end
-  alias texte to_s
-  alias inspect to_s
 end
 ```
 
@@ -181,8 +179,6 @@ class DatetimeValue < DateTime
   def to_s
     strftime('%d/%m/%Y à %Hh%M')
   end
-  alias texte to_s
-  alias inspect to_s
 end
 ```
 
@@ -366,7 +362,7 @@ git commit -m "refactor(excel): aplatir les valeurs date en texte avant écritur
 ### Task 4 : Bascule de `graphql_champ_value`
 
 **Files:**
-- Modify: `app/lib/field_checker.rb:174-175` (branche `DatetimeChamp`/`DateChamp` de `graphql_champ_value`) et `:196-201` (`date_value`)
+- Modify: `app/lib/field_checker.rb:174-175` (branche `DatetimeChamp`/`DateChamp` de `graphql_champ_value`) et `:196-201` (suppression de `date_value`, devenu sans appelant)
 - Test: `spec/lib/field_checker_date_spec.rb` (compléter)
 
 **Interfaces:**
@@ -419,7 +415,9 @@ par :
       typed_date_value(champ, DatetimeValue)
 ```
 
-et ajouter, juste après `date_value` (garder `date_value`, qui reste utile pour un formatage explicite ponctuel) :
+Supprimer ensuite la méthode `date_value(champ, format)` (`app/lib/field_checker.rb:196-201`) : l'appel ci-dessus était son unique appelant dans tout le dépôt (vérifié par `grep -rn "date_value(" app/ spec/`), elle deviendrait du code mort. Un formatage explicite ponctuel se fait désormais par `champ_value(champ).strftime(...)`. Conserver `raw_date_value`, qui reste utilisé.
+
+Ajouter à la place :
 
 ```ruby
   # Valeur date d'un champ sous forme d'objet natif (cf. DateValue) : les plugins
