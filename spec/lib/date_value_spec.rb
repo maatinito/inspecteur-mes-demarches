@@ -63,4 +63,12 @@ RSpec.describe DatetimeValue do
   it 'se sérialise en ISO en JSON' do
     expect(datetime.as_json).to start_with('2026-07-27T09:30:00')
   end
+
+  # Contrepartie de l'affichage avec l'heure : un template Sablon peut retomber
+  # sur la date seule par «=mon_champ.date» (Sablon fait `public_send` sur la
+  # valeur du contexte quand le champ de fusion contient un point).
+  it 'expose la date seule, affichable au format français' do
+    expect(datetime.date).to be_a(DateValue)
+    expect(datetime.date.to_s).to eq('27/07/2026')
+  end
 end

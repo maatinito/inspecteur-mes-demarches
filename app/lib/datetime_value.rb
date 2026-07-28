@@ -9,4 +9,11 @@ class DatetimeValue < DateTime
   def to_s
     strftime('%d/%m/%Y à %Hh%M')
   end
+
+  # Date seule, sans l'heure. Utilisable telle quelle dans un template Sablon
+  # («=mon_champ.date») ou dans un plugin. Renvoie un `DateValue` et non un
+  # `Date` nu, pour que l'affichage reste au format français.
+  def date
+    DateValue.new(year, month, day)
+  end
 end

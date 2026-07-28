@@ -48,4 +48,24 @@ RSpec.describe FieldChecker do
   it 'ne retient pas un champ date vide dans les valeurs' do
     expect(checker.champs_to_values([date_champ('Date du jugement', nil)])).to eq([])
   end
+
+  describe 'valeur exploitable par les plugins' do
+    it 'rend un objet date comparable et calculable' do
+      value = checker.champ_value(champ)
+      expect(value).to be_a(Date)
+      expect(value).to eq(Date.new(2026, 7, 27))
+      expect(value.year).to eq(2026)
+    end
+
+    # Changement de sortie assumé : aujourd'hui l'heure est perdue (même branche
+    # que DateChamp, format %d/%m/%Y). Voir « Décision » en tête de plan.
+    it 'rend un DatetimeValue affichant l’heure pour un champ date-heure' do
+      datetime_champ = double('DatetimeChamp', label: 'Horodatage', __typename: 'DatetimeChamp',
+                                               string_value: '2026-07-27T09:30:00+10:00')
+      value = checker.champ_value(datetime_champ)
+      expect(value).to be_a(DatetimeValue)
+      expect(value.to_s).to eq('27/07/2026 à 09h30')
+      expect(value.date.to_s).to eq('27/07/2026')
+    end
+  end
 end
