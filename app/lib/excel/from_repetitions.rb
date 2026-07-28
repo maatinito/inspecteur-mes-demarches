@@ -44,7 +44,7 @@ module Excel
 
             worksheet.add_cell(@cellule_de_depart[0] + row_index,
                                @cellule_de_depart[1] + column_index,
-                               graphql_champ_value(sous_champ))
+                               champ_cell_value(sous_champ))
           end
         end
       end
@@ -84,7 +84,7 @@ module Excel
 
         fields[champ.label] = champ.rows.each_with_object([]) do |repetition, table|
           table << repetition.champs.each_with_object([]) do |sous_champ, row|
-            row << graphql_champ_value(sous_champ) if FIELD_TYPES.include?(sous_champ.__typename)
+            row << champ_cell_value(sous_champ) if FIELD_TYPES.include?(sous_champ.__typename)
           end
         end
       end
@@ -124,6 +124,16 @@ module Excel
       return 'document.pdf' if template.blank?
 
       instanciate(template, source).gsub(/[^- 0-9a-z\u00C0-\u017F.]/i, '_')
+    end
+
+    private
+
+    # Une cellule Excel et l'empreinte YAML veulent une cha\u00EEne : on aplatit les
+    # valeurs date (`DateValue`/`DatetimeValue`, qui sont de vrais `Date`) en
+    # texte au format fran\u00E7ais.
+    def champ_cell_value(champ)
+      value = graphql_champ_value(champ)
+      value.is_a?(Date) ? value.to_s : value
     end
   end
 end
