@@ -171,8 +171,10 @@ class FieldChecker < InspectorTask
       champ.values
     when 'LinkedDropDownListChamp'
       "#{champ.primary_value}/#{champ.secondary_value}"
-    when 'DatetimeChamp', 'DateChamp'
-      date_value(champ, '%d/%m/%Y')
+    when 'DateChamp'
+      typed_date_value(champ, DateValue)
+    when 'DatetimeChamp'
+      typed_date_value(champ, DatetimeValue)
     when 'NumeroDnChamp'
       "#{champ.numero_dn}|#{champ.date_de_naissance}"
     when 'DossierLinkChamp', 'SiretChamp', 'VisaChamp', 'ReferentielDePolynesieChamp', 'CommuneDePolynesieChamp', 'CodePostalDePolynesieChamp'
@@ -193,11 +195,18 @@ class FieldChecker < InspectorTask
     end
   end
 
-  def date_value(champ, format)
+  # Valeur date d'un champ sous forme d'objet natif (cf. DateValue) : les plugins
+  # peuvent comparer et calculer dessus, l'affichage reste au format français.
+  # Chaîne vide si le champ n'est pas renseigné, pour ne pas changer le contrat
+  # de `champ_value` (les appelants testent `.blank?` / `.present?`).
+  def typed_date_value(champ, klass)
     iso = raw_date_value(champ)
     return '' if iso.blank?
 
-    Date.iso8601(iso).strftime(format)
+    klass.iso8601(iso)
+  rescue Date::Error
+    Rails.logger.warn("Date illisible sur le champ #{champ.label} : #{iso.inspect}")
+    ''
   end
 
   def raw_date_value(champ)
