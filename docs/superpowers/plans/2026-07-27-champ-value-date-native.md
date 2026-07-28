@@ -37,13 +37,13 @@ Un prototype a été exécuté avant rédaction (`DateValue < Date` avec `to_s` 
 - Référence de non-régression : `bundle exec rspec` doit finir avec **exactement 3 échecs pré-existants**, tous dans `spec/requests/admin/schema_builder_spec.rb` (chantier schema_builder en cours, sans rapport). Tout 4ᵉ échec est une régression introduite par ce plan.
 - Format d'affichage à préserver au caractère près pour les `DateChamp` : `%d/%m/%Y` — c'est ce que `champ_value` produit déjà.
 - **Une seule sortie change dans ce chantier, et c'est un choix explicite** (arbitré le 27/07/2026, voir ci-dessous) : les `DatetimeChamp`. Tout le reste doit sortir au caractère près comme avant.
+- Commits en français, style du dépôt (`fix(scope):` / `feat(scope):`), avec `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`.
 
 ## Décision : les champs date-heure gagnent l'heure
 
 Constat fait en cours d'exécution : aujourd'hui `graphql_champ_value` traite `DatetimeChamp` et `DateChamp` dans **la même branche** avec le format `%d/%m/%Y` (`app/lib/field_checker.rb:174-175`), donc **l'heure d'un champ date-heure est perdue à l'affichage**, alors que les deux autres chemins de formatage du framework l'affichent (`champ_value` sur objet Ruby, `app/lib/field_checker.rb:150`, et `humanize`, `:393`). C'est un oubli, pas une intention.
 
 Décision retenue : `DatetimeChamp` rend un `DatetimeValue`, qui s'affiche `27/07/2026 à 09h30`. C'est un changement de sortie visible sur les templates et messages qui affichent un champ date-heure, assumé comme une correction. En contrepartie, `DatetimeValue` expose une méthode `date` qui rend la date seule, utilisable directement dans un template Sablon de PublipostageV3 : `«=mon_champ.date»` → `27/07/2026`. Vérifié dans la gem : `Sablon::Operations::LookupOrMethodCall#evaluate` (sablon-0.4.3, `lib/sablon/operations.rb:167-179`) fait `local.public_send(m) if local.respond_to?(m)`, donc un appel de méthode sur la valeur du contexte fonctionne — c'est déjà le mécanisme qui sert pour `PieceJustificativeFile` en V3.
-- Commits en français, style du dépôt (`fix(scope):` / `feat(scope):`), avec `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`.
 
 ## Structure des fichiers
 
@@ -55,7 +55,7 @@ Décision retenue : `DatetimeChamp` rend un `DatetimeValue`, qui s'affiche `27/0
 | `app/lib/field_checker.rb` (modifier) | Bascule de `graphql_champ_value` : `DateChamp`/`DatetimeChamp` → objet typé au lieu d'une chaîne. |
 | `spec/lib/field_checker_date_spec.rb` (créer) | Tests de caractérisation des chemins de sortie : ce qui sort de `champ_value`, `champs_to_values`, `instanciate`. Écrits **avant** la bascule, doivent rester verts après. |
 | `app/lib/excel/from_repetitions.rb` (modifier) | Seul appelant de `graphql_champ_value` hors `field_checker` : écrit dans une cellule RubyXL et dans un YAML d'empreinte → doit recevoir une chaîne, pas un objet date. |
-| `spec/lib/excel/from_repetitions_spec.rb` (créer) | Garde sur la valeur de cellule. |
+| `spec/lib/excel/from_repetitions_spec.rb` (**modifier — existe déjà**) | Test d'intégration VCR existant (dossier 376077, xlsx généré, anti-doublon) à conserver intégralement ; on y ajoute la garde sur la valeur de cellule. |
 | `app/lib/travail/daeth.rb` + `spec/lib/travail/daeth_spec.rb` (modifier, Task 5) | Nettoyage du contournement local devenu redondant. |
 
 ---
@@ -296,7 +296,7 @@ git commit -m "test(champs): caractériser les sorties produites pour un champ d
 
 **Files:**
 - Modify: `app/lib/excel/from_repetitions.rb:41-49` et `:82-90`
-- Test: `spec/lib/excel/from_repetitions_spec.rb` (créer)
+- Modify: `spec/lib/excel/from_repetitions_spec.rb` — **le fichier existe déjà** (test d'intégration VCR sur le dossier 376077 + anti-doublon) : compléter, ne jamais l'écraser
 
 **Interfaces:**
 - Consomme : `FieldChecker#graphql_champ_value`.
@@ -304,7 +304,7 @@ git commit -m "test(champs): caractériser les sorties produites pour un champ d
 
 - [ ] **Step 1 : Écrire le test qui échoue**
 
-Créer `spec/lib/excel/from_repetitions_spec.rb` :
+Compléter `spec/lib/excel/from_repetitions_spec.rb` — **le fichier existe déjà** et contient un test d'intégration adossé à une cassette VCR (dossier 376077, assertions sur le xlsx généré, anti-doublon `same_document`). Le conserver intégralement et ajouter à côté :
 
 ```ruby
 # frozen_string_literal: true
