@@ -156,6 +156,9 @@ module MesDemarches
       ... on DateChamp  {
           dateValue: value
       }
+      ... on DatetimeChamp  {
+          datetimeValue: datetime
+      }
       ... on LinkedDropDownListChamp {
           primaryValue
           secondaryValue

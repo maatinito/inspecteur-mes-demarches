@@ -215,6 +215,8 @@ class FieldChecker < InspectorTask
     case champ.__typename
     when 'DateChamp'
       champ.date_value
+    when 'DatetimeChamp'
+      champ.datetime_value
     else
       champ.respond_to?(:string_value) ? champ.string_value : nil
     end
