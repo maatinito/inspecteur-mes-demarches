@@ -14,6 +14,14 @@ RSpec.describe FieldChecker do
     double(label, label:, __typename: 'DateChamp', date_value: iso)
   end
 
+  # Un DatetimeChamp réel n'a pas de champ `value` côté GraphQL : le fragment
+  # ChampInfo l'aliase en `datetimeValue: datetime` (pas `stringValue`, dont le
+  # format francisé côté plateforme — « 27 juillet 2026 09:30 » — n'est pas
+  # parsable en ISO8601).
+  def datetime_champ(label, iso)
+    double(label, label:, __typename: 'DatetimeChamp', datetime_value: iso)
+  end
+
   let(:champ) { date_champ('Date du jugement', '2026-07-27') }
   let(:dossier) { double('Dossier', number: 123, champs: [champ]) }
 
@@ -60,12 +68,21 @@ RSpec.describe FieldChecker do
     # Changement de sortie assumé : aujourd'hui l'heure est perdue (même branche
     # que DateChamp, format %d/%m/%Y). Voir « Décision » en tête de plan.
     it 'rend un DatetimeValue affichant l’heure pour un champ date-heure' do
-      datetime_champ = double('DatetimeChamp', label: 'Horodatage', __typename: 'DatetimeChamp',
-                                               string_value: '2026-07-27T09:30:00+10:00')
-      value = checker.champ_value(datetime_champ)
+      value = checker.champ_value(datetime_champ('Horodatage', '2026-07-27T09:30:00+10:00'))
       expect(value).to be_a(DatetimeValue)
       expect(value.to_s).to eq('27/07/2026 à 09h30')
       expect(value.date.to_s).to eq('27/07/2026')
+    end
+
+    it 'rend une chaîne vide pour un champ date-heure non renseigné' do
+      expect(checker.champ_value(datetime_champ('Horodatage', nil))).to eq('')
+    end
+
+    # Filet de sécurité si l'API renvoie une valeur inattendue (`datetime` mal
+    # formé, panne côté plateforme...) : ne doit jamais lever, ni remonter une
+    # exception jusqu'à l'appelant.
+    it 'rend une chaîne vide sans lever pour une date illisible' do
+      expect(checker.champ_value(datetime_champ('Horodatage', 'valeur-illisible'))).to eq('')
     end
   end
 end
