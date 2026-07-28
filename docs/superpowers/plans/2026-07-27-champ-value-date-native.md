@@ -35,7 +35,14 @@ Un prototype a été exécuté avant rédaction (`DateValue < Date` avec `to_s` 
 - Avant chaque commit : `bundle exec rubocop -A <fichiers touchés>` puis `bundle exec rake lint` (règle CLAUDE.md, non négociable).
 - Aucun bump de `version` de plugin dans ce chantier : le formatage de sortie est inchangé, il n'y a rien à retraiter. Si une tâche change une sortie visible (Task 5), le signaler et demander avant de bumper.
 - Référence de non-régression : `bundle exec rspec` doit finir avec **exactement 3 échecs pré-existants**, tous dans `spec/requests/admin/schema_builder_spec.rb` (chantier schema_builder en cours, sans rapport). Tout 4ᵉ échec est une régression introduite par ce plan.
-- Format d'affichage à préserver au caractère près : `%d/%m/%Y` pour les dates, `%d/%m/%Y à %Hh%M` pour les date-heures — ce sont les formats déjà produits par `champ_value` (`app/lib/field_checker.rb:150-151`) et `humanize` (`app/lib/field_checker.rb:393`).
+- Format d'affichage à préserver au caractère près pour les `DateChamp` : `%d/%m/%Y` — c'est ce que `champ_value` produit déjà.
+- **Une seule sortie change dans ce chantier, et c'est un choix explicite** (arbitré le 27/07/2026, voir ci-dessous) : les `DatetimeChamp`. Tout le reste doit sortir au caractère près comme avant.
+
+## Décision : les champs date-heure gagnent l'heure
+
+Constat fait en cours d'exécution : aujourd'hui `graphql_champ_value` traite `DatetimeChamp` et `DateChamp` dans **la même branche** avec le format `%d/%m/%Y` (`app/lib/field_checker.rb:174-175`), donc **l'heure d'un champ date-heure est perdue à l'affichage**, alors que les deux autres chemins de formatage du framework l'affichent (`champ_value` sur objet Ruby, `app/lib/field_checker.rb:150`, et `humanize`, `:393`). C'est un oubli, pas une intention.
+
+Décision retenue : `DatetimeChamp` rend un `DatetimeValue`, qui s'affiche `27/07/2026 à 09h30`. C'est un changement de sortie visible sur les templates et messages qui affichent un champ date-heure, assumé comme une correction. En contrepartie, `DatetimeValue` expose une méthode `date` qui rend la date seule, utilisable directement dans un template Sablon de PublipostageV3 : `«=mon_champ.date»` → `27/07/2026`. Vérifié dans la gem : `Sablon::Operations::LookupOrMethodCall#evaluate` (sablon-0.4.3, `lib/sablon/operations.rb:167-179`) fait `local.public_send(m) if local.respond_to?(m)`, donc un appel de méthode sur la valeur du contexte fonctionne — c'est déjà le mécanisme qui sert pour `PieceJustificativeFile` en V3.
 - Commits en français, style du dépôt (`fix(scope):` / `feat(scope):`), avec `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`.
 
 ## Structure des fichiers
@@ -362,14 +369,53 @@ git commit -m "refactor(excel): aplatir les valeurs date en texte avant écritur
 ### Task 4 : Bascule de `graphql_champ_value`
 
 **Files:**
+- Modify: `app/lib/datetime_value.rb` (ajout de `#date`)
+- Modify: `spec/lib/date_value_spec.rb` (compléter)
 - Modify: `app/lib/field_checker.rb:174-175` (branche `DatetimeChamp`/`DateChamp` de `graphql_champ_value`) et `:196-201` (suppression de `date_value`, devenu sans appelant)
 - Test: `spec/lib/field_checker_date_spec.rb` (compléter)
 
 **Interfaces:**
 - Consomme : `DateValue`, `DatetimeValue` (Task 1).
-- Produit : `champ_value(DateChamp) -> DateValue | ''`, `champ_value(DatetimeChamp) -> DatetimeValue | ''`. La chaîne vide est conservée pour un champ non renseigné (contrat actuel, sur lequel s'appuient `daf/instruction.rb:60` et `champs_to_values`).
+- Produit : `champ_value(DateChamp) -> DateValue | ''`, `champ_value(DatetimeChamp) -> DatetimeValue | ''`, et `DatetimeValue#date -> DateValue`. La chaîne vide est conservée pour un champ non renseigné (contrat actuel, sur lequel s'appuient `daf/instruction.rb:60` et `champs_to_values`).
 
-- [ ] **Step 1 : Ajouter le test de la nouvelle capacité**
+- [ ] **Step 1 : Écrire le test de `DatetimeValue#date`**
+
+Dans `spec/lib/date_value_spec.rb`, dans le `RSpec.describe DatetimeValue`, ajouter :
+
+```ruby
+  # Contrepartie de l'affichage avec l'heure : un template Sablon peut retomber
+  # sur la date seule par «=mon_champ.date» (Sablon fait `public_send` sur la
+  # valeur du contexte quand le champ de fusion contient un point).
+  it 'expose la date seule, affichable au format français' do
+    expect(datetime.date).to be_a(DateValue)
+    expect(datetime.date.to_s).to eq('27/07/2026')
+  end
+```
+
+- [ ] **Step 2 : Lancer le test pour vérifier qu'il échoue**
+
+Run: `bundle exec rspec spec/lib/date_value_spec.rb`
+Expected: FAIL — `undefined method 'date'` (ou `expected DateTime to be a kind of DateValue` selon ce que Ruby expose).
+
+- [ ] **Step 3 : Implémenter `DatetimeValue#date`**
+
+Dans `app/lib/datetime_value.rb` :
+
+```ruby
+  # Date seule, sans l'heure. Utilisable telle quelle dans un template Sablon
+  # («=mon_champ.date») ou dans un plugin. Renvoie un `DateValue` et non un
+  # `Date` nu, pour que l'affichage reste au format français.
+  def date
+    DateValue.new(year, month, day)
+  end
+```
+
+- [ ] **Step 4 : Lancer le test pour vérifier qu'il passe**
+
+Run: `bundle exec rspec spec/lib/date_value_spec.rb`
+Expected: PASS (10 exemples)
+
+- [ ] **Step 5 : Ajouter le test de la nouvelle capacité de `champ_value`**
 
 Dans `spec/lib/field_checker_date_spec.rb`, ajouter avant le dernier `end` :
 
@@ -382,22 +428,25 @@ Dans `spec/lib/field_checker_date_spec.rb`, ajouter avant le dernier `end` :
       expect(value.year).to eq(2026)
     end
 
-    it 'rend un DatetimeValue pour un champ date-heure' do
+    # Changement de sortie assumé : aujourd'hui l'heure est perdue (même branche
+    # que DateChamp, format %d/%m/%Y). Voir « Décision » en tête de plan.
+    it 'rend un DatetimeValue affichant l’heure pour un champ date-heure' do
       datetime_champ = double('DatetimeChamp', label: 'Horodatage', __typename: 'DatetimeChamp',
                                               string_value: '2026-07-27T09:30:00+10:00')
       value = checker.champ_value(datetime_champ)
-      expect(value).to be_a(DateTime)
+      expect(value).to be_a(DatetimeValue)
       expect(value.to_s).to eq('27/07/2026 à 09h30')
+      expect(value.date.to_s).to eq('27/07/2026')
     end
   end
 ```
 
-- [ ] **Step 2 : Lancer le test pour vérifier qu'il échoue**
+- [ ] **Step 6 : Lancer le test pour vérifier qu'il échoue**
 
 Run: `bundle exec rspec spec/lib/field_checker_date_spec.rb`
 Expected: FAIL — `expected '27/07/2026' to be a kind of Date` (une chaîne est renvoyée).
 
-- [ ] **Step 3 : Écrire l'implémentation**
+- [ ] **Step 7 : Écrire l'implémentation**
 
 Dans `app/lib/field_checker.rb`, remplacer la branche de `graphql_champ_value` :
 
@@ -435,21 +484,37 @@ Ajouter à la place :
   end
 ```
 
-- [ ] **Step 4 : Lancer les tests du fichier, puis la suite complète**
+- [ ] **Step 8 : Lancer les tests des deux fichiers, puis la suite complète**
 
-Run: `bundle exec rspec spec/lib/field_checker_date_spec.rb`
-Expected: PASS (9 exemples) — dont les 7 tests de caractérisation de la Task 2, inchangés.
+Run: `bundle exec rspec spec/lib/date_value_spec.rb spec/lib/field_checker_date_spec.rb`
+Expected: PASS (18 exemples) — dont les 6 tests de caractérisation de la Task 2, **inchangés** : si l'un d'eux casse, la bascule a modifié une sortie visible et il faut corriger l'implémentation, pas le test.
 
 Run: `bundle exec rspec`
 Expected: 3 échecs, tous dans `spec/requests/admin/schema_builder_spec.rb` (référence des Global Constraints). Tout autre échec est une régression à corriger avant de committer.
 
-- [ ] **Step 5 : Lint puis commit**
+- [ ] **Step 9 : Lint puis commit**
 
 ```bash
-bundle exec rubocop -A app/lib/field_checker.rb spec/lib/field_checker_date_spec.rb
+bundle exec rubocop -A app/lib/field_checker.rb app/lib/datetime_value.rb spec/lib/field_checker_date_spec.rb spec/lib/date_value_spec.rb
 bundle exec rake lint
-git add app/lib/field_checker.rb spec/lib/field_checker_date_spec.rb
-git commit -m "feat(champs): champ_value rend une date native (DateValue) au lieu d'une chaîne"
+git add app/lib/field_checker.rb app/lib/datetime_value.rb spec/lib/field_checker_date_spec.rb spec/lib/date_value_spec.rb
+git commit -F - <<'EOF'
+feat(champs): champ_value rend une date native au lieu d'une chaîne
+
+Les plugins peuvent comparer et calculer sur les dates d'un champ sans les
+reparser, et l'affichage reste au format français : seul `to_s` de DateValue /
+DatetimeValue est francisé, la sérialisation JSON des mutations reste ISO8601.
+
+Les champs date-heure affichent désormais l'heure (`27/07/2026 à 09h30`) :
+ils partageaient la branche des DateChamp au format `%d/%m/%Y`, donc l'heure
+était perdue. `DatetimeValue#date` permet de retomber sur la date seule,
+y compris dans un template Sablon (`«=mon_champ.date»`).
+
+`date_value(champ, format)` est supprimée : son unique appelant était la
+branche remplacée.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+EOF
 ```
 
 ---
