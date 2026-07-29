@@ -222,10 +222,10 @@ class SetAnnotationValue
     case value
     when String
       Queries::SetText
-    when Date
-      Queries::SetDate
     when Time, DateTime
       Queries::SetDateTime
+    when Date
+      Queries::SetDate
     when Integer
       Queries::SetInteger
     when TrueClass, FalseClass

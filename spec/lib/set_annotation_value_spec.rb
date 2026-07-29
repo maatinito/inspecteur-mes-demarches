@@ -142,4 +142,29 @@ RSpec.describe SetAnnotationValue do
       end
     end
   end
+
+  # Régression : DateTime hérite de Date, donc `when Date` placé avant
+  # `when Time, DateTime` capturait les date-heures et les envoyait en mutation
+  # SetDate, ce qui perdait l'heure silencieusement.
+  describe '.typed_query' do
+    it 'route une date vers la mutation Date' do
+      expect(described_class.typed_query(Date.new(2026, 7, 27)))
+        .to eq(SetAnnotationValue::Queries::SetDate)
+    end
+
+    it 'route une date-heure vers la mutation DateTime' do
+      expect(described_class.typed_query(DateTime.new(2026, 7, 27, 9, 30)))
+        .to eq(SetAnnotationValue::Queries::SetDateTime)
+    end
+
+    it 'route un DatetimeValue vers la mutation DateTime' do
+      expect(described_class.typed_query(DatetimeValue.iso8601('2026-07-27T09:30:00+10:00')))
+        .to eq(SetAnnotationValue::Queries::SetDateTime)
+    end
+
+    it 'route un DateValue vers la mutation Date' do
+      expect(described_class.typed_query(DateValue.iso8601('2026-07-27')))
+        .to eq(SetAnnotationValue::Queries::SetDate)
+    end
+  end
 end
