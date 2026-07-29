@@ -230,8 +230,8 @@ RSpec.describe Travail::Daeth do
               contract_end: Date.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
-              cotorep_begin: Date.new(2024, 1, 1),
-              cotorep_end: Date.new(2025, 9, 1)
+              cotorep_begin: DateValue.new(2024, 1, 1),
+              cotorep_end: DateValue.new(2025, 9, 1)
             },
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDD ok
@@ -240,8 +240,8 @@ RSpec.describe Travail::Daeth do
               contract_end: Date.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
-              cotorep_begin: Date.new(2024, 1, 1),
-              cotorep_end: Date.new(2025, 9, 1)
+              cotorep_begin: DateValue.new(2024, 1, 1),
+              cotorep_end: DateValue.new(2025, 9, 1)
             },
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI not present on 31/12
@@ -250,8 +250,8 @@ RSpec.describe Travail::Daeth do
               contract_end: Date.new(2024, 12, 15),
               contract_hours: 39,
               cotorep_category: 'B',
-              cotorep_begin: Date.new(2024, 1, 1),
-              cotorep_end: Date.new(2025, 9, 1)
+              cotorep_begin: DateValue.new(2024, 1, 1),
+              cotorep_end: DateValue.new(2025, 9, 1)
             },
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI after 1/10
@@ -260,8 +260,8 @@ RSpec.describe Travail::Daeth do
               contract_end: Date.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'B',
-              cotorep_begin: Date.new(2024, 1, 1),
-              cotorep_end: Date.new(2025, 9, 1)
+              cotorep_begin: DateValue.new(2024, 1, 1),
+              cotorep_end: DateValue.new(2025, 9, 1)
             },
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI partial time < 50%
@@ -270,8 +270,8 @@ RSpec.describe Travail::Daeth do
               contract_end: Date.new(2024, 12, 31),
               contract_hours: 19,
               cotorep_category: 'B',
-              cotorep_begin: Date.new(2024, 1, 1),
-              cotorep_end: Date.new(2025, 9, 1)
+              cotorep_begin: DateValue.new(2024, 1, 1),
+              cotorep_end: DateValue.new(2025, 9, 1)
             },
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI and cotorep validity dates out of scope
@@ -280,8 +280,8 @@ RSpec.describe Travail::Daeth do
               contract_end: Date.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
-              cotorep_begin: Date.new(2023, 1, 1),
-              cotorep_end: Date.new(2023, 12, 31)
+              cotorep_begin: DateValue.new(2023, 1, 1),
+              cotorep_end: DateValue.new(2023, 12, 31)
             },
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI and cotorep validity dates Partially out of scope
@@ -290,8 +290,8 @@ RSpec.describe Travail::Daeth do
               contract_end: Date.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
-              cotorep_begin: Date.new(2024, 8, 1),
-              cotorep_end: Date.new(2024, 8, 31)
+              cotorep_begin: DateValue.new(2024, 8, 1),
+              cotorep_end: DateValue.new(2024, 8, 31)
             },
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI and cotorep validity date start after contract_begin but before October 1fst
@@ -300,8 +300,8 @@ RSpec.describe Travail::Daeth do
               contract_end: Date.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
-              cotorep_begin: Date.new(2024, 8, 1),
-              cotorep_end: Date.new(2025, 8, 31)
+              cotorep_begin: DateValue.new(2024, 8, 1),
+              cotorep_end: DateValue.new(2025, 8, 31)
             }
 
           ]
@@ -309,14 +309,14 @@ RSpec.describe Travail::Daeth do
         let(:disabled_worker_fte) { 5.205 }
         let(:disabled_worker_log) do
           <<~TEXT.chomp
-            2 = Reconnu COTOREP: C, valide entre 2024-01-01 et 2025-09-01, h/sem: 100%  présence annuelle:100.0%
-            2 = Reconnu COTOREP: C, valide entre 2024-01-01 et 2025-09-01, h/sem: 100%  présence annuelle:50.3%
-            1 = Reconnu COTOREP: B, valide entre 2024-01-01 et 2025-09-01, h/sem: 100%  présence annuelle:45.9%
-            1 = Reconnu COTOREP: B, valide entre 2024-01-01 et 2025-09-01, h/sem: 100%  présence annuelle:24.9%
-            1 = Reconnu COTOREP: B, valide entre 2024-01-01 et 2025-09-01, h/sem: 48.7%  présence annuelle:100.0%
-            2 = Reconnu COTOREP: C, valide entre 2023-01-01 et 2023-12-31, h/sem: 100%  présence annuelle:0.0%
-            2 = Reconnu COTOREP: C, valide entre 2024-08-01 et 2024-08-31, h/sem: 100%  présence annuelle:8.5%
-            2 = Reconnu COTOREP: C, valide entre 2024-08-01 et 2025-08-31, h/sem: 100%  présence annuelle:41.8%
+            2 = Reconnu COTOREP: C, valide entre 01/01/2024 et 01/09/2025, h/sem: 100%  présence annuelle:100.0%
+            2 = Reconnu COTOREP: C, valide entre 01/01/2024 et 01/09/2025, h/sem: 100%  présence annuelle:50.3%
+            1 = Reconnu COTOREP: B, valide entre 01/01/2024 et 01/09/2025, h/sem: 100%  présence annuelle:45.9%
+            1 = Reconnu COTOREP: B, valide entre 01/01/2024 et 01/09/2025, h/sem: 100%  présence annuelle:24.9%
+            1 = Reconnu COTOREP: B, valide entre 01/01/2024 et 01/09/2025, h/sem: 48.7%  présence annuelle:100.0%
+            2 = Reconnu COTOREP: C, valide entre 01/01/2023 et 31/12/2023, h/sem: 100%  présence annuelle:0.0%
+            2 = Reconnu COTOREP: C, valide entre 01/08/2024 et 31/08/2024, h/sem: 100%  présence annuelle:8.5%
+            2 = Reconnu COTOREP: C, valide entre 01/08/2024 et 31/08/2025, h/sem: 100%  présence annuelle:41.8%
           TEXT
         end
         let(:levy) { 3_105_245 }
