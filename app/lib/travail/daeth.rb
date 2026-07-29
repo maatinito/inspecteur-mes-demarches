@@ -215,15 +215,11 @@ module Travail
       date_depot >= june_first ? date_depot.year : date_depot.year - 1
     end
 
-    # Les `value` typés du fragment ChampInfo sont aliasés (dateValue, intValue,
-    # checked…) : un champ ne répond donc pas forcément à `value`. On lit via le
-    # dispatch par __typename en gardant les types natifs dont les calculs ont
-    # besoin : Date pour les bornes de contrat, booléen pour la rente.
+    # `champ_value` rend déjà une date native ; il ne reste à traiter que les
+    # cases à cocher, dont la valeur affichable (`Oui`/`Non`) est toujours vraie
+    # alors que le calcul a besoin du booléen.
     def row_champ_value(champ)
       case champ.__typename
-      when 'DateChamp', 'DatetimeChamp'
-        iso = raw_date_value(champ)
-        iso.present? ? Date.iso8601(iso) : nil
       when 'CheckboxChamp', 'YesNoChamp'
         champ.checked
       else
