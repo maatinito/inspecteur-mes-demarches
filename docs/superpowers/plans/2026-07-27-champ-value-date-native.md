@@ -523,7 +523,7 @@ EOF
 
 `Travail::Daeth#row_champ_value` (introduit par 2664e06) reparse lui-même les dates avec `raw_date_value` + `Date.iso8601` ; après la Task 4, `champ_value` le fait déjà. La branche booléenne doit en revanche **rester** : `champ_value` rend `'Oui'`/`'Non'` pour une case à cocher, deux valeurs vraies, et daeth a besoin d'un booléen pour la rente.
 
-**Décision à prendre avant d'exécuter cette tâche :** le message écrit dans l'annotation « Messages du robot » interpole ces dates (`app/lib/travail/daeth.rb:351`). Il affiche aujourd'hui `valide entre 2024-01-01 et 2025-09-01` ; avec `DateValue` il affichera `valide entre 01/01/2024 et 01/09/2025`. C'est plus lisible pour les agents, mais c'est un changement visible : le faire valider, et ne pas bumper `version` sans accord explicite.
+**Décision prise le 27/07/2026 : tâche à exécuter.** Le message écrit dans l'annotation « Messages du robot » interpole ces dates (`app/lib/travail/daeth.rb:351`). Il affiche aujourd'hui `valide entre 2024-01-01 et 2025-09-01` ; avec `DateValue` il affichera `valide entre 01/01/2024 et 01/09/2025`, ce qui est plus lisible pour les agents et cohérent avec le reste des messages du robot. Sans bump de `version` : seuls les dossiers retraités verront le nouveau format.
 
 **Files:**
 - Modify: `app/lib/travail/daeth.rb:218-232` (`row_champ_value`)
@@ -580,6 +580,83 @@ git commit -m "refactor(daeth): s'appuyer sur les dates natives de champ_value"
 
 ---
 
+---
+
+### Task 6 : Router les date-heures vers la bonne mutation GraphQL
+
+Découvert pendant la relecture de la Task 4, corrigé sur décision du 27/07/2026. `SetAnnotationValue.typed_query` (`app/lib/set_annotation_value.rb:221-236`) choisit la mutation d'après la classe Ruby de la valeur, mais teste `when Date` **avant** `when Time, DateTime`. Comme `DateTime` est une sous-classe de `Date`, une date-heure part en mutation `SetDate` et **perd son heure**. Bug antérieur à ce chantier : aujourd'hui aucun appelant ne passe la sortie de `champ_value` à `set_value`, donc rien ne le déclenche — mais `DatetimeValue` rend ce chemin atteignable dès qu'un plugin écrira une date-heure en annotation.
+
+**Files:**
+- Modify: `app/lib/set_annotation_value.rb:221-236` (`self.typed_query`)
+- Test: `spec/lib/set_annotation_value_spec.rb` (compléter — fichier existant, ne rien y retirer)
+
+**Interfaces:**
+- Consomme : `DatetimeValue` (Task 1), `Queries::SetDate` / `Queries::SetDateTime` déjà définies dans `SetAnnotationValue::Queries`.
+- Produit : rien de nouveau ; `typed_query` garde sa signature.
+
+- [ ] **Step 1 : Écrire le test qui échoue**
+
+Dans `spec/lib/set_annotation_value_spec.rb`, ajouter un `describe` au niveau du `RSpec.describe SetAnnotationValue` (les autres contextes du fichier restent inchangés) :
+
+```ruby
+  # Régression : DateTime hérite de Date, donc `when Date` placé avant
+  # `when Time, DateTime` capturait les date-heures et les envoyait en mutation
+  # SetDate, ce qui perdait l'heure silencieusement.
+  describe '.typed_query' do
+    it 'route une date vers la mutation Date' do
+      expect(described_class.typed_query(Date.new(2026, 7, 27)))
+        .to eq(SetAnnotationValue::Queries::SetDate)
+    end
+
+    it 'route une date-heure vers la mutation DateTime' do
+      expect(described_class.typed_query(DateTime.new(2026, 7, 27, 9, 30)))
+        .to eq(SetAnnotationValue::Queries::SetDateTime)
+    end
+
+    it 'route un DatetimeValue vers la mutation DateTime' do
+      expect(described_class.typed_query(DatetimeValue.iso8601('2026-07-27T09:30:00+10:00')))
+        .to eq(SetAnnotationValue::Queries::SetDateTime)
+    end
+
+    it 'route un DateValue vers la mutation Date' do
+      expect(described_class.typed_query(DateValue.iso8601('2026-07-27')))
+        .to eq(SetAnnotationValue::Queries::SetDate)
+    end
+  end
+```
+
+- [ ] **Step 2 : Lancer le test pour vérifier qu'il échoue**
+
+Run: `bundle exec rspec spec/lib/set_annotation_value_spec.rb -e '.typed_query'`
+Expected: 2 échecs (les deux cas date-heure), qui reçoivent la mutation `SetDate` au lieu de `SetDateTime`.
+
+- [ ] **Step 3 : Écrire l'implémentation**
+
+Dans `app/lib/set_annotation_value.rb`, intervertir les deux branches de `self.typed_query` pour que la plus spécifique passe d'abord :
+
+```ruby
+    when Time, DateTime
+      Queries::SetDateTime
+    when Date
+      Queries::SetDate
+```
+
+- [ ] **Step 4 : Lancer les tests**
+
+Run: `bundle exec rspec spec/lib/set_annotation_value_spec.rb`
+Expected: PASS, y compris les contextes préexistants du fichier (dont les tests adossés à des cassettes VCR).
+
+- [ ] **Step 5 : Lint puis commit**
+
+```bash
+bundle exec rubocop -A app/lib/set_annotation_value.rb spec/lib/set_annotation_value_spec.rb
+bundle exec rake lint
+git add app/lib/set_annotation_value.rb spec/lib/set_annotation_value_spec.rb
+git commit -m "fix(annotations): router les date-heures vers SetDateTime et non SetDate"
+```
+
+---
+
 ## Vérification finale
 
 - [ ] `bundle exec rspec` → 3 échecs pré-existants (`schema_builder_spec`), aucun autre.
@@ -588,6 +665,8 @@ git commit -m "refactor(daeth): s'appuyer sur les dates natives de champ_value"
 - [ ] Test manuel recommandé sur staging avant production : un publipostage contenant une date, et une `conditional_field` branchée sur un champ date, pour confirmer sur pièce que la sortie est inchangée.
 
 ## Hors périmètre
+
+- **Aligner `humanize` sur `%Hh%M`** (`app/lib/field_checker.rb:393`, qui rend `%H:%M`) : décision du 27/07/2026 de **ne pas** y toucher. L'incohérence avec `DatetimeValue#to_s` est antérieure et assumée comme dette : l'aligner changerait la sortie des date-heures issues d'une source Hash/Excel, ce que ce chantier veut éviter.
 
 - `mes_demarches_to_baserow/data_extractor.rb` et `mes_demarches_to_grist/data_extractor.rb` : ils ont leur propre `get_champ_value` et lisent `champ.date_value` en ISO, ce qui est le bon format pour Baserow et Grist. Ne pas y toucher.
 - Les trois autres usages du motif `respond_to?(:value)` (`set_annotation_value.rb:262`, `daf/act_copy_amount.rb:51`, et les deux extracteurs) : revus le 27/07/2026, tous corrects — le fallback n'est atteint que par des types qui répondent réellement à `value`, ou retombe sur `string_value`.
