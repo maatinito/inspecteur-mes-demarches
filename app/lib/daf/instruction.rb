@@ -58,7 +58,7 @@ module Daf
 
     def set_certification_date(demarche, dossier)
       certification_date_blank = champ_value(annotation('DATE DE CERTIFICATION')).blank?
-      SetAnnotationValue.set_value(dossier, demarche.instructeur, 'DATE DE CERTIFICATION', DateTime.iso8601(dossier.date_depot)) if certification_date_blank
+      SetAnnotationValue.set_value(dossier, demarche.instructeur, 'DATE DE CERTIFICATION', Date.iso8601(dossier.date_depot)) if certification_date_blank
     end
 
     # def set_current_step(demarche, dossier)
