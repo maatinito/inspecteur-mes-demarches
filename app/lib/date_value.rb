@@ -13,4 +13,11 @@ class DateValue < Date
   def to_s
     strftime('%d/%m/%Y')
   end
+
+  # La date telle qu'écrite dans la valeur ISO, sans conversion de fuseau :
+  # l'API type la valeur d'un DateChamp en ISO8601DateTime, et ramener minuit UTC
+  # au fuseau de l'application ferait reculer la date d'un jour.
+  def self.from_iso(iso)
+    iso8601(iso)
+  end
 end

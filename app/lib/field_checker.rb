@@ -203,7 +203,7 @@ class FieldChecker < InspectorTask
     iso = raw_date_value(champ)
     return '' if iso.blank?
 
-    klass.iso8601(iso)
+    klass.from_iso(iso)
   rescue Date::Error
     Rails.logger.warn("Date illisible sur le champ #{champ.label} : #{iso.inspect}")
     ''
@@ -401,6 +401,9 @@ class FieldChecker < InspectorTask
     champs_to_values(champs).presence || [par_defaut]
   end
 
+  # Écart de format assumé et volontaire avec `DatetimeValue#to_s` (`%Hh%M`) :
+  # aligner les deux changerait la sortie des date-heures issues d'une source
+  # Excel qui passent par `humanize`. Ne pas « corriger » un seul des deux côtés.
   def humanize(value)
     case value
     when DateTime
