@@ -226,5 +226,27 @@ RSpec.describe Publipostage, type: :model do
       expect(publipostage.send(:normalize_string_value, 'Papeete')).to eq('Papeete')
     end
   end
+
+  describe '#normalized_fields' do
+    let(:publipostage) do
+      described_class.new({
+                            template: 'test.docx',
+                            colonne: 'test'
+                          })
+    end
+
+    # Régression : `normalized_fields` n'avait pas de branche `Date`, donc une
+    # valeur date (ex. un `DateValue` rendu par `champ_value`) retombait dans le
+    # `else` et repartait telle quelle. `same_document` sérialise ensuite le
+    # résultat en JSON (`as_json` rend de l'ISO pour un `Date`), alors que
+    # l'empreinte déjà stockée en base contient la forme affichée
+    # (`%d/%m/%Y`) : sans cette branche, la comparaison échouait à tort et le
+    # document était régénéré et renvoyé à chaque contrôle.
+    it 'normalise une valeur Date comme une chaîne au format français, identique à l’empreinte déjà stockée' do
+      stable_fields = publipostage.send(:normalized_fields, { 'Date de dépôt' => DateValue.new(2026, 7, 27) })
+      normalized = publipostage.send(:normalize_for_comparison, JSON.parse(stable_fields.to_json))
+      expect(normalized['Date de dépôt']).to eq('27/07/2026')
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength

@@ -80,6 +80,11 @@ class Publipostage < FieldChecker
       value.transform_values(&method(:normalized_fields))
     when String
       value.gsub(/&X-Amz.*/, '')
+    when Date
+      # L'empreinte stockée en base contient la forme affichée (%d/%m/%Y) ; laisser
+      # passer l'objet Date ferait sérialiser `as_json` en ISO à la comparaison
+      # suivante et régénérerait tous les documents déjà envoyés.
+      value.to_s
     else
       value
     end
