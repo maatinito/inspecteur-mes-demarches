@@ -281,9 +281,14 @@ module Travail
       calculate_presence_rate(contract_dates[:end_date], contract_dates[:begin_date], dates[:year_days])
     end
 
+    # Bornes de l'année de déclaration, utilisées en repli quand les dates COTOREP
+    # d'un travailleur sont vides (`disabled_worker_complement`). En `DateValue`
+    # et non en `Date` nu, pour que le message loggé par `payload` affiche un
+    # format cohérent avec les dates COTOREP réellement saisies (elles viennent de
+    # `champ_value`, donc déjà en `DateValue`).
     def initialize_year_dates(year)
-      year_start = Date.new(year, YEAR_START_MONTH, YEAR_START_DAY)
-      year_end = Date.new(year + 1, YEAR_START_MONTH, YEAR_START_DAY)
+      year_start = DateValue.new(year, YEAR_START_MONTH, YEAR_START_DAY)
+      year_end = DateValue.new(year + 1, YEAR_START_MONTH, YEAR_START_DAY)
       {
         year_start:,
         year_end:,
