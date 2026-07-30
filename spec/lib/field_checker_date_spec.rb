@@ -53,6 +53,15 @@ RSpec.describe FieldChecker do
     expect(checker.champ_value(date_champ('Date du jugement', nil))).to eq('')
   end
 
+  # L'introspection du schéma type `DateChamp.value` en `ISO8601DateTime` : en
+  # production, `dateValue` est donc une chaîne date-heure complète, pas une
+  # simple date ISO. `Date.iso8601` n'en garde que la partie date, sans
+  # conversion de fuseau (cf. `DateValue.from_iso`).
+  it 'lit correctement un DateChamp dont la valeur est une chaîne date-heure complète (forme réelle de l’API)' do
+    champ = date_champ('Date du jugement', '2026-07-27T00:00:00-10:00')
+    expect(checker.champ_value(champ).to_s).to eq('27/07/2026')
+  end
+
   it 'ne retient pas un champ date vide dans les valeurs' do
     expect(checker.champs_to_values([date_champ('Date du jugement', nil)])).to eq([])
   end
@@ -65,13 +74,15 @@ RSpec.describe FieldChecker do
       expect(value.year).to eq(2026)
     end
 
-    # Changement de sortie assumé : aujourd'hui l'heure est perdue (même branche
-    # que DateChamp, format %d/%m/%Y). Voir « Décision » en tête de plan.
-    it 'rend un DatetimeValue affichant l’heure pour un champ date-heure' do
-      value = checker.champ_value(datetime_champ('Horodatage', '2026-07-27T09:30:00+10:00'))
+    # L'heure affichée est ramenée au fuseau de l'application (Pacific/Tahiti,
+    # UTC-10), quel que soit le décalage avec lequel l'API a sérialisé la valeur
+    # (cf. `DatetimeValue.from_iso`) : 23h30 UTC le 26 devient 13h30 le 26 à
+    # Tahiti (23:30 - 10:00), pas le 27 à 09h30.
+    it 'rend un DatetimeValue affichant l’heure au fuseau de l’application pour un champ date-heure' do
+      value = checker.champ_value(datetime_champ('Horodatage', '2026-07-26T23:30:00Z'))
       expect(value).to be_a(DatetimeValue)
-      expect(value.to_s).to eq('27/07/2026 à 09h30')
-      expect(value.date.to_s).to eq('27/07/2026')
+      expect(value.to_s).to eq('26/07/2026 à 13h30')
+      expect(value.date.to_s).to eq('26/07/2026')
     end
 
     it 'rend une chaîne vide pour un champ date-heure non renseigné' do

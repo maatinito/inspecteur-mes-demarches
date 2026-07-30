@@ -16,4 +16,17 @@ class DatetimeValue < DateTime
   def date
     DateValue.new(year, month, day)
   end
+
+  # Ramené au fuseau de l'application (Pacific/Tahiti) : l'heure affichée ne doit
+  # pas dépendre du décalage avec lequel l'API a sérialisé la valeur.
+  #
+  # `Time.zone.parse` rend `nil` (au lieu de lever) sur une valeur illisible ;
+  # on convertit ce cas en `Date::Error` pour que `FieldChecker#typed_date_value`
+  # continue de l'intercepter et de rendre '' sans jamais lever.
+  def self.from_iso(iso)
+    parsed = Time.zone.parse(iso)
+    raise Date::Error, "date illisible : #{iso.inspect}" if parsed.nil?
+
+    iso8601(parsed.iso8601)
+  end
 end
