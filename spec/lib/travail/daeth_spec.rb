@@ -226,8 +226,8 @@ RSpec.describe Travail::Daeth do
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI Ok
               contract_type: 'CDI',
-              contract_begin: Date.new(2024, 7, 1),
-              contract_end: Date.new(2024, 12, 31),
+              contract_begin: DateValue.new(2024, 7, 1),
+              contract_end: DateValue.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
               cotorep_begin: DateValue.new(2024, 1, 1),
@@ -236,8 +236,8 @@ RSpec.describe Travail::Daeth do
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDD ok
               contract_type: 'CDD',
-              contract_begin: Date.new(2024, 7, 1),
-              contract_end: Date.new(2024, 12, 31),
+              contract_begin: DateValue.new(2024, 7, 1),
+              contract_end: DateValue.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
               cotorep_begin: DateValue.new(2024, 1, 1),
@@ -246,8 +246,8 @@ RSpec.describe Travail::Daeth do
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI not present on 31/12
               contract_type: 'CDI',
-              contract_begin: Date.new(2024, 7, 1),
-              contract_end: Date.new(2024, 12, 15),
+              contract_begin: DateValue.new(2024, 7, 1),
+              contract_end: DateValue.new(2024, 12, 15),
               contract_hours: 39,
               cotorep_category: 'B',
               cotorep_begin: DateValue.new(2024, 1, 1),
@@ -256,8 +256,8 @@ RSpec.describe Travail::Daeth do
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI after 1/10
               contract_type: 'CDI',
-              contract_begin: Date.new(2024, 10, 2),
-              contract_end: Date.new(2024, 12, 31),
+              contract_begin: DateValue.new(2024, 10, 2),
+              contract_end: DateValue.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'B',
               cotorep_begin: DateValue.new(2024, 1, 1),
@@ -266,8 +266,8 @@ RSpec.describe Travail::Daeth do
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI partial time < 50%
               contract_type: 'CDI',
-              contract_begin: Date.new(2024, 7, 1),
-              contract_end: Date.new(2024, 12, 31),
+              contract_begin: DateValue.new(2024, 7, 1),
+              contract_end: DateValue.new(2024, 12, 31),
               contract_hours: 19,
               cotorep_category: 'B',
               cotorep_begin: DateValue.new(2024, 1, 1),
@@ -276,8 +276,8 @@ RSpec.describe Travail::Daeth do
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI and cotorep validity dates out of scope
               contract_type: 'CDI',
-              contract_begin: Date.new(2024, 7, 1),
-              contract_end: Date.new(2024, 12, 31),
+              contract_begin: DateValue.new(2024, 7, 1),
+              contract_end: DateValue.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
               cotorep_begin: DateValue.new(2023, 1, 1),
@@ -286,8 +286,8 @@ RSpec.describe Travail::Daeth do
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI and cotorep validity dates Partially out of scope
               contract_type: 'CDI',
-              contract_begin: Date.new(2024, 7, 1),
-              contract_end: Date.new(2024, 12, 31),
+              contract_begin: DateValue.new(2024, 7, 1),
+              contract_end: DateValue.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
               cotorep_begin: DateValue.new(2024, 8, 1),
@@ -296,8 +296,8 @@ RSpec.describe Travail::Daeth do
             {
               status: Travail::Daeth::STATUS_COTOREP, # CDI and cotorep validity date start after contract_begin but before October 1fst
               contract_type: 'CDI',
-              contract_begin: Date.new(2024, 7, 1),
-              contract_end: Date.new(2024, 12, 31),
+              contract_begin: DateValue.new(2024, 7, 1),
+              contract_end: DateValue.new(2024, 12, 31),
               contract_hours: 39,
               cotorep_category: 'C',
               cotorep_begin: DateValue.new(2024, 8, 1),
