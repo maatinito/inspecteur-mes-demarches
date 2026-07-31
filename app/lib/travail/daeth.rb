@@ -17,7 +17,7 @@ module Travail
     TOTAL = 'Montant total'
 
     def version
-      super + 3
+      super + 4
     end
 
     def required_fields
@@ -155,7 +155,7 @@ module Travail
       @numbers[DISABLED_WORKER_FTE] = disabled_worker_fte
       @numbers[FINAL_DUTY] = duty = final_duty
       @numbers[DUE_AMOUNT] = levy(duty)
-      @numbers[LATE_FEE] = (@smig * 200).round unless @numbers[LATE_FEE].positive? || dossier.date_depot < Time.zone.local(Date.today.year, 4, 1)
+      @numbers[LATE_FEE] = (@smig * 200).round if late_fee_due?
       @numbers[TOTAL] = @numbers[LATE_FEE] + @numbers[SURCHARGE] + @numbers[DUE_AMOUNT]
 
       save_results(@numbers)
@@ -178,8 +178,19 @@ module Travail
       }
       effectif = param_field(:champ_effectif, warn_if_empty: false)
       base.merge!(effectif.present? ? default_numbers_based_on_size(effectif) : default_numbers_based_on_excel)
+      base[YEAR] = declared_year(base[YEAR])
       @year = base[YEAR]
       base
+    end
+
+    # L'année déclarée n'est pas demandée dans le formulaire : le robot la déduit
+    # du fichier des effectifs, ou de la date de dépôt en mode simplifié où ce
+    # fichier n'existe pas. Ce n'est donc qu'une supposition, et un agent doit
+    # pouvoir la corriger — typiquement pour une déclaration rattrapée une ou
+    # deux années plus tard. On ne l'initialise que si l'annotation est vide,
+    # sinon la valeur saisie serait écrasée à chaque passage du robot.
+    def declared_year(deduced_year)
+      champ_value(annotation(YEAR, warn_if_empty: false)).presence&.to_i || deduced_year
     end
 
     def default_numbers_based_on_excel
@@ -210,9 +221,26 @@ module Travail
     # Calcule l'année de déclaration à partir de la date de dépôt du dossier
     # Si date_depot > 1er juin => année en cours, sinon année précédente
     def year_from_date_depot
-      date_depot = DateTime.parse(@dossier.date_depot)
       june_first = Date.new(date_depot.year, 6, 1)
       date_depot >= june_first ? date_depot.year : date_depot.year - 1
+    end
+
+    def date_depot
+      depot = @dossier.date_depot
+      depot.is_a?(String) ? DateTime.parse(depot) : depot
+    end
+
+    # La pénalité de retard n'est posée que si l'agent n'en a pas déjà saisi une.
+    def late_fee_due?
+      !@numbers[LATE_FEE].positive? && filed_late?
+    end
+
+    # La DAETH de l'année N doit être déposée avant le 31/03/N+1. Le robot
+    # comparait au 31 mars de l'année *courante* : une déclaration en retard,
+    # déposée une ou deux années plus tard, passait donc pour être dans les
+    # délais et échappait à la pénalité.
+    def filed_late?
+      date_depot >= Time.zone.local(declaration_year + 1, 4, 1)
     end
 
     # `champ_value` rend déjà une date native ; il ne reste à traiter que les
