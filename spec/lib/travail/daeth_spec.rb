@@ -120,6 +120,37 @@ RSpec.describe Travail::Daeth do
     end
   end
 
+  # Le formulaire ne demande pas l'année déclarée : le robot la déduit du fichier
+  # des effectifs, ou de la date de dépôt en mode simplifié. Comme il la
+  # sauvegardait à chaque passage, un agent ne pouvait pas forcer l'année d'une
+  # déclaration rattrapée — sa saisie était écrasée au contrôle suivant.
+  describe '#default_numbers — année déclarée' do
+    let(:date_depot) { '2026-03-17T13:14:01-10:00' }
+    let(:forced_year) { nil }
+
+    def integer_champ(int)
+      double('IntegerNumberChamp', __typename: 'IntegerNumberChamp', int_value: int)
+    end
+
+    before do
+      allow(controle).to receive(:annotation) { |label, **| label == Travail::Daeth::YEAR ? forced_year : nil }
+      allow(controle).to receive(:param_field) { |name, **| name == :champ_effectif ? integer_champ(30) : nil }
+      controle.instance_variable_set(:@dossier, dossier)
+    end
+
+    it "la déduit de la date de dépôt quand l'annotation est vide" do
+      expect(controle.send(:default_numbers)[Travail::Daeth::YEAR]).to eq(2025)
+    end
+
+    context "quand un agent l'a forcée" do
+      let(:forced_year) { integer_champ(2024) }
+
+      it "reprend la valeur de l'annotation sans l'écraser" do
+        expect(controle.send(:default_numbers)[Travail::Daeth::YEAR]).to eq(2024)
+      end
+    end
+  end
+
   context 'params correct' do
     let(:date_depot) { Date.new(2025, 1, 1) }
     let(:fte) { 170.0 }
@@ -176,6 +207,36 @@ RSpec.describe Travail::Daeth do
           subject
         end
       end
+      # Cas client (NETTOINET, dossier 622339) : DAETH 2024 rattrapée en mars 2026.
+      # Le robot comparait au 31/03 de l'année *courante*, donc un dépôt en mars
+      # 2026 passait pour être dans les délais et échappait à la pénalité.
+      context 'déclaration rattrapée pour une année antérieure' do
+        let(:date_depot) { Time.zone.local(2026, 3, 17, 13, 14, 0) }
+        let(:computed_late_fee) { 222_200 }
+
+        before do
+          allow(controle).to receive(:declaration_year).and_return(2024)
+          travel_to Time.zone.local(2026, 3, 20, 12, 0, 0)
+        end
+
+        it 'applique la pénalité de retard' do
+          subject
+        end
+      end
+
+      context "déclaration de l'année précédente déposée avant le 31/03" do
+        let(:date_depot) { Time.zone.local(2026, 3, 17, 13, 8, 0) }
+
+        before do
+          allow(controle).to receive(:declaration_year).and_return(2025)
+          travel_to Time.zone.local(2026, 3, 20, 12, 0, 0)
+        end
+
+        it "n'applique pas de pénalité" do
+          subject
+        end
+      end
+
       context 'not initialzed and filing date before 31/03' do
         it "doesn't trigger late_fee" do
           subject
