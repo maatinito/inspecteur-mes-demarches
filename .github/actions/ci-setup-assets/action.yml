@@ -5,7 +5,7 @@ runs:
   using: composite
   steps:
     - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
+      uses: oven-sh/setup-bun@v2
       with:
         bun-version: latest
         
@@ -14,7 +14,7 @@ runs:
       shell: bash
 
     - name: Assets cache
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           public/assets
