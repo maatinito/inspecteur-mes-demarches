@@ -111,6 +111,9 @@ module Travail
     OCTOBER_MONTH = 10
     OCTOBER_DAY = 1
 
+    # Seuil d'assujettissement à l'obligation d'emploi, en effectif moyen annuel.
+    SUBJECTION_THRESHOLD = 25
+
     def disabled_workers
       year = declaration_year
       dates = initialize_year_dates(year)
@@ -213,7 +216,7 @@ module Travail
         FTE => effectif,
         ECAP_FTE => 0.0,
         ASSESSMENT_BASE => effectif,
-        DEFAULT_DUTY => effectif < 25 ? 0.0 : (effectif * 0.02 / 0.5).floor * 0.5,
+        DEFAULT_DUTY => effectif < SUBJECTION_THRESHOLD ? 0.0 : (effectif * 0.02 / 0.5).floor * 0.5,
         DISMISSED_FTE => 0.0
       }
     end
@@ -232,7 +235,18 @@ module Travail
 
     # La pénalité de retard n'est posée que si l'agent n'en a pas déjà saisi une.
     def late_fee_due?
-      !@numbers[LATE_FEE].positive? && filed_late?
+      subject_to_declaration? && !@numbers[LATE_FEE].positive? && filed_late?
+    end
+
+    # Seuls les employeurs assujettis sont tenus de déclarer, donc seuls eux
+    # encourent la pénalité de retard : un effectif inférieur au seuil ne doit ni
+    # participation, ni pénalité (arbitrage DT du 03/08/2026).
+    # L'assujettissement se juge sur l'effectif moyen annuel global (T1, ECAP
+    # inclus), et non sur l'assiette (T3) : une entreprise dont l'assiette passe
+    # sous le seuil grâce aux ECAP, ou qui a rempli son obligation d'emploi,
+    # reste tenue de déclarer et encourt donc la pénalité.
+    def subject_to_declaration?
+      @numbers[FTE].to_f >= SUBJECTION_THRESHOLD
     end
 
     # La DAETH de l'année N doit être déposée avant le 31/03/N+1. Le robot

@@ -224,6 +224,45 @@ RSpec.describe Travail::Daeth do
         end
       end
 
+      # Arbitrage DT : un employeur non assujetti (effectif < 25) ne doit ni
+      # participation, ni pénalité de retard, même s'il déclare tardivement.
+      context 'employeur non assujetti en retard' do
+        let(:fte) { 15.0 }
+        let(:ecap_fte) { 0 }
+        let(:default_duty) { 0.0 }
+        let(:levy) { 0.0 }
+        let(:date_depot) { Time.zone.local(2026, 3, 17, 13, 14, 0) }
+
+        before do
+          allow(controle).to receive(:declaration_year).and_return(2024)
+          travel_to Time.zone.local(2026, 3, 20, 12, 0, 0)
+        end
+
+        it "n'applique pas de pénalité" do
+          subject
+        end
+      end
+
+      # En revanche un assujetti dont l'assiette passe sous le seuil grâce aux
+      # ECAP reste tenu de déclarer : pas de participation, mais une pénalité.
+      context 'employeur assujetti sans participation, déposé en retard' do
+        let(:fte) { 30.0 }
+        let(:ecap_fte) { 8.0 }
+        let(:default_duty) { 0.0 }
+        let(:levy) { 0.0 }
+        let(:date_depot) { Time.zone.local(2026, 3, 17, 13, 14, 0) }
+        let(:computed_late_fee) { 222_200 }
+
+        before do
+          allow(controle).to receive(:declaration_year).and_return(2024)
+          travel_to Time.zone.local(2026, 3, 20, 12, 0, 0)
+        end
+
+        it 'applique la pénalité de retard' do
+          subject
+        end
+      end
+
       context "déclaration de l'année précédente déposée avant le 31/03" do
         let(:date_depot) { Time.zone.local(2026, 3, 17, 13, 8, 0) }
 
