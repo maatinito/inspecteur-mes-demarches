@@ -17,16 +17,35 @@ require 'kramdown/parser/gfm'
 #   # => "<p><strong>Important</strong></p>\n"
 #
 class MarkdownConverter
+  # Emphase réellement interprétée par kramdown : gras (** ou __) ET italique
+  # (* ou _). Les délimiteurs doivent être appariés sur une même ligne, coller
+  # au texte (pas d'espace après l'ouvrant ni avant le fermant) et, pour les
+  # underscores, ne pas être intra-mot. Ce sont les règles de « flanking » de
+  # CommonMark : les reproduire évite les faux positifs sur « 3 * 4 * 5 »,
+  # « mon_fichier_test.pdf » ou une URL contenant des underscores.
+  #
+  # Reste volontairement hors de portée : « x = 2*y*f » est détecté, car
+  # kramdown y voit bel et bien de l'italique. L'ambiguïté est dans la syntaxe
+  # Markdown elle-même, aucune détection ne peut la lever.
+  EMPHASIS = /
+    (?<ast>\*{1,2}) (?=\S) [^\n]*? \S \k<ast>
+    |
+    (?<![[:alnum:]_]) (?<und>_{1,2}) (?=\S) [^\n]*? \S \k<und> (?![[:alnum:]_])
+  /x
+
+  # Autres blocs Markdown : liens, titres, listes, citations
+  BLOCK = /\[.+?\]\(.+?\)|(?:^|\n)#+\s|(?:^|\n)[*-]\s|(?:^|\n)>\s/m
+
+  MARKDOWN = /#{EMPHASIS}|#{BLOCK}/
+
   # Détecte si un texte contient probablement du Markdown
-  # Reconnaît : gras (**), italique (__), liens [...](...)
+  # Reconnaît : gras (** ou __), italique (* ou _), liens [...](...)
   # titres (#), listes (* ou -), citations (>)
   def self.looks_like_markdown?(text)
     return false unless text.is_a?(String)
     return false if text.blank?
 
-    # Patterns Markdown courants
-    # /m permet au regex de fonctionner sur plusieurs lignes
-    text.match?(/(\*\*|__|\[.+?\]\(.+?\)|(?:^|\n)#+\s|(?:^|\n)\*\s|(?:^|\n)-\s|(?:^|\n)>\s)/m)
+    text.match?(MARKDOWN)
   end
 
   # Convertit le Markdown en HTML sécurisé
