@@ -243,4 +243,69 @@ RSpec.describe Payzen::PaymentOrder do
       end
     end
   end
+
+  # Une tâche rejouée par ScheduledTaskJob porte des params figés en base : ils peuvent
+  # être périmés (mode_test, clés) alors que le YAML a changé depuis. Elle doit donc se
+  # contenter de vérifier l'ordre existant, jamais en créer un nouveau.
+  context 'rejeu par une tâche planifiée' do
+    let(:order) { created_order }
+    let(:controle) { FactoryBot.build :payment_order, :with_fixed_amount, scheduled: true }
+
+    before { allow(Payzen::API).to receive(:new).and_return(payzen_api) }
+
+    context 'sans ordre en cours', vcr: { cassette_name: 'payzen_payment_order_3' } do
+      it "ne crée pas d'ordre de paiement" do
+        expect(payzen_api).not_to receive(:create_url_order)
+        expect(SetAnnotationValue).not_to receive(:set_value)
+        expect(ScheduledTask).not_to receive(:enqueue)
+        expect(SendMessage).not_to receive(:deliver_message)
+        subject
+      end
+    end
+  end
+
+  # PSP_1000 signifie « ordre inconnu de cette boutique dans ce mode ». PayZen cloisonne
+  # les ordres entre test et production : un ordre créé avec l'autre clé est invisible ici.
+  context 'ordre introuvable dans le mode courant', vcr: { cassette_name: 'payzen_payment_order_2' } do
+    let(:order_id) { 'c4402491f1f048509bdbcdc846505f86' }
+    let(:not_found) { { errorCode: 'PSP_1000', errorMessage: 'Payment order not found' } }
+    let(:current_api) { double('Payzen::API', get_order: not_found) }
+
+    # clés string : c'est ce que produit le YAML en production (cf. payment_order.rb:23-25)
+    let(:controle) do
+      Payzen::PaymentOrder.new(
+        'etat_du_dossier' => 'en_construction', 'mode_test' => 'oui', 'reference' => 'reference',
+        'montant' => '100', 'champ_ordre_de_paiement' => 'Demande de paiement', 'message' => 'message',
+        'boutique' => '1234', 'cle' => 'prodpassword_x', 'cle_de_test' => 'testpassword_y'
+      )
+    end
+
+    before do
+      allow(Payzen::API).to receive(:new).with('1234', 'testpassword_y').and_return(current_api)
+      allow(Payzen::API).to receive(:new).with('1234', 'prodpassword_x').and_return(other_api)
+      field = controle.dossier_annotations(dossier, controle.params[:champ_ordre_de_paiement]).first
+      allow(field).to receive(:value).and_return(order_id)
+    end
+
+    context "et présent dans l'autre mode" do
+      let(:other_api) { double('Payzen::API', get_order: { paymentOrderStatus: 'RUNNING' }) }
+
+      it 'signale la discordance de mode et le champ à vider' do
+        expect { subject }.to raise_error(
+          StandardError,
+          /existe en mode production alors que la configuration est en mode test.*Demande de paiement/m
+        )
+      end
+    end
+
+    context "et absent de l'autre mode" do
+      let(:other_api) { double('Payzen::API', get_order: not_found) }
+
+      it "conserve le message d'erreur générique" do
+        expect { subject }.to raise_error(
+          StandardError, 'Erreur PayZen en vérifiant un ordre de paiement: PSP_1000 - Payment order not found'
+        )
+      end
+    end
+  end
 end

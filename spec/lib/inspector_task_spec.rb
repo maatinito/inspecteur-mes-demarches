@@ -38,6 +38,16 @@ RSpec.describe InspectorTask do
     end
   end
 
+  # ScheduledTaskJob pose 'scheduled' sur toutes les tâches qu'il rejoue : une tâche qui ne
+  # le gère pas doit l'ignorer, pas devenir invalide et bloquer son rejeu.
+  context "with the 'scheduled' flag on a task that does not handle it" do
+    subject { TestTask.new({ required: '', scheduled: true }) }
+    it 'should be valid' do
+      expect(subject.valid?).to be true
+      expect(subject.errors).to be_empty
+    end
+  end
+
   context 'with missing mandatory fields' do
     subject { TestTask.new({ optional: '' }) }
     it 'should be valid' do
