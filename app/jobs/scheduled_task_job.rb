@@ -8,7 +8,8 @@ class ScheduledTaskJob < CronJob
     datetime_arel = ScheduledTask.arel_table[:run_at]
     ScheduledTask.where(datetime_arel.lteq(Time.zone.now)).each do |scheduled|
       Rails.logger.tagged("#{scheduled.dossier}:#{scheduled.task}") do
-        task = InspectorTask.create_tasks([{ scheduled.task => JSON.parse(scheduled.parameters) }]).first
+        parameters = JSON.parse(scheduled.parameters).merge('scheduled' => true)
+        task = InspectorTask.create_tasks([{ scheduled.task => parameters }]).first
         raise "Impossible d'initialiser la tache #{scheduled.task}: #{task.errors.join(',')}" unless task.valid?
 
         Rails.logger.info("Processing Scheduled Task at #{scheduled.run_at} / #{Time.zone.now}")

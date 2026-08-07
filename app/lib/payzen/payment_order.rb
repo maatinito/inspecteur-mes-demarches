@@ -15,7 +15,7 @@ module Payzen
     end
 
     def authorized_fields
-      %i[etat_du_dossier champ_montant montant quand_payé quand_demandé quand_expiré quand_gratuit mode_test champ_telephone sms]
+      %i[etat_du_dossier champ_montant montant quand_payé quand_demandé quand_expiré quand_gratuit mode_test champ_telephone sms scheduled]
     end
 
     def initialize(params)
@@ -66,7 +66,9 @@ module Payzen
       payment_id = champ_value(annotation(@params[:champ_ordre_de_paiement]))
       if montant.positive?
         if payment_id.blank?
-          ask_for_payment(montant)
+          # Un rejeu planifié ne crée jamais d'ordre : ses params sont figés en base et
+          # peuvent être périmés (mode_test, clés). Seule l'inspection relit le YAML courant.
+          ask_for_payment(montant) unless @params[:scheduled]
         else
           check_payment
         end
@@ -86,6 +88,12 @@ module Payzen
     end
 
     def check_delay = (@test_mode ? 1 : 15).minutes.since.end_of_minute
+
+    # PayZen cloisonne les ordres entre test et production : un ordre créé avec l'autre clé
+    # de la boutique est invisible ici et répond PSP_1000. Le cas arrive quand la
+    # configuration bascule de mode alors que des ordres sont en cours, et le message brut
+    # ne permet pas de le diagnostiquer.
+    ORDER_NOT_FOUND = 'PSP_1000'
 
     DEFAULT_MESSAGE = <<~MSG
       Bonjour,
@@ -127,7 +135,26 @@ module Payzen
     end
 
     def schedule_next_check
-      ScheduledTask.enqueue(dossier.number, self.class, @params, check_delay)
+      # 'scheduled' est réinjecté à chaque rejeu : inutile de le figer en base.
+      ScheduledTask.enqueue(dossier.number, self.class, @params.except(:scheduled), check_delay)
+    end
+
+    def order_error_message(order, order_id)
+      message = "Erreur PayZen en vérifiant un ordre de paiement: #{order[:errorCode]} - #{order[:errorMessage]}"
+      return message unless order[:errorCode] == ORDER_NOT_FOUND && found_in_other_mode?(order_id)
+
+      "#{message}. L'ordre #{order_id} existe en mode #{@test_mode ? 'production' : 'test'} alors que la " \
+        "configuration est en mode #{@test_mode ? 'test' : 'production'} : vider l'annotation " \
+        "'#{@params[:champ_ordre_de_paiement]}' pour en générer un nouveau dans le mode courant."
+    end
+
+    def found_in_other_mode?(order_id)
+      password = @params[@test_mode ? :cle : :cle_de_test]
+      return false if password.blank?
+
+      Payzen::API.new(@params[:boutique], password).get_order(order_id)[:errorCode].blank?
+    rescue StandardError
+      false # la sonde est un confort de diagnostic, elle ne doit jamais masquer l'erreur d'origine
     end
 
     def check_payment
@@ -139,7 +166,7 @@ module Payzen
 
       begin
         order = @api.get_order(order_id)
-        raise StandardError, "Erreur PayZen en vérifiant un ordre de paiement: #{order[:errorCode]} - #{order[:errorMessage]}" if order[:errorCode].present?
+        raise StandardError, order_error_message(order, order_id) if order[:errorCode].present?
 
         Rails.logger.info("Payzen order check for dossier #{@dossier.number}: #{order[:paymentOrderStatus]}")
         case order[:paymentOrderStatus]

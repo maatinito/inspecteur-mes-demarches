@@ -27,8 +27,10 @@ class InspectorTask
     []
   end
 
+  # 'scheduled' est posé par ScheduledTaskJob sur les tâches qu'il rejoue. Il est toléré
+  # partout et ignoré par défaut ; seules les tâches qui en ont besoin le lisent.
   def authorized_fields
-    []
+    %i[scheduled]
   end
 
   def old_name
