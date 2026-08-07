@@ -30,14 +30,7 @@ class VerificationService
       Rails.logger.tagged(File.basename(filename)) do
         VerificationService.procedures(data).each do |procedure_name, procedure|
           Rails.logger.tagged(procedure_name) do
-            @pieces_messages = get_pieces_messages(procedure_name, procedure)
-            @instructeur_email = instructeur_email(procedure)
-            @send_messages = procedure['messages_automatiques']
-            @inform_annotation = procedure['annotation_information']
-            procedure['name'] = procedure_name
-            @procedure = procedure
-            create_controls
-            create_when_ok_tasks
+            setup_procedure(procedure_name, procedure)
             check_updated_dossiers(@controls)
             check_failed_dossiers(@controls)
             check_updated_controls(@controls)
@@ -48,6 +41,43 @@ class VerificationService
           report_error('Error processing demarche', e)
         end
       end
+    end
+  end
+
+  # Rejoue les contrôles d'un seul dossier, sans toucher aux autres.
+  #
+  # Point d'entrée manuel — console ou `rake dossiers:check[123456]` — pour
+  # vérifier ce qu'une configuration produit sur un dossier précis, sans lancer
+  # le robot sur toute la démarche.
+  #
+  # Deux différences volontaires avec `check` :
+  #
+  #   - la date de dernier passage de la démarche n'est PAS repositionnée. Le
+  #     cycle automatique doit continuer à voir tous les dossiers modifiés
+  #     depuis son propre dernier passage ;
+  #   - les Checks du dossier sont périmés d'office (force), sinon rien ne se
+  #     produirait tant que ni le dossier ni la version des contrôles n'ont
+  #     changé.
+  #
+  # Les messages et notifications configurés partent normalement : c'est
+  # souvent leur contenu que l'on veut vérifier. À lancer sur un dossier de
+  # test, pas sur le dossier d'un usager.
+  def check_one(dossier_number, force: true)
+    return unless DemarcheActions.ping
+
+    Check.where(dossier: dossier_number).update_all(version: 0) if force
+
+    on_dossier(dossier_number) do |md_dossier|
+      raise ArgumentError, "Dossier #{dossier_number} introuvable sur #{ENV.fetch('GRAPHQL_HOST', nil)}" if md_dossier.blank?
+
+      Rails.logger.tagged(dossier_number) { check_one_dossier(md_dossier) }
+    end
+  end
+
+  # Entrées de configuration traitant une démarche donnée.
+  def self.procedures_for(demarche_number)
+    configs.flat_map do |_filename, data|
+      procedures(data).select { |_name, procedure| [*procedure['demarches']].include?(demarche_number) }.to_a
     end
   end
 
@@ -122,6 +152,39 @@ class VerificationService
     dossier = (data = result.data) ? data.dossier : nil
     yield dossier
     Rails.logger.error(result.errors.values.join(',')) unless data
+  end
+
+  # Prépare l'état d'instance nécessaire au traitement d'une entrée de
+  # configuration : messages, instructeur, contrôles et tâches when_ok.
+  def setup_procedure(procedure_name, procedure)
+    @pieces_messages = get_pieces_messages(procedure_name, procedure)
+    @instructeur_email = instructeur_email(procedure)
+    @send_messages = procedure['messages_automatiques']
+    @inform_annotation = procedure['annotation_information']
+    procedure['name'] = procedure_name
+    @procedure = procedure
+    create_controls
+    create_when_ok_tasks
+  end
+
+  # Applique à un dossier déjà chargé toutes les entrées de configuration qui
+  # traitent sa démarche.
+  def check_one_dossier(md_dossier)
+    demarche_number = md_dossier.demarche.number
+    procedures = VerificationService.procedures_for(demarche_number)
+    Rails.logger.warn("Aucune configuration ne traite la démarche #{demarche_number}") if procedures.empty?
+
+    procedures.each do |procedure_name, procedure|
+      Rails.logger.tagged(procedure_name) do
+        setup_procedure(procedure_name, procedure)
+        demarche = DemarcheActions.get_demarche(demarche_number, procedure_name, @instructeur_email)
+        next unless current_user_has_access_to?(demarche)
+
+        set_demarche(@controls, demarche)
+        # Volontairement sans demarche.checked_at = … : voir check_one.
+        check_dossier(demarche, md_dossier, @controls)
+      end
+    end
   end
 
   def create_controls
@@ -275,7 +338,13 @@ class VerificationService
       check = check_control(control, demarche, md_dossier)
       checks << check
       failed_checks ||= check.failed
-      updated_dossier = md_dossier = DossierActions.on_dossier(md_dossier.number) if control.dossier_updated?
+      next unless control.dossier_updated?
+
+      # Si le rechargement GraphQL échoue (erreur API transitoire), on_dossier
+      # renvoie nil : on conserve le dernier md_dossier valide pour ne pas
+      # planter sur md_dossier.number à l'itération suivante (ou dans when_ok).
+      updated_dossier = DossierActions.on_dossier(md_dossier.number)
+      md_dossier = updated_dossier || md_dossier
     end
     avoid_useless_checks_for(updated_dossier) if updated_dossier
     unless failed_checks
@@ -353,7 +422,9 @@ class VerificationService
           check = Check.find_or_create_by(demarche:, dossier: md_dossier.number, checker: task.name)
           start_time = Time.zone.now
           apply_task(demarche, task, md_dossier, check)
-          md_dossier = DossierActions.on_dossier(md_dossier.number) if task.dossier_updated?(md_dossier)
+          # Garde anti-nil : un rechargement raté (on_dossier => nil) ne doit pas
+          # planter la tâche suivante sur md_dossier.number.
+          md_dossier = DossierActions.on_dossier(md_dossier.number) || md_dossier if task.dossier_updated?(md_dossier)
           check.update(checked_at: start_time, version: task.version)
         end
       end

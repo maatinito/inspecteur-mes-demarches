@@ -68,6 +68,19 @@ DOUBLONS = Set[
 ]
 
 namespace :dossiers do
+  desc 'Rejoue les contrôles sur un seul dossier — rake "dossiers:check[123456]"'
+  task :check, [:dossier] => :environment do |_task, args|
+    dossier = args[:dossier].to_i
+    abort('Usage : rake "dossiers:check[123456]"') if dossier.zero?
+
+    # Les logs du robot sont l'essentiel du retour : les afficher aussi ici.
+    Rails.logger.broadcast_to(ActiveSupport::TaggedLogging.new(Logger.new($stdout))) if Rails.logger.respond_to?(:broadcast_to)
+
+    puts "Traitement du seul dossier #{dossier} (les messages configurés seront envoyés)"
+    VerificationService.new.check_one(dossier)
+    puts 'Terminé.'
+  end
+
   desc 'close dossiers where arrival date is after June 23'
   task close_obsolete: :environment do
     include Utils
