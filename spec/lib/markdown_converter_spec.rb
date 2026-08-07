@@ -170,4 +170,69 @@ RSpec.describe MarkdownConverter do
       expect(html).to match(%r{<h2>Titre</h2>})
     end
   end
+
+  # Les listes deviennent des paragraphes indentés portant le marqueur écrit
+  # par l'auteur : Word ne doit ni renuméroter, ni imposer ses propres puces.
+  describe '.convert, listes' do
+    it 'ne produit plus aucune liste HTML' do
+      html = described_class.convert("1. un\n2. deux")
+      expect(html).not_to include('<ol', '<ul', '<li')
+    end
+
+    it 'conserve la numérotation écrite à la main' do
+      html = described_class.convert("3. troisième\n4. quatrième")
+      expect(html).to include('>3. troisième<', '>4. quatrième<')
+    end
+
+    it 'conserve les marqueurs inconnus de Markdown' do
+      html = described_class.convert("1. Condition :\n   1a. cas A\n   1b. cas B")
+      expect(html).to include('>1a. cas A<', '>1b. cas B<')
+    end
+
+    it 'indente selon la profondeur, quelle que soit la largeur d\'indentation' do
+      html = described_class.convert("1. un\n   - deux\n      • trois")
+      expect(html).to include('margin-left: 18pt">1. un',
+                              'margin-left: 36pt">- deux',
+                              'margin-left: 54pt">• trois')
+    end
+
+    it 'traite un <ul> imbriqué dans un <ol> comme deux niveaux' do
+      html = described_class.convert("1. Une des conditions :\n   - puce a\n   - puce b")
+      expect(html).to include('margin-left: 18pt">1. Une des conditions :',
+                              'margin-left: 36pt">- puce a',
+                              'margin-left: 36pt">- puce b')
+    end
+
+    it 'conserve le gras à l\'intérieur d\'un item' do
+      html = described_class.convert('- **OU** semences certifiées')
+      expect(html).to include('<strong>OU</strong> semences certifiées')
+    end
+
+    it 'laisse les titres au parseur Markdown' do
+      html = described_class.convert("- item\n## Titre\ntexte après")
+      expect(html).to include('margin-left: 18pt">- item', '<h2>Titre</h2>')
+    end
+
+    it 'aplatit aussi les listes venues de HTML brut' do
+      html = described_class.convert('<ol><li>A<ul><li>a1</li></ul></li></ol> et du **gras**')
+      expect(html).not_to include('<ol', '<ul', '<li')
+      expect(html).to include('margin-left: 18pt">1. A', 'margin-left: 36pt">- a1')
+    end
+
+    it 'réunit les paragraphes multiples d\'un item sans imbriquer de bloc' do
+      html = described_class.convert('<ol><li><p>Premier</p><p>Second</p></li></ol>')
+      expect(html).to include('>1. Premier<br>Second<')
+      expect(html).not_to match(/<p[^>]*>[^<]*<p/)
+    end
+
+    it 'assainit le contenu d\'un item' do
+      html = described_class.convert("- <script>alert(1)</script> suite\n- b")
+      expect(html).not_to include('script')
+    end
+
+    it 'ne laisse jamais un bloc à l\'intérieur d\'un paragraphe de liste' do
+      html = described_class.convert("- ligne\n\n<blockquote><p>bloc</p></blockquote>")
+      expect(html).not_to match(%r{<p[^>]*>(?:(?!</p>).)*<(?:p|div|blockquote|ul|ol)[\s>]}m)
+    end
+  end
 end

@@ -77,6 +77,22 @@ class PublipostageV3 < PublipostageV2
     configure_paragraph_styles(config)
     configure_heading_styles(config)
     configure_list_styles(config)
+    configure_indentation(config)
+  end
+
+  # Retrait de paragraphe piloté par `margin-left`, que Sablon ne sait pas
+  # convertir nativement. C'est le support des listes produites par
+  # MarkdownConverter : des paragraphes indentés portant leur marqueur en
+  # texte, plutôt que des listes Word qui renumérotent.
+  #
+  # Word compte en twips (1/20 de point). `hanging` pose un retrait négatif de
+  # première ligne pour que les lignes longues s'alignent sous le texte de
+  # l'item et non sous son marqueur.
+  def configure_indentation(config)
+    config.register_style_converter(:paragraph, 'margin-left', lambda { |value|
+      points = value.to_s[/[\d.]+/].to_f
+      ['ind', { left: (points * 20).round.to_s, hanging: MarkdownConverter::HANGING_TWIPS.to_s }]
+    })
   end
 
   def configure_paragraph_styles(config)
