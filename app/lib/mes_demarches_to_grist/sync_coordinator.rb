@@ -257,7 +257,10 @@ module MesDemarchesToGrist
     end
 
     def find_existing_record(dossier_number)
-      records = @main_table.find_by(@dossier_col_id, dossier_number)
+      # Même contrainte que dans RowUpserter : si la colonne clé est un Ref, le
+      # filtre doit porter la forme de recherche ["l", valeur] (cf. GristRef).
+      key_type = @main_field_metadata.dig(@dossier_col_id, :type)
+      records = @main_table.find_by(@dossier_col_id, GristRef.encode_key(dossier_number, key_type))
       records.first
     rescue StandardError => e
       Rails.logger.error "GristSync: Erreur recherche record existant: #{e.message}"

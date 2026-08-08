@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'grist_ref'
+
 module MesDemarchesToGrist
   # Gère l'upsert de rows dans Grist
   #
@@ -42,11 +44,14 @@ module MesDemarchesToGrist
         data = data.compact
       end
 
-      # Assurer que la colonne Dossier est dans les données
-      data[@dossier_col_id] = dossier_number
+      # Assurer que la colonne Dossier est dans les données, encodée selon son
+      # type : une colonne Ref exige la forme de recherche ["l", valeur], sinon
+      # Grist n'écrit rien sans lever d'erreur (cf. GristRef).
+      key_value = encoded_key(dossier_number)
+      data[@dossier_col_id] = key_value
 
       # Upsert natif Grist
-      record = { require: { @dossier_col_id => dossier_number }, fields: data }
+      record = { require: { @dossier_col_id => key_value }, fields: data }
       @table.upsert_records([record])
 
       Rails.logger.info "GristSync: Upsert réussi pour dossier #{dossier_number} (#{data.keys.length} champ(s))"
@@ -58,8 +63,14 @@ module MesDemarchesToGrist
     end
 
     def find_record_id(dossier_number)
-      records = @table.find_by(@dossier_col_id, dossier_number)
+      records = @table.find_by(@dossier_col_id, encoded_key(dossier_number))
       records.first&.dig('id')
+    end
+
+    # Filtrer une colonne Ref sur la clé métier ne matche jamais : la valeur
+    # stockée est un row id. La forme de recherche s'applique donc aussi ici.
+    def encoded_key(dossier_number)
+      GristRef.encode_key(dossier_number, @field_metadata.dig(@dossier_col_id, :type))
     end
 
     # Filtre les champs pour ne retourner que ceux qui ont réellement changé.
