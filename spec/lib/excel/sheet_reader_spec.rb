@@ -150,6 +150,39 @@ RSpec.describe Excel::SheetReader do
     end
   end
 
+  describe '.coercer' do
+    it 'accepte les nombres déjà typés' do
+      expect(described_class.coercer(1200.5, 'Numeric')).to eq(1200.5)
+      expect(described_class.coercer(3, 'Int')).to eq(3)
+    end
+
+    # Les insécables sont écrites en échappement : un caractère invisible dans
+    # la source est illisible en revue et fragile au reformatage.
+    it 'tolère espaces, espaces insécables et virgule décimale' do
+      expect(described_class.coercer('1 010,50', 'Numeric')).to eq(1010.5)
+      expect(described_class.coercer("1\u00A0010,50", 'Numeric')).to eq(1010.5)
+      expect(described_class.coercer("1\u202F010,50", 'Numeric')).to eq(1010.5)
+      expect(described_class.coercer('1 010.50', 'Numeric')).to eq(1010.5)
+    end
+
+    it 'tronque vers Int quand le type cible est entier' do
+      expect(described_class.coercer('1 010,50', 'Int')).to eq(1010)
+    end
+
+    it 'renvoie nil sur texte non numérique plutôt que zéro' do
+      # Zéro serait un faux chiffre injecté dans un calcul : nil est honnête.
+      expect(described_class.coercer('néant', 'Numeric')).to be_nil
+      expect(described_class.coercer('', 'Numeric')).to be_nil
+      expect(described_class.coercer(nil, 'Numeric')).to be_nil
+    end
+
+    it 'laisse intacte toute valeur dont la cible n’est pas numérique' do
+      expect(described_class.coercer('1 010,50', 'Text')).to eq('1 010,50')
+      expect(described_class.coercer('Kg', 'Choice')).to eq('Kg')
+      expect(described_class.coercer(nil, 'Text')).to be_nil
+    end
+  end
+
   describe 'lignes de données' do
     it 'ignore les lignes antérieures à l’en-tête et les lignes vides' do
       reader = described_class.new(fixture('preambule'))

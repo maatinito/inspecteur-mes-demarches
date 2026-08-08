@@ -47,6 +47,31 @@ module Excel
       'Text'
     end
 
+    TYPES_NUMERIQUES = %w[Numeric Int].freeze
+    # Espaces à retirer d'un nombre saisi à la main. Les insécables sont écrites
+    # en échappement : un caractère invisible dans la source se ferait effacer au
+    # premier reformatage (U+00A0 insécable, U+202F insécable fine).
+    ESPACES = /[[:space:]\u00A0\u202F]/
+
+    # Coerce une valeur vers un type numérique cible.
+    #
+    # Les colonnes « numériques » des formulaires réels contiennent souvent du
+    # texte saisi à la main (« 1 010,50 ») : roo renvoie alors une String. On
+    # coerce plutôt que de perdre la valeur — vérifié sur les fichiers de la
+    # démarche 1536. Une valeur non convertible donne nil, jamais zéro : un zéro
+    # serait un faux chiffre injecté dans les calculs en aval.
+    def self.coercer(valeur, type)
+      return valeur unless TYPES_NUMERIQUES.include?(type)
+      return valeur if valeur.is_a?(Numeric)
+      return nil if valeur.nil?
+
+      nettoye = valeur.to_s.gsub(ESPACES, '').tr(',', '.')
+      nombre = nettoye.empty? ? nil : Float(nettoye, exception: false)
+      return nil if nombre.nil?
+
+      type == 'Int' ? nombre.to_i : nombre
+    end
+
     # Nettoie les en-têtes et garantit des noms non vides et distincts : deux
     # colonnes source qui porteraient le même nom écriraient dans la même cible.
     def self.sanitize_noms(entetes)
@@ -81,6 +106,11 @@ module Excel
       @colonnes ||= construire_colonnes
     end
 
+    # Lignes de données, clés = noms de colonnes sanitizés.
+    #
+    # Les valeurs sont rendues telles que roo les lit, sans coercition : celle-ci
+    # dépend du type de la colonne *cible*, que seul l'appelant connaît. Voir
+    # .coercer, à appliquer avec le type cible du mapping.
     def lignes
       @lignes ||= construire_lignes
     end
