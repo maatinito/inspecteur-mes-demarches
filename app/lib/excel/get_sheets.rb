@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'sheet_reader'
+
 module Excel
   class GetSheets < FieldChecker
     def version
@@ -10,6 +12,16 @@ module Excel
       super + %i[champ]
     end
 
+    def authorized_fields
+      super + %i[feuille ligne_entete]
+    end
+
+    # La lecture est déléguée à Excel::SheetReader, partagé avec ExcelVersGrist.
+    #
+    # Le contrat est inchangé : toutes les feuilles sont exposées, une entrée de
+    # sortie par feuille (un modèle de publipostage peut rendre un tableau par
+    # feuille). `feuille` restreint facultativement à une seule feuille ; c'est
+    # le plugin ExcelVersGrist, lui, qui prend la première feuille par défaut.
     def process_row(row, output)
       champs = object_field_values(row, params[:champ])
       champs.each do |champ_source|
@@ -19,44 +31,19 @@ module Excel
         next unless source_file
 
         PieceJustificativeCache.get(source_file) do |file|
-          xlsx = Roo::Spreadsheet.open(file)
-          xlsx.sheets.each do |name|
-            sheet = xlsx.sheet(name)
-            header_line = header_line(sheet)
-            output["#{params[:champ]}.#{name}"] = sheet_rows(header_line, sheet)
+          feuilles_a_lire(file).each do |nom|
+            reader = Excel::SheetReader.new(file, feuille: nom, ligne_entete: params[:ligne_entete])
+            output["#{params[:champ]}.#{nom}"] = reader.lignes
+          ensure
+            reader&.close
           end
-        ensure
-          xlsx&.close
         end
       end
       output
     end
 
-    def sheet_rows(header_line, sheet)
-      rows = []
-      headers = sheet.row(header_line)
-      sheet.each_row_streaming do |row|
-        data_row = row.size >= headers.size && row[1].coordinate[0] > header_line && row[1].value.present?
-        rows << headers.map.with_index { |v, i| [v, row[i].value] }.to_h if data_row
-      end
-      rows
-    end
-
-    def header_line(sheet)
-      header_line = 0
-      max = 0
-      sheet.each_row_streaming do |row|
-        cell = row.find { |c| c.value.nil? } || row.last
-        next if cell.nil?
-
-        count = cell.coordinate[1]
-        count -= 1 if cell.value.nil?
-        if count > max
-          max = count
-          header_line = cell.coordinate[0]
-        end
-      end
-      header_line
+    def feuilles_a_lire(file)
+      params[:feuille] ? [params[:feuille]] : Excel::SheetReader.noms_feuilles(file)
     end
   end
 end
