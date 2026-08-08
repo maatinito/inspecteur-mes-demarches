@@ -375,6 +375,72 @@ RSpec.describe ExcelVersGrist do
     end
   end
 
+  describe 'colonne d’erreurs métier' do
+    let(:table) { instance_double(Grist::Table) }
+    let(:ligne) { { 'id' => 4 } }
+    let(:plugin) { described_class.new(params_valides.merge(options: { 'colonne_erreurs' => 'Message d’erreur' })) }
+
+    before do
+      allow(table).to receive(:columns).and_return({})
+      allow(table).to receive(:create_columns)
+      allow(table).to receive(:update_records)
+    end
+
+    it 'écrit les messages métier accumulés' do
+      plugin.erreurs_metier << 'Feuille "X" introuvable'
+      plugin.erreurs_metier << '3 ligne(s) ignorée(s) (vides)'
+      plugin.send(:ecrire_erreurs, table, ligne)
+
+      expect(table).to have_received(:update_records) do |records|
+        expect(records.first[:id]).to eq(4)
+        expect(records.first[:fields]['Message d’erreur'])
+          .to eq('Feuille "X" introuvable ; 3 ligne(s) ignorée(s) (vides)')
+      end
+    end
+
+    # Sans ce vidage, une erreur d'un passage précédent resterait affichée alors
+    # que le dossier est reparti correct.
+    it 'vide la colonne en cas de succès' do
+      plugin.send(:ecrire_erreurs, table, ligne)
+
+      expect(table).to have_received(:update_records) do |records|
+        expect(records.first[:fields]['Message d’erreur']).to eq('')
+      end
+    end
+
+    it 'crée la colonne si elle est absente, indépendamment de creer_colonnes_manquantes' do
+      strict = described_class.new(params_valides.merge(
+                                     options: { 'colonne_erreurs' => 'Erreurs', 'creer_colonnes_manquantes' => false }
+                                   ))
+      strict.send(:ecrire_erreurs, table, ligne)
+
+      expect(table).to have_received(:create_columns) do |data|
+        expect(data.first[:id]).to eq('Erreurs')
+        expect(data.first[:fields][:type]).to eq('Text')
+      end
+    end
+
+    it 'ne recrée pas une colonne existante' do
+      allow(table).to receive(:columns).and_return('Message d’erreur' => { type: 'Text' })
+      expect(table).not_to receive(:create_columns)
+
+      plugin.send(:ecrire_erreurs, table, ligne)
+    end
+
+    it 'ne fait rien si l’option n’est pas configurée' do
+      sans = described_class.new(params_valides)
+      sans.send(:ecrire_erreurs, table, ligne)
+
+      expect(table).not_to have_received(:update_records)
+    end
+
+    it 'ne fait rien si la ligne principale est absente' do
+      plugin.send(:ecrire_erreurs, table, nil)
+
+      expect(table).not_to have_received(:update_records)
+    end
+  end
+
   describe 'gestion des erreurs' do
     let(:demarche) { double('demarche', id: 1536) }
     let(:dossier) { dossier_double(champs: [champ_double(files: [fichier_double])]) }

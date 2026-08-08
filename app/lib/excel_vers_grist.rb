@@ -280,8 +280,24 @@ class ExcelVersGrist < FieldChecker
     table.update_records([{ id: ligne['id'], fields: { colonne_empreinte => empreinte } }])
   end
 
-  # Complété par la tâche suivante du plan : colonne d'erreurs métier.
-  def ecrire_erreurs(_table, _ligne)
-    nil
+  def colonne_erreurs
+    @params.dig(:options, 'colonne_erreurs')
+  end
+
+  # Rend les erreurs de données visibles dans Grist, au niveau du dossier, plutôt
+  # que noyées dans les logs et Sentry — utile à l'instructeur comme au débogage
+  # d'une configuration sur des Excel legacy.
+  #
+  # La colonne est créée si besoin, indépendamment de creer_colonnes_manquantes :
+  # c'est une colonne technique requise par l'option, pas une colonne de données.
+  #
+  # Elle est vidée en cas de succès, sinon l'erreur d'un passage précédent
+  # resterait affichée alors que le dossier est reparti correct.
+  def ecrire_erreurs(table, ligne)
+    return if colonne_erreurs.blank? || ligne.nil?
+
+    table.create_columns([{ id: colonne_erreurs, fields: { label: colonne_erreurs, type: 'Text' } }]) unless table.columns.key?(colonne_erreurs)
+
+    table.update_records([{ id: ligne['id'], fields: { colonne_erreurs => erreurs_metier.join(' ; ') } }])
   end
 end
