@@ -2,6 +2,7 @@
 
 require_relative 'excel/sheet_reader'
 require_relative 'mes_demarches_to_grist/grist_ref'
+require_relative 'mes_demarches_to_grist/ligne_upserter'
 
 # Recopie les lignes d'un Excel joint au dossier vers une table Grist liée.
 #
@@ -198,8 +199,89 @@ class ExcelVersGrist < FieldChecker
     end
   end
 
-  # Complété par la tâche suivante du plan : upsert des lignes.
-  def traiter(_demarche, _dossier, _fichiers)
+  def table_lignes
+    Grist::Config.table(@params[:grist]['doc_id'], @params[:grist]['table_id'], @params[:grist]['token_config'])
+  end
+
+  def table_principale
+    nom = @params[:grist]['table_principale'] || 'Dossiers'
+    Grist::Config.table(@params[:grist]['doc_id'], nom, @params[:grist]['token_config'])
+  end
+
+  def ligne_principale(table, dossier_number)
+    type = table.columns.dig('Dossier', :type)
+    table.find_by('Dossier', MesDemarchesToGrist::GristRef.encode_key(dossier_number, type)).first
+  end
+
+  def traiter(_demarche, dossier, fichiers)
+    empreinte = empreinte_source(fichiers)
+    principale = table_principale
+    ensure_colonne_empreinte(principale)
+
+    ligne = ligne_principale(principale, dossier.number)
+    if a_jour?(empreinte, ligne)
+      Rails.logger.info "ExcelVersGrist: dossier #{dossier.number} à jour, rien à faire"
+      return
+    end
+
+    nb_lignes = recopier_lignes(dossier, fichiers)
+
+    # L'empreinte n'est écrite qu'ici, en aval d'un upsert intégralement réussi :
+    # tout échec laisse le dossier à retraiter au passage suivant. Le workflow
+    # n8n l'écrivait sur une branche parallèle, et un upsert en échec y perdait
+    # les lignes en silence.
+    ecrire_empreinte(principale, ligne, empreinte)
+    ecrire_erreurs(principale, ligne)
+    Rails.logger.info "ExcelVersGrist: dossier #{dossier.number} — #{nb_lignes} ligne(s) recopiée(s)"
+  end
+
+  def recopier_lignes(dossier, fichiers)
+    lignes, colonnes = extraire(fichiers)
+    correspondance = mapping(colonnes)
+    cible = table_lignes
+    ensure_colonnes(cible, correspondance)
+
+    lignes_cibles = projeter(lignes, correspondance)
+    upserter = MesDemarchesToGrist::LigneUpserter.new(cible, field_metadata: cible.columns)
+    upserter.upsert_lignes(dossier.number, lignes_cibles)
+    upserter.supprimer_orphelins(dossier.number, lignes_cibles.size)
+    lignes_cibles.size
+  end
+
+  # Seul le dernier fichier .xlsx est exploité, comme dans GetSheets : un champ
+  # multi-fichiers correspond en pratique à des versions successives.
+  def extraire(fichiers)
+    PieceJustificativeCache.get(fichiers.last) do |chemin|
+      reader = Excel::SheetReader.new(chemin, feuille: @params[:feuille], ligne_entete: @params[:ligne_entete])
+      [reader.lignes, reader.colonnes]
+    ensure
+      reader&.close
+    end
+  end
+
+  # Projette les lignes source sur les colonnes cibles, en coerçant chaque
+  # valeur vers le type de sa cible. Les lignes entièrement vides sont écartées.
+  def projeter(lignes, correspondance)
+    projetees = lignes.map do |ligne|
+      correspondance.each_with_object({}) do |(source, m), acc|
+        acc[m[:cible]] = Excel::SheetReader.coercer(ligne[source], m[:type])
+      end
+    end
+
+    retenues = projetees.reject { |projetee| projetee.each_value.all?(&:blank?) }
+    ignorees = projetees.size - retenues.size
+    erreurs_metier << "#{ignorees} ligne(s) ignorée(s) (vides)" if ignorees.positive?
+    retenues
+  end
+
+  def ecrire_empreinte(table, ligne, empreinte)
+    return if ligne.nil?
+
+    table.update_records([{ id: ligne['id'], fields: { colonne_empreinte => empreinte } }])
+  end
+
+  # Complété par la tâche suivante du plan : colonne d'erreurs métier.
+  def ecrire_erreurs(_table, _ligne)
     nil
   end
 end
