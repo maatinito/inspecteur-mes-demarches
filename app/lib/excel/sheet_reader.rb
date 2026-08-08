@@ -23,7 +23,29 @@ module Excel
     # cibles (« Numéro d'arrêté », « N° TAHITI », « Sous-total »).
     PONCTUATION = %r{[(){}\[\]/\\,;:!?"*%#&@|<>=+~^$`.]}
 
+    # DateTime et Time avant Date : en Ruby, DateTime hérite de Date.
+    CLASSES_TYPES = [
+      [TrueClass, 'Bool'], [FalseClass, 'Bool'],
+      [Float, 'Numeric'], [Integer, 'Int'],
+      [DateTime, 'DateTime:UTC'], [Time, 'DateTime:UTC'], [Date, 'Date']
+    ].freeze
+
     attr_reader :ligne_entete
+
+    # Type Grist déduit des classes Ruby renvoyées par roo. Une colonne mixte ou
+    # vide donne Text : on ne perd jamais de donnée à l'inférence, et un type
+    # précis peut toujours être forcé par le mapping de la configuration.
+    def self.inferer_type(valeurs)
+      types = valeurs.compact.map { |v| type_de(v) }.uniq
+      return 'Text' if types.size != 1
+
+      types.first
+    end
+
+    def self.type_de(valeur)
+      CLASSES_TYPES.each { |klass, type| return type if valeur.is_a?(klass) }
+      'Text'
+    end
 
     # Nettoie les en-têtes et garantit des noms non vides et distincts : deux
     # colonnes source qui porteraient le même nom écriraient dans la même cible.
@@ -104,23 +126,37 @@ module Excel
       @entetes_bruts ||= @ligne_entete.positive? ? @sheet.row(@ligne_entete) : []
     end
 
+    # Valeurs des lignes de données, indexées par position de colonne.
+    #
+    # Un seul balayage sert à la fois à l'inférence de type et à la construction
+    # des lignes : ligne_de_donnees? ne dépendant pas de `colonnes`, il n'y a pas
+    # de récursion entre les deux.
+    def lignes_brutes
+      @lignes_brutes ||= begin
+        largeur = entetes_bruts.size
+        resultat = []
+        @sheet.each_row_streaming do |row|
+          next unless ligne_de_donnees?(row)
+
+          resultat << Array.new(largeur) { |index| row[index]&.value }
+        end
+        resultat
+      end
+    end
+
     def construire_colonnes
       noms = self.class.sanitize_noms(entetes_bruts)
       entetes_bruts.each_with_index.map do |brut, index|
-        ColumnDescriptor.new(nom: noms[index], en_tete_brut: brut, index: index, type_infere: 'Text')
+        valeurs = lignes_brutes.map { |ligne| ligne[index] }
+        ColumnDescriptor.new(nom: noms[index], en_tete_brut: brut, index: index,
+                             type_infere: self.class.inferer_type(valeurs))
       end
     end
 
     def construire_lignes
-      resultat = []
-      @sheet.each_row_streaming do |row|
-        next unless ligne_de_donnees?(row)
-
-        resultat << colonnes.to_h do |col|
-          [col.nom, row[col.index]&.value]
-        end
+      lignes_brutes.map do |ligne|
+        colonnes.to_h { |col| [col.nom, ligne[col.index]] }
       end
-      resultat
     end
 
     # Une ligne porte des données si elle est postérieure à l'en-tête et non
