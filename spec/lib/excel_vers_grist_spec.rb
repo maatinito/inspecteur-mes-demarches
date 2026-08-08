@@ -177,6 +177,106 @@ RSpec.describe ExcelVersGrist do
     end
   end
 
+  describe 'mapping des colonnes' do
+    def colonne(nom, type: 'Text', index: 0)
+      Excel::ColumnDescriptor.new(nom: nom, en_tete_brut: nom, index: index, type_infere: type)
+    end
+
+    it 'sans configuration : la cible est la source, le type est celui inféré' do
+      plugin = described_class.new(params_valides)
+      cols = [colonne('Nom'), colonne('Montant', type: 'Numeric', index: 1)]
+
+      expect(plugin.send(:mapping, cols)).to eq(
+        'Nom' => { cible: 'Nom', type: 'Text' },
+        'Montant' => { cible: 'Montant', type: 'Numeric' }
+      )
+    end
+
+    it 'accepte la forme courte source: cible' do
+      plugin = described_class.new(params_valides.merge(colonnes: { 'Substances actives' => 'Nom' }))
+
+      expect(plugin.send(:mapping, [colonne('Substances actives')]))
+        .to eq('Substances actives' => { cible: 'Nom', type: 'Text' })
+    end
+
+    it 'accepte la forme longue avec type forcé' do
+      plugin = described_class.new(params_valides.merge(
+                                     colonnes: { 'Poids/Volume total' => { 'cible' => 'Poids_volume_total', 'type' => 'numeric' } }
+                                   ))
+
+      expect(plugin.send(:mapping, [colonne('Poids/Volume total')]))
+        .to eq('Poids/Volume total' => { cible: 'Poids_volume_total', type: 'Numeric' })
+    end
+
+    it 'garde le type inféré si le type déclaré est inconnu' do
+      plugin = described_class.new(params_valides.merge(
+                                     colonnes: { 'Montant' => { 'cible' => 'M', 'type' => 'fantaisie' } }
+                                   ))
+
+      expect(plugin.send(:mapping, [colonne('Montant', type: 'Numeric')]))
+        .to eq('Montant' => { cible: 'M', type: 'Numeric' })
+    end
+
+    it 'ignore une colonne source absente du fichier et le rapporte' do
+      plugin = described_class.new(params_valides.merge(colonnes: { 'Absente' => 'X' }))
+
+      expect(plugin.send(:mapping, [])).to eq({})
+      expect(plugin.erreurs_metier.join).to match(/Absente/)
+    end
+
+    it 'ne retient que les colonnes déclarées quand un mapping est fourni' do
+      plugin = described_class.new(params_valides.merge(colonnes: { 'Nom' => 'Nom' }))
+
+      expect(plugin.send(:mapping, [colonne('Nom'), colonne('Ignoree', index: 1)]).keys).to eq(['Nom'])
+    end
+  end
+
+  describe 'création des colonnes manquantes' do
+    let(:table) { instance_double(Grist::Table) }
+    let(:correspondance) { { 'Nom' => { cible: 'Nom', type: 'Text' } } }
+
+    it 'crée les colonnes cibles absentes' do
+      allow(table).to receive(:columns).and_return('Ligne' => { type: 'Int' })
+      allow(table).to receive(:create_columns)
+      plugin = described_class.new(params_valides)
+
+      expect(plugin.send(:ensure_colonnes, table, correspondance)).to eq(['Nom'])
+      expect(table).to have_received(:create_columns) do |data|
+        expect(data.first[:id]).to eq('Nom')
+        expect(data.first[:fields][:type]).to eq('Text')
+      end
+    end
+
+    it 'ne crée rien quand creer_colonnes_manquantes est faux' do
+      allow(table).to receive(:columns).and_return({})
+      plugin = described_class.new(params_valides.merge(options: { 'creer_colonnes_manquantes' => false }))
+
+      expect(table).not_to receive(:create_columns)
+      expect(plugin.send(:ensure_colonnes, table, correspondance)).to eq([])
+    end
+
+    it 'ne crée rien quand toutes les colonnes existent' do
+      allow(table).to receive(:columns).and_return('Nom' => { type: 'Text' })
+      plugin = described_class.new(params_valides)
+
+      expect(table).not_to receive(:create_columns)
+      expect(plugin.send(:ensure_colonnes, table, correspondance)).to eq([])
+    end
+
+    # Le type d'une colonne existante n'est jamais modifié : le parcours assumé
+    # est de traiter un premier fichier, ajuster les types à la main dans Grist,
+    # puis retraiter.
+    it 'ne modifie jamais le type d’une colonne existante et rapporte le conflit' do
+      allow(table).to receive(:columns).and_return('Montant' => { id: 'Montant', type: 'Text' })
+      plugin = described_class.new(params_valides)
+
+      expect(table).not_to receive(:update_column)
+      plugin.send(:ensure_colonnes, table, 'Montant' => { cible: 'Montant', type: 'Numeric' })
+
+      expect(plugin.erreurs_metier.join).to match(/Montant.*Text.*Numeric/)
+    end
+  end
+
   describe 'gestion des erreurs' do
     let(:demarche) { double('demarche', id: 1536) }
     let(:dossier) { dossier_double(champs: [champ_double(files: [fichier_double])]) }

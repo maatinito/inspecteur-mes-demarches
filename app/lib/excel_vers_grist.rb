@@ -24,6 +24,13 @@ class ExcelVersGrist < FieldChecker
   SENTINELLE_A_TRAITER = '-'
   COLONNE_EMPREINTE_DEFAUT = 'excel_checksum'
 
+  # Types acceptés dans le mapping YAML, traduits en types de colonnes Grist.
+  TYPES_YAML = {
+    'text' => 'Text', 'numeric' => 'Numeric', 'int' => 'Int',
+    'date' => 'Date', 'datetime' => 'DateTime:UTC', 'bool' => 'Bool',
+    'choice' => 'Choice'
+  }.freeze
+
   def version
     super + 1
   end
@@ -43,8 +50,16 @@ class ExcelVersGrist < FieldChecker
     @errors << "Configuration 'grist.table_id' manquante sur excel_vers_grist" unless @params[:grist]&.[]('table_id')
   end
 
+  # Messages métier accumulés pendant le traitement (fichier illisible, colonne
+  # source absente, conflit de type…). Rendus visibles dans Grist par
+  # ecrire_erreurs quand la configuration désigne une colonne d'erreurs.
+  def erreurs_metier
+    @erreurs_metier ||= []
+  end
+
   def process(demarche, dossier)
     super
+    @erreurs_metier = []
     return unless must_check?(dossier)
 
     champ = champ_source(dossier)
@@ -124,8 +139,66 @@ class ExcelVersGrist < FieldChecker
     Rails.logger.info "ExcelVersGrist: colonne #{colonne_empreinte} créée (défaut #{SENTINELLE_A_TRAITER.inspect})"
   end
 
-  # Complété par les tâches suivantes du plan : mapping des colonnes et upsert
-  # des lignes.
+  # Correspondance colonne source -> { cible, type }.
+  #
+  # Sans déclaration, toutes les colonnes du fichier sont reprises sous leur nom
+  # sanitizé et leur type inféré. Avec déclaration, seules les colonnes citées
+  # sont reprises — c'est le moyen d'ignorer le reste du fichier.
+  #
+  # Le rattachement se fait par nom d'en-tête, jamais par position : robuste au
+  # réordonnancement des colonnes d'un dossier à l'autre.
+  def mapping(colonnes)
+    declare = @params[:colonnes]
+    return colonnes.to_h { |col| [col.nom, { cible: col.nom, type: col.type_infere }] } if declare.blank?
+
+    par_nom = colonnes.index_by(&:nom)
+    declare.each_with_object({}) do |(source, cible), acc|
+      col = par_nom[source]
+      if col.nil?
+        erreurs_metier << "Colonne source absente du fichier : #{source}"
+        next
+      end
+      acc[source] = cible_normalisee(cible, col)
+    end
+  end
+
+  def cible_normalisee(cible, colonne)
+    return { cible: cible, type: colonne.type_infere } unless cible.is_a?(Hash)
+
+    type = TYPES_YAML[cible['type'].to_s.downcase] || colonne.type_infere
+    { cible: cible['cible'] || colonne.nom, type: type }
+  end
+
+  # Crée les colonnes cibles absentes et rapporte les conflits de type.
+  #
+  # Le type d'une colonne existante n'est jamais modifié (spec §7.1) : le
+  # parcours assumé est de traiter un premier fichier, ajuster les types à la
+  # main dans Grist, puis retraiter.
+  def ensure_colonnes(table, correspondance)
+    existantes = table.columns
+    signaler_conflits_de_type(existantes, correspondance)
+
+    manquantes = correspondance.each_value.reject { |m| existantes.key?(m[:cible]) }.uniq
+    return [] if manquantes.empty? || @params.dig(:options, 'creer_colonnes_manquantes') == false
+
+    table.create_columns(manquantes.map { |m| { id: m[:cible], fields: { label: m[:cible], type: m[:type] } } })
+    noms = manquantes.map { |m| m[:cible] }
+    Rails.logger.info "ExcelVersGrist: colonne(s) créée(s) : #{noms.join(', ')}"
+    noms
+  end
+
+  def signaler_conflits_de_type(existantes, correspondance)
+    correspondance.each_value do |m|
+      meta = existantes[m[:cible]]
+      next if meta.nil? || meta[:type] == m[:type]
+
+      message = "Type divergent sur #{m[:cible]} : Grist=#{meta[:type]}, attendu=#{m[:type]} (non modifié)"
+      Rails.logger.warn "ExcelVersGrist: #{message}"
+      erreurs_metier << message
+    end
+  end
+
+  # Complété par la tâche suivante du plan : upsert des lignes.
   def traiter(_demarche, _dossier, _fichiers)
     nil
   end
