@@ -66,6 +66,46 @@ RSpec.describe Excel::SheetReader do
     end
   end
 
+  describe 'sanitization des noms de colonnes' do
+    def noms(entetes)
+      described_class.sanitize_noms(entetes)
+    end
+
+    it 'retire la ponctuation et réduit les espaces multiples' do
+      expect(noms(['Concentrations (%)', "  Poids/Volume  total \n"]))
+        .to eq(['Concentrations', 'Poids Volume total'])
+    end
+
+    it 'suffixe les doublons' do
+      expect(noms(%w[Nom Nom Nom])).to eq(%w[Nom Nom_2 Nom_3])
+    end
+
+    it 'nomme les en-têtes vides par leur position' do
+      expect(noms(['Nom', nil, ''])).to eq(%w[Nom Colonne_2 Colonne_3])
+    end
+
+    # Les apostrophes et traits d'union portent du sens dans les libellés
+    # français, qui sont aussi des noms de colonnes Grist réels : les retirer
+    # empêcherait le rattachement par nom (« Numéro d'arrêté », « Date d'arrivée »).
+    it 'conserve accents, apostrophes, traits d’union et le signe degré' do
+      expect(noms(["Numéro d'arrêté", 'Numéro d’arrêté', 'N° TAHITI', 'Sous-total']))
+        .to eq(["Numéro d'arrêté", 'Numéro d’arrêté', 'N° TAHITI', 'Sous-total'])
+    end
+
+    it 's’applique aux colonnes lues, en conservant l’en-tête brut' do
+      reader = described_class.new(fixture('entetes_tordus'), ligne_entete: 1)
+      expect(reader.colonnes.map(&:nom)).to eq(['Nom', 'Nom_2', 'Colonne_3', 'Montant versé'])
+      expect(reader.colonnes.last.en_tete_brut).to eq('Montant  versé')
+      reader.close
+    end
+
+    it 'produit des clés de lignes cohérentes avec les noms sanitizés' do
+      reader = described_class.new(fixture('preambule'))
+      expect(reader.lignes.first.keys).to eq(['Substances actives', 'Concentrations', 'Poids Volume total'])
+      reader.close
+    end
+  end
+
   describe 'lignes de données' do
     it 'ignore les lignes antérieures à l’en-tête et les lignes vides' do
       reader = described_class.new(fixture('preambule'))
