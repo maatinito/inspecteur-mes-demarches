@@ -91,4 +91,24 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
       expect(records.first[:fields]['statut']).to eq('en_instruction')
     end
   end
+
+  # Cas d'une table dont la colonne Dossier est une référence : la recherche de
+  # la ligne existante doit filtrer sur la forme encodée, sinon elle ne matche
+  # jamais et chaque passage recrée une ligne.
+  context 'quand la colonne Dossier de la table est une référence' do
+    let(:columns) do
+      {
+        'Dossier' => { id: 'Dossier', label: 'Dossier', type: 'Ref:Dossiers', isFormula: false },
+        'importateur' => { id: 'importateur', label: 'Importateur', type: 'Text', isFormula: false }
+      }
+    end
+
+    it 'recherche la ligne existante avec la clé encodée' do
+      coordinator.sync_dossier(dossier_double)
+
+      # Deux appels attendus : recherche de la ligne existante par le
+      # coordinateur, puis relecture de l'id par RowUpserter après l'upsert.
+      expect(table).to have_received(:find_by).with('Dossier', ['l', 617_871]).at_least(:once)
+    end
+  end
 end

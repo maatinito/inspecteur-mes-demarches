@@ -3,6 +3,7 @@
 require_relative 'mes_demarches_to_grist/sync_coordinator'
 require_relative 'mes_demarches_to_grist/data_extractor'
 require_relative 'mes_demarches_to_grist/field_filter'
+require_relative 'mes_demarches_to_grist/grist_ref'
 require_relative 'mes_demarches_to_grist/row_upserter'
 
 # Synchronisation des dossiers Mes-Démarches vers Grist

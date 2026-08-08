@@ -75,6 +75,37 @@ RSpec.describe MesDemarchesToGrist::RowUpserter do
         upserter.upsert_row(42, data, existing_record: existing_record)
       end
     end
+
+    # Écrire la clé métier brute dans une colonne Ref ne produit rien côté Grist
+    # (cellule vide, sans erreur) : il faut la forme de recherche ["l", valeur].
+    context 'quand la colonne clé est une référence' do
+      let(:field_metadata) do
+        {
+          'Dossier' => { type: 'Ref:Dossiers', id: 'Dossier', isFormula: false },
+          'Nom' => { type: 'Text', id: 'Nom', isFormula: false }
+        }
+      end
+
+      it 'envoie la clé en encodage de recherche, dans require comme dans fields' do
+        expect(client).to receive(:upsert_records).with(
+          doc_id, table_id,
+          [{ require: { 'Dossier' => ['l', 42] }, fields: hash_including('Dossier' => ['l', 42]) }]
+        )
+        allow(client).to receive(:list_records).and_return({ 'records' => [{ 'id' => 7 }] })
+
+        upserter.upsert_row(42, { 'Nom' => 'Dupont' })
+      end
+
+      it 'retrouve la ligne en filtrant sur la clé encodée' do
+        allow(client).to receive(:upsert_records)
+        filter_json = { 'Dossier' => [['l', 42]] }.to_json
+        expect(client).to receive(:list_records).with(
+          doc_id, table_id, { filter: filter_json }
+        ).and_return({ 'records' => [{ 'id' => 7 }] })
+
+        expect(upserter.upsert_row(42, { 'Nom' => 'Dupont' })).to eq(7)
+      end
+    end
   end
 
   describe '#filter_changed_fields' do
