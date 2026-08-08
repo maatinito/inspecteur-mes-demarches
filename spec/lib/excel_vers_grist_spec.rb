@@ -277,6 +277,104 @@ RSpec.describe ExcelVersGrist do
     end
   end
 
+  describe 'traitement complet' do
+    let(:demarche) { double('demarche', id: 1536) }
+    let(:fichier) { fichier_double(checksum: 'nouvelle') }
+    let(:dossier) { dossier_double(champs: [champ_double(files: [fichier])]) }
+
+    let(:colonnes_lignes) do
+      {
+        'Dossier' => { id: 'Dossier', type: 'Ref:Dossiers' },
+        'Ligne' => { id: 'Ligne', type: 'Int' },
+        'Nom' => { id: 'Nom', type: 'Text' },
+        'Montant' => { id: 'Montant', type: 'Numeric' }
+      }
+    end
+    let(:table_lignes) { instance_double(Grist::Table, columns: colonnes_lignes) }
+    let(:table_principale) { instance_double(Grist::Table, columns: { 'excel_checksum' => { type: 'Text' } }) }
+
+    let(:params) do
+      params_valides.merge(
+        colonnes: { 'Nom' => 'Nom', 'Montant' => { 'cible' => 'Montant', 'type' => 'numeric' } },
+        options: { 'creer_colonnes_manquantes' => false }
+      )
+    end
+
+    before do
+      allow(Grist::Config).to receive(:table).with('doc', 'Substances', nil).and_return(table_lignes)
+      allow(Grist::Config).to receive(:table).with('doc', 'Dossiers', nil).and_return(table_principale)
+      allow(PieceJustificativeCache).to receive(:get).and_yield(
+        Rails.root.join('spec/fixtures/excel/simple.xlsx').to_s
+      )
+      allow(table_lignes).to receive(:upsert_records)
+      allow(table_lignes).to receive(:find_by).and_return([])
+      allow(table_principale).to receive(:update_records)
+      allow(table_principale).to receive(:find_by).and_return([{ 'id' => 4, 'fields' => { 'excel_checksum' => '-' } }])
+    end
+
+    it 'recopie les lignes du fichier puis écrit l’empreinte' do
+      described_class.new(params).process(demarche, dossier)
+
+      expect(table_lignes).to have_received(:upsert_records) do |records|
+        expect(records.size).to eq(2)
+        expect(records.first[:fields]['Nom']).to eq('Dupont')
+        expect(records.first[:fields]['Montant']).to eq(1200.5)
+        expect(records.first[:require]['Dossier']).to eq(['l', 617_871])
+      end
+      expect(table_principale).to have_received(:update_records) do |records|
+        expect(records.first[:fields]['excel_checksum']).to eq('nouvelle')
+      end
+    end
+
+    it 'ne fait rien quand l’empreinte est inchangée' do
+      allow(table_principale).to receive(:find_by)
+        .and_return([{ 'id' => 4, 'fields' => { 'excel_checksum' => 'nouvelle' } }])
+
+      expect(table_lignes).not_to receive(:upsert_records)
+      described_class.new(params).process(demarche, dossier)
+    end
+
+    # Le workflow n8n écrit l'empreinte sur une branche parallèle à l'upsert :
+    # un upsert en échec y marque quand même le fichier comme traité, et les
+    # lignes sont perdues en silence. Ici l'empreinte est en aval, toujours.
+    it 'n’écrit pas l’empreinte quand l’upsert échoue' do
+      allow(table_lignes).to receive(:upsert_records).and_raise(Grist::APIError.new('boum', 500))
+      allow(Sentry).to receive(:capture_exception)
+
+      expect(table_principale).not_to receive(:update_records)
+      described_class.new(params.merge(options: params[:options].merge('continuer_si_erreur' => true)))
+                     .process(demarche, dossier)
+    end
+
+    it 'supprime les lignes devenues orphelines' do
+      allow(table_lignes).to receive(:find_by).and_return([
+                                                            { 'id' => 30, 'fields' => { 'Ligne' => 1 } },
+                                                            { 'id' => 31, 'fields' => { 'Ligne' => 2 } },
+                                                            { 'id' => 32, 'fields' => { 'Ligne' => 3 } }
+                                                          ])
+      allow(table_lignes).to receive(:delete_records)
+
+      described_class.new(params).process(demarche, dossier)
+
+      expect(table_lignes).to have_received(:delete_records).with([32])
+    end
+
+    it 'écarte les lignes entièrement vides et le rapporte' do
+      allow(PieceJustificativeCache).to receive(:get).and_yield(
+        Rails.root.join('spec/fixtures/excel/colonne_vide.xlsx').to_s
+      )
+      plugin = described_class.new(params)
+      plugin.process(demarche, dossier)
+
+      # Le fichier a 2 lignes dont une sans Montant : elle reste, seule une ligne
+      # totalement vide serait écartée.
+      expect(table_lignes).to have_received(:upsert_records) do |records|
+        expect(records.size).to eq(2)
+        expect(records.last[:fields]['Montant']).to be_nil
+      end
+    end
+  end
+
   describe 'gestion des erreurs' do
     let(:demarche) { double('demarche', id: 1536) }
     let(:dossier) { dossier_double(champs: [champ_double(files: [fichier_double])]) }
