@@ -17,7 +17,25 @@ module Excel
   class SheetReader
     class FeuilleIntrouvable < StandardError; end
 
+    # Ponctuation retirée des en-têtes. Apostrophes (droite et typographique),
+    # traits d'union et signe degré sont volontairement conservés : ils portent
+    # du sens dans les libellés français, qui servent aussi de noms de colonnes
+    # cibles (« Numéro d'arrêté », « N° TAHITI », « Sous-total »).
+    PONCTUATION = %r{[(){}\[\]/\\,;:!?"*%#&@|<>=+~^$`.]}
+
     attr_reader :ligne_entete
+
+    # Nettoie les en-têtes et garantit des noms non vides et distincts : deux
+    # colonnes source qui porteraient le même nom écriraient dans la même cible.
+    def self.sanitize_noms(entetes)
+      vus = Hash.new(0)
+      entetes.each_with_index.map do |brut, index|
+        base = brut.to_s.gsub(/[\r\n]+/, ' ').gsub(PONCTUATION, ' ').squeeze(' ').strip
+        base = "Colonne_#{index + 1}" if base.empty?
+        vus[base] += 1
+        vus[base] > 1 ? "#{base}_#{vus[base]}" : base
+      end
+    end
 
     # Noms des feuilles d'un classeur, dans l'ordre du document.
     def self.noms_feuilles(chemin)
@@ -87,8 +105,9 @@ module Excel
     end
 
     def construire_colonnes
+      noms = self.class.sanitize_noms(entetes_bruts)
       entetes_bruts.each_with_index.map do |brut, index|
-        ColumnDescriptor.new(nom: brut.to_s.strip, en_tete_brut: brut, index: index, type_infere: 'Text')
+        ColumnDescriptor.new(nom: noms[index], en_tete_brut: brut, index: index, type_infere: 'Text')
       end
     end
 
