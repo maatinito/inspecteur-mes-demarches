@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe ExcelVersGrist do
   let(:params_valides) do
     {
@@ -106,6 +107,76 @@ RSpec.describe ExcelVersGrist do
     end
   end
 
+  describe 'garde par empreinte' do
+    subject(:plugin) { described_class.new(params_valides) }
+
+    it 'concatène les empreintes triées, pour être insensible à l’ordre des fichiers' do
+      a = fichier_double(filename: 'a.xlsx', checksum: 'zzz')
+      b = fichier_double(filename: 'b.xlsx', checksum: 'aaa')
+
+      expect(plugin.send(:empreinte_source, [a, b])).to eq('aaa,zzz')
+      expect(plugin.send(:empreinte_source, [b, a])).to eq('aaa,zzz')
+    end
+
+    it 'considère le dossier à jour quand l’empreinte stockée est identique' do
+      ligne = { 'fields' => { 'excel_checksum' => 'aaa,zzz' } }
+      expect(plugin.send(:a_jour?, 'aaa,zzz', ligne)).to be true
+    end
+
+    it 'retraite quand l’empreinte diffère' do
+      ligne = { 'fields' => { 'excel_checksum' => 'ancienne' } }
+      expect(plugin.send(:a_jour?, 'aaa', ligne)).to be false
+    end
+
+    it 'retraite quand la colonne porte la sentinelle' do
+      ligne = { 'fields' => { 'excel_checksum' => '-' } }
+      expect(plugin.send(:a_jour?, 'aaa', ligne)).to be false
+    end
+
+    it 'retraite quand la ligne principale n’existe pas encore' do
+      expect(plugin.send(:a_jour?, 'aaa', nil)).to be false
+    end
+
+    it 'retraite quand la colonne est vide' do
+      expect(plugin.send(:a_jour?, 'aaa', { 'fields' => { 'excel_checksum' => '' } })).to be false
+    end
+
+    it 'permet de renommer la colonne d’empreinte' do
+      autre = described_class.new(params_valides.merge(options: { 'colonne_empreinte' => 'Empreinte' }))
+      expect(autre.send(:colonne_empreinte)).to eq('Empreinte')
+      expect(autre.send(:a_jour?, 'aaa', { 'fields' => { 'Empreinte' => 'aaa' } })).to be true
+    end
+  end
+
+  describe 'création de la colonne d’empreinte' do
+    subject(:plugin) { described_class.new(params_valides) }
+
+    let(:table) { instance_double(Grist::Table) }
+
+    it 'crée la colonne avec la sentinelle comme valeur par défaut' do
+      allow(table).to receive(:columns).and_return({})
+      allow(table).to receive(:create_columns)
+
+      plugin.send(:ensure_colonne_empreinte, table)
+
+      expect(table).to have_received(:create_columns) do |data|
+        champ = data.first
+        expect(champ[:id]).to eq('excel_checksum')
+        # isFormula: false + formula non vide = valeur par défaut Grist. Toute
+        # ligne créée ensuite entre d'office dans l'état « à traiter ».
+        expect(champ[:fields][:isFormula]).to be false
+        expect(champ[:fields][:formula]).to eq('"-"')
+      end
+    end
+
+    it 'ne recrée pas une colonne existante' do
+      allow(table).to receive(:columns).and_return('excel_checksum' => { type: 'Text' })
+      expect(table).not_to receive(:create_columns)
+
+      plugin.send(:ensure_colonne_empreinte, table)
+    end
+  end
+
   describe 'gestion des erreurs' do
     let(:demarche) { double('demarche', id: 1536) }
     let(:dossier) { dossier_double(champs: [champ_double(files: [fichier_double])]) }
@@ -128,3 +199,4 @@ RSpec.describe ExcelVersGrist do
     end
   end
 end
+# rubocop:enable Metrics/BlockLength

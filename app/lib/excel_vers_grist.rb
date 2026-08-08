@@ -17,6 +17,13 @@ require_relative 'mes_demarches_to_grist/grist_ref'
 class ExcelVersGrist < FieldChecker
   EXTENSION = '.xlsx'
 
+  # Valeur par défaut de la colonne d'empreinte : marque une ligne « à traiter ».
+  # Procédé repris du document pesticides, où la colonne excel_checksum porte
+  # cette formule de défaut — toute ligne créée entre ainsi d'office dans l'état
+  # à traiter, sans code de rattrapage.
+  SENTINELLE_A_TRAITER = '-'
+  COLONNE_EMPREINTE_DEFAUT = 'excel_checksum'
+
   def version
     super + 1
   end
@@ -80,8 +87,45 @@ class ExcelVersGrist < FieldChecker
     raise erreur unless @params.dig(:options, 'continuer_si_erreur') == true
   end
 
-  # Complété par les tâches suivantes du plan : garde d'empreinte, mapping des
-  # colonnes, upsert des lignes.
+  def colonne_empreinte
+    @params.dig(:options, 'colonne_empreinte') || COLONNE_EMPREINTE_DEFAUT
+  end
+
+  # Empreinte du contenu, prise à la source : le checksum MD5 exposé par
+  # Mes-Démarches sur chaque fichier. Ni Grist ni Baserow n'exposent d'empreinte
+  # de contenu, le signal robuste vient donc de la source.
+  #
+  # Un PieceJustificative peut porter plusieurs fichiers : les empreintes sont
+  # triées avant concaténation, pour être insensibles à l'ordre de remontée
+  # GraphQL, et écrites en une seule valeur. Le workflow n8n écrivait une
+  # empreinte par fichier, la dernière écrasant les précédentes.
+  def empreinte_source(fichiers)
+    fichiers.map { |file| file.checksum.to_s }.sort.join(',')
+  end
+
+  def a_jour?(empreinte, ligne_principale)
+    return false if ligne_principale.nil?
+
+    stockee = ligne_principale.dig('fields', colonne_empreinte)
+    stockee.present? && stockee != SENTINELLE_A_TRAITER && stockee == empreinte
+  end
+
+  # Colonne technique, toujours créée si absente. `isFormula: false` avec une
+  # `formula` non vide définit une valeur par défaut Grist appliquée aux
+  # nouvelles lignes.
+  def ensure_colonne_empreinte(table)
+    return if table.columns.key?(colonne_empreinte)
+
+    table.create_columns([{
+                           id: colonne_empreinte,
+                           fields: { label: colonne_empreinte, type: 'Text',
+                                     isFormula: false, formula: %("#{SENTINELLE_A_TRAITER}") }
+                         }])
+    Rails.logger.info "ExcelVersGrist: colonne #{colonne_empreinte} créée (défaut #{SENTINELLE_A_TRAITER.inspect})"
+  end
+
+  # Complété par les tâches suivantes du plan : mapping des colonnes et upsert
+  # des lignes.
   def traiter(_demarche, _dossier, _fichiers)
     nil
   end

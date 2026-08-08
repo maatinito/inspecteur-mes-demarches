@@ -82,4 +82,20 @@ RSpec.describe Grist::Table do
       table.delete_records(ids)
     end
   end
+
+  describe '#create_columns' do
+    it 'delegates to the client' do
+      data = [{ id: 'Empreinte', fields: { label: 'Empreinte', type: 'Text' } }]
+      expect(client).to receive(:create_columns).with(doc_id, table_id, data)
+      table.create_columns(data)
+    end
+  end
+
+  describe '#update_column' do
+    it 'delegates to the client' do
+      fields = { label: 'Nouveau libellé' }
+      expect(client).to receive(:update_column).with(doc_id, table_id, 'Empreinte', fields)
+      table.update_column('Empreinte', fields)
+    end
+  end
 end

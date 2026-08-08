@@ -19,6 +19,14 @@ module Grist
       @columns ||= load_columns
     end
 
+    def create_columns(data)
+      client.create_columns(doc_id, table_id, data)
+    end
+
+    def update_column(col_id, fields)
+      client.update_column(doc_id, table_id, col_id, fields)
+    end
+
     # Recherche par valeur de colonne
     # Utilise le filtre JSON Grist : ?filter={"col":["value"]}
     def find_by(col, value)
