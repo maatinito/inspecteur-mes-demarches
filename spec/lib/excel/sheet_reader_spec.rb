@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe Excel::SheetReader do
   def fixture(nom)
     Rails.root.join("spec/fixtures/excel/#{nom}.xlsx").to_s
@@ -106,6 +107,49 @@ RSpec.describe Excel::SheetReader do
     end
   end
 
+  describe 'inférence de type' do
+    def type(valeurs)
+      described_class.inferer_type(valeurs)
+    end
+
+    it { expect(type([1.5, 2.0])).to eq('Numeric') }
+    it { expect(type([1, 2])).to eq('Int') }
+    it { expect(type([Date.new(2026, 1, 1)])).to eq('Date') }
+    it { expect(type([DateTime.new(2026, 1, 1, 8, 0)])).to eq('DateTime:UTC') }
+    it { expect(type([true, false])).to eq('Bool') }
+
+    it 'retombe sur Text pour une colonne mixte, pour ne jamais perdre de donnée' do
+      expect(type(['a', 1])).to eq('Text')
+      expect(type([1, 2.5])).to eq('Text')
+    end
+
+    it 'retombe sur Text pour une colonne vide' do
+      expect(type([])).to eq('Text')
+      expect(type([nil, nil])).to eq('Text')
+    end
+
+    it 'ignore les nil pour juger de l’homogénéité' do
+      expect(type([nil, 3, nil])).to eq('Int')
+    end
+
+    it 's’applique aux colonnes lues' do
+      reader = described_class.new(fixture('simple'))
+      expect(reader.colonnes.map { |c| [c.nom, c.type_infere] })
+        .to eq([%w[Nom Text], %w[Montant Numeric]])
+      reader.close
+    end
+
+    it 'classe en Text une colonne numérique contenant une valeur saisie en texte' do
+      # « 1 010,50 » est lu comme String par roo : la colonne devient mixte donc
+      # Text. C'est la coercition (via le type forcé du mapping) qui récupère la
+      # valeur, jamais l'inférence.
+      reader = described_class.new(fixture('preambule'))
+      expect(reader.colonnes.map { |c| [c.nom, c.type_infere] })
+        .to eq([['Substances actives', 'Text'], %w[Concentrations Numeric], ['Poids Volume total', 'Text']])
+      reader.close
+    end
+  end
+
   describe 'lignes de données' do
     it 'ignore les lignes antérieures à l’en-tête et les lignes vides' do
       reader = described_class.new(fixture('preambule'))
@@ -123,3 +167,4 @@ RSpec.describe Excel::SheetReader do
     end
   end
 end
+# rubocop:enable Metrics/BlockLength
