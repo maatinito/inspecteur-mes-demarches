@@ -27,19 +27,22 @@ class SetField < FieldChecker
 
   def process(demarche, dossier)
     super
+    return unless must_check?(dossier)
+
     field = @params[:champ]
     value = @params[:valeur]
     value = instanciate(value) if value.is_a?(String)
-    target_annotation = annotation(field)
+    target_annotation = annotation(field, warn_if_empty: false)
+    if target_annotation.nil?
+      Rails.logger.error("Sur le dossier #{dossier.number}, l'annotation '#{field}' n'existe pas : set_field ignoré.")
+      return
+    end
+
     value = cast_to_annotation_type(target_annotation, value) if value.is_a?(String)
     value = decalage(target_annotation, value) if @shift
 
     # Vérifier si on doit modifier uniquement si le champ est vide
-    if si_vide?
-      current_annotation = annotation(field, warn_if_empty: false)
-      current_value = current_annotation ? champ_value(current_annotation) : nil
-      return if current_value.present?
-    end
+    return if si_vide? && champ_value(target_annotation).present?
 
     return unless SetAnnotationValue.set_value(@dossier, @demarche.instructeur, field, value)
 
