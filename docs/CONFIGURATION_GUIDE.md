@@ -755,7 +755,35 @@ Mais les variables fonctionnent dans les **valeurs** :
 
 Il faut tester des valeurs exactes uniquement.
 
-### 7. Charger les fichiers YAML en Ruby
+### 7. Attributs date-heure comparés à une date
+
+Les attributs de l'API dont le nom contient `date` sont typés `ISO8601DateTime`
+(`date_depot`, `date_passage_en_instruction`, `demarche.revision.date_publication`…).
+Ils s'affichent **avec l'heure**, au format `JJ/MM/AAAA à HHhMM`. Or
+`conditional_field` compare la chaîne rendue à ses clés, à l'identique.
+
+❌ **Incorrect** : la clé n'est jamais atteinte
+```yaml
+- conditional_field:
+    champ: demarche.revision.date_publication
+    valeurs:
+      "11/09/2024":   # la valeur rendue vaut "11/09/2024 à 09h59"
+```
+
+✅ **Correct** : `.to_date` tronque à la date
+```yaml
+- conditional_field:
+    champ: demarche.revision.date_publication.to_date
+    valeurs:
+      "11/09/2024":   # ✅ OK
+```
+
+`.to_date` est la méthode Ruby standard ; le chemin d'un `champ:` peut se
+terminer par n'importe quelle méthode à laquelle la valeur répond. En
+publipostage ou en export Excel, l'heure est en général une information utile :
+n'ajoutez `.to_date` que là où vous comparez.
+
+### 8. Charger les fichiers YAML en Ruby
 
 ❌ **Incorrect** :
 ```ruby
@@ -767,7 +795,7 @@ content = YAML.load_file(file_path)  # Erreur si anchors/aliases
 content = YAML.load_file(file_path, aliases: true)
 ```
 
-### 8. Extension de fichier incorrecte
+### 9. Extension de fichier incorrecte
 
 ❌ **Incorrect** : Le fichier ne sera pas chargé
 ```
