@@ -86,7 +86,7 @@ class FieldChecker < InspectorTask
     objects = [*dossier]
     path.split('.').each do |name|
       objects = objects.flat_map { |object| object.champs.select { |champ| champ.label == name } }
-      Rails.logger.warn("Sur le dossier #{dossier.number}, le champ #{name} est vide.") if warn_if_empty && objects.blank?
+      Rails.logger.warn("Sur le dossier #{dossier.number}, le champ #{name} est introuvable.") if warn_if_empty && objects.blank?
     end
     objects
   end
@@ -99,7 +99,7 @@ class FieldChecker < InspectorTask
     method = :annotations
     names.each do |name|
       objects = objects.flat_map { |object| object.send(method).select { |champ| champ.label == name } }
-      Rails.logger.warn("Sur le dossier #{dossier.number}, l'annotation #{name} est vide.") if warn_if_empty && objects.blank?
+      Rails.logger.warn("Sur le dossier #{dossier.number}, l'annotation #{name} est introuvable.") if warn_if_empty && objects.blank?
       method = :champs
     end
     objects
@@ -136,7 +136,7 @@ class FieldChecker < InspectorTask
         r += select_referentiel_column(object, name) if referentiel_de_polynesie?(object)
         r
       end
-      Rails.logger.warn("Sur le dossier #{@dossier.number}, le champ #{field} est vide.") if log_empty && objects.blank?
+      Rails.logger.warn("Sur le dossier #{@dossier.number}, le champ #{field} est introuvable.") if log_empty && objects.blank?
     end
     objects
   end
