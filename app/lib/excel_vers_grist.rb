@@ -65,6 +65,7 @@ class ExcelVersGrist < FieldChecker
   def process(demarche, dossier)
     super
     @erreurs_metier = []
+    @col_empreinte = nil
     return unless must_check?(dossier)
 
     champ = champ_source(dossier)
@@ -108,7 +109,25 @@ class ExcelVersGrist < FieldChecker
   end
 
   def colonne_empreinte
-    @params.dig(:options, 'colonne_empreinte') || COLONNE_EMPREINTE_DEFAUT
+    @col_empreinte || @params.dig(:options, 'colonne_empreinte') || COLONNE_EMPREINTE_DEFAUT
+  end
+
+  # Résout un nom de colonne en identifiant Grist.
+  #
+  # L'API Grist travaille sur les *ids* de colonne alors que l'interface montre
+  # les *libellés* : une configuration écrite de bonne foi avec le libellé
+  # (« Message d'erreur » au lieu de Message_d_erreur) échouait par KeyError côté
+  # sandbox Grist. Les deux formes sont donc acceptées, l'id primant. Un nom
+  # inconnu est rendu tel quel : c'est alors l'id d'une colonne à créer.
+  def resoudre_colonne(colonnes, nom)
+    return nom if colonnes.key?(nom)
+
+    par_label = colonnes.each_with_object({}) { |(id, meta), acc| acc[meta[:label]] ||= id }
+    par_label[nom] || nom
+  end
+
+  def resoudre_cibles(colonnes, correspondance)
+    correspondance.transform_values { |m| m.merge(cible: resoudre_colonne(colonnes, m[:cible])) }
   end
 
   # Empreinte du contenu, prise à la source : le checksum MD5 exposé par
@@ -134,6 +153,9 @@ class ExcelVersGrist < FieldChecker
   # `formula` non vide définit une valeur par défaut Grist appliquée aux
   # nouvelles lignes.
   def ensure_colonne_empreinte(table)
+    # Mémorise l'identifiant résolu : toutes les écritures suivantes doivent
+    # porter sur lui, pas sur le nom donné dans la configuration.
+    @col_empreinte = resoudre_colonne(table.columns, colonne_empreinte)
     return if table.columns.key?(colonne_empreinte)
 
     table.create_columns([{
@@ -237,12 +259,12 @@ class ExcelVersGrist < FieldChecker
       return
     end
 
-    # L'empreinte n'est écrite qu'ici, en aval d'un upsert intégralement réussi :
-    # tout échec laisse le dossier à retraiter au passage suivant. Le workflow
-    # n8n l'écrivait sur une branche parallèle, et un upsert en échec y perdait
-    # les lignes en silence.
-    ecrire_empreinte(principale, ligne, empreinte)
+    # L'empreinte est écrite en DERNIER, en aval d'un upsert intégralement réussi
+    # et du rapport d'erreurs : tout échec en amont laisse le dossier à retraiter
+    # au passage suivant. Le workflow n8n l'écrivait sur une branche parallèle, et
+    # un upsert en échec y perdait les lignes en silence.
     ecrire_erreurs(principale, ligne)
+    ecrire_empreinte(principale, ligne, empreinte)
     Rails.logger.info "ExcelVersGrist: dossier #{dossier.number} — #{nb_lignes} ligne(s) recopiée(s)"
   end
 
@@ -258,8 +280,8 @@ class ExcelVersGrist < FieldChecker
   # foi et la table est vidée pour ce dossier.
   def recopier_lignes(dossier, fichiers)
     lignes, colonnes = extraire(fichiers)
-    correspondance = mapping(colonnes)
     cible = table_lignes
+    correspondance = resoudre_cibles(cible.columns, mapping(colonnes))
     ensure_colonnes(cible, correspondance)
 
     lignes_cibles = projeter(lignes, correspondance)
@@ -323,8 +345,9 @@ class ExcelVersGrist < FieldChecker
   def ecrire_erreurs(table, ligne)
     return if colonne_erreurs.blank? || ligne.nil?
 
-    table.create_columns([{ id: colonne_erreurs, fields: { label: colonne_erreurs, type: 'Text' } }]) unless table.columns.key?(colonne_erreurs)
+    col = resoudre_colonne(table.columns, colonne_erreurs)
+    table.create_columns([{ id: col, fields: { label: col, type: 'Text' } }]) unless table.columns.key?(col)
 
-    table.update_records([{ id: ligne['id'], fields: { colonne_erreurs => erreurs_metier.join(' ; ') } }])
+    table.update_records([{ id: ligne['id'], fields: { col => erreurs_metier.join(' ; ') } }])
   end
 end

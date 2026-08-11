@@ -412,6 +412,78 @@ RSpec.describe ExcelVersGrist do
       end
     end
 
+    # L'API Grist travaille sur les ids de colonne, l'interface montre les
+    # libellés : une configuration écrite de bonne foi avec le libellé échouait
+    # par KeyError côté sandbox Grist. Les deux formes sont désormais acceptées.
+    context 'quand la configuration désigne les colonnes par leur libellé' do
+      let(:table_principale) do
+        instance_double(Grist::Table,
+                        columns: {
+                          'excel_checksum' => { id: 'excel_checksum', label: 'Excel checksum', type: 'Text' },
+                          'Message_d_erreur' => { id: 'Message_d_erreur', label: "Message d'erreur", type: 'Text' }
+                        })
+      end
+      let(:params_par_libelle) do
+        params.merge(options: params[:options].merge(
+          'colonne_empreinte' => 'Excel checksum',
+          'colonne_erreurs' => "Message d'erreur"
+        ))
+      end
+
+      it 'écrit sur les identifiants correspondants' do
+        described_class.new(params_par_libelle).process(demarche, dossier)
+
+        ecrits = []
+        expect(table_principale).to have_received(:update_records).at_least(:once) do |records|
+          ecrits.concat(records.first[:fields].keys)
+        end
+        expect(ecrits).to include('excel_checksum', 'Message_d_erreur')
+      end
+
+      it 'ne recrée pas une colonne déjà présente sous un autre identifiant' do
+        expect(table_principale).not_to receive(:create_columns)
+        described_class.new(params_par_libelle).process(demarche, dossier)
+      end
+    end
+
+    # Si le rapport d'erreurs échoue après l'empreinte, le dossier est marqué
+    # traité alors que le rapport est perdu. L'empreinte doit venir en dernier.
+    context 'ordre des écritures sur la ligne principale' do
+      let(:table_principale) do
+        instance_double(Grist::Table,
+                        columns: {
+                          'excel_checksum' => { id: 'excel_checksum', label: 'Excel checksum', type: 'Text' },
+                          'Message_d_erreur' => { id: 'Message_d_erreur', label: "Message d'erreur", type: 'Text' }
+                        })
+      end
+      let(:params_avec_erreurs) do
+        params.merge(options: params[:options].merge('colonne_erreurs' => 'Message_d_erreur'))
+      end
+
+      it 'écrit les erreurs avant l’empreinte' do
+        appels = []
+        allow(table_principale).to receive(:update_records) { |records| appels << records.first[:fields].keys.first }
+
+        described_class.new(params_avec_erreurs).process(demarche, dossier)
+
+        expect(appels).to eq(%w[Message_d_erreur excel_checksum])
+      end
+
+      it 'n’écrit pas l’empreinte si le rapport d’erreurs échoue' do
+        allow(table_principale).to receive(:update_records) do |records|
+          raise Grist::APIError.new('KeyError', 400) if records.first[:fields].key?('Message_d_erreur')
+        end
+        allow(Sentry).to receive(:capture_exception)
+
+        described_class.new(params_avec_erreurs.merge(
+                              options: params_avec_erreurs[:options].merge('continuer_si_erreur' => true)
+                            )).process(demarche, dossier)
+
+        expect(table_principale).not_to have_received(:update_records)
+          .with(array_including(hash_including(fields: hash_including('excel_checksum' => anything))))
+      end
+    end
+
     it 'écarte les lignes entièrement vides et le rapporte' do
       allow(PieceJustificativeCache).to receive(:get).and_yield(
         Rails.root.join('spec/fixtures/excel/colonne_vide.xlsx').to_s
