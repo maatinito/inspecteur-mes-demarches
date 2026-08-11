@@ -190,6 +190,35 @@ RSpec.describe Excel::SheetReader do
       reader.close
     end
 
+    # each_row_streaming ne renvoie que les cellules *présentes* : sur un
+    # formulaire dont la colonne A est vide, row[0] est la cellule de la colonne
+    # B, alors que l'en-tête lu par sheet.row est indexé depuis A. Les valeurs
+    # étaient donc décalées d'une position — constaté sur les fichiers réels de
+    # la démarche 1536, où « Substances actives » recevait la concentration.
+    it 'aligne les valeurs sur les en-têtes quand la colonne A est vide' do
+      reader = described_class.new(fixture('colonne_a_vide'), feuille: 'Formulaire de saisie', ligne_entete: 2)
+
+      expect(reader.colonnes.map(&:nom))
+        .to eq(['Colonne_1', 'Substances actives', 'Concentrations', 'Noms commerciaux', 'Unité de mesure'])
+      expect(reader.lignes.first).to eq(
+        'Colonne_1' => nil,
+        'Substances actives' => 'Icaridine',
+        'Concentrations' => 0.2,
+        'Noms commerciaux' => 'INSECT ECRAN',
+        'Unité de mesure' => 'Litre'
+      )
+      reader.close
+    end
+
+    it 'infère les types sur les bonnes colonnes malgré une colonne A vide' do
+      reader = described_class.new(fixture('colonne_a_vide'), feuille: 'Formulaire de saisie', ligne_entete: 2)
+
+      types = reader.colonnes.to_h { |c| [c.nom, c.type_infere] }
+      expect(types['Substances actives']).to eq('Text')
+      expect(types['Concentrations']).to eq('Numeric')
+      reader.close
+    end
+
     it 'conserve une ligne dont une colonne autre que la première est vide' do
       # GetSheets testait row[1] (la 2e cellule) pour décider si la ligne porte
       # des données : une 2e colonne vide écartait la ligne à tort.

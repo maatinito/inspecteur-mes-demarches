@@ -152,8 +152,14 @@ module Excel
       ligne
     end
 
+    # En-têtes indexés par position de colonne (index 0 = colonne A).
+    #
+    # Lus par coordonnée et non via sheet.row : selon le classeur, roo complète
+    # ou non les colonnes de tête vides, ce qui décalerait les en-têtes par
+    # rapport aux données. Passer par les coordonnées des deux côtés garantit
+    # l'alignement.
     def entetes_bruts
-      @entetes_bruts ||= @ligne_entete.positive? ? @sheet.row(@ligne_entete) : []
+      @entetes_bruts ||= balayer[:entetes]
     end
 
     # Valeurs des lignes de données, indexées par position de colonne.
@@ -162,15 +168,38 @@ module Excel
     # des lignes : ligne_de_donnees? ne dépendant pas de `colonnes`, il n'y a pas
     # de récursion entre les deux.
     def lignes_brutes
-      @lignes_brutes ||= begin
-        largeur = entetes_bruts.size
-        resultat = []
-        @sheet.each_row_streaming do |row|
-          next unless ligne_de_donnees?(row)
+      @lignes_brutes ||= balayer[:lignes]
+    end
 
-          resultat << Array.new(largeur) { |index| row[index]&.value }
+    # Un seul balayage de la feuille, qui sert à l'en-tête, à l'inférence de type
+    # et aux lignes.
+    #
+    # Tout est indexé par la coordonnée de colonne (1-based) : each_row_streaming
+    # ne renvoie que les cellules *présentes*, donc row[0] est la première
+    # cellule remplie et non la colonne A. Indexer par position d'tableau
+    # décalerait les valeurs d'un cran dès qu'une colonne de tête est vide —
+    # constaté sur les fichiers de la démarche 1536, où « Substances actives »
+    # recevait la concentration.
+    def balayer
+      @balayer ||= begin
+        entete_par_colonne = {}
+        lignes_par_colonne = []
+
+        @sheet.each_row_streaming do |row|
+          next if row.blank?
+
+          numero = row.first.coordinate[0]
+          par_colonne = row.to_h { |cell| [cell.coordinate[1], cell.value] }
+
+          entete_par_colonne = par_colonne if numero == @ligne_entete
+          lignes_par_colonne << par_colonne if ligne_de_donnees?(row)
         end
-        resultat
+
+        largeur = entete_par_colonne.keys.max || 0
+        {
+          entetes: Array.new(largeur) { |index| entete_par_colonne[index + 1] },
+          lignes: lignes_par_colonne.map { |par_colonne| Array.new(largeur) { |i| par_colonne[i + 1] } }
+        }
       end
     end
 
