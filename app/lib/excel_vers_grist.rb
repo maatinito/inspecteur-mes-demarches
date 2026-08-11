@@ -25,6 +25,10 @@ class ExcelVersGrist < FieldChecker
   SENTINELLE_A_TRAITER = '-'
   COLONNE_EMPREINTE_DEFAUT = 'excel_checksum'
 
+  # Retour de recopier_lignes signalant qu'aucune ligne n'était exploitable, à
+  # distinguer d'un zéro légitime : voir recopier_lignes.
+  AUCUNE_LIGNE_EXPLOITABLE = -1
+
   # Types acceptés dans le mapping YAML, traduits en types de colonnes Grist.
   TYPES_YAML = {
     'text' => 'Text', 'numeric' => 'Numeric', 'int' => 'Int',
@@ -226,6 +230,13 @@ class ExcelVersGrist < FieldChecker
 
     nb_lignes = recopier_lignes(dossier, fichiers)
 
+    if nb_lignes == AUCUNE_LIGNE_EXPLOITABLE
+      erreurs_metier << 'Aucune ligne exploitable dans le fichier : ni recopie ni suppression'
+      ecrire_erreurs(principale, ligne)
+      Rails.logger.warn "ExcelVersGrist: dossier #{dossier.number} laissé à retraiter (aucune ligne exploitable)"
+      return
+    end
+
     # L'empreinte n'est écrite qu'ici, en aval d'un upsert intégralement réussi :
     # tout échec laisse le dossier à retraiter au passage suivant. Le workflow
     # n8n l'écrivait sur une branche parallèle, et un upsert en échec y perdait
@@ -235,6 +246,16 @@ class ExcelVersGrist < FieldChecker
     Rails.logger.info "ExcelVersGrist: dossier #{dossier.number} — #{nb_lignes} ligne(s) recopiée(s)"
   end
 
+  # Renvoie le nombre de lignes recopiées, ou AUCUNE_LIGNE_EXPLOITABLE.
+  #
+  # Zéro ligne est ambigu : soit le fichier a légitimement été vidé, soit la
+  # configuration est fausse (mauvaise feuille, mauvaise ligne d'en-tête, mapping
+  # qui ne correspond à rien). Par défaut on suppose le second cas et on ne
+  # touche à rien — sinon une erreur de configuration effacerait les lignes du
+  # dossier *et* l'empreinte le marquerait comme traité, donc jamais repris.
+  #
+  # `autoriser_fichier_vide: true` bascule vers l'autre lecture : zéro ligne fait
+  # foi et la table est vidée pour ce dossier.
   def recopier_lignes(dossier, fichiers)
     lignes, colonnes = extraire(fichiers)
     correspondance = mapping(colonnes)
@@ -242,10 +263,16 @@ class ExcelVersGrist < FieldChecker
     ensure_colonnes(cible, correspondance)
 
     lignes_cibles = projeter(lignes, correspondance)
+    return AUCUNE_LIGNE_EXPLOITABLE if lignes_cibles.empty? && !fichier_vide_autorise?
+
     upserter = MesDemarchesToGrist::LigneUpserter.new(cible, field_metadata: cible.columns)
     upserter.upsert_lignes(dossier.number, lignes_cibles)
     upserter.supprimer_orphelins(dossier.number, lignes_cibles.size)
     lignes_cibles.size
+  end
+
+  def fichier_vide_autorise?
+    @params.dig(:options, 'autoriser_fichier_vide') == true
   end
 
   # Seul le dernier fichier .xlsx est exploité, comme dans GetSheets : un champ

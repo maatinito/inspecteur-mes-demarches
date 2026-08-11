@@ -137,8 +137,15 @@ RSpec.describe ExcelVersGrist do
       expect(plugin.send(:a_jour?, 'aaa', nil)).to be false
     end
 
-    it 'retraite quand la colonne est vide' do
+    # Le robot n'interroge jamais Grist pour trouver du travail : il est piloté par
+    # Mes-Démarches et lit la ligne du dossier courant. La sentinelle « - » n'est
+    # donc pas nécessaire de son point de vue — vide, absent et sentinelle sont
+    # traités à l'identique. Elle n'existe que pour le filtre de n8n.
+    it 'retraite quand la colonne est vide, absente ou nulle' do
       expect(plugin.send(:a_jour?, 'aaa', { 'fields' => { 'excel_checksum' => '' } })).to be false
+      expect(plugin.send(:a_jour?, 'aaa', { 'fields' => { 'excel_checksum' => nil } })).to be false
+      expect(plugin.send(:a_jour?, 'aaa', { 'fields' => {} })).to be false
+      expect(plugin.send(:a_jour?, 'aaa', {})).to be false
     end
 
     it 'permet de renommer la colonne d’empreinte' do
@@ -357,6 +364,52 @@ RSpec.describe ExcelVersGrist do
       described_class.new(params).process(demarche, dossier)
 
       expect(table_lignes).to have_received(:delete_records).with([32])
+    end
+
+    # Zéro ligne exploitable est ambigu : soit le fichier a légitimement été vidé,
+    # soit la configuration est fausse (mauvaise feuille, mauvaise ligne d'en-tête).
+    # Par défaut on suppose le second cas — sinon une erreur de config effacerait
+    # les substances du dossier ET le marquerait comme traité, donc jamais repris.
+    context 'quand aucune ligne n’est exploitable' do
+      before do
+        allow(PieceJustificativeCache).to receive(:get).and_yield(
+          Rails.root.join('spec/fixtures/excel/preambule.xlsx').to_s
+        )
+        allow(table_lignes).to receive(:delete_records)
+      end
+
+      # Mapping volontairement faux : aucune colonne source ne correspond.
+      let(:params_sans_correspondance) do
+        params.merge(colonnes: { 'Colonne inexistante' => 'Nom' })
+      end
+
+      it 'ne supprime rien et n’écrit pas l’empreinte' do
+        expect(table_lignes).not_to receive(:delete_records)
+        expect(table_principale).not_to receive(:update_records).with(
+          array_including(hash_including(fields: hash_including('excel_checksum' => anything)))
+        )
+
+        described_class.new(params_sans_correspondance).process(demarche, dossier)
+      end
+
+      it 'rapporte la raison dans les erreurs métier' do
+        plugin = described_class.new(params_sans_correspondance)
+        plugin.process(demarche, dossier)
+
+        expect(plugin.erreurs_metier.join).to match(/aucune ligne exploitable/i)
+      end
+
+      it 'vide bien la table quand autoriser_fichier_vide est explicitement demandé' do
+        plugin = described_class.new(
+          params_sans_correspondance.merge(options: params[:options].merge('autoriser_fichier_vide' => true))
+        )
+        allow(table_lignes).to receive(:find_by).and_return([{ 'id' => 30, 'fields' => { 'Ligne' => 1 } }])
+
+        plugin.process(demarche, dossier)
+
+        expect(table_lignes).to have_received(:delete_records).with([30])
+        expect(table_principale).to have_received(:update_records)
+      end
     end
 
     it 'écarte les lignes entièrement vides et le rapporte' do
