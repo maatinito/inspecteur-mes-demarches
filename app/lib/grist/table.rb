@@ -19,8 +19,11 @@ module Grist
       @columns ||= load_columns
     end
 
-    def create_columns(data)
-      client.create_columns(doc_id, table_id, data)
+    # Prend la *liste* des colonnes à créer et l'emballe : Client#create_columns
+    # attend l'enveloppe { columns: [...] } et Grist refuse la charge sans elle
+    # (« Invalid payload »).
+    def create_columns(columns)
+      client.create_columns(doc_id, table_id, { columns: columns })
     end
 
     def update_column(col_id, fields)

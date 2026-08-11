@@ -84,10 +84,12 @@ RSpec.describe Grist::Table do
   end
 
   describe '#create_columns' do
-    it 'delegates to the client' do
-      data = [{ id: 'Empreinte', fields: { label: 'Empreinte', type: 'Text' } }]
-      expect(client).to receive(:create_columns).with(doc_id, table_id, data)
-      table.create_columns(data)
+    # Grist refuse la charge sans l'enveloppe { columns: [...] } (« Invalid
+    # payload ») : le passe-plat prend la liste et emballe.
+    it 'wraps the column list in the payload envelope' do
+      colonnes = [{ id: 'Empreinte', fields: { label: 'Empreinte', type: 'Text' } }]
+      expect(client).to receive(:create_columns).with(doc_id, table_id, { columns: colonnes })
+      table.create_columns(colonnes)
     end
   end
 
