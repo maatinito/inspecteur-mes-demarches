@@ -14,6 +14,14 @@ require_relative 'mes_demarches_to_grist/ligne_upserter'
 # stockée dans Grist : le traitement ne dépend donc pas de la recopie préalable
 # de la pièce jointe.
 #
+# CONTRAT : ce plugin est un copieur, pas un correcteur. Il tourne en continu et
+# ne peut pas s'affranchir des erreurs humaines d'un classeur Excel — casse,
+# variantes d'unités, libellés approximatifs. Il recopie donc fidèlement, et la
+# normalisation appartient à la cible : colonnes Text côté Grist, plus une colonne
+# formule qui normalise. Le service corrige alors en autonomie, sans déploiement
+# ni support technique. Corollaire : une colonne Grist en liste de choix est un
+# mauvais réceptacle pour une valeur venue d'un fichier libre.
+#
 # Configuration YAML : cf. docs/superpowers/specs/2026-06-19-excel-vers-grist-design.md §5
 class ExcelVersGrist < FieldChecker
   EXTENSION = '.xlsx'
