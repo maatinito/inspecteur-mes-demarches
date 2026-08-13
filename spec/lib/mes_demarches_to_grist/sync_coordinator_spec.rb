@@ -39,6 +39,10 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
 
   before do
     allow(Grist::Config).to receive(:table).and_return(table)
+    # SyncCoordinator#process_file_uploads construit un FileUploader via
+    # Grist::Config.client, qui lit ENV['GRIST_API_KEY'] : sans ce bouchon le
+    # test exige un vrai identifiant, donc passe en local et casse en CI.
+    allow(Grist::Config).to receive(:client).and_return(client)
     allow(table).to receive(:upsert_records)
     allow(table).to receive(:find_by).and_return([])
     allow(client).to receive(:list_tables).and_return({ 'tables' => [] })
