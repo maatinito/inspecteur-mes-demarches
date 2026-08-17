@@ -65,6 +65,13 @@ bundle exec scss-lint app/assets/stylesheets/
 # Describe all fields (champs + annotations) of a démarche via GraphQL
 bin/describe_demarche <numero_demarche>
 # Example: bin/describe_demarche 3194
+
+# Generate the merge-field annex of a démarche: a .docx listing every champ and
+# annotation with its exact label (for `champ:` in the YAML) and a real, copyable
+# Word MERGEFIELD (for the publipostage template). Reads the draft revision by
+# default; --publiee reads the published one.
+bin/generer_annexe <numero_demarche> [output.docx] [--publiee]
+# Example: bin/generer_annexe 3698 storage/models/upf/stage/annexe-champs.docx
 ```
 
 ### Jobs
