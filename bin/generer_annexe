@@ -1,0 +1,349 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Génère l'annexe technique des champs de fusion d'une démarche : un .docx de
+# travail listant, pour chaque champ et chaque annotation, le libellé exact à
+# reporter sous `champs:` dans le YAML du robot et le MERGEFIELD correspondant,
+# sous forme de VRAI champ Word copiable-collable vers le modèle.
+#
+#   bin/generer_annexe 3698
+#   bin/generer_annexe 3698 storage/models/upf/stage/annexe-champs.docx
+#   bin/generer_annexe 3698 --publiee
+#
+# L'annexe est un document de travail : elle ne doit jamais être recollée dans
+# le modèle de production, sinon elle est imprimée dans le document envoyé à
+# l'usager.
+
+# Trois briques pour un script autonome : le fabricant de XML Word, le
+# descripteur d'un champ, le constructeur du document.
+# rubocop:disable Style/OneClassPerFile
+require_relative '../config/environment'
+require 'zip'
+
+# Fabrique de fragments WordprocessingML.
+module Docx
+  SIDES = %w[top left bottom right insideH insideV].freeze
+  BORDER = "<w:tblBorders>#{SIDES.map { |s| %(<w:#{s} w:val="single" w:sz="4" w:color="B0B0B0"/>) }.join}</w:tblBorders>".freeze
+
+  module_function
+
+  def esc(text)
+    text.to_s.encode(xml: :text)
+  end
+
+  def para(text = '', style: nil, bold: false, size: nil, after: 120)
+    props = []
+    props << %(<w:pStyle w:val="#{style}"/>) if style
+    props << %(<w:spacing w:after="#{after}"/>)
+    runs = []
+    runs << %(<w:b/>) if bold
+    runs << %(<w:sz w:val="#{size}"/><w:szCs w:val="#{size}"/>) if size
+    run_props = runs.empty? ? '' : "<w:rPr>#{runs.join}</w:rPr>"
+    body = text.to_s.empty? ? '' : %(<w:r>#{run_props}<w:t xml:space="preserve">#{esc(text)}</w:t></w:r>)
+    %(<w:p><w:pPr>#{props.join}</w:pPr>#{body}</w:p>)
+  end
+
+  # Un vrai MERGEFIELD Word : c'est la seule forme que Sablon reconnaît, et la
+  # seule qui survive à un copier-coller de cellule vers le modèle.
+  def merge_field(expression)
+    instr = " MERGEFIELD #{expression} \\* MERGEFORMAT "
+    ouverture = %(<w:fldSimple w:instr="#{esc(instr)}">)
+    texte = %(<w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space="preserve">«#{esc(expression)}»</w:t></w:r>)
+    %(<w:p><w:pPr><w:spacing w:after="60"/></w:pPr>#{ouverture}#{texte}</w:fldSimple></w:p>)
+  end
+
+  def cell(content, width:, shaded: false)
+    shading = shaded ? '<w:shd w:val="clear" w:fill="EEEEEE"/>' : ''
+    %(<w:tc><w:tcPr><w:tcW w:w="#{width}" w:type="dxa"/>#{shading}</w:tcPr>#{content}</w:tc>)
+  end
+
+  def table(widths, rows)
+    grid = widths.map { |w| %(<w:gridCol w:w="#{w}"/>) }.join
+    body = rows.map { |cells| "<w:tr>#{cells}</w:tr>" }.join
+    %(<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>#{BORDER}</w:tblPr>) +
+      "<w:tblGrid>#{grid}</w:tblGrid>#{body}</w:tbl>" + para
+  end
+end
+
+# Décrit un champ ou une annotation : sa clé de contexte, son type lisible,
+# et s'il peut arriver vide dans le document.
+class Descripteur
+  TYPES = {
+    'TextChampDescriptor' => 'texte', 'TextareaChampDescriptor' => 'texte long',
+    'FormattedChampDescriptor' => 'texte formaté', 'FormuleChampDescriptor' => 'formule',
+    'DateChampDescriptor' => 'date', 'DatetimeChampDescriptor' => 'date et heure',
+    'IntegerNumberChampDescriptor' => 'nombre entier', 'DecimalNumberChampDescriptor' => 'nombre décimal',
+    'CheckboxChampDescriptor' => 'case à cocher', 'YesNoChampDescriptor' => 'oui / non',
+    'DropDownListChampDescriptor' => 'liste', 'MultipleDropDownListChampDescriptor' => 'liste à choix multiples',
+    'LinkedDropDownListChampDescriptor' => 'liste liée', 'CiviliteChampDescriptor' => 'civilité',
+    'PieceJustificativeChampDescriptor' => 'pièce jointe', 'RepetitionChampDescriptor' => 'bloc répétable',
+    'DossierLinkChampDescriptor' => 'lien vers un dossier', 'SiretChampDescriptor' => 'siret',
+    'VisaChampDescriptor' => 'visa', 'ReferentielDePolynesieChampDescriptor' => 'référentiel',
+    'CommuneDePolynesieChampDescriptor' => 'commune', 'CodePostalDePolynesieChampDescriptor' => 'code postal',
+    'NumeroDnChampDescriptor' => 'numéro DN'
+  }.freeze
+
+  attr_reader :label, :typename, :prive
+
+  def initialize(descriptor, prive:)
+    @label = descriptor.label.to_s
+    @typename = descriptor.__typename
+    @required = descriptor.respond_to?(:required) ? descriptor.required : nil
+    @prive = prive
+  end
+
+  def cle
+    @label.parameterize(separator: '_')
+  end
+
+  def type
+    TYPES[@typename] || @typename.sub('ChampDescriptor', '').underscore.humanize.downcase
+  end
+
+  def section?
+    @typename == 'HeaderSectionChampDescriptor'
+  end
+
+  def ignore?
+    @typename == 'ExplicationChampDescriptor'
+  end
+
+  # Une annotation n'est remplie que si l'agent s'en occupe ; un champ non
+  # obligatoire peut rester vide. Dans les deux cas le modèle a intérêt à
+  # entourer la valeur d'un bloc conditionnel.
+  def peut_etre_vide?
+    @prive || @required == false
+  end
+end
+
+# Construit le .docx d'annexe pour une révision de démarche.
+class AnnexeBuilder
+  # Ces valeurs ne sont pas des champs du formulaire : elles ne s'obtiennent pas
+  # par introspection de la révision, d'où une liste tenue ici. On s'en tient
+  # aux plus utilisées dans les configurations existantes.
+  META_COMMUNES = [
+    ['number', 'numéro du dossier', 'numero_du_dossier'],
+    ['date_depot', 'date de dépôt', 'date_de_depot'],
+    ['date_passage_en_instruction', 'date de passage en instruction', 'date_de_passage_en_instruction'],
+    ['date_traitement', 'date de traitement', 'date_de_traitement'],
+    ['date_derniere_modification', 'date de dernière modification', 'date_de_derniere_modification'],
+    ['usager.email', 'courriel du compte usager', 'email_du_compte_usager'],
+    ['motivation', 'motivation de la décision', 'motivation']
+  ].freeze
+
+  META_PERSONNE_PHYSIQUE = [
+    ['demandeur.civilite', 'civilité du demandeur', 'civilite_du_demandeur'],
+    ['demandeur.nom', 'nom du demandeur', 'nom_du_demandeur'],
+    ['demandeur.prenom', 'prénom du demandeur', 'prenom_du_demandeur'],
+    ['demandeur.email', 'courriel du demandeur', 'email_du_demandeur']
+  ].freeze
+
+  META_PERSONNE_MORALE = [
+    ['demandeur.siret', 'numéro SIRET', 'siret_du_demandeur'],
+    ['demandeur.raison_sociale', 'raison sociale', 'raison_sociale'],
+    ['demandeur.entreprise', 'dénomination de l\'entreprise', 'entreprise'],
+    ['demandeur.adresse', 'adresse de l\'entreprise', 'adresse_du_demandeur']
+  ].freeze
+
+  RELS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+  PARTS = {
+    '[Content_Types].xml' => <<~XML,
+      <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+      <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+      <Default Extension="xml" ContentType="application/xml"/>
+      <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+      </Types>
+    XML
+    '_rels/.rels' => <<~XML
+      <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+      <Relationship Id="rId1" Type="#{RELS}/officeDocument" Target="word/document.xml"/>
+      </Relationships>
+    XML
+  }.freeze
+
+  def initialize(demarche, revision, brouillon:)
+    @demarche = demarche
+    @champs = collect(revision.champ_descriptors, prive: false)
+    @annotations = collect(revision.annotation_descriptors, prive: true)
+    @brouillon = brouillon
+    @demandeur = demandeur_typename(demarche)
+  end
+
+  def document_xml
+    <<~XML
+      <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+      #{entete}#{tableau(:champs)}#{tableau(:annotations)}#{tableau_meta}#{conditionnels}#{collisions}
+      <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr>
+      </w:body></w:document>
+    XML
+  end
+
+  def write(path)
+    FileUtils.mkdir_p(File.dirname(path))
+    FileUtils.rm_f(path)
+    Zip::File.open(path, Zip::File::CREATE) do |zip|
+      PARTS.each { |name, content| zip.get_output_stream(name) { |f| f.write(content) } }
+      zip.get_output_stream('word/document.xml') { |f| f.write(document_xml) }
+    end
+  end
+
+  private
+
+  def collect(descriptors, prive:)
+    Array(descriptors).map { |d| Descripteur.new(d, prive: prive) }.reject(&:ignore?)
+  end
+
+  def entete
+    revision = @brouillon ? 'brouillon' : 'publiée'
+    Docx.para("ANNEXE TECHNIQUE — CHAMPS DE FUSION (démarche #{@demarche.number})", bold: true, size: 28) +
+      Docx.para(@demarche.title.to_s, bold: true) +
+      Docx.para("Généré le #{Time.zone.now.strftime('%d/%m/%Y à %Hh%M')} depuis la révision #{revision}. " \
+                'Document de travail : ne jamais le recoller dans le modèle de production, il serait ' \
+                "imprimé dans le document envoyé à l'usager.") +
+      Docx.para('Chaque cellule de la colonne « Champ de fusion » contient un vrai champ Word : ' \
+                'sélectionnez-la, copiez-la, collez-la dans le modèle. Un «=champ» tapé au clavier reste ' \
+                'inerte. La colonne de gauche donne le libellé exact à reporter sous `champ:` dans le YAML ' \
+                'du robot ; le nom qui apparaît dans le champ de fusion est celui de la variable. ' \
+                'Quand un libellé est une phrase, la variable devient interminable : donnez-lui alors un ' \
+                '`colonne:` court dans le YAML et utilisez ce nom-là dans le modèle.')
+  end
+
+  def tableau(kind)
+    liste = kind == :champs ? @champs : @annotations
+    titre = kind == :champs ? "Champs renseignés par l'usager" : 'Annotations privées (renseignées par les agents)'
+    return Docx.para("#{titre} : aucun.", bold: true) if liste.reject(&:section?).empty?
+
+    rows = [entete_ligne(['Libellé exact (clé)', 'Type', 'Champ de fusion'])]
+    liste.each { |d| rows << (d.section? ? ligne_section(d) : ligne(d)) }
+    Docx.para(titre, bold: true, size: 24) + Docx.table([4400, 1800, 3200], rows)
+  end
+
+  # Le premier dossier de la démarche donne le type de demandeur : inutile de
+  # proposer une raison sociale sur une démarche ouverte aux particuliers, ni
+  # un prénom sur une démarche réservée aux entreprises.
+  def demandeur_typename(demarche)
+    demarche.dossiers&.nodes&.first&.demandeur&.__typename # rubocop:disable Style/SafeNavigationChainLength
+  rescue StandardError
+    nil
+  end
+
+  def meta_lignes
+    complement = case @demandeur
+                 when 'PersonnePhysique' then META_PERSONNE_PHYSIQUE
+                 when 'PersonneMorale' then META_PERSONNE_MORALE
+                 else META_PERSONNE_PHYSIQUE + META_PERSONNE_MORALE
+                 end
+    META_COMMUNES + complement
+  end
+
+  def tableau_meta
+    rows = [entete_ligne(['Valeur', 'Description', 'Champ de fusion suggéré'])]
+    meta_lignes.each do |champ, description, cle|
+      rows << (Docx.cell(Docx.para(champ), width: 4400) +
+              Docx.cell(Docx.para(description), width: 1800) +
+              Docx.cell(Docx.merge_field("=#{cle}"), width: 3200))
+    end
+    precision = @demandeur ? "Demandeur de type #{@demandeur}." : 'Type de demandeur inconnu : les deux jeux sont proposés.'
+    Docx.para('Métadonnées du dossier', bold: true, size: 24) +
+      Docx.para("Ces valeurs ne sont pas des champs du formulaire. #{precision} Le numéro de dossier est " \
+                "injecté d'office sous «=dossier». Pour les autres, le nom de la variable est libre : " \
+                "c'est le `colonne:` du YAML qui le fixe, la colonne de gauche étant ce qui se met sous `champ:`.") +
+      Docx.table([4400, 1800, 3200], rows)
+  end
+
+  def conditionnels
+    vides = (@champs + @annotations).reject(&:section?).select(&:peut_etre_vide?)
+    return '' if vides.empty?
+
+    rows = [entete_ligne(['Champ pouvant être vide', 'Ouverture (paragraphe seul)', 'Fermeture (paragraphe seul)'])]
+    vides.each do |d|
+      rows << (Docx.cell(Docx.para(d.label), width: 3400) +
+              Docx.cell(Docx.merge_field("#{d.cle}:if(present?)"), width: 3000) +
+              Docx.cell(Docx.merge_field("#{d.cle}:endIf"), width: 3000))
+    end
+    Docx.para('Afficher un paragraphe seulement si le champ est rempli', bold: true, size: 24) +
+      Docx.para("Placez l'ouverture SEULE dans son propre paragraphe, le texte à afficher dans le ou les " \
+                'paragraphes suivants, la fermeture SEULE dans un dernier paragraphe. Si ouverture et ' \
+                'fermeture partagent le même paragraphe, le paragraphe reste visible même vide. ' \
+                'Les champs obligatoires mais conditionnels peuvent eux aussi arriver vides : ' \
+                'ajoutez-leur une paire au même modèle.') +
+      Docx.table([3400, 3000, 3000], rows)
+  end
+
+  def collisions
+    doublons = (@champs + @annotations).reject(&:section?).group_by(&:cle).select { |_, v| v.size > 1 }
+    return '' if doublons.empty?
+
+    lignes = doublons.map do |cle, liste|
+      libelles = liste.map { |d| "#{d.label}#{' (annotation)' if d.prive}" }.join(' / ')
+      Docx.para("#{cle} ← #{libelles}")
+    end
+    Docx.para('⚠ Clés en collision', bold: true, size: 24) +
+      Docx.para('Ces libellés produisent la même variable : le document ne pourrait pas les distinguer. ' \
+                'Donnez à chacun un `colonne:` explicite et distinct dans le YAML, et utilisez ce nom-là ' \
+                'dans le modèle.') + lignes.join
+  end
+
+  def entete_ligne(titres)
+    largeurs = [4400, 1800, 3200]
+    titres.each_with_index.map { |t, i| Docx.cell(Docx.para(t, bold: true), width: largeurs[i], shaded: true) }.join
+  end
+
+  def ligne(descripteur)
+    # La clé n'est pas répétée en première colonne : le champ de fusion de la
+    # troisième l'affiche déjà, et les libellés sont parfois de vraies phrases.
+    Docx.cell(Docx.para(descripteur.label), width: 4400) +
+      Docx.cell(Docx.para(descripteur.type), width: 1800) +
+      Docx.cell(Docx.merge_field("=#{descripteur.cle}"), width: 3200)
+  end
+
+  def ligne_section(descripteur)
+    Docx.cell(Docx.para(descripteur.label, bold: true), width: 4400, shaded: true) +
+      Docx.cell(Docx.para('(section)'), width: 1800, shaded: true) +
+      Docx.cell(Docx.para, width: 3200, shaded: true)
+  end
+end
+
+def usage!
+  warn "Usage: #{$PROGRAM_NAME} <numero_demarche> [fichier.docx] [--publiee]"
+  warn "Exemple: #{$PROGRAM_NAME} 3698 storage/models/upf/stage/annexe-champs.docx"
+  exit 1
+end
+
+args = ARGV.dup
+brouillon = !args.delete('--publiee')
+numero = args.shift.to_i
+usage! if numero <= 0
+
+sortie = args.shift || "annexe-champs-#{numero}.docx"
+
+result = MesDemarches.query(MesDemarches::Queries::DemarcheRevision, variables: { demarche: numero })
+if result.errors.present?
+  warn "Erreur: #{result.errors.to_h.values.flatten.join(', ')}"
+  exit 1
+end
+
+demarche = result.data.demarche
+unless demarche
+  warn "Erreur: démarche #{numero} introuvable"
+  exit 1
+end
+
+revision = brouillon ? demarche.draft_revision : demarche.published_revision
+unless revision
+  warn "Erreur: pas de révision #{brouillon ? 'brouillon' : 'publiée'} pour la démarche #{numero}"
+  exit 1
+end
+
+builder = AnnexeBuilder.new(demarche, revision, brouillon: brouillon)
+builder.write(sortie)
+
+champs = revision.champ_descriptors.size
+annotations = revision.annotation_descriptors.size
+puts "Annexe écrite : #{sortie}"
+puts "  démarche #{demarche.number} — #{demarche.title}"
+puts "  révision #{brouillon ? 'brouillon' : 'publiée'} : #{champs} champs, #{annotations} annotations"
+# rubocop:enable Style/OneClassPerFile
