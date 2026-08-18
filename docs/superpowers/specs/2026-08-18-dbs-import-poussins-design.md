@@ -359,25 +359,45 @@ page Word, recette live, déploiement), **DBS** = le service (décisions métier
 
 | Poste | Contenu | Réalisation | Charge |
 |---|---|---|---|
-| **1. Conception des démarches** | Création des coquilles et publication | Dév. | 3 j |
+| **1. Conception des démarches** | Création des coquilles et publication | Dév. | **1 j** |
 | | Champs, annotations, blocs répétables, formule « Jour de suivi », 21 conditions | **CC** (MCP) | |
 | | Modèle de classeur `.xlsx` | **CC** | |
 | | Relecture ergonomique et validation | Dév. + DBS | |
-| **2. Cascade d'invitation** | Relevé des ids base64 des champs préremplis | **CC** | 3,5 j |
+| **2. Cascade d'invitation** | Relevé des ids base64 des champs préremplis | **CC** | **1 j** |
 | | Construction des URL, tâche d'envoi, idempotence, horodatage Grist, specs | **CC** | |
 | | Revue de code | Dév. | |
-| **3. Référentiel Grist** | Doc, tables, colonnes, colonnes `Ref`, formules de rapprochement | **CC** (MCP) | 3 j |
+| **3. Référentiel Grist** | Doc, tables, colonnes, colonnes `Ref`, formules de rapprochement | **CC** (MCP) | **1 j** |
 | | Configuration `mes_demarches_to_grist` et `excel_vers_grist` | **CC** | |
 | | Validation du tableau de bord avec le vétérinaire | DBS | |
-| **4. Contrôles et relances** | Plugins, configuration YAML, specs, rédaction des courriels | **CC** | 3 j |
+| **4. Contrôles et relances** | Plugins, configuration YAML, specs, rédaction des courriels | **CC** | **1 j** |
 | | Seuil de mortalité, validation des textes | DBS | |
-| **5. Documents** | Annexes de fusion (`bin/generer_annexe`), structure et MERGEFIELD | **CC** | 3,5 j |
+| **5. Documents** | Annexes de fusion (`bin/generer_annexe`), structure et MERGEFIELD | **CC** | **1,5 j** |
 | | Mise en page fidèle : en-tête, logo, QR code, mentions de recours | Dév. + DBS | |
 | | Configuration publipostage v3 et visas | **CC** | |
-| **6. Recette et déploiement** | Jeux de test, classeur fictif, scénario bout en bout | **CC** | 4 j |
+| **6. Recette et déploiement** | Jeux de test, classeur fictif, scénario bout en bout | **CC** | **2,5 j** |
 | | Exécution sur staging avec comptes usagers réels, accompagnement | Dév. + DBS | |
 | | `mirror_staging.sh` puis `mirror_production.sh` | Dév. | |
-| | | **Total** | **≈ 20 j** |
+| | | **Total** | **≈ 8 j** |
+
+### Méthode d'estimation
+
+Les charges ne sont **pas** homogènes en productivité. Les postes majoritairement codés ou configurés
+(2, 3, 4) sont estimés au tiers d'un barème classique ; les postes à part humaine incompressible — mise en
+page Word, recette avec de vrais comptes, accompagnement du service, déploiement — ne bénéficient que
+marginalement de l'outillage. Le facteur global se situe autour de 2,5, avec ~3 sur le code et ~1,5 sur
+le reste.
+
+### Charge n'est pas délai
+
+Trois éléments allongent le calendrier sans consommer de charge : la validation juridique de la signature
+de l'engagement, la fixation du seuil de mortalité par le vétérinaire, et l'obtention de la liste de
+diffusion.
+
+**Un risque calendaire propre à ce projet** : le cycle métier dure 21 jours. Le J21 ne se teste pas en
+conditions réelles en une journée. La recette devra jouer sur la **date d'arrivage** — c'est un champ, donc
+falsifiable sur un dossier de test — pour simuler l'écoulement du temps et vérifier l'apparition
+progressive des champs conditionnés ainsi que le déclenchement des relances. À défaut, prévoir un lot
+pilote réel sur trois semaines **en parallèle** du reste du chantier, pas en séquence.
 
 > **La colonne de réalisation ne réduit pas la charge.** Les jours annoncés sont la charge du chantier,
 > revue humaine et allers-retours compris. Ce que Claude Code réalise reste à relire, à corriger et à
