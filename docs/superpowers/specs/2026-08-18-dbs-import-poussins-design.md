@@ -353,15 +353,40 @@ par le robot.
 
 ## 9. Devis
 
-| Poste | Contenu | Charge |
-|---|---|---|
-| Conception des trois démarches | Champs, annotations, formule « Jour de suivi », 21 conditions d'affichage, blocs répétables, modèle de classeur | 3 j |
-| Cascade d'invitation | Construction des URL de préremplissage, envoi par ligne valorisée, idempotence, horodatage dans Grist | 3,5 j |
-| Référentiel Grist | Trois tables miroir, `Attributions` par le classeur, table `Elevages`, formules de rapprochement, tableau de bord | 3 j |
-| Contrôles et relances | Complétude progressive sur jours échus, quatre relances, alerte mortalité, signalement des muets | 3 j |
-| Documents | Trois gabarits, annexes de fusion, visas, courriels d'information aux services | 3,5 j |
-| Recette et déploiement | Lot fictif bout en bout sur staging, accompagnement du service, mise en production | 4 j |
-| | **Total** | **≈ 20 j** |
+Répartition de la réalisation : **CC** = Claude Code (code, configuration, champs via MCP, formules
+Grist), **Dév.** = le développeur (actes non outillés : création et publication des démarches, mise en
+page Word, recette live, déploiement), **DBS** = le service (décisions métier et validation).
+
+| Poste | Contenu | Réalisation | Charge |
+|---|---|---|---|
+| **1. Conception des démarches** | Création des coquilles et publication | Dév. | 3 j |
+| | Champs, annotations, blocs répétables, formule « Jour de suivi », 21 conditions | **CC** (MCP) | |
+| | Modèle de classeur `.xlsx` | **CC** | |
+| | Relecture ergonomique et validation | Dév. + DBS | |
+| **2. Cascade d'invitation** | Relevé des ids base64 des champs préremplis | **CC** | 3,5 j |
+| | Construction des URL, tâche d'envoi, idempotence, horodatage Grist, specs | **CC** | |
+| | Revue de code | Dév. | |
+| **3. Référentiel Grist** | Doc, tables, colonnes, colonnes `Ref`, formules de rapprochement | **CC** (MCP) | 3 j |
+| | Configuration `mes_demarches_to_grist` et `excel_vers_grist` | **CC** | |
+| | Validation du tableau de bord avec le vétérinaire | DBS | |
+| **4. Contrôles et relances** | Plugins, configuration YAML, specs, rédaction des courriels | **CC** | 3 j |
+| | Seuil de mortalité, validation des textes | DBS | |
+| **5. Documents** | Annexes de fusion (`bin/generer_annexe`), structure et MERGEFIELD | **CC** | 3,5 j |
+| | Mise en page fidèle : en-tête, logo, QR code, mentions de recours | Dév. + DBS | |
+| | Configuration publipostage v3 et visas | **CC** | |
+| **6. Recette et déploiement** | Jeux de test, classeur fictif, scénario bout en bout | **CC** | 4 j |
+| | Exécution sur staging avec comptes usagers réels, accompagnement | Dév. + DBS | |
+| | `mirror_staging.sh` puis `mirror_production.sh` | Dév. | |
+| | | **Total** | **≈ 20 j** |
+
+> **La colonne de réalisation ne réduit pas la charge.** Les jours annoncés sont la charge du chantier,
+> revue humaine et allers-retours compris. Ce que Claude Code réalise reste à relire, à corriger et à
+> valider — la répartition dit *qui tient le clavier*, pas *combien ça coûte*.
+
+**Actes hors de portée de Claude Code**, à prévoir côté développeur : créer et publier une démarche
+(l'API de configuration modifie les champs d'une démarche existante, elle ne crée pas la démarche),
+produire une mise en page Word fidèle à un document officiel, exécuter la recette live avec de vrais
+comptes usagers, et déployer.
 
 **Postes supprimés en cours de cadrage** (documentés pour mémoire) : numéroteur séquentiel réglementaire,
 client REST de préremplissage — l'URL `?ChampId=Valeur` suffit — et gestion du nom du signataire dans les
