@@ -333,9 +333,15 @@ est le bon support d'accès. **La liste de diffusion électronique reste à obte
 
 **Dépendance de planning**
 
-`excel_vers_grist` porte le poste `Attributions` ; son plan est écrit (`docs/superpowers/plans/2026-08-07-excel-vers-grist.md`)
-mais pas encore exécuté. S'il n'est pas livré au démarrage, il faut soit l'attendre, soit prévoir une
-lecture de classeur ad hoc qui sera jetée ensuite. **À arbitrer, pas à découvrir en cours de route.**
+`excel_vers_grist` porte le poste `Attributions`. Le moteur est **écrit, testé et commité**
+(`app/lib/excel_vers_grist.rb`, specs associées) et **déployé en staging** sur le cas pesticides
+(`dbs_pesticides_grist.yml`). Il n'est **pas encore en production** : le workflow n8n de référence tourne
+toujours, et la phase 3 du plan — validation live puis décommissionnement de n8n — reste à conduire.
+
+Conséquence favorable : le poste `Attributions` relève de la **configuration**, pas du développement, et
+s'appuiera sur un moteur déjà éprouvé en conditions réelles. Deux points de vigilance seulement : la
+validation pesticides doit être acquise avant qu'un second service en dépende, et le déclencheur diffère
+(`accepte` chez pesticides, `en_instruction` ici) — c'est un paramètre, pas une évolution.
 
 **Piste hors périmètre**
 
