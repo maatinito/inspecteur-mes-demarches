@@ -70,9 +70,17 @@ class ExcelVersGrist < FieldChecker
     @erreurs_metier ||= []
   end
 
+  # Colonnes déclarées dans la configuration mais introuvables dans le fichier.
+  # Distinctes des erreurs métier, qui sont du texte destiné à l'agent : celle-ci
+  # est un signal exploitable, dont dépend l'écriture de l'empreinte.
+  def colonnes_absentes
+    @colonnes_absentes ||= []
+  end
+
   def process(demarche, dossier)
     super
     @erreurs_metier = []
+    @colonnes_absentes = []
     @col_empreinte = nil
     return unless must_check?(dossier)
 
@@ -191,6 +199,7 @@ class ExcelVersGrist < FieldChecker
       col = par_nom[source]
       if col.nil?
         erreurs_metier << "Colonne source absente du fichier : #{source}"
+        colonnes_absentes << source
         next
       end
       acc[source] = cible_normalisee(cible, col)
@@ -272,6 +281,24 @@ class ExcelVersGrist < FieldChecker
     # au passage suivant. Le workflow n8n l'écrivait sur une branche parallèle, et
     # un upsert en échec y perdait les lignes en silence.
     ecrire_erreurs(principale, ligne)
+
+    # Une colonne déclarée manquante rend la recopie incomplète : les lignes sont
+    # écrites, mais amputées. Écrire l'empreinte figerait ce résultat partiel — le
+    # dossier serait réputé traité et jamais repris, comme l'ont montré les
+    # fichiers d'avant 2026 des pesticides, dont les en-têtes diffèrent. On laisse
+    # donc le dossier à reprendre : un fichier corrigé ou un mapping complété sera
+    # pris au passage suivant. Même parti que AUCUNE_LIGNE_EXPLOITABLE, à ceci près
+    # qu'on garde ce qui a pu être recopié.
+    # `autoriser_fichier_vide` fait exception : l'option déclare que ce que le
+    # plugin lit fait foi, fichier maigre compris. Maintenir la garde par-dessus
+    # cette déclaration viderait la table à chaque passage sans jamais marquer le
+    # dossier — une boucle, là où l'opérateur a justement tranché.
+    if colonnes_absentes.any? && !fichier_vide_autorise?
+      Rails.logger.warn "ExcelVersGrist: dossier #{dossier.number} laissé à reprendre — " \
+                        "colonne(s) absente(s) du fichier : #{colonnes_absentes.join(', ')}"
+      return
+    end
+
     ecrire_empreinte(principale, ligne, empreinte)
     Rails.logger.info "ExcelVersGrist: dossier #{dossier.number} — #{nb_lignes} ligne(s) recopiée(s)"
   end

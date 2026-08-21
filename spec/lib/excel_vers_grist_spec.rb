@@ -412,6 +412,41 @@ RSpec.describe ExcelVersGrist do
       end
     end
 
+    # Le formulaire des pesticides a changé de format en cours de route : sur les
+    # fichiers d'époque, une colonne déclarée peut manquer. La recopie se fait
+    # alors amputée de cette colonne — écrire l'empreinte figerait ce résultat
+    # partiel, le dossier étant dès lors réputé traité. On recopie ce qu'on
+    # trouve, mais on laisse le dossier à reprendre : un fichier corrigé, ou un
+    # mapping complété, sera pris au passage suivant.
+    context 'quand une colonne déclarée manque au fichier' do
+      let(:params_colonne_absente) do
+        params.merge(colonnes: params[:colonnes].merge('Poids/Volume total' => 'Poids'))
+      end
+
+      it 'recopie ce qu’il trouve mais n’écrit pas l’empreinte' do
+        expect(table_principale).not_to receive(:update_records)
+
+        described_class.new(params_colonne_absente).process(demarche, dossier)
+
+        expect(table_lignes).to have_received(:upsert_records)
+      end
+
+      it 'rapporte la colonne absente' do
+        plugin = described_class.new(params_colonne_absente)
+        plugin.process(demarche, dossier)
+
+        expect(plugin.erreurs_metier.join).to match(%r{Poids/Volume total})
+      end
+
+      it 'écrit l’empreinte dès lors que toutes les colonnes déclarées sont là' do
+        described_class.new(params).process(demarche, dossier)
+
+        expect(table_principale).to have_received(:update_records) do |records|
+          expect(records.first[:fields]['excel_checksum']).to eq('nouvelle')
+        end
+      end
+    end
+
     # L'API Grist travaille sur les ids de colonne, l'interface montre les
     # libellés : une configuration écrite de bonne foi avec le libellé échouait
     # par KeyError côté sandbox Grist. Les deux formes sont désormais acceptées.
