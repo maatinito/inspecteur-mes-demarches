@@ -10,12 +10,15 @@ RSpec.describe 'grist:purger_sans_ligne', type: :task do
 
   let(:task) { Rake::Task['grist:purger_sans_ligne'] }
   let(:table) { instance_double(Grist::Table) }
+  let(:grist_client) { instance_double(Grist::Client) }
   let(:records) { [] }
 
   before do
     allow(Grist::Config).to receive(:table).and_return(table)
     allow(table).to receive(:columns).and_return({ 'Ligne' => {}, 'Dossier' => {} })
-    allow(table).to receive(:list_records).and_return({ 'records' => records })
+    allow(table).to receive(:client).and_return(grist_client)
+    # La route SQL rend l'id parmi les champs, contrairement à /records.
+    allow(grist_client).to receive(:sql).and_return({ 'records' => records })
     allow(table).to receive(:delete_records)
   end
 
@@ -26,7 +29,7 @@ RSpec.describe 'grist:purger_sans_ligne', type: :task do
   end
 
   def ligne(row_id, dossier, numero = nil)
-    { 'id' => row_id, 'fields' => { 'Dossier' => dossier, 'Ligne' => numero } }
+    { 'fields' => { 'id' => row_id, 'Dossier' => dossier, 'Ligne' => numero } }
   end
 
   context "quand le dossier n'a pas encore été repris par le robot" do

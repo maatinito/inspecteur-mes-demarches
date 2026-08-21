@@ -76,6 +76,20 @@ RSpec.describe Grist::Client do
       end
     end
 
+    describe '#update_column' do
+      it 'makes a PATCH request to the columns collection with the col id in the body' do
+        expected_url = "#{base_url}/api/docs/#{doc_id}/tables/#{table_id}/columns"
+        expected_body = { columns: [{ id: 'pour_vous', fields: { label: 'Pour vous ?', type: 'Text' } }] }.to_json
+
+        expect(Typhoeus::Request).to receive(:new).with(
+          expected_url,
+          hash_including(method: :patch, body: expected_body)
+        ).and_return(instance_double(Typhoeus::Request, run: success_response))
+
+        client.update_column(doc_id, table_id, 'pour_vous', { label: 'Pour vous ?', type: 'Text' })
+      end
+    end
+
     describe '#delete_records' do
       it 'makes a POST request to data/delete' do
         ids = [1, 2, 3]

@@ -27,7 +27,19 @@ namespace :grist do
             "quels #{colonne_parent} ont été recopiés (passez la bonne colonne en 5e argument)."
     end
 
-    records = table.list_records['records'] || []
+    # Projection SQL et non `list_records` : cette dernière rend toutes les
+    # colonnes de toutes les lignes — 25 Mo et plus de deux minutes sur la table
+    # Substances des pesticides, au-delà du délai de transfert du client, donc une
+    # réponse tronquée et une purge impossible. Seules trois colonnes servent ici.
+    # Les deux noms de colonnes interpolés viennent d'être validés contre le schéma
+    # juste au-dessus : ils ne peuvent pas être arbitraires.
+    requete = "select id, #{colonne_ligne}, #{colonne_parent} from #{table_id}"
+    lignes_sql = table.client.sql(doc_id, requete)['records'] || []
+
+    # La route SQL rend l'id parmi les champs sélectionnés, là où /records le porte
+    # au premier niveau. On rétablit la forme attendue plus bas, sans quoi la
+    # suppression porterait sur une liste de nil.
+    records = lignes_sql.map { |r| { 'id' => r.dig('fields', 'id'), 'fields' => r['fields'] } }
 
     # Une valeur de référence vide vaut 0 côté Grist, et non nil : 0 n'étant pas
     # `blank?` en Ruby, il faut l'écarter explicitement — sans quoi toutes les
