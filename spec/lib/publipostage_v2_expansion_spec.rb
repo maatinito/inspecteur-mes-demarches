@@ -49,6 +49,46 @@ RSpec.describe PublipostageV2 do
       end
     end
 
+    # Une liste déroulante adossée à un référentiel : `value` ne porte que la clé
+    # de la ligne, et les colonnes de la ligne arrivent dans `columns`, chacune
+    # identifiée par un id base64 dont le suffixe donne le nom technique.
+    context 'with DropDownListChamp' do
+      def column(raw_id, string_value)
+        double(id: Base64.strict_encode64(raw_id), string_value:)
+      end
+
+      let(:drop_down_champ) do
+        double('DropDownListChamp',
+               __typename: 'DropDownListChamp',
+               label: 'Votre enseignant référent de stage',
+               value: '2116',
+               string_value: 'Madame Carole BOUSQUET',
+               columns: [
+                 column('Column-type_de_champ/175731-$.referentiel.data.row.ers', 'Madame Carole BOUSQUET'),
+                 column('Column-type_de_champ/175731-$.referentiel.data.row.fonction_ers', 'Professeure agrégée'),
+                 column('Column-type_de_champ/175731-$.referentiel.data.row.mail_ers', 'carole.bousquet@upf.pf')
+               ])
+      end
+
+      it 'expands the label and the referentiel columns' do
+        result = publipostage.send(:champ_value, drop_down_champ)
+
+        expect(result).to eq('' => 'Madame Carole BOUSQUET',
+                             '.ers' => 'Madame Carole BOUSQUET',
+                             '.fonction_ers' => 'Professeure agrégée',
+                             '.mail_ers' => 'carole.bousquet@upf.pf')
+      end
+
+      it 'renders a plain list as its label, without any column' do
+        allow(drop_down_champ).to receive_messages(
+          string_value: 'Homme',
+          columns: [column('Column-type_de_champ/175727', 'Homme')]
+        )
+
+        expect(publipostage.send(:champ_value, drop_down_champ)).to eq('Homme')
+      end
+    end
+
     context 'with NumeroDnChamp' do
       let(:numero_dn_champ) do
         double('NumeroDnChamp',

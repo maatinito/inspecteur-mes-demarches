@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class PublipostageV2 < Publipostage
+  # Suffixe de `Column#id` (base64) désignant une colonne de référentiel.
+  REFERENTIEL_COLUMN_ID = /\.referentiel\.data\.row\.(\w+)\z/
+
   def version
     super + 1
   end
@@ -166,6 +169,8 @@ class PublipostageV2 < Publipostage
         # 2. Interpoler toutes les valeurs string avec le contexte complet de la ligne
         interpolate_row_values(row_hash)
       end
+    when 'DropDownListChamp'
+      expand_drop_down_list(champ)
     when 'ReferentielDePolynesieChamp'
       expand_referentiel_de_polynesie(champ)
     when 'NumeroDnChamp'
@@ -177,6 +182,35 @@ class PublipostageV2 < Publipostage
     end
   end
 
+  # Une liste déroulante adossée à un référentiel expose, à côté de la valeur
+  # choisie, les colonnes de la ligne du référentiel. On les déplie comme celles
+  # d'un ReferentielDePolynesieChamp, sous le nom technique de la colonne
+  # (`votre_enseignant_referent_de_stage_fonction_ers`) et non sous son libellé,
+  # qui est préfixé du libellé du champ et accentué.
+  # Une liste ordinaire n'a pas de telle colonne : on rend alors la valeur nue,
+  # pour ne pas encombrer le contexte de fusion de clés inutiles.
+  def expand_drop_down_list(champ)
+    columns = referentiel_columns(champ)
+    return string_value_of(champ) if columns.empty?
+
+    columns.each_with_object({ '' => champ.string_value || '' }) do |(name, value), result|
+      result[".#{name}"] = expanded_column_value(convert_column_value(value))
+    end
+  end
+
+  # `Column#id` est un base64 de la forme
+  # « Column-type_de_champ/175731-$.referentiel.data.row.fonction_ers » pour une
+  # colonne de référentiel, et « Column-type_de_champ/175727 » — sans suffixe —
+  # pour la valeur d'une liste ordinaire, qui n'a rien à déplier.
+  def referentiel_columns(champ)
+    return [] unless champ.respond_to?(:columns) && champ.columns
+
+    champ.columns.filter_map do |column|
+      name = Base64.decode64(column.id)[REFERENTIEL_COLUMN_ID, 1]
+      [name, column.string_value] if name
+    end
+  end
+
   def expand_referentiel_de_polynesie(champ)
     result = {}
     # Valeur principale (clé vide)
@@ -185,13 +219,16 @@ class PublipostageV2 < Publipostage
     # Expansion des colonnes (clés préfixées par ".")
     if champ.respond_to?(:columns) && champ.columns
       champ.columns.each do |column|
-        key = ".#{column.name}"
-        value = convert_column_value(column.value)
-        result[key] = value.nil? ? '' : value
+        result[".#{column.name}"] = expanded_column_value(convert_column_value(column.value))
       end
     end
 
     result
+  end
+
+  # Point d'extension : V3 y branche la conversion Markdown → HTML.
+  def expanded_column_value(value)
+    value.nil? ? '' : value
   end
 
   def expand_numero_dn(champ)
