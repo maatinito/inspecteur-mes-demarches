@@ -8,7 +8,7 @@ RSpec.describe Calculs::ValueFlags do
   let(:drapeaux) { %w[reponse_couverture_maladie_oui reponse_couverture_maladie_non reponse_couverture_maladie_incertaine] }
 
   def dossier_with(value)
-    champ = double('DropDownListChamp', __typename: 'DropDownListChamp', label: label, value: value)
+    champ = double('DropDownListChamp', __typename: 'DropDownListChamp', label: label, value: value, string_value: value)
     double('Dossier', number: 42, champs: [champ], annotations: [])
   end
 
@@ -51,8 +51,8 @@ RSpec.describe Calculs::ValueFlags do
   context 'quand un champ usager et une annotation portent le même libellé' do
     let(:label) { 'Gratification' }
     let(:dossier) do
-      champ = double('ChampUsager', __typename: 'DropDownListChamp', label: label, value: 'Prévue')
-      annotation = double('Annotation', __typename: 'DropDownListChamp', label: label, value: 'Non prévue')
+      champ = double('ChampUsager', __typename: 'DropDownListChamp', label: label, value: 'Prévue', string_value: 'Prévue')
+      annotation = double('Annotation', __typename: 'DropDownListChamp', label: label, value: 'Non prévue', string_value: 'Non prévue')
       double('Dossier', number: 42, champs: [champ], annotations: [annotation])
     end
     let(:controle) { Calculs::ValueFlags.new('champ' => label, 'source' => source, 'valeurs' => { 'Prévue' => 'gratification_du_stage' }) }

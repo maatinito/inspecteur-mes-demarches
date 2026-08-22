@@ -157,8 +157,13 @@ class FieldChecker < InspectorTask
 
   def graphql_champ_value(champ) # rubocop:disable Metrics/MethodLength
     case champ.__typename
-    when 'TextChamp', 'DropDownListChamp'
+    when 'TextChamp'
       champ.value || ''
+    when 'DropDownListChamp'
+      # Liste adossée à un référentiel : `value` ne porte que la clé de la ligne
+      # (« 2116 »), seul `stringValue` porte le libellé choisi. Pour une liste
+      # ordinaire les deux sont identiques.
+      champ.string_value || champ.value || ''
     when 'IntegerNumberChamp'
       champ.int_value || ''
     when 'DecimalNumberChamp'

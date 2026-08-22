@@ -191,31 +191,14 @@ class PublipostageV3 < PublipostageV2
     result
   end
 
-  # Surcharge pour gérer Markdown dans les colonnes ReferentielDePolynesie
-  # Les colonnes Baserow peuvent contenir du Markdown qui sera automatiquement
+  # Surcharge pour gérer le Markdown dans les colonnes de référentiel (celles
+  # d'un ReferentielDePolynesieChamp comme celles d'une liste déroulante
+  # adossée à un référentiel) : les colonnes Baserow peuvent en contenir, il est
   # converti en HTML pour Sablon.
-  def expand_referentiel_de_polynesie(champ)
-    result = {}
-    # Valeur principale (clé vide)
-    result[''] = champ.string_value || ''
+  def expanded_column_value(value)
+    return super unless value.is_a?(String) && MarkdownConverter.looks_like_markdown?(value)
 
-    # Expansion des colonnes (clés préfixées par ".")
-    if champ.respond_to?(:columns) && champ.columns
-      champ.columns.each do |column|
-        key = ".#{column.name}"
-        value = convert_column_value(column.value)
-
-        # Conversion automatique Markdown → HTML pour les colonnes textuelles
-        if value.is_a?(String) && MarkdownConverter.looks_like_markdown?(value)
-          html = MarkdownConverter.convert(value)
-          result[key] = Sablon.content(:html, html)
-        else
-          result[key] = value.nil? ? '' : value
-        end
-      end
-    end
-
-    result
+    Sablon.content(:html, MarkdownConverter.convert(value))
   end
 
   # Normalise récursivement le contexte pour Sablon :

@@ -48,7 +48,7 @@ RSpec.describe Travail::Daeth do
     def yes_no_champ(label, checked) = aliased_champ(label, 'YesNoChamp', checked:)
     def integer_champ(label, int) = aliased_champ(label, 'IntegerNumberChamp', int_value: int)
     def text_champ(label, value) = double(label, label:, __typename: 'TextChamp', value:)
-    def list_champ(label, value) = double(label, label:, __typename: 'DropDownListChamp', value:)
+    def list_champ(label, value) = double(label, label:, __typename: 'DropDownListChamp', value:, string_value: value)
 
     let(:cotorep_begin) { '2024-03-01' }
     let(:cotorep_end) { '2025-09-01' }

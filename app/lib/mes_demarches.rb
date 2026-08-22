@@ -146,6 +146,12 @@ module MesDemarches
       }
       ... on DropDownListChamp {
           value
+          # Une liste adossée à un référentiel expose ici les colonnes de la
+          # ligne choisie. `id` est un base64 dont le suffixe porte le nom
+          # technique de la colonne (« …-$.referentiel.data.row.fonction_ers ») :
+          # c'est lui qui sert de clé, le libellé étant préfixé et accentué.
+          # Une liste ordinaire n'a qu'une colonne, sans ce suffixe.
+          columns { id stringValue }
       }
       ... on IntegerNumberChamp {
           intValue: value
