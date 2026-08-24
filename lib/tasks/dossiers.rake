@@ -73,8 +73,17 @@ namespace :dossiers do
     dossier = args[:dossier].to_i
     abort('Usage : rake "dossiers:check[123456]"') if dossier.zero?
 
-    # Les logs du robot sont l'essentiel du retour : les afficher aussi ici.
-    Rails.logger.broadcast_to(ActiveSupport::TaggedLogging.new(Logger.new($stdout))) if Rails.logger.respond_to?(:broadcast_to)
+    # Les logs du robot sont l'essentiel du retour : on les affiche ici.
+    #
+    # NE PAS remplacer par Rails.logger.broadcast_to : avec plusieurs destinations,
+    # Rails.logger.tagged tombe dans BroadcastLogger#method_missing, qui fait
+    # loggers.map { |logger| logger.send(name, ...) } SANS la garde anti-réexécution
+    # que dispatch applique aux autres méthodes. Le bloc passé à tagged est alors
+    # exécuté une fois par destination. Trois tagged imbriqués (check_one,
+    # check_one_dossier, check_dossier) => 2^3 = 8 exécutions complètes des
+    # contrôles, donc 8 ordres de paiement et 8 emails pour un seul dossier.
+    # On REMPLACE le logger au lieu de le diffuser : une seule destination.
+    Rails.logger = ActiveSupport::TaggedLogging.new(Logger.new($stdout))
 
     puts "Traitement du seul dossier #{dossier} (les messages configurés seront envoyés)"
     VerificationService.new.check_one(dossier)
