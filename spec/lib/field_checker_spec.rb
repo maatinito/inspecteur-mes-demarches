@@ -40,6 +40,36 @@ RSpec.describe FieldChecker do
     end
   end
 
+  context 'instructeur_id_for' do
+    let(:checker) { FieldChecker.new({}) }
+    let(:dossier) { FactoryBot.build(:dossier) }
+    let(:demarche) { FactoryBot.build(:demarche, instructeur: 'robot-id') }
+
+    context 'when the demarche has a robot account' do
+      it 'signs with the robot account even if the dossier has followers' do
+        allow(checker).to receive(:first_instructeur).with(dossier).and_return('follower-id')
+
+        expect(checker.instructeur_id_for(demarche, dossier)).to eq('robot-id')
+      end
+
+      it 'does not query the followers' do
+        expect(checker).not_to receive(:first_instructeur)
+
+        checker.instructeur_id_for(demarche, dossier)
+      end
+    end
+
+    context 'when the demarche has no robot account' do
+      let(:demarche) { FactoryBot.build(:demarche, instructeur: nil) }
+
+      it 'falls back on the first follower' do
+        allow(checker).to receive(:first_instructeur).with(dossier).and_return('follower-id')
+
+        expect(checker.instructeur_id_for(demarche, dossier)).to eq('follower-id')
+      end
+    end
+  end
+
   context 'instanciate', vcr: { cassette_name: 'field_checker_instanciate' } do
     let(:dossier_nb) { 296_392 }
     let(:dossier) { DossierActions.on_dossier(dossier_nb) }

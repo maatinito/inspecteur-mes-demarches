@@ -290,8 +290,12 @@ class FieldChecker < InspectorTask
     @dossiers_to_recheck << dossier if dossier.present?
   end
 
+  # Signe avec le compte robot de la démarche (email_instructeur) : ses messages sont
+  # assimilés aux e-mails automatiques côté Mes-Démarches (AUTOMATED_SENDER_EMAILS) et
+  # n'allument pas la pastille « message » des instructeurs. Le premier suiveur du dossier
+  # n'est qu'un repli quand la démarche n'a pas de compte robot.
   def instructeur_id_for(demarche, dossier)
-    first_instructeur(dossier) || demarche.instructeur
+    demarche.instructeur || first_instructeur(dossier)
   end
 
   def instructeur_id
