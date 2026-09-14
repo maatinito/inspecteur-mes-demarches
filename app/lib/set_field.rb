@@ -1,6 +1,12 @@
 # frozen_string_literal: true
 
 class SetField < FieldChecker
+  # Sans etat_du_dossier déclaré, la tâche agit sur tous les états (comme
+  # conditional_field) : imbriquée dans un when_ok ou un conditional_field, elle
+  # n'hérite pas du périmètre parent et le défaut « en_construction » des
+  # FieldChecker la ferait cesser d'agir sur les dossiers en instruction.
+  TOUS_LES_ETATS = %w[en_construction en_instruction accepte sans_suite refuse].freeze
+
   def version
     super + 2
   end
@@ -15,6 +21,7 @@ class SetField < FieldChecker
 
   def initialize(params)
     super
+    @states = Set.new(TOUS_LES_ETATS) if @params[:etat_du_dossier].blank?
     shift = @params[:decalage]
     return unless shift.present?
 
