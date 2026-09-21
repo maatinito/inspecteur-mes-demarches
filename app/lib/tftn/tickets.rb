@@ -7,7 +7,7 @@ module Tftn
     SESSION_TABLE_ID = 634
 
     def version
-      super + 1
+      super + 2
     end
 
     def required_fields
@@ -15,7 +15,7 @@ module Tftn
     end
 
     def authorized_fields
-      super + %i[champ_nb_tickets annotation_message_usager acces_baserow annotation_quota]
+      super + %i[champ_nb_tickets annotation_message_usager acces_baserow annotation_quota annotation_nb_tickets]
     end
 
     def process(demarche, dossier)
@@ -78,6 +78,9 @@ module Tftn
 
       # Stocker le prix dans l'annotation privée
       save_annotation(@params[:annotation_montant], prix_total) unless manual_quota
+
+      # Stocker le nombre de séances réellement facturées (référencé par l'attestation)
+      save_annotation(@params[:annotation_nb_tickets], nb_seances) if @params[:annotation_nb_tickets].present?
 
       # Créer et stocker un message explicatif pour l'usager
       message_usager = construire_message_usager(nom_cours, nb_seances, prix_seance, prix_total, nb_tickets_max)

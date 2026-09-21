@@ -185,6 +185,68 @@ RSpec.describe Tftn::Tickets do
     end
   end
 
+  context 'avec une annotation pour le nombre de tickets achetés' do
+    let(:params) do
+      {
+        champ_cours: 'cours',
+        prix_seance: '1500',
+        champ_nb_tickets: 'nb_tickets',
+        annotation_montant: 'Montant à payer',
+        annotation_message_usager: 'Message explicatif',
+        annotation_quota: 'Quota manuel',
+        annotation_nb_tickets: 'Nombre de tickets achetés'
+      }
+    end
+
+    let(:cours_results) { { 'results' => [{ 'field_11' => false }] } }
+
+    before do
+      allow(controle).to receive(:param_field).with(:champ_nb_tickets).and_return(champ_nb_tickets)
+    end
+
+    context 'quand il reste moins de séances que de tickets demandés' do
+      let(:champ_nb_tickets) { double('ChampNbTickets', value: '10', blank?: false) }
+
+      it 'stocke le nombre de séances réellement facturées, pas la demande de l\'usager' do
+        expect(controle).to receive(:save_annotation).with('Nombre de tickets achetés', 5)
+        expect(controle).to receive(:save_annotation).with('Montant à payer', 7500)
+
+        subject
+      end
+    end
+
+    context 'quand il reste plus de séances que de tickets demandés' do
+      let(:champ_nb_tickets) { double('ChampNbTickets', value: '3', blank?: false) }
+
+      it 'stocke le nombre de tickets demandés' do
+        expect(controle).to receive(:save_annotation).with('Nombre de tickets achetés', 3)
+
+        subject
+      end
+    end
+
+    context 'avec quota manuel' do
+      let(:cours_results) { { 'results' => [{ 'field_11' => true }] } }
+      let(:champ_nb_tickets) { double('ChampNbTickets', value: '10', blank?: false) }
+
+      it 'stocke quand même le nombre de tickets' do
+        expect(controle).to receive(:save_annotation).with('Nombre de tickets achetés', 5)
+
+        subject
+      end
+    end
+  end
+
+  context 'sans annotation pour le nombre de tickets achetés' do
+    let(:cours_results) { { 'results' => [{ 'field_11' => false }] } }
+
+    it 'n\'écrit aucune annotation de nombre de tickets' do
+      expect(controle).not_to receive(:save_annotation).with('Nombre de tickets achetés', anything)
+
+      subject
+    end
+  end
+
   context 'lorsque le champ cours est vide' do
     let(:champ_cours) do
       double('ChampCours', value: '', blank?: true)
