@@ -18,8 +18,11 @@ module Dbs
         m = LIGNE_RECU.match(ligne)
         next unless m
 
+        date = date_ou_nil(m[:date])
+        next unless date
+
         Engagement.new(nom: m[:nom], email: m[:email].downcase, numero: m[:numero].to_i,
-                       date: Date.strptime(m[:date], '%d/%m/%Y'), attendu: m[:suffixe].nil?)
+                       date: date, attendu: m[:suffixe].nil?)
       end
     end
 
@@ -41,6 +44,12 @@ module Dbs
       eleveurs.reject { |e| recus.include?(e[:email].to_s.downcase) }.map do |e|
         [e[:nom], e[:telephone].presence && "au #{e[:telephone]}", "(#{e[:email]})"].compact.join(' ')
       end.join("\n")
+    end
+
+    def self.date_ou_nil(texte)
+      Date.strptime(texte, '%d/%m/%Y')
+    rescue Date::Error
+      nil
     end
   end
 end

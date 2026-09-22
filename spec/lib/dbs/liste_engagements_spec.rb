@@ -30,6 +30,11 @@ RSpec.describe Dbs::ListeEngagements do
       texte_sale = "\n#{texte.lines.first}  \nune note de l'agent\nJean (JEAN@Ex.PF) — dossier 1 — déposé le 02/02/2026\n"
       expect(described_class.parse_recus(texte_sale).map(&:email)).to eq ['manutere@exemple.pf', 'jean@ex.pf']
     end
+
+    it 'ignore une ligne dont la date a la bonne forme mais n existe pas, sans perdre les autres' do
+      texte_date_fausse = "Jean (jean@ex.pf) — dossier 1 — déposé le 30/02/2026\n#{texte.lines.first}"
+      expect(described_class.parse_recus(texte_date_fausse).map(&:numero)).to eq [654_125]
+    end
   end
 
   describe '.upsert' do
