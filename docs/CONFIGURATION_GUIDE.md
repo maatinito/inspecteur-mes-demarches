@@ -502,6 +502,46 @@ inspection_2:
 - Impossible à énumérer même avec rate limiting faible
 - Idéal pour accès public via URL ou QR Code
 
+### 8. Invitation préremplie vers une autre démarche
+
+Cas d'usage : un dossier « parent » (ex. laissez-passer) liste des personnes qui doivent déposer chacune un
+dossier « enfant » dans une autre démarche (ex. engagement d'éleveur). Le robot les invite par courriel avec
+un lien prérempli, puis, quand un enfant est déposé, l'inscrit dans le parent.
+
+**Pourquoi une annotation et pas Grist** : l'API GraphQL ne filtre pas les dossiers par valeur de champ ; le
+parent ne peut pas retrouver ses enfants. Le lien se construit donc à l'écriture, dans une annotation texte du
+parent, source de vérité unique (voir `docs/superpowers/specs/2026-08-18-dbs-import-poussins-design.md`, §3.2).
+
+```yaml
+# Côté parent : sous un conditional_field sur une case cochée par l'agent
+- dbs/inviter_eleveurs:
+    etat_du_dossier: en_instruction
+    demarche_engagement: chemin-de-la-demarche-enfant     # segment après /commencer/
+    champ_eleveurs: Liste des éleveurs                      # bloc répétable du parent
+    champ_email: Email de l'éleveur                         # sous-champ courriel (défaut)
+    champ_nom: Nom et Prénom de l'éleveur                   # sous-champ nom (défaut)
+    annotation_envois: Invitations envoyées                 # annotation texte : « courriel — envoyé le … »
+    objet: "Signez votre engagement"
+    message: "Bonjour {nom_eleveur}, lot {number} : {lien}"  # {lien} et {nom_eleveur} sont fournis par la tâche
+    prerempli:                                              # stable_id du champ ENFANT : chemin dans le PARENT
+      197027: number                                        # cherché dans la ligne du bloc, puis dans le dossier
+      197038: Nom et Prénom de l'éleveur
+      197031: Date et heure d'atterrissage du vol           # une date part en AAAA-MM-JJ
+
+# Côté enfant : au dépôt, réécrit deux annotations du parent
+- dbs/engagement_recu:
+    etat_du_dossier: [ en_construction, en_instruction, accepte ]
+    champ_laissez_passer: Numéro du dossier de laissez-passer   # champ lien dossier vers le parent
+    champ_eleveurs: Liste des éleveurs                          # bloc du parent
+    annotation_recus: Engagements reçus                         # « Nom (courriel) — dossier N — déposé le … »
+    annotation_manquants: Engagements manquants                 # « Nom au téléphone (courriel) »
+```
+
+Règles : le robot réécrit les zones en entier à chaque passage (pas de doublon, pas de dérive si l'agent a
+touché au texte) ; le rapprochement se fait par courriel en minuscules ; un enfant dont le courriel n'est pas
+dans le bloc est listé avec « — non attendu ». Les identifiants de champs se relèvent avec `bin/describe_demarche`
+ou l'outil MCP `lire_demarche` ; ils sont stables à la publication.
+
 ## Exemples commentés
 
 ### Exemple 1 : Génération automatique de permis
