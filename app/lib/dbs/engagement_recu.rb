@@ -54,7 +54,7 @@ module Dbs
     private
 
     def engagement_courant(eleveurs)
-      email = @dossier.usager.email.to_s.strip.downcase
+      email = @dossier.usager&.email.to_s.strip.downcase
       ListeEngagements::Engagement.new(nom: nom_eleveur, email:, numero: @dossier.number,
                                        date: Date.parse(@dossier.date_depot),
                                        attendu: eleveurs.any? { |e| e[:email] == email })

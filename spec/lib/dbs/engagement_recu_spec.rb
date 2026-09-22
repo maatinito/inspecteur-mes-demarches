@@ -101,4 +101,20 @@ RSpec.describe Dbs::EngagementRecu do
     task.process(demarche, engagement)
     expect(DossierActions).not_to have_received(:on_dossier)
   end
+
+  it 'ne fait rien et n interroge pas la plateforme quand aucun laissez-passer n est renseigné' do
+    allow(lien).to receive(:string_value).and_return('')
+    task.process(demarche, engagement)
+    expect(DossierActions).not_to have_received(:on_dossier)
+    expect(SetAnnotationValue).not_to have_received(:set_value)
+  end
+
+  it 'liste l engagement comme non attendu quand le compte usager est absent' do
+    allow(engagement).to receive(:usager).and_return(nil)
+    task.process(demarche, engagement)
+    expect(SetAnnotationValue).to have_received(:set_value).with(
+      laissez_passer, 'robot', 'Engagements reçus',
+      'Vaimiti HOA () — dossier 655888 — déposé le 15/09/2026 — non attendu'
+    )
+  end
 end
