@@ -47,6 +47,8 @@ module Dbs
       super
       return unless must_check?(dossier)
 
+      raise "Annotation '#{@params[:annotation_envois]}' introuvable sur le dossier #{dossier.number} : aucune invitation envoyée" unless annotation(@params[:annotation_envois], warn_if_empty: false)
+
       rows = param_field(:champ_eleveurs)&.rows || []
       lignes = lignes_envois
       deja = lignes.filter_map { |l| LIGNE_ENVOI.match(l)&.[](:email)&.downcase }.to_set

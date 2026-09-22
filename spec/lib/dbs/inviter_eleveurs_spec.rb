@@ -1,4 +1,3 @@
-# spec/lib/dbs/inviter_eleveurs_spec.rb
 # frozen_string_literal: true
 
 require 'rails_helper'
@@ -127,6 +126,15 @@ RSpec.describe Dbs::InviterEleveurs do
     allow(dossier).to receive(:state).and_return('en_construction')
     task.process(demarche, dossier)
     expect(NotificationMailer).not_to have_received(:with)
+  end
+
+  context "quand l'annotation de trace est introuvable sur le dossier" do
+    let(:dossier) { double('Dossier', number: 654_000, state: 'en_instruction', champs: [bloc], annotations: []) }
+
+    it "refuse d'inviter, pour ne jamais renvoyer en boucle" do
+      expect { task.process(demarche, dossier) }.to raise_error(/Invitations envoyées.*654000/)
+      expect(NotificationMailer).not_to have_received(:with)
+    end
   end
 end
 # rubocop:enable Metrics/BlockLength
