@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
-load Rails.root.join('app', 'lib', 'prefill_url.rb')
 
-RSpec.describe PrefillUrl do
+RSpec.describe PrefillURL do
   before { allow(MesDemarches).to receive(:public_url).and_return('https://www.mes-demarches.gov.pf') }
 
   it 'encode chaque champ en champ_<Base64(Champ-<stable_id>)>=<valeur>' do

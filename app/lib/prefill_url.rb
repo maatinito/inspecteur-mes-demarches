@@ -8,7 +8,7 @@ require 'cgi'
 # où <id> est l'identifiant GraphQL du descripteur de champ, Base64("Champ-<stable_id>").
 # Les dates partent en ISO 8601 (AAAA-MM-JJ), seul format accepté par la plateforme.
 # La clé est aussi échappée : un stable_id court produit un Base64 avec « = » de padding.
-class PrefillUrl
+class PrefillURL
   def self.build(chemin, valeurs)
     query = valeurs.filter_map do |stable_id, valeur|
       texte = format_value(valeur)
@@ -16,7 +16,8 @@ class PrefillUrl
 
       "champ_#{CGI.escape(champ_id(stable_id))}=#{CGI.escape(texte)}"
     end
-    "#{MesDemarches.public_url}/commencer/#{chemin}?#{query.join('&')}"
+    base = "#{MesDemarches.public_url}/commencer/#{chemin}"
+    query.empty? ? base : "#{base}?#{query.join('&')}"
   end
 
   def self.champ_id(stable_id)
