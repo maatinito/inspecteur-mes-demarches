@@ -6,12 +6,15 @@ module Dbs
   # fixe : le robot l'écrit ET le relit, l'agent ne fait que lire. Une ligne
   # retouchée à la main ne correspond plus au format et disparaît à la
   # réécriture suivante — c'est voulu, la source est la liste complète.
+  #
+  # Invariant : le robot doit pouvoir relire tout ce qu'il écrit — format_recus
+  # et parse_recus sont inverses l'un de l'autre.
   class ListeEngagements
     Engagement = Struct.new(:nom, :email, :numero, :date, :attendu)
 
     TIRET = ' — '
     NON_ATTENDU = 'non attendu'
-    LIGNE_RECU = %r{\A(?<nom>.+?) \((?<email>[^)]+)\)#{TIRET}dossier (?<numero>\d+)#{TIRET}déposé le (?<date>\d{2}/\d{2}/\d{4})(?<suffixe>#{TIRET}#{NON_ATTENDU})?\z}
+    LIGNE_RECU = %r{\A(?<nom>.*?) ?\((?<email>[^)]*)\)#{TIRET}dossier (?<numero>\d+)#{TIRET}déposé le (?<date>\d{2}/\d{2}/\d{4})(?<suffixe>#{TIRET}#{NON_ATTENDU})?\z}
 
     def self.parse_recus(texte)
       texte.to_s.lines.map(&:strip).reject(&:blank?).filter_map do |ligne|

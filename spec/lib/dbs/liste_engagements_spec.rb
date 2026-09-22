@@ -35,6 +35,12 @@ RSpec.describe Dbs::ListeEngagements do
       texte_date_fausse = "Jean (jean@ex.pf) — dossier 1 — déposé le 30/02/2026\n#{texte.lines.first}"
       expect(described_class.parse_recus(texte_date_fausse).map(&:numero)).to eq [654_125]
     end
+
+    it 'relit une ligne à nom vide ou à courriel vide, telle que format_recus peut l écrire' do
+      sans_email = described_class::Engagement.new(nom: 'Vaimiti HOA', email: '', numero: 1, date: Date.new(2026, 9, 15), attendu: false)
+      sans_nom = described_class::Engagement.new(nom: '', email: 'x@y.pf', numero: 2, date: Date.new(2026, 9, 16), attendu: true)
+      expect(described_class.parse_recus(described_class.format_recus([sans_email, sans_nom]))).to eq [sans_email, sans_nom]
+    end
   end
 
   describe '.upsert' do
