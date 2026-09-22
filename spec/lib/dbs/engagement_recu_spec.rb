@@ -2,13 +2,15 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe Dbs::EngagementRecu do
   let(:task) do
     described_class.new(
       champ_laissez_passer: 'Numéro du dossier de laissez-passer',
       champ_eleveurs: 'Liste des éleveurs',
       annotation_recus: 'Engagements reçus',
-      annotation_manquants: 'Engagements manquants'
+      annotation_manquants: 'Engagements manquants',
+      demarche_laissez_passer: 3899
     )
   end
   let(:demarche) { instance_double(Demarche, instructeur: 'robot') }
@@ -31,11 +33,11 @@ RSpec.describe Dbs::EngagementRecu do
                             champs: [double('Bloc', label: 'Liste des éleveurs', __typename: 'RepetitionChamp',
                                                     rows: [row('Manutere TERE', 'manutere@exemple.pf', '87 54 65 75'),
                                                            row('Vaimiti HOA', 'vaimiti@exemple.pf', '88 65 25 62')])],
-                            annotations: [recus, manquants])
+                            annotations: [recus, manquants], demarche: double('Demarche', number: 3899))
   end
   let(:lien) { champ('Numéro du dossier de laissez-passer', '654000', typename: 'DossierLinkChamp') }
   let(:engagement) do
-    double('Engagement', number: 655_888, state: 'en_construction', date_depot: '2026-09-15T08:12:00+00:00',
+    double('Engagement', number: 655_888, state: 'en_construction', date_depot: '2026-09-15T22:00:00+00:00',
                          usager: double('Usager', email: 'Vaimiti@exemple.pf'),
                          demandeur: double('PersonneMorale', entreprise: double('Entreprise', raison_sociale: 'EARL HOA')),
                          champs: [lien, champ("Nom et prénom de l'éleveur", 'Vaimiti HOA')], annotations: [])
@@ -96,6 +98,20 @@ RSpec.describe Dbs::EngagementRecu do
     expect { task.process(demarche, engagement) }.to raise_error(/654000.*655888/)
   end
 
+  it "lève une erreur explicite si le dossier lié n'est pas un laissez-passer de la démarche attendue" do
+    allow(laissez_passer).to receive(:demarche).and_return(double('Demarche', number: 1234))
+    expect { task.process(demarche, engagement) }.to raise_error(/n'est pas un laissez-passer/)
+  end
+
+  it "date l'engagement au fuseau de l'application (Pacific/Tahiti), pas en UTC" do
+    allow(engagement).to receive(:date_depot).and_return('2026-09-15T23:30:00-10:00')
+    task.process(demarche, engagement)
+    expect(SetAnnotationValue).to have_received(:set_value).with(
+      laissez_passer, 'robot', 'Engagements reçus',
+      'Vaimiti HOA (vaimiti@exemple.pf) — dossier 655888 — déposé le 15/09/2026'
+    )
+  end
+
   it 'ne fait rien sur un dossier refusé' do
     allow(engagement).to receive(:state).and_return('refuse')
     task.process(demarche, engagement)
@@ -118,3 +134,4 @@ RSpec.describe Dbs::EngagementRecu do
     )
   end
 end
+# rubocop:enable Metrics/BlockLength

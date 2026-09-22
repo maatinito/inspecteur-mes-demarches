@@ -23,7 +23,7 @@ module Dbs
     end
 
     def authorized_fields
-      super + %i[champ_nom champ_nom_eleveur champ_email_eleveur champ_tel_eleveur]
+      super + %i[champ_nom champ_nom_eleveur champ_email_eleveur champ_tel_eleveur demarche_laissez_passer]
     end
 
     def initialize(params)
@@ -44,6 +44,11 @@ module Dbs
       laissez_passer = DossierActions.on_dossier(numero.to_i)
       raise "Laissez-passer #{numero} introuvable depuis l'engagement #{dossier.number}" if laissez_passer.nil?
 
+      if @params[:demarche_laissez_passer].present? && laissez_passer.demarche.number.to_i != @params[:demarche_laissez_passer].to_i
+        raise "Le dossier #{numero} n'est pas un laissez-passer de la démarche #{@params[:demarche_laissez_passer]} " \
+              "(démarche #{laissez_passer.demarche.number})"
+      end
+
       eleveurs = eleveurs_du_lot(laissez_passer)
       engagements = ListeEngagements.upsert(ListeEngagements.parse_recus(texte_annotation(laissez_passer, :annotation_recus)),
                                             engagement_courant(eleveurs))
@@ -56,8 +61,12 @@ module Dbs
     def engagement_courant(eleveurs)
       email = @dossier.usager&.email.to_s.strip.downcase
       ListeEngagements::Engagement.new(nom: nom_eleveur, email:, numero: @dossier.number,
-                                       date: Date.parse(@dossier.date_depot),
+                                       date: date_depot,
                                        attendu: eleveurs.any? { |e| e[:email] == email })
+    end
+
+    def date_depot
+      Time.zone.parse(@dossier.date_depot.to_s)&.to_date || Time.zone.today
     end
 
     def nom_eleveur
