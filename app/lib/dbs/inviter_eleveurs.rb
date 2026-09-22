@@ -1,4 +1,3 @@
-# app/lib/dbs/inviter_eleveurs.rb
 # frozen_string_literal: true
 
 module Dbs
@@ -14,6 +13,13 @@ module Dbs
   # prerempli : { stable_id (démarche engagement) => chemin de champ }, le chemin
   # est cherché d'abord dans la ligne du bloc (champs de l'éleveur), puis dans le
   # dossier (« number », « demandeur.entreprise.raison_sociale », libellé d'un champ).
+  #
+  # La trace est réécrite après CHAQUE envoi (pas une seule fois à la fin) : si une
+  # ligne suivante fait échouer l'envoi ou l'écriture, les invitations déjà parties
+  # sont déjà tracées. Risque résiduel assumé : un échec en cours de passage laisse
+  # au plus UN courriel dupliqué au passage suivant (celui en cours d'écriture),
+  # jamais la liste entière — l'ordre inverse (tracer puis envoyer) risquerait de
+  # marquer un éleveur invité sans qu'aucun courriel ne soit parti, en silence.
   class InviterEleveurs < FieldChecker
     LIGNE_ENVOI = /\A(?<email>\S+) — envoyé le (?<date>.+)\z/
     ETATS_PAR_DEFAUT = %w[en_instruction].freeze
@@ -44,11 +50,15 @@ module Dbs
       rows = param_field(:champ_eleveurs)&.rows || []
       lignes = lignes_envois
       deja = lignes.filter_map { |l| LIGNE_ENVOI.match(l)&.[](:email)&.downcase }.to_set
-      nouvelles = rows.filter_map { |row| inviter(row, deja) }
-      return if nouvelles.empty?
 
-      SetAnnotationValue.set_value(dossier, instructeur_id, @params[:annotation_envois], (lignes + nouvelles).join("\n"))
-      dossier_updated(dossier)
+      rows.each do |row|
+        ligne = inviter(row, deja)
+        next unless ligne
+
+        lignes << ligne
+        SetAnnotationValue.set_value(dossier, instructeur_id, @params[:annotation_envois], lignes.join("\n"))
+        dossier_updated(dossier)
+      end
     end
 
     private
@@ -65,6 +75,7 @@ module Dbs
       NotificationMailer.with(subject: instanciate(@params[:objet], variables),
                               message: instanciate(@params[:message], variables),
                               recipients: email).user_mail.deliver_later
+      deja << email
       Rails.logger.info("Invitation à signer l'engagement envoyée à #{email}")
       "#{email} — envoyé le #{Time.zone.now.strftime('%d/%m/%Y %H:%M')}"
     end

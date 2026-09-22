@@ -3,6 +3,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe Dbs::InviterEleveurs do
   include ActiveSupport::Testing::TimeHelpers
 
@@ -30,7 +31,7 @@ RSpec.describe Dbs::InviterEleveurs do
 
   let(:rows) { [row('Manutere TERE', 'manutere@exemple.pf', '87 54 65 75'), row('Vaimiti HOA', 'Vaimiti@exemple.pf', '88 65 25 62')] }
   let(:bloc) { double('RepetitionChamp', label: 'Liste des éleveurs', __typename: 'RepetitionChamp', rows:) }
-  let(:envois) { champ('Invitations envoyées', envois_texte, typename: 'TextareaChamp') }
+  let(:envois) { champ('Invitations envoyées', envois_texte, typename: 'TextChamp') }
   let(:envois_texte) { nil }
   let(:dossier) { double('Dossier', number: 654_000, state: 'en_instruction', champs: [bloc], annotations: [envois]) }
   let(:mail) { double('Mail', deliver_later: true) }
@@ -54,6 +55,9 @@ RSpec.describe Dbs::InviterEleveurs do
       recipients: 'manutere@exemple.pf'
     )
     expect(NotificationMailer).to have_received(:with).with(hash_including(recipients: 'vaimiti@exemple.pf'))
+    expect(SetAnnotationValue).to have_received(:set_value).with(
+      dossier, 'robot', 'Invitations envoyées', 'manutere@exemple.pf — envoyé le 22/09/2026 14:05'
+    )
     expect(SetAnnotationValue).to have_received(:set_value).with(
       dossier, 'robot', 'Invitations envoyées',
       "manutere@exemple.pf — envoyé le 22/09/2026 14:05\nvaimiti@exemple.pf — envoyé le 22/09/2026 14:05"
@@ -87,9 +91,42 @@ RSpec.describe Dbs::InviterEleveurs do
     end
   end
 
+  context 'quand deux lignes du bloc portent le même courriel (casse différente)' do
+    let(:rows) do
+      [row('Manutere TERE', 'manutere@exemple.pf', '87 54 65 75'),
+       row('Manutere DOUBLON', 'MANUTERE@exemple.pf', '87 00 00 00'),
+       row('Vaimiti HOA', 'Vaimiti@exemple.pf', '88 65 25 62')]
+    end
+    let(:textes_annotation) { [] }
+
+    before do
+      allow(SetAnnotationValue).to receive(:set_value) do |*args|
+        textes_annotation << args.last
+        true
+      end
+    end
+
+    it "n'invite qu'une fois un courriel dupliqué dans le bloc" do
+      task.process(demarche, dossier)
+
+      expect(NotificationMailer).to have_received(:with).twice
+      expect(textes_annotation).to all(satisfy { |texte| texte.scan('manutere@exemple.pf').size <= 1 })
+    end
+  end
+
+  context "quand l'écriture de la trace échoue au premier envoi" do
+    before { allow(SetAnnotationValue).to receive(:set_value).and_raise('boom') }
+
+    it "propage l'erreur et n'envoie pas le courriel suivant" do
+      expect { task.process(demarche, dossier) }.to raise_error('boom')
+      expect(NotificationMailer).to have_received(:with).once
+    end
+  end
+
   it 'ne fait rien hors de l état en_instruction' do
     allow(dossier).to receive(:state).and_return('en_construction')
     task.process(demarche, dossier)
     expect(NotificationMailer).not_to have_received(:with)
   end
 end
+# rubocop:enable Metrics/BlockLength
