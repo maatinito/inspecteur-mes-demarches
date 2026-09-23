@@ -1202,6 +1202,248 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
+### Task 9: Paramétrage par sous-blocs `engagement:` / `laissez_passer:` (refactor sans changement de comportement)
+
+**Contexte (décision du 23/09).** Les clés plates de `dbs/engagement_recu` mêlaient deux dossiers sans le dire
+(`champ_nom` lu dans l'engagement, `champ_nom_eleveur` dans le laissez-passer ; `champ_telephone` vs
+`champ_tel_eleveur`). Les paramètres sont regroupés par dossier dans deux sous-blocs, comme `dead_line_checker`
+regroupe ses phases. Par cohérence, `dbs/inviter_eleveurs` (qui ne lit que le laissez-passer) adopte les mêmes
+noms de champs : `eleveurs`, `email_eleveur`, `nom_eleveur`, et son annotation de trace s'appelle par son rôle,
+`invitations_envoyees`. Aucun changement de comportement ; les valeurs par défaut sont inchangées.
+
+**Files:**
+- Modify: `app/lib/dbs/engagement_recu.rb`, `spec/lib/dbs/engagement_recu_spec.rb`
+- Modify: `app/lib/dbs/inviter_eleveurs.rb`, `spec/lib/dbs/inviter_eleveurs_spec.rb`
+- Modify (non versionnés) : `storage/configurations/dbs_poussins.yml` + copie staging
+- Modify: `docs/CONFIGURATION_GUIDE.md` (section 8)
+
+**Interfaces produites (nouvelles clés YAML) :**
+
+```yaml
+- dbs/engagement_recu:
+    etat_du_dossier: [ en_construction, en_instruction, accepte ]
+    engagement:                          # le dossier courant (démarche 4038)
+      lien_laissez_passer: Numéro du dossier de laissez-passer   # requis — champ lien dossier
+      nom: Nom et prénom de l'éleveur                            # défaut
+      telephone: Téléphone                                       # défaut — repli de rattachement
+      courriel_invitation: Courriel indiqué par votre importateur   # champ prérempli par le lien
+      courriel_attribution: Courriel d'attribution               # annotation posée par le robot
+    laissez_passer:                      # le dossier lié (démarche 3899)
+      demarche: 3899                                             # garde : le lien doit pointer cette démarche
+      eleveurs: Liste des éleveurs                               # requis — bloc répétable
+      nom_eleveur: Nom et Prénom de l'éleveur                    # défaut
+      email_eleveur: Email de l'éleveur                          # défaut
+      telephone_eleveur: Téléphone de l'éleveur                  # défaut
+      engagements_recus: Engagements reçus                       # requis — annotation réécrite par le robot
+      engagements_manquants: Engagements manquants               # requis — annotation réécrite par le robot
+
+- dbs/inviter_eleveurs:
+    etat_du_dossier: en_instruction
+    demarche_engagement: <chemin /commencer/ de la 4038>
+    eleveurs: Liste des éleveurs                                 # requis
+    email_eleveur: Email de l'éleveur                            # défaut
+    nom_eleveur: Nom et Prénom de l'éleveur                      # défaut
+    invitations_envoyees: Invitations envoyées                   # requis — annotation de trace
+    objet: …
+    message: …
+    prerempli: { … }
+```
+
+- [ ] **Step 1: Adapter les tests (ils doivent échouer sur les clés inconnues)**
+
+`spec/lib/dbs/engagement_recu_spec.rb` — remplacer les params du `let(:task)` par :
+
+```ruby
+  let(:task) do
+    described_class.new(
+      engagement: {
+        lien_laissez_passer: 'Numéro du dossier de laissez-passer',
+        nom: "Nom et prénom de l'éleveur",
+        telephone: 'Téléphone',
+        courriel_invitation: 'Courriel indiqué par votre importateur',
+        courriel_attribution: "Courriel d'attribution"
+      },
+      laissez_passer: {
+        demarche: 3899,
+        eleveurs: 'Liste des éleveurs',
+        engagements_recus: 'Engagements reçus',
+        engagements_manquants: 'Engagements manquants'
+      }
+    )
+  end
+```
+(les libellés attendus dans les assertions ne changent pas). Ajouter :
+
+```ruby
+  describe 'validation du paramétrage' do
+    it 'refuse un sous-bloc laissez_passer incomplet' do
+      t = described_class.new(engagement: { lien_laissez_passer: 'L' }, laissez_passer: { eleveurs: 'E' })
+      expect(t).not_to be_valid
+      expect(t.errors.join).to include('engagements_recus', 'engagements_manquants')
+    end
+
+    it 'refuse une clé inconnue dans un sous-bloc' do
+      t = described_class.new(engagement: { lien_laissez_passer: 'L', champ_nom: 'X' },
+                              laissez_passer: { eleveurs: 'E', engagements_recus: 'R', engagements_manquants: 'M' })
+      expect(t).not_to be_valid
+      expect(t.errors.join).to include('champ_nom')
+    end
+
+    it 'accepte les sous-blocs minimaux et applique les défauts' do
+      t = described_class.new(engagement: { lien_laissez_passer: 'L' },
+                              laissez_passer: { eleveurs: 'E', engagements_recus: 'R', engagements_manquants: 'M' })
+      expect(t).to be_valid
+    end
+  end
+```
+
+`spec/lib/dbs/inviter_eleveurs_spec.rb` — dans le `let(:task)`, renommer `champ_eleveurs:` → `eleveurs:` et
+`annotation_envois:` → `invitations_envoyees:` (valeurs inchangées) ; le message d'erreur attendu dans le test
+« annotation de trace absente » reste `/Invitations envoyées.*654000/`.
+
+- [ ] **Step 2: Lancer, vérifier l'échec** — `bundle exec rspec spec/lib/dbs` : les deux specs échouent (`engagement,laissez_passer n'existe(nt) pas sur dbs/engagement_recu`, `Champ(s) manquant(s) 'champ_laissez_passer…'`, etc.).
+
+- [ ] **Step 3: Implémenter `Dbs::EngagementRecu`**
+
+Remplacer `required_fields` / `authorized_fields` / `initialize` et l'accès aux paramètres par :
+
+```ruby
+    ENGAGEMENT_REQUIS = %i[lien_laissez_passer].freeze
+    ENGAGEMENT_DEFAUTS = { nom: "Nom et prénom de l'éleveur", telephone: 'Téléphone',
+                           courriel_invitation: nil, courriel_attribution: nil }.freeze
+    LAISSEZ_PASSER_REQUIS = %i[eleveurs engagements_recus engagements_manquants].freeze
+    LAISSEZ_PASSER_DEFAUTS = { demarche: nil, nom_eleveur: "Nom et Prénom de l'éleveur",
+                               email_eleveur: "Email de l'éleveur", telephone_eleveur: "Téléphone de l'éleveur" }.freeze
+
+    def version
+      super + 2
+    end
+
+    def required_fields
+      super + %i[engagement laissez_passer]
+    end
+
+    def initialize(params)
+      super
+      @states = Set.new(ETATS_PAR_DEFAUT) if @params[:etat_du_dossier].blank?
+      return unless valid?
+
+      @engagement = sous_bloc(:engagement, ENGAGEMENT_REQUIS, ENGAGEMENT_DEFAUTS)
+      @laissez_passer = sous_bloc(:laissez_passer, LAISSEZ_PASSER_REQUIS, LAISSEZ_PASSER_DEFAUTS)
+    end
+
+    # Un sous-bloc YAML (engagement: / laissez_passer:) : clés requises, clés connues avec défaut,
+    # tout le reste est une erreur de paramétrage signalée comme les clés de premier niveau.
+    def sous_bloc(nom, requis, defauts)
+      bloc = @params[nom]
+      unless bloc.is_a?(Hash)
+        @errors << "#{nom} doit être un bloc de clés sur dbs/engagement_recu"
+        return defauts
+      end
+
+      bloc = bloc.symbolize_keys
+      manquants = requis - bloc.keys
+      @errors << "Clé(s) manquante(s) '#{manquants.join(', ')}' dans #{nom} sur dbs/engagement_recu" if manquants.present?
+      inconnues = bloc.keys - requis - defauts.keys
+      @errors << "#{inconnues.join(', ')} n'existe(nt) pas dans #{nom} sur dbs/engagement_recu" if inconnues.present?
+      defauts.merge(bloc)
+    end
+```
+
+puis, dans le reste de la classe, remplacer chaque lecture de `@params[...]` :
+
+| Avant | Après |
+|---|---|
+| `@params[:champ_laissez_passer]` | `@engagement[:lien_laissez_passer]` |
+| `@params[:demarche_laissez_passer]` | `@laissez_passer[:demarche]` |
+| `@params[:champ_nom] \|\| "Nom et prénom de l'éleveur"` | `@engagement[:nom]` |
+| `@params[:champ_telephone] \|\| 'Téléphone'` | `@engagement[:telephone]` |
+| `@params[:champ_courriel_invitation]` | `@engagement[:courriel_invitation]` |
+| `@params[:annotation_courriel_attribution]` | `@engagement[:courriel_attribution]` |
+| `@params[:champ_eleveurs]` | `@laissez_passer[:eleveurs]` |
+| `@params[:champ_nom_eleveur] \|\| "Nom et Prénom de l'éleveur"` | `@laissez_passer[:nom_eleveur]` |
+| `@params[:champ_email_eleveur] \|\| "Email de l'éleveur"` | `@laissez_passer[:email_eleveur]` |
+| `@params[:champ_tel_eleveur] \|\| "Téléphone de l'éleveur"` | `@laissez_passer[:telephone_eleveur]` |
+| `texte_annotation(laissez_passer, :annotation_recus)` / `ecrire(laissez_passer, :annotation_recus, …)` | passer directement le libellé : `@laissez_passer[:engagements_recus]` (idem `engagements_manquants`) ; `texte_annotation(lp, libelle)` et `ecrire(lp, libelle, texte)` prennent désormais le libellé |
+
+Le garde sur la démarche du laissez-passer devient `if @laissez_passer[:demarche].present? && laissez_passer.demarche.number.to_i != @laissez_passer[:demarche].to_i`. Mettre à jour le commentaire de classe avec la forme des deux sous-blocs.
+
+- [ ] **Step 4: Implémenter `Dbs::InviterEleveurs`**
+
+```ruby
+    def version
+      super + 2
+    end
+
+    def required_fields
+      super + %i[demarche_engagement eleveurs invitations_envoyees objet message prerempli]
+    end
+
+    def authorized_fields
+      super + %i[email_eleveur nom_eleveur]
+    end
+
+    def initialize(params)
+      super
+      @states = Set.new(ETATS_PAR_DEFAUT) if @params[:etat_du_dossier].blank?
+      @champ_email = @params[:email_eleveur] || "Email de l'éleveur"
+      @champ_nom = @params[:nom_eleveur] || "Nom et Prénom de l'éleveur"
+    end
+```
+et remplacer `@params[:annotation_envois]` par `@params[:invitations_envoyees]` (3 occurrences : garde, `lignes_envois`, `set_value`) et `param_field(:champ_eleveurs)` par `param_field(:eleveurs)`. Mettre à jour le commentaire de classe.
+
+- [ ] **Step 5: Lancer, vérifier le succès** — `bundle exec rspec spec/lib/dbs spec/lib/prefill_url_spec.rb` (35 exemples, 0 échec).
+
+- [ ] **Step 6: Configuration** — dans `storage/configurations/dbs_poussins.yml` :
+
+```yaml
+dbs_poussins_inviter: &dbs_poussins_inviter
+  etat_du_dossier: en_instruction
+  demarche_engagement: engagements-pour-recevoir-des-poussins-d-un-jour   # chemin /commencer/ de la 4038, à vérifier
+  eleveurs: Liste des éleveurs
+  email_eleveur: Email de l'éleveur
+  nom_eleveur: Nom et Prénom de l'éleveur
+  invitations_envoyees: Invitations envoyées
+  objet: "Poussins d'un jour — signez votre engagement d'éleveur destinataire"
+  message: *invitation_engagement
+  prerempli:
+    … (inchangé)
+```
+
+```yaml
+    - dbs/engagement_recu:
+        etat_du_dossier: [ en_construction, en_instruction, accepte ]
+        engagement:                          # le dossier courant (démarche 4038)
+          lien_laissez_passer: Numéro du dossier de laissez-passer
+          nom: Nom et prénom de l'éleveur
+          telephone: Téléphone
+          courriel_invitation: Courriel indiqué par votre importateur
+          courriel_attribution: Courriel d'attribution          # annotation posée par le robot
+        laissez_passer:                      # le dossier lié (démarche 3899)
+          demarche: 3899
+          eleveurs: Liste des éleveurs
+          nom_eleveur: Nom et Prénom de l'éleveur
+          email_eleveur: Email de l'éleveur
+          telephone_eleveur: Téléphone de l'éleveur
+          engagements_recus: Engagements reçus                  # annotation réécrite par le robot
+          engagements_manquants: Engagements manquants          # annotation réécrite par le robot
+```
+Valider (`ruby -ryaml …` puis `bin/rails runner …` comme en Task 5 : `erreurs : []` pour les deux points d'entrée — l'instanciation exerce maintenant la validation des sous-blocs) et recopier vers la copie staging (`diff` identique).
+
+- [ ] **Step 7: Guide** — réécrire les deux exemples YAML de la section 8 de `docs/CONFIGURATION_GUIDE.md` avec les nouvelles clés (reprendre les deux blocs ci-dessus, commentaires compris) et ajouter une phrase : « Les paramètres de `dbs/engagement_recu` sont regroupés par dossier : `engagement:` pour le dossier courant, `laissez_passer:` pour le dossier lié ; une clé inconnue ou manquante dans un sous-bloc est signalée à l'instanciation comme une clé de premier niveau. »
+
+- [ ] **Step 8: Rubocop, lint, commit**
+
+```bash
+bundle exec rubocop -A app/lib/dbs/engagement_recu.rb app/lib/dbs/inviter_eleveurs.rb spec/lib/dbs/engagement_recu_spec.rb spec/lib/dbs/inviter_eleveurs_spec.rb && bundle exec rake lint
+git add app/lib/dbs/engagement_recu.rb app/lib/dbs/inviter_eleveurs.rb spec/lib/dbs/engagement_recu_spec.rb spec/lib/dbs/inviter_eleveurs_spec.rb docs/CONFIGURATION_GUIDE.md
+git commit -m "refactor(dbs): paramétrer engagement_recu par sous-blocs engagement / laissez_passer
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+```
+
+---
+
 ## Auto-revue du plan
 
 **Couverture de la spec (périmètre cascade)** : déclencheur n° 1 « case cochée, dossier en instruction » → Task 5 (`conditional_field`) + Task 3 ; lien prérempli (n° LP, importateur, date, vol, effectif, nom, téléphone) → Tasks 1, 3, 5 ; trace non rejouable et réinvitation d'un éleveur ajouté → Task 3 ; « Engagements reçus » / « manquants » réécrits en entier, format fixe, rapprochement courriel, « non attendu » → Tasks 2, 4 ; relance agent après 2 jours → Task 5 ; test de bout en bout → Task 6 ; documentation → Task 7. Hors périmètre volontaire, tranche suivante : visa, « Laissez-passer visé le » sur les engagements, certificats, carnet, courriel d'annulation si refus après envoi.
