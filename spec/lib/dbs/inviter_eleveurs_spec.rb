@@ -9,8 +9,8 @@ RSpec.describe Dbs::InviterEleveurs do
   let(:task) do
     described_class.new(
       demarche_engagement: 'engagements-poussins',
-      champ_eleveurs: 'Liste des éleveurs',
-      annotation_envois: 'Invitations envoyées',
+      eleveurs: 'Liste des éleveurs',
+      invitations_envoyees: 'Invitations envoyées',
       objet: 'Engagement poussins — {nom_eleveur}',
       message: 'Bonjour {nom_eleveur}, lot {number} : {lien}',
       prerempli: { 197_027 => 'number', 197_038 => "Nom et Prénom de l'éleveur", 197_047 => "Téléphone de l'éleveur" }

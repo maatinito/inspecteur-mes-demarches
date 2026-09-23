@@ -14,32 +14,41 @@ module Dbs
   # ne filtre pas les dossiers par valeur de champ, le lien inverse se construit
   # à l'écriture (spec §3.2, décision 17). Écrire dans le laissez-passer le fait
   # repasser en inspection, ce qui servira au visa (tranche suivante).
+  #
+  # Les paramètres sont regroupés par dossier, dans deux sous-blocs :
+  #   engagement:      le dossier courant (démarche 4038)
+  #   laissez_passer:  le dossier lié (démarche 3899)
   class EngagementRecu < FieldChecker
     ETATS_PAR_DEFAUT = %w[en_construction en_instruction accepte].freeze
+    ENGAGEMENT_REQUIS = %i[lien_laissez_passer].freeze
+    ENGAGEMENT_DEFAUTS = { nom: "Nom et prénom de l'éleveur", telephone: 'Téléphone',
+                           courriel_invitation: nil, courriel_attribution: nil }.freeze
+    LAISSEZ_PASSER_REQUIS = %i[eleveurs engagements_recus engagements_manquants].freeze
+    LAISSEZ_PASSER_DEFAUTS = { demarche: nil, nom_eleveur: "Nom et Prénom de l'éleveur",
+                               email_eleveur: "Email de l'éleveur", telephone_eleveur: "Téléphone de l'éleveur" }.freeze
 
     def version
-      super + 1
+      super + 2
     end
 
     def required_fields
-      super + %i[champ_laissez_passer champ_eleveurs annotation_recus annotation_manquants]
-    end
-
-    def authorized_fields
-      super + %i[champ_nom champ_nom_eleveur champ_email_eleveur champ_tel_eleveur demarche_laissez_passer
-                 champ_courriel_invitation annotation_courriel_attribution champ_telephone]
+      super + %i[engagement laissez_passer]
     end
 
     def initialize(params)
       super
       @states = Set.new(ETATS_PAR_DEFAUT) if @params[:etat_du_dossier].blank?
+      return unless valid?
+
+      @engagement = sous_bloc(:engagement, ENGAGEMENT_REQUIS, ENGAGEMENT_DEFAUTS)
+      @laissez_passer = sous_bloc(:laissez_passer, LAISSEZ_PASSER_REQUIS, LAISSEZ_PASSER_DEFAUTS)
     end
 
     def process(demarche, dossier)
       super
       return unless must_check?(dossier)
 
-      numero = field(@params[:champ_laissez_passer])&.string_value.to_s[/\d+/]
+      numero = field(@engagement[:lien_laissez_passer])&.string_value.to_s[/\d+/]
       if numero.blank?
         Rails.logger.warn("Engagement #{dossier.number} : aucun laissez-passer lié, rien à faire")
         return
@@ -48,20 +57,37 @@ module Dbs
       laissez_passer = DossierActions.on_dossier(numero.to_i)
       raise "Laissez-passer #{numero} introuvable depuis l'engagement #{dossier.number}" if laissez_passer.nil?
 
-      if @params[:demarche_laissez_passer].present? && laissez_passer.demarche.number.to_i != @params[:demarche_laissez_passer].to_i
-        raise "Le dossier #{numero} n'est pas un laissez-passer de la démarche #{@params[:demarche_laissez_passer]} " \
+      if @laissez_passer[:demarche].present? && laissez_passer.demarche.number.to_i != @laissez_passer[:demarche].to_i
+        raise "Le dossier #{numero} n'est pas un laissez-passer de la démarche #{@laissez_passer[:demarche]} " \
               "(démarche #{laissez_passer.demarche.number})"
       end
 
       eleveurs = eleveurs_du_lot(laissez_passer)
       email = courriel_attribution(eleveurs)
-      engagements = ListeEngagements.upsert(ListeEngagements.parse_recus(texte_annotation(laissez_passer, :annotation_recus)),
+      engagements = ListeEngagements.upsert(ListeEngagements.parse_recus(texte_annotation(laissez_passer, @laissez_passer[:engagements_recus])),
                                             engagement_courant(eleveurs, email))
-      ecrire(laissez_passer, :annotation_recus, ListeEngagements.format_recus(engagements))
-      ecrire(laissez_passer, :annotation_manquants, ListeEngagements.format_manquants(eleveurs, engagements))
+      ecrire(laissez_passer, @laissez_passer[:engagements_recus], ListeEngagements.format_recus(engagements))
+      ecrire(laissez_passer, @laissez_passer[:engagements_manquants], ListeEngagements.format_manquants(eleveurs, engagements))
     end
 
     private
+
+    # Un sous-bloc YAML (engagement: / laissez_passer:) : clés requises, clés connues avec défaut,
+    # tout le reste est une erreur de paramétrage signalée comme les clés de premier niveau.
+    def sous_bloc(nom, requis, defauts)
+      bloc = @params[nom]
+      unless bloc.is_a?(Hash)
+        @errors << "#{nom} doit être un bloc de clés sur dbs/engagement_recu"
+        return defauts
+      end
+
+      bloc = bloc.symbolize_keys
+      manquants = requis - bloc.keys
+      @errors << "Clé(s) manquante(s) '#{manquants.join(', ')}' dans #{nom} sur dbs/engagement_recu" if manquants.present?
+      inconnues = bloc.keys - requis - defauts.keys
+      @errors << "#{inconnues.join(', ')} n'existe(nt) pas dans #{nom} sur dbs/engagement_recu" if inconnues.present?
+      defauts.merge(bloc)
+    end
 
     def engagement_courant(eleveurs, email)
       ListeEngagements::Engagement.new(nom: nom_eleveur, email:, numero: @dossier.number,
@@ -74,7 +100,7 @@ module Dbs
     # à une ligne > téléphone concordant (lien reçu sans préremplissage) > courriel du compte. Le résultat
     # est écrit dans l'annotation : l'agent le voit, et une correction de sa part relance le calcul.
     def courriel_attribution(eleveurs)
-      nom_annotation = @params[:annotation_courriel_attribution]
+      nom_annotation = @engagement[:courriel_attribution]
       deja = nom_annotation.present? ? champ_value(annotation(nom_annotation, warn_if_empty: false)).to_s.strip.downcase : ''
       return deja if deja.present?
 
@@ -84,14 +110,14 @@ module Dbs
     end
 
     def courriel_prerempli(eleveurs)
-      return nil if @params[:champ_courriel_invitation].blank?
+      return nil if @engagement[:courriel_invitation].blank?
 
-      email = champ_value(field(@params[:champ_courriel_invitation], warn_if_empty: false)).to_s.strip.downcase
+      email = champ_value(field(@engagement[:courriel_invitation], warn_if_empty: false)).to_s.strip.downcase
       email if email.present? && eleveurs.any? { |e| e[:email] == email }
     end
 
     def courriel_par_telephone(eleveurs)
-      tel = chiffres(champ_value(field(@params[:champ_telephone] || 'Téléphone', warn_if_empty: false)))
+      tel = chiffres(champ_value(field(@engagement[:telephone], warn_if_empty: false)))
       return nil if tel.length < 6
 
       eleveurs.find { |e| chiffres(e[:telephone]) == tel }&.dig(:email).presence
@@ -107,7 +133,7 @@ module Dbs
     end
 
     def nom_eleveur
-      nom = champ_value(field(@params[:champ_nom] || "Nom et prénom de l'éleveur", warn_if_empty: false)).to_s.strip
+      nom = champ_value(field(@engagement[:nom], warn_if_empty: false)).to_s.strip
       return nom if nom.present?
 
       demandeur = @dossier.demandeur
@@ -115,11 +141,11 @@ module Dbs
     end
 
     def eleveurs_du_lot(laissez_passer)
-      rows = dossier_field(laissez_passer, @params[:champ_eleveurs], warn_if_empty: false)&.rows || []
+      rows = dossier_field(laissez_passer, @laissez_passer[:eleveurs], warn_if_empty: false)&.rows || []
       rows.map do |row|
-        { nom: valeur(row, @params[:champ_nom_eleveur] || "Nom et Prénom de l'éleveur"),
-          email: valeur(row, @params[:champ_email_eleveur] || "Email de l'éleveur").downcase,
-          telephone: valeur(row, @params[:champ_tel_eleveur] || "Téléphone de l'éleveur") }
+        { nom: valeur(row, @laissez_passer[:nom_eleveur]),
+          email: valeur(row, @laissez_passer[:email_eleveur]).downcase,
+          telephone: valeur(row, @laissez_passer[:telephone_eleveur]) }
       end
     end
 
@@ -127,12 +153,12 @@ module Dbs
       champs_to_values(select_champ(row.champs, label)).first.to_s.strip
     end
 
-    def texte_annotation(laissez_passer, cle)
-      SetAnnotationValue.get_annotation(laissez_passer, @params[cle])&.value.to_s
+    def texte_annotation(laissez_passer, libelle)
+      SetAnnotationValue.get_annotation(laissez_passer, libelle)&.value.to_s
     end
 
-    def ecrire(laissez_passer, cle, texte)
-      SetAnnotationValue.set_value(laissez_passer, instructeur_id, @params[cle], texte)
+    def ecrire(laissez_passer, libelle, texte)
+      SetAnnotationValue.set_value(laissez_passer, instructeur_id, libelle, texte)
     end
   end
 end

@@ -25,31 +25,32 @@ module Dbs
     ETATS_PAR_DEFAUT = %w[en_instruction].freeze
 
     def version
-      super + 1
+      super + 2
     end
 
     def required_fields
-      super + %i[demarche_engagement champ_eleveurs annotation_envois objet message prerempli]
+      super + %i[demarche_engagement eleveurs invitations_envoyees objet message prerempli]
     end
 
     def authorized_fields
-      super + %i[champ_email champ_nom]
+      super + %i[email_eleveur nom_eleveur]
     end
 
     def initialize(params)
       super
       @states = Set.new(ETATS_PAR_DEFAUT) if @params[:etat_du_dossier].blank?
-      @champ_email = @params[:champ_email] || "Email de l'éleveur"
-      @champ_nom = @params[:champ_nom] || "Nom et Prénom de l'éleveur"
+      @champ_email = @params[:email_eleveur] || "Email de l'éleveur"
+      @champ_nom = @params[:nom_eleveur] || "Nom et Prénom de l'éleveur"
     end
 
     def process(demarche, dossier)
       super
       return unless must_check?(dossier)
 
-      raise "Annotation '#{@params[:annotation_envois]}' introuvable sur le dossier #{dossier.number} : aucune invitation envoyée" unless annotation(@params[:annotation_envois], warn_if_empty: false)
+      raise "Annotation '#{@params[:invitations_envoyees]}' introuvable sur le dossier #{dossier.number} : aucune invitation envoyée" unless annotation(@params[:invitations_envoyees],
+                                                                                                                                                        warn_if_empty: false)
 
-      rows = param_field(:champ_eleveurs)&.rows || []
+      rows = param_field(:eleveurs)&.rows || []
       lignes = lignes_envois
       deja = lignes.filter_map { |l| LIGNE_ENVOI.match(l)&.[](:email)&.downcase }.to_set
 
@@ -58,7 +59,7 @@ module Dbs
         next unless ligne
 
         lignes << ligne
-        SetAnnotationValue.set_value(dossier, instructeur_id, @params[:annotation_envois], lignes.join("\n"))
+        SetAnnotationValue.set_value(dossier, instructeur_id, @params[:invitations_envoyees], lignes.join("\n"))
         dossier_updated(dossier)
       end
     end
@@ -66,7 +67,7 @@ module Dbs
     private
 
     def lignes_envois
-      annotation(@params[:annotation_envois], warn_if_empty: false)&.value.to_s.lines.map(&:strip).reject(&:blank?)
+      annotation(@params[:invitations_envoyees], warn_if_empty: false)&.value.to_s.lines.map(&:strip).reject(&:blank?)
     end
 
     def inviter(row, deja)

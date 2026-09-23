@@ -6,14 +6,19 @@ require 'rails_helper'
 RSpec.describe Dbs::EngagementRecu do
   let(:task) do
     described_class.new(
-      champ_laissez_passer: 'Numéro du dossier de laissez-passer',
-      champ_eleveurs: 'Liste des éleveurs',
-      annotation_recus: 'Engagements reçus',
-      annotation_manquants: 'Engagements manquants',
-      demarche_laissez_passer: 3899,
-      champ_courriel_invitation: 'Courriel indiqué par votre importateur',
-      annotation_courriel_attribution: "Courriel d'attribution",
-      champ_telephone: 'Téléphone'
+      engagement: {
+        lien_laissez_passer: 'Numéro du dossier de laissez-passer',
+        nom: "Nom et prénom de l'éleveur",
+        telephone: 'Téléphone',
+        courriel_invitation: 'Courriel indiqué par votre importateur',
+        courriel_attribution: "Courriel d'attribution"
+      },
+      laissez_passer: {
+        demarche: 3899,
+        eleveurs: 'Liste des éleveurs',
+        engagements_recus: 'Engagements reçus',
+        engagements_manquants: 'Engagements manquants'
+      }
     )
   end
   let(:demarche) { instance_double(Demarche, instructeur: 'robot') }
@@ -203,6 +208,27 @@ RSpec.describe Dbs::EngagementRecu do
     )
     task.process(demarche, engagement)
     expect(SetAnnotationValue).to have_received(:set_value).with(engagement, 'robot', "Courriel d'attribution", 'vaimiti@exemple.pf')
+  end
+
+  describe 'validation du paramétrage' do
+    it 'refuse un sous-bloc laissez_passer incomplet' do
+      t = described_class.new(engagement: { lien_laissez_passer: 'L' }, laissez_passer: { eleveurs: 'E' })
+      expect(t).not_to be_valid
+      expect(t.errors.join).to include('engagements_recus', 'engagements_manquants')
+    end
+
+    it 'refuse une clé inconnue dans un sous-bloc' do
+      t = described_class.new(engagement: { lien_laissez_passer: 'L', champ_nom: 'X' },
+                              laissez_passer: { eleveurs: 'E', engagements_recus: 'R', engagements_manquants: 'M' })
+      expect(t).not_to be_valid
+      expect(t.errors.join).to include('champ_nom')
+    end
+
+    it 'accepte les sous-blocs minimaux et applique les défauts' do
+      t = described_class.new(engagement: { lien_laissez_passer: 'L' },
+                              laissez_passer: { eleveurs: 'E', engagements_recus: 'R', engagements_manquants: 'M' })
+      expect(t).to be_valid
+    end
   end
 end
 # rubocop:enable Metrics/BlockLength

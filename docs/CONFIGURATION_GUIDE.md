@@ -517,10 +517,10 @@ parent, source de vérité unique (voir `docs/superpowers/specs/2026-08-18-dbs-i
 - dbs/inviter_eleveurs:
     etat_du_dossier: en_instruction
     demarche_engagement: chemin-de-la-demarche-enfant     # segment après /commencer/
-    champ_eleveurs: Liste des éleveurs                      # bloc répétable du parent
-    champ_email: Email de l'éleveur                         # sous-champ courriel (défaut)
-    champ_nom: Nom et Prénom de l'éleveur                   # sous-champ nom (défaut)
-    annotation_envois: Invitations envoyées                 # annotation texte : « courriel — envoyé le … »
+    eleveurs: Liste des éleveurs                            # bloc répétable du parent
+    email_eleveur: Email de l'éleveur                       # sous-champ courriel (défaut)
+    nom_eleveur: Nom et Prénom de l'éleveur                 # sous-champ nom (défaut)
+    invitations_envoyees: Invitations envoyées               # annotation texte : « courriel — envoyé le … »
     objet: "Signez votre engagement"
     message: "Bonjour {nom_eleveur}, lot {number} : {lien}"  # {lien} et {nom_eleveur} sont fournis par la tâche
     prerempli:                                              # stable_id du champ ENFANT : chemin dans le PARENT
@@ -531,14 +531,25 @@ parent, source de vérité unique (voir `docs/superpowers/specs/2026-08-18-dbs-i
 # Côté enfant : au dépôt, réécrit deux annotations du parent
 - dbs/engagement_recu:
     etat_du_dossier: [ en_construction, en_instruction, accepte ]
-    champ_laissez_passer: Numéro du dossier de laissez-passer   # champ lien dossier vers le parent
-    champ_eleveurs: Liste des éleveurs                          # bloc du parent
-    annotation_recus: Engagements reçus                         # « Nom (courriel) — dossier N — déposé le … »
-    annotation_manquants: Engagements manquants                 # « Nom au téléphone (courriel) »
-    champ_courriel_invitation: Courriel indiqué par votre importateur   # champ ENFANT prérempli par le lien (clé d'attribution)
-    annotation_courriel_attribution: Courriel d'attribution     # annotation ENFANT posée par le robot, corrigeable par l'agent
-    champ_telephone: Téléphone                                  # champ ENFANT, repli si le lien n'a pas été prérempli
+    engagement:                          # le dossier courant (l'enfant, ex. démarche 4038)
+      lien_laissez_passer: Numéro du dossier de laissez-passer   # requis — champ lien dossier vers le parent
+      nom: Nom et prénom de l'éleveur                            # défaut
+      telephone: Téléphone                                       # défaut — repli si le lien n'a pas été prérempli
+      courriel_invitation: Courriel indiqué par votre importateur   # champ prérempli par le lien (clé d'attribution)
+      courriel_attribution: Courriel d'attribution               # annotation posée par le robot, corrigeable par l'agent
+    laissez_passer:                      # le dossier lié (le parent, ex. démarche 3899)
+      demarche: 3899                                             # garde : le lien doit pointer cette démarche
+      eleveurs: Liste des éleveurs                               # requis — bloc du parent
+      nom_eleveur: Nom et Prénom de l'éleveur                    # défaut
+      email_eleveur: Email de l'éleveur                          # défaut
+      telephone_eleveur: Téléphone de l'éleveur                  # défaut
+      engagements_recus: Engagements reçus                       # requis — « Nom (courriel) — dossier N — déposé le … »
+      engagements_manquants: Engagements manquants               # requis — « Nom au téléphone (courriel) »
 ```
+
+Les paramètres de `dbs/engagement_recu` sont regroupés par dossier : `engagement:` pour le dossier courant,
+`laissez_passer:` pour le dossier lié ; une clé inconnue ou manquante dans un sous-bloc est signalée à
+l'instanciation comme une clé de premier niveau.
 
 Règles : le robot réécrit les zones en entier à chaque passage (pas de doublon, pas de dérive si l'agent a
 touché au texte) ; le rapprochement se fait sur l'annotation « Courriel d'attribution » posée par le robot
