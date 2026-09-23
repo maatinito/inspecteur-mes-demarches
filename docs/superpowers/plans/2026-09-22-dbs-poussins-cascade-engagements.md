@@ -1444,6 +1444,63 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
+### Task 10: Préremplir directement l'annotation « Courriel d'attribution » (suppression du champ intermédiaire)
+
+**Contexte (23/09).** Contrairement à ce que la Task 8 supposait, le préremplissage par URL de Mes-Démarches
+s'applique **aussi aux annotations privées** (`PrefillChamps` travaille sur `revision.types_de_champ`, publics et
+privés ; test « a champ private value that is authorized »). Le champ public « Courriel indiqué par votre
+importateur » (197080) est donc inutile : il a été **supprimé** de la 4038, et le lien d'invitation préremplit
+directement l'annotation **« Courriel d'attribution » (197081)**, invisible et non modifiable par l'usager. Le robot
+ne calcule un rattachement que si l'annotation est vide (lien reçu sans préremplissage) : téléphone concordant,
+sinon courriel du compte. Refactor sans autre changement de comportement.
+
+**Files:**
+- Modify: `app/lib/dbs/engagement_recu.rb`, `spec/lib/dbs/engagement_recu_spec.rb`
+- Modify (non versionnés) : `storage/configurations/dbs_poussins.yml` + copie staging
+- Modify: `docs/CONFIGURATION_GUIDE.md` (section 8)
+
+- [ ] **Step 1: Adapter les tests**
+
+Dans `spec/lib/dbs/engagement_recu_spec.rb` :
+1. Retirer `courriel_invitation:` du sous-bloc `engagement:` du `let(:task)`.
+2. Supprimer le `let(:courriel_invitation)` et le champ « Courriel indiqué par votre importateur » du double `engagement` ; la valeur qui était portée par ce champ passe dans l'annotation : `let(:attribution_existante) { 'vaimiti@exemple.pf' }` par défaut (c'est ce que le lien prérempli produit).
+3. Contexte « courriel de l engagement n est pas dans la liste du lot » : remplacer `let(:courriel_invitation) { '' }` par `let(:attribution_existante) { nil }` (garder `let(:telephone_engagement) { '' }`).
+4. Contexte « usager absent → non attendu » : idem, `let(:attribution_existante) { nil }` et `let(:telephone_engagement) { '' }`.
+5. Contexte « signe avec un autre compte » : le premier exemple devient « rattache par l'annotation préremplie et ne la réécrit pas » — mêmes assertions sur les deux annotations du laissez-passer, mais `expect(SetAnnotationValue).not_to have_received(:set_value).with(engagement, anything, anything, anything)` et `expect(task.dossier_updated?).to be false` ; le sous-contexte « lien reçu sans préremplissage » pose `let(:attribution_existante) { nil }` (au lieu de `courriel_invitation ''`) et garde ses assertions ; le sous-contexte « l agent a déjà corrigé » pose `let(:attribution_existante) { 'manutere@exemple.pf' }` — il devient identique au premier cas, le fusionner avec lui (un seul exemple « respecte l'annotation présente, préremplie ou corrigée par l'agent »).
+6. Supprimer l'exemple « ignore un courriel prérempli qui ne correspond à aucune ligne du lot » (il n'y a plus de champ à ignorer). Ajouter à la place :
+```ruby
+    it 'respecte une annotation préremplie même si elle n est pas dans le lot, et la marque non attendue' do
+      allow(engagement).to receive(:annotations).and_return([champ("Courriel d'attribution", 'ailleurs@exemple.pf')])
+      task.process(demarche, engagement)
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        laissez_passer, 'robot', 'Engagements reçus',
+        'Vaimiti HOA (ailleurs@exemple.pf) — dossier 655888 — déposé le 15/09/2026 — non attendu'
+      )
+    end
+```
+7. Validation : dans « refuse une clé inconnue dans un sous-bloc », la clé inconnue testée devient `courriel_invitation: 'X'` (elle n'existe plus) et l'assertion `include('courriel_invitation')`.
+
+- [ ] **Step 2: Lancer, vérifier l'échec** — `bundle exec rspec spec/lib/dbs/engagement_recu_spec.rb` (la clé `courriel_invitation` encore acceptée fait échouer le test de validation ; le premier exemple « autre compte » échoue sur `not_to have_received … engagement`).
+
+- [ ] **Step 3: Implémenter** — dans `app/lib/dbs/engagement_recu.rb` : retirer `courriel_invitation: nil` de `ENGAGEMENT_DEFAUTS` ; supprimer la méthode `courriel_prerempli` ; dans `courriel_attribution`, la ligne de calcul devient `email = courriel_par_telephone(eleveurs) || @dossier.usager&.email.to_s.strip.downcase` ; réécrire le commentaire de la méthode et de la classe : « Priorité : annotation présente (préremplie par le lien d'invitation, ou corrigée par l'agent) > téléphone concordant > courriel du compte ; le robot n'écrit l'annotation que lorsqu'il l'a déduite ». `version` → `super + 3`.
+
+- [ ] **Step 4: Lancer, vérifier le succès** — `bundle exec rspec spec/lib/dbs spec/lib/prefill_url_spec.rb` (0 échec ; le nombre d'exemples baisse d'un).
+
+- [ ] **Step 5: Configuration** — dans les deux copies de `dbs_poussins.yml` : retirer la ligne `courriel_invitation:` du sous-bloc `engagement:` ; dans `prerempli` de `dbs_poussins_inviter`, remplacer `197080: Email de l'éleveur …` par `197081: Email de l'éleveur                          # Courriel d'attribution (annotation privée préremplie = clé de rattachement)`. Valider (`ruby -ryaml`, instanciation directe des deux classes avec les params extraits du YAML → `errors: []`), `diff` des copies identique.
+
+- [ ] **Step 6: Guide** — section 8 : retirer la ligne `courriel_invitation` de l'exemple ; dans « Règles », écrire : « le rapprochement se fait sur l'annotation privée « Courriel d'attribution », **préremplie par le lien d'invitation** (une annotation privée se préremplit par l'URL comme un champ public, sans être visible de l'usager) ; si elle est vide, le robot la déduit du téléphone concordant, sinon du courriel du compte ; l'agent peut la corriger ».
+
+- [ ] **Step 7: Rubocop, lint, commit**
+```bash
+bundle exec rubocop -A app/lib/dbs/engagement_recu.rb spec/lib/dbs/engagement_recu_spec.rb && bundle exec rake lint
+git add app/lib/dbs/engagement_recu.rb spec/lib/dbs/engagement_recu_spec.rb docs/CONFIGURATION_GUIDE.md
+git commit -m "refactor(dbs): préremplir directement l'annotation « Courriel d'attribution »
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+```
+
+---
+
 ## Auto-revue du plan
 
 **Couverture de la spec (périmètre cascade)** : déclencheur n° 1 « case cochée, dossier en instruction » → Task 5 (`conditional_field`) + Task 3 ; lien prérempli (n° LP, importateur, date, vol, effectif, nom, téléphone) → Tasks 1, 3, 5 ; trace non rejouable et réinvitation d'un éleveur ajouté → Task 3 ; « Engagements reçus » / « manquants » réécrits en entier, format fixe, rapprochement courriel, « non attendu » → Tasks 2, 4 ; relance agent après 2 jours → Task 5 ; test de bout en bout → Task 6 ; documentation → Task 7. Hors périmètre volontaire, tranche suivante : visa, « Laissez-passer visé le » sur les engagements, certificats, carnet, courriel d'annulation si refus après envoi.

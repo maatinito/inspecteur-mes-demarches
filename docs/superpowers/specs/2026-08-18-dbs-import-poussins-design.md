@@ -205,13 +205,14 @@ partir de la liste complète (pas d'ajout de ligne : ni doublon, ni dérive si l
   cas qu'on veut voir remonter. **Invariant** : le robot doit pouvoir relire tout ce qu'il écrit (un nom ou un
   courriel vide ne fait pas disparaître la ligne).
   **Clé d'attribution (23/09)** : le rapprochement ne se fait plus sur le courriel du compte mais sur
-  l'annotation privée **« Courriel d'attribution » (197081)** de l'engagement, posée par le robot au dépôt :
-  courriel prérempli par le lien d'invitation dans le champ public « Courriel indiqué par votre importateur »
-  (**197080**) s'il correspond à une ligne du lot, sinon téléphone concordant (lien reçu sans préremplissage),
-  sinon courriel du compte. Le lien transporte ainsi l'identité de la ligne ; un éleveur qui signe avec un autre
-  compte reste rattaché. L'agent peut corriger l'annotation à la main, ce qui relance le calcul. (Le
-  préremplissage URL ne s'applique qu'aux champs publics, d'où le couple champ + annotation.) La recette doit
-  produire une fois le cas « autre compte ».
+  l'annotation privée **« Courriel d'attribution » (197081)** de l'engagement, **préremplie directement par le
+  lien d'invitation** avec le courriel de la ligne du laissez-passer — le préremplissage par URL de
+  Mes-Démarches s'applique aux annotations privées comme aux champs publics (vérifié dans le code de la
+  plateforme, `PrefillChamps`), l'usager ne la voit pas et ne peut pas la modifier. Si elle est vide (démarche
+  ouverte sans le lien), le robot la déduit du téléphone concordant, sinon du courriel du compte, et l'écrit.
+  Le lien transporte ainsi l'identité de la ligne ; un éleveur qui signe avec un autre compte reste rattaché.
+  L'agent peut corriger l'annotation à la main, ce qui relance le calcul. La recette doit produire une fois le
+  cas « autre compte » et une fois le cas « démarche ouverte sans le lien ».
 - **« Engagements manquants »** — les éleveurs du bloc « Liste des éleveurs » dont le courriel n'apparaît
   pas dans les reçus, **avec leur téléphone** pour que l'agent puisse les appeler :
   `Vaimiti HOA au 88 65 25 62 (vaimiti@exemple.pf)`. Elle se vide toute seule ; vide, l'agent sait qu'il
@@ -381,8 +382,7 @@ lien-dossier prérempli.
 ### Rattachement et doublons
 
 L'identifiant d'une attribution est la **paire (n° dossier importateur, courriel de l'éleveur)** — tous deux
-préremplis, le second dans « Courriel indiqué par votre importateur » puis figé par le robot dans l'annotation
-« Courriel d'attribution » (§3.2, 23/09). Aucun jeton d'invitation spécifique n'est créé : le numéro de dossier est la référence
+préremplis, le second directement dans l'annotation privée « Courriel d'attribution » (§3.2, 23/09). Aucun jeton d'invitation spécifique n'est créé : le numéro de dossier est la référence
 naturelle, il est vérifiable, `DossierLinkCheck` sait contrôler qu'il pointe vers la bonne démarche, et
 Mes-Démarches le rend cliquable.
 
