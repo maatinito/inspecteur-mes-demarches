@@ -10,7 +10,10 @@ RSpec.describe Dbs::EngagementRecu do
       champ_eleveurs: 'Liste des éleveurs',
       annotation_recus: 'Engagements reçus',
       annotation_manquants: 'Engagements manquants',
-      demarche_laissez_passer: 3899
+      demarche_laissez_passer: 3899,
+      champ_courriel_invitation: 'Courriel indiqué par votre importateur',
+      annotation_courriel_attribution: "Courriel d'attribution",
+      champ_telephone: 'Téléphone'
     )
   end
   let(:demarche) { instance_double(Demarche, instructeur: 'robot') }
@@ -36,11 +39,17 @@ RSpec.describe Dbs::EngagementRecu do
                             annotations: [recus, manquants], demarche: double('Demarche', number: 3899))
   end
   let(:lien) { champ('Numéro du dossier de laissez-passer', '654000', typename: 'DossierLinkChamp') }
+  let(:courriel_invitation) { 'vaimiti@exemple.pf' }
+  let(:telephone_engagement) { '88 65 25 62' }
+  let(:attribution_existante) { nil }
   let(:engagement) do
     double('Engagement', number: 655_888, state: 'en_construction', date_depot: '2026-09-15T22:00:00+00:00',
                          usager: double('Usager', email: 'Vaimiti@exemple.pf'),
                          demandeur: double('PersonneMorale', entreprise: double('Entreprise', raison_sociale: 'EARL HOA')),
-                         champs: [lien, champ("Nom et prénom de l'éleveur", 'Vaimiti HOA')], annotations: [])
+                         champs: [lien, champ("Nom et prénom de l'éleveur", 'Vaimiti HOA'),
+                                  champ('Courriel indiqué par votre importateur', courriel_invitation),
+                                  champ('Téléphone', telephone_engagement)],
+                         annotations: [champ("Courriel d'attribution", attribution_existante)])
   end
 
   before do
@@ -77,6 +86,9 @@ RSpec.describe Dbs::EngagementRecu do
   end
 
   context 'quand le courriel de l engagement n est pas dans la liste du lot' do
+    let(:courriel_invitation) { '' }
+    let(:telephone_engagement) { '' }
+
     before { allow(engagement).to receive(:usager).and_return(double('Usager', email: 'inconnu@exemple.pf')) }
 
     it 'le liste quand même, marqué « non attendu », sans toucher aux manquants' do
@@ -125,13 +137,72 @@ RSpec.describe Dbs::EngagementRecu do
     expect(SetAnnotationValue).not_to have_received(:set_value)
   end
 
-  it 'liste l engagement comme non attendu quand le compte usager est absent' do
-    allow(engagement).to receive(:usager).and_return(nil)
-    task.process(demarche, engagement)
-    expect(SetAnnotationValue).to have_received(:set_value).with(
-      laissez_passer, 'robot', 'Engagements reçus',
-      'Vaimiti HOA () — dossier 655888 — déposé le 15/09/2026 — non attendu'
+  context 'quand le compte usager est absent' do
+    let(:courriel_invitation) { '' }
+    let(:telephone_engagement) { '' }
+
+    it 'liste l engagement comme non attendu' do
+      allow(engagement).to receive(:usager).and_return(nil)
+      task.process(demarche, engagement)
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        laissez_passer, 'robot', 'Engagements reçus',
+        'Vaimiti HOA () — dossier 655888 — déposé le 15/09/2026 — non attendu'
+      )
+    end
+  end
+
+  context 'quand l éleveur signe avec un autre compte que le courriel déclaré' do
+    before { allow(engagement).to receive(:usager).and_return(double('Usager', email: 'autre.compte@exemple.pf')) }
+
+    it 'rattache l engagement par le courriel prérempli et le pose en annotation' do
+      task.process(demarche, engagement)
+
+      expect(SetAnnotationValue).to have_received(:set_value).with(engagement, 'robot', "Courriel d'attribution", 'vaimiti@exemple.pf')
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        laissez_passer, 'robot', 'Engagements reçus',
+        'Vaimiti HOA (vaimiti@exemple.pf) — dossier 655888 — déposé le 15/09/2026'
+      )
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        laissez_passer, 'robot', 'Engagements manquants', 'Manutere TERE au 87 54 65 75 (manutere@exemple.pf)'
+      )
+      expect(task.dossier_updated?).to be true
+    end
+
+    context 'et que le lien a été reçu sans préremplissage' do
+      let(:courriel_invitation) { '' }
+      let(:telephone_engagement) { '+689 87 54 65 75' }
+
+      it 'rattache par le téléphone concordant' do
+        task.process(demarche, engagement)
+        expect(SetAnnotationValue).to have_received(:set_value).with(engagement, 'robot', "Courriel d'attribution", 'manutere@exemple.pf')
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          laissez_passer, 'robot', 'Engagements manquants', 'Vaimiti HOA au 88 65 25 62 (vaimiti@exemple.pf)'
+        )
+      end
+    end
+
+    context 'et que l agent a déjà corrigé l annotation' do
+      let(:courriel_invitation) { '' }
+      let(:attribution_existante) { 'manutere@exemple.pf' }
+
+      it 'respecte l annotation posée et ne la réécrit pas' do
+        task.process(demarche, engagement)
+        expect(SetAnnotationValue).not_to have_received(:set_value).with(engagement, anything, anything, anything)
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          laissez_passer, 'robot', 'Engagements reçus',
+          'Vaimiti HOA (manutere@exemple.pf) — dossier 655888 — déposé le 15/09/2026'
+        )
+      end
+    end
+  end
+
+  it 'ignore un courriel prérempli qui ne correspond à aucune ligne du lot' do
+    allow(engagement).to receive(:usager).and_return(double('Usager', email: 'vaimiti@exemple.pf'))
+    allow(engagement).to receive(:champs).and_return(
+      [lien, champ("Nom et prénom de l'éleveur", 'Vaimiti HOA'), champ('Courriel indiqué par votre importateur', 'modifie@exemple.pf'), champ('Téléphone', '')]
     )
+    task.process(demarche, engagement)
+    expect(SetAnnotationValue).to have_received(:set_value).with(engagement, 'robot', "Courriel d'attribution", 'vaimiti@exemple.pf')
   end
 end
 # rubocop:enable Metrics/BlockLength

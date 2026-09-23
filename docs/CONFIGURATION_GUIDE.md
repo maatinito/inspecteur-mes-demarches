@@ -535,12 +535,16 @@ parent, source de vérité unique (voir `docs/superpowers/specs/2026-08-18-dbs-i
     champ_eleveurs: Liste des éleveurs                          # bloc du parent
     annotation_recus: Engagements reçus                         # « Nom (courriel) — dossier N — déposé le … »
     annotation_manquants: Engagements manquants                 # « Nom au téléphone (courriel) »
+    champ_courriel_invitation: Courriel indiqué par votre importateur   # champ ENFANT prérempli par le lien (clé d'attribution)
+    annotation_courriel_attribution: Courriel d'attribution     # annotation ENFANT posée par le robot, corrigeable par l'agent
+    champ_telephone: Téléphone                                  # champ ENFANT, repli si le lien n'a pas été prérempli
 ```
 
 Règles : le robot réécrit les zones en entier à chaque passage (pas de doublon, pas de dérive si l'agent a
-touché au texte) ; le rapprochement se fait par courriel en minuscules ; un enfant dont le courriel n'est pas
-dans le bloc est listé avec « — non attendu ». Les identifiants de champs se relèvent avec `bin/describe_demarche`
-ou l'outil MCP `lire_demarche` ; ils sont stables à la publication.
+touché au texte) ; le rapprochement se fait sur l'annotation « Courriel d'attribution » posée par le robot
+(courriel prérempli par le lien, sinon téléphone concordant, sinon compte), en minuscules ; un enfant dont le
+courriel n'est pas dans le bloc est listé avec « — non attendu ». Les identifiants de champs se relèvent avec
+`bin/describe_demarche` ou l'outil MCP `lire_demarche` ; ils sont stables à la publication.
 
 ## Exemples commentés
 

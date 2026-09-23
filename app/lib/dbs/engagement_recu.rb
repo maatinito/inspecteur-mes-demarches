@@ -5,7 +5,10 @@ module Dbs
   # dans le laissez-passer qu'il désigne (démarche 3899) : la zone
   # « Engagements reçus » est réécrite en entier avec l'engagement ajouté, la
   # zone « Engagements manquants » avec les éleveurs du bloc qui n'ont pas
-  # encore signé (rapprochement par courriel du compte, en minuscules).
+  # encore signé. Le rapprochement ne se fait plus sur le courriel du compte
+  # usager, mais sur l'annotation privée « Courriel d'attribution » posée par
+  # le robot (courriel prérempli par le lien d'invitation, à défaut téléphone
+  # concordant, à défaut compte), en minuscules.
   #
   # C'est ainsi que le laissez-passer connaît ses engagements : l'API GraphQL
   # ne filtre pas les dossiers par valeur de champ, le lien inverse se construit
@@ -23,7 +26,8 @@ module Dbs
     end
 
     def authorized_fields
-      super + %i[champ_nom champ_nom_eleveur champ_email_eleveur champ_tel_eleveur demarche_laissez_passer]
+      super + %i[champ_nom champ_nom_eleveur champ_email_eleveur champ_tel_eleveur demarche_laissez_passer
+                 champ_courriel_invitation annotation_courriel_attribution champ_telephone]
     end
 
     def initialize(params)
@@ -50,19 +54,52 @@ module Dbs
       end
 
       eleveurs = eleveurs_du_lot(laissez_passer)
+      email = courriel_attribution(eleveurs)
       engagements = ListeEngagements.upsert(ListeEngagements.parse_recus(texte_annotation(laissez_passer, :annotation_recus)),
-                                            engagement_courant(eleveurs))
+                                            engagement_courant(eleveurs, email))
       ecrire(laissez_passer, :annotation_recus, ListeEngagements.format_recus(engagements))
       ecrire(laissez_passer, :annotation_manquants, ListeEngagements.format_manquants(eleveurs, engagements))
     end
 
     private
 
-    def engagement_courant(eleveurs)
-      email = @dossier.usager&.email.to_s.strip.downcase
+    def engagement_courant(eleveurs, email)
       ListeEngagements::Engagement.new(nom: nom_eleveur, email:, numero: @dossier.number,
                                        date: date_depot,
                                        attendu: eleveurs.any? { |e| e[:email] == email })
+    end
+
+    # Courriel qui rattache l'engagement à une ligne du laissez-passer. Priorité : annotation déjà posée
+    # (l'agent a pu la corriger à la main) > courriel prérempli par le lien d'invitation, s'il correspond
+    # à une ligne > téléphone concordant (lien reçu sans préremplissage) > courriel du compte. Le résultat
+    # est écrit dans l'annotation : l'agent le voit, et une correction de sa part relance le calcul.
+    def courriel_attribution(eleveurs)
+      nom_annotation = @params[:annotation_courriel_attribution]
+      deja = nom_annotation.present? ? champ_value(annotation(nom_annotation, warn_if_empty: false)).to_s.strip.downcase : ''
+      return deja if deja.present?
+
+      email = courriel_prerempli(eleveurs) || courriel_par_telephone(eleveurs) || @dossier.usager&.email.to_s.strip.downcase
+      dossier_updated(@dossier) if nom_annotation.present? && email.present? && SetAnnotationValue.set_value(@dossier, instructeur_id, nom_annotation, email)
+      email
+    end
+
+    def courriel_prerempli(eleveurs)
+      return nil if @params[:champ_courriel_invitation].blank?
+
+      email = champ_value(field(@params[:champ_courriel_invitation], warn_if_empty: false)).to_s.strip.downcase
+      email if email.present? && eleveurs.any? { |e| e[:email] == email }
+    end
+
+    def courriel_par_telephone(eleveurs)
+      tel = chiffres(champ_value(field(@params[:champ_telephone] || 'Téléphone', warn_if_empty: false)))
+      return nil if tel.length < 6
+
+      eleveurs.find { |e| chiffres(e[:telephone]) == tel }&.dig(:email).presence
+    end
+
+    # Comparaison de téléphones : chiffres seuls, indicatif polynésien (+689 / 00689) retiré.
+    def chiffres(valeur)
+      valeur.to_s.gsub(/\D/, '').sub(/\A(00)?689/, '')
     end
 
     def date_depot
