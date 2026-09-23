@@ -204,10 +204,14 @@ partir de la liste complète (pas d'ajout de ligne : ni doublon, ni dérive si l
   correspond à aucune ligne du bloc éleveurs est listé quand même, avec la mention « non attendu » : c'est le
   cas qu'on veut voir remonter. **Invariant** : le robot doit pouvoir relire tout ce qu'il écrit (un nom ou un
   courriel vide ne fait pas disparaître la ligne).
-  **Point à signaler au service** : le rapprochement se fait sur le courriel du *compte* avec lequel l'éleveur
-  signe. S'il signe avec un autre compte que l'adresse donnée par l'importateur, il apparaît à la fois
-  « non attendu » dans les reçus et dans les manquants ; l'agent réconcilie à la main (la recette doit produire
-  ce cas une fois).
+  **Clé d'attribution (23/09)** : le rapprochement ne se fait plus sur le courriel du compte mais sur
+  l'annotation privée **« Courriel d'attribution » (197081)** de l'engagement, posée par le robot au dépôt :
+  courriel prérempli par le lien d'invitation dans le champ public « Courriel indiqué par votre importateur »
+  (**197080**) s'il correspond à une ligne du lot, sinon téléphone concordant (lien reçu sans préremplissage),
+  sinon courriel du compte. Le lien transporte ainsi l'identité de la ligne ; un éleveur qui signe avec un autre
+  compte reste rattaché. L'agent peut corriger l'annotation à la main, ce qui relance le calcul. (Le
+  préremplissage URL ne s'applique qu'aux champs publics, d'où le couple champ + annotation.) La recette doit
+  produire une fois le cas « autre compte ».
 - **« Engagements manquants »** — les éleveurs du bloc « Liste des éleveurs » dont le courriel n'apparaît
   pas dans les reçus, **avec leur téléphone** pour que l'agent puisse les appeler :
   `Vaimiti HOA au 88 65 25 62 (vaimiti@exemple.pf)`. Elle se vide toute seule ; vide, l'agent sait qu'il
@@ -377,7 +381,8 @@ lien-dossier prérempli.
 ### Rattachement et doublons
 
 L'identifiant d'une attribution est la **paire (n° dossier importateur, courriel de l'éleveur)** — tous deux
-préremplis. Aucun jeton d'invitation spécifique n'est créé : le numéro de dossier est la référence
+préremplis, le second dans « Courriel indiqué par votre importateur » puis figé par le robot dans l'annotation
+« Courriel d'attribution » (§3.2, 23/09). Aucun jeton d'invitation spécifique n'est créé : le numéro de dossier est la référence
 naturelle, il est vérifiable, `DossierLinkCheck` sait contrôler qu'il pointe vers la bonne démarche, et
 Mes-Démarches le rend cliquable.
 

@@ -1047,6 +1047,161 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
+### Task 8: Clé d'attribution portée par le lien — annotation « Courriel d'attribution »
+
+**Contexte (décision du 23/09).** Le rapprochement engagement ↔ ligne du laissez-passer se faisait sur le courriel
+du *compte* de l'éleveur. Un éleveur qui signe avec un autre compte que l'adresse déclarée par l'importateur
+apparaissait à la fois « non attendu » et « manquant », et recevait des relances à tort. Désormais le lien
+d'invitation **transporte l'identité de la ligne** : le courriel déclaré par l'importateur est prérempli dans un
+champ public de la 4038 (« Courriel indiqué par votre importateur », **197080**), et au dépôt le robot pose une
+annotation privée **« Courriel d'attribution » (197081)** qui devient la seule clé de rapprochement. Priorité :
+annotation déjà posée (l'agent a pu la corriger) > champ prérempli s'il correspond à une ligne > téléphone
+concordant (lien reçu sans préremplissage) > courriel du compte. Le préremplissage par URL ne s'applique qu'aux
+champs publics, d'où le couple champ public + annotation posée par le robot.
+
+**Files:**
+- Modify: `app/lib/dbs/engagement_recu.rb`
+- Modify: `spec/lib/dbs/engagement_recu_spec.rb`
+- Modify (non versionnés) : `storage/configurations/dbs_poussins.yml` + copie `deployment/robot-mes-demarches-staging/configurations/dbs_poussins.yml`
+- Modify: `docs/CONFIGURATION_GUIDE.md` (section 8, deux lignes)
+
+**Interfaces:**
+- Consumes : `FieldChecker#field`, `#annotation`, `#champ_value`, `#instructeur_id`, `#dossier_updated` ; `SetAnnotationValue.set_value(dossier, instructeur_id, nom, valeur)` (renvoie `true` si la valeur a changé) ; `Dbs::ListeEngagements::Engagement`.
+- Produces : trois clés YAML optionnelles sur `dbs/engagement_recu` : `champ_courriel_invitation` (champ 4038 prérempli), `annotation_courriel_attribution` (annotation 4038), `champ_telephone` (champ 4038, défaut `Téléphone`). Une entrée `prerempli` de plus côté `dbs/inviter_eleveurs` : `197080: Email de l'éleveur`.
+
+- [ ] **Step 1: Écrire les tests qui échouent**
+
+Dans `spec/lib/dbs/engagement_recu_spec.rb` :
+
+1. Ajouter aux params du `let(:task)` : `champ_courriel_invitation: 'Courriel indiqué par votre importateur', annotation_courriel_attribution: "Courriel d'attribution", champ_telephone: 'Téléphone'`.
+2. Paramétrer le double `engagement` par trois `let` : `let(:courriel_invitation) { 'vaimiti@exemple.pf' }`, `let(:telephone_engagement) { '88 65 25 62' }`, `let(:attribution_existante) { nil }`, et lui donner `champs: [lien, champ("Nom et prénom de l'éleveur", 'Vaimiti HOA'), champ('Courriel indiqué par votre importateur', courriel_invitation), champ('Téléphone', telephone_engagement)]` et `annotations: [champ("Courriel d'attribution", attribution_existante)]`.
+3. Dans le contexte existant « courriel de l engagement n est pas dans la liste du lot », ajouter `let(:courriel_invitation) { '' }` et `let(:telephone_engagement) { '' }` pour que le repli aille jusqu'au compte (le résultat attendu ne change pas).
+4. Ajouter quatre exemples :
+
+```ruby
+  context 'quand l éleveur signe avec un autre compte que le courriel déclaré' do
+    before { allow(engagement).to receive(:usager).and_return(double('Usager', email: 'autre.compte@exemple.pf')) }
+
+    it 'rattache l engagement par le courriel prérempli et le pose en annotation' do
+      task.process(demarche, engagement)
+
+      expect(SetAnnotationValue).to have_received(:set_value).with(engagement, 'robot', "Courriel d'attribution", 'vaimiti@exemple.pf')
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        laissez_passer, 'robot', 'Engagements reçus',
+        'Vaimiti HOA (vaimiti@exemple.pf) — dossier 655888 — déposé le 15/09/2026'
+      )
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        laissez_passer, 'robot', 'Engagements manquants', 'Manutere TERE au 87 54 65 75 (manutere@exemple.pf)'
+      )
+      expect(task.dossier_updated?).to be true
+    end
+
+    context 'et que le lien a été reçu sans préremplissage' do
+      let(:courriel_invitation) { '' }
+      let(:telephone_engagement) { '+689 87 54 65 75' }
+
+      it 'rattache par le téléphone concordant' do
+        task.process(demarche, engagement)
+        expect(SetAnnotationValue).to have_received(:set_value).with(engagement, 'robot', "Courriel d'attribution", 'manutere@exemple.pf')
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          laissez_passer, 'robot', 'Engagements manquants', 'Vaimiti HOA au 88 65 25 62 (vaimiti@exemple.pf)'
+        )
+      end
+    end
+
+    context 'et que l agent a déjà corrigé l annotation' do
+      let(:courriel_invitation) { '' }
+      let(:attribution_existante) { 'manutere@exemple.pf' }
+
+      it 'respecte l annotation posée et ne la réécrit pas' do
+        task.process(demarche, engagement)
+        expect(SetAnnotationValue).not_to have_received(:set_value).with(engagement, anything, anything, anything)
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          laissez_passer, 'robot', 'Engagements reçus',
+          'Vaimiti HOA (manutere@exemple.pf) — dossier 655888 — déposé le 15/09/2026'
+        )
+      end
+    end
+  end
+
+  it 'ignore un courriel prérempli qui ne correspond à aucune ligne du lot' do
+    allow(engagement).to receive(:usager).and_return(double('Usager', email: 'vaimiti@exemple.pf'))
+    allow(engagement).to receive(:champs).and_return(
+      [lien, champ("Nom et prénom de l'éleveur", 'Vaimiti HOA'), champ('Courriel indiqué par votre importateur', 'modifie@exemple.pf'), champ('Téléphone', '')]
+    )
+    task.process(demarche, engagement)
+    expect(SetAnnotationValue).to have_received(:set_value).with(engagement, 'robot', "Courriel d'attribution", 'vaimiti@exemple.pf')
+  end
+```
+
+- [ ] **Step 2: Lancer, vérifier l'échec** — `bundle exec rspec spec/lib/dbs/engagement_recu_spec.rb` : les nouveaux exemples échouent (`set_value` jamais reçu avec `engagement`, ou clés YAML inconnues `champ_courriel_invitation…` refusées par `authorized_fields`).
+
+- [ ] **Step 3: Implémenter**
+
+Dans `app/lib/dbs/engagement_recu.rb` :
+
+1. `authorized_fields` : ajouter `champ_courriel_invitation annotation_courriel_attribution champ_telephone`.
+2. Dans `process`, après `eleveurs = eleveurs_du_lot(laissez_passer)`, calculer `email = courriel_attribution(eleveurs)` et passer `email` à `engagement_courant(eleveurs, email)` (le courriel du compte n'y est plus lu directement).
+3. Ajouter les méthodes privées :
+
+```ruby
+    # Courriel qui rattache l'engagement à une ligne du laissez-passer. Priorité : annotation déjà posée
+    # (l'agent a pu la corriger à la main) > courriel prérempli par le lien d'invitation, s'il correspond
+    # à une ligne > téléphone concordant (lien reçu sans préremplissage) > courriel du compte. Le résultat
+    # est écrit dans l'annotation : l'agent le voit, et une correction de sa part relance le calcul.
+    def courriel_attribution(eleveurs)
+      nom_annotation = @params[:annotation_courriel_attribution]
+      deja = nom_annotation.present? ? champ_value(annotation(nom_annotation, warn_if_empty: false)).to_s.strip.downcase : ''
+      return deja if deja.present?
+
+      email = courriel_prerempli(eleveurs) || courriel_par_telephone(eleveurs) || @dossier.usager&.email.to_s.strip.downcase
+      if nom_annotation.present? && email.present? && SetAnnotationValue.set_value(@dossier, instructeur_id, nom_annotation, email)
+        dossier_updated(@dossier)
+      end
+      email
+    end
+
+    def courriel_prerempli(eleveurs)
+      return nil if @params[:champ_courriel_invitation].blank?
+
+      email = champ_value(field(@params[:champ_courriel_invitation], warn_if_empty: false)).to_s.strip.downcase
+      email if email.present? && eleveurs.any? { |e| e[:email] == email }
+    end
+
+    def courriel_par_telephone(eleveurs)
+      tel = chiffres(champ_value(field(@params[:champ_telephone] || 'Téléphone', warn_if_empty: false)))
+      return nil if tel.length < 6
+
+      eleveurs.find { |e| chiffres(e[:telephone]) == tel }&.dig(:email).presence
+    end
+
+    # Comparaison de téléphones : chiffres seuls, indicatif polynésien (+689 / 00689) retiré.
+    def chiffres(valeur)
+      valeur.to_s.gsub(/\D/, '').sub(/\A(00)?689/, '')
+    end
+```
+
+4. `engagement_courant(eleveurs, email)` construit `Engagement.new(nom: nom_eleveur, email:, numero: @dossier.number, date: date_depot, attendu: eleveurs.any? { |e| e[:email] == email })`.
+5. Compléter le commentaire de classe : le rapprochement se fait sur « Courriel d'attribution », pas sur le compte.
+
+- [ ] **Step 4: Lancer, vérifier le succès** — `bundle exec rspec spec/lib/dbs/engagement_recu_spec.rb` (13 exemples, 0 échec) puis `bundle exec rspec spec/lib/dbs spec/lib/prefill_url_spec.rb`.
+
+- [ ] **Step 5: Configuration** — dans `storage/configurations/dbs_poussins.yml` : sous `dbs/engagement_recu`, ajouter `champ_courriel_invitation: Courriel indiqué par votre importateur`, `annotation_courriel_attribution: Courriel d'attribution`, `champ_telephone: Téléphone` ; dans `prerempli` de `dbs_poussins_inviter`, ajouter `197080: Email de l'éleveur   # Courriel indiqué par votre importateur (clé d'attribution)`. Valider (`ruby -ryaml …`, `bin/rails runner …` comme en Task 5) et recopier vers la copie staging (`diff` identique).
+
+- [ ] **Step 6: Guide** — dans `docs/CONFIGURATION_GUIDE.md`, section 8, exemple `dbs/engagement_recu` : ajouter les trois clés avec un commentaire d'une ligne chacune, et dans le paragraphe « Règles » remplacer « le rapprochement se fait par courriel en minuscules » par « le rapprochement se fait sur l'annotation « Courriel d'attribution » posée par le robot (courriel prérempli par le lien, sinon téléphone concordant, sinon compte), en minuscules ».
+
+- [ ] **Step 7: Rubocop, lint, commit**
+
+```bash
+bundle exec rubocop -A app/lib/dbs/engagement_recu.rb spec/lib/dbs/engagement_recu_spec.rb && bundle exec rake lint
+git add app/lib/dbs/engagement_recu.rb spec/lib/dbs/engagement_recu_spec.rb docs/CONFIGURATION_GUIDE.md
+git commit -m "feat(dbs): rattacher l'engagement par le courriel porté par le lien d'invitation
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+```
+
+---
+
 ## Auto-revue du plan
 
 **Couverture de la spec (périmètre cascade)** : déclencheur n° 1 « case cochée, dossier en instruction » → Task 5 (`conditional_field`) + Task 3 ; lien prérempli (n° LP, importateur, date, vol, effectif, nom, téléphone) → Tasks 1, 3, 5 ; trace non rejouable et réinvitation d'un éleveur ajouté → Task 3 ; « Engagements reçus » / « manquants » réécrits en entier, format fixe, rapprochement courriel, « non attendu » → Tasks 2, 4 ; relance agent après 2 jours → Task 5 ; test de bout en bout → Task 6 ; documentation → Task 7. Hors périmètre volontaire, tranche suivante : visa, « Laissez-passer visé le » sur les engagements, certificats, carnet, courriel d'annulation si refus après envoi.
