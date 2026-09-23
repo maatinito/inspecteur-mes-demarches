@@ -5,10 +5,12 @@ module Dbs
   # dans le laissez-passer qu'il désigne (démarche 3899) : la zone
   # « Engagements reçus » est réécrite en entier avec l'engagement ajouté, la
   # zone « Engagements manquants » avec les éleveurs du bloc qui n'ont pas
-  # encore signé. Le rapprochement ne se fait plus sur le courriel du compte
-  # usager, mais sur l'annotation privée « Courriel d'attribution » posée par
-  # le robot (courriel prérempli par le lien d'invitation, à défaut téléphone
-  # concordant, à défaut compte), en minuscules.
+  # encore signé. Le rapprochement se fait sur l'annotation privée « Courriel
+  # d'attribution » : préremplie par le lien d'invitation (une annotation
+  # privée se préremplit par l'URL comme un champ public, sans être visible de
+  # l'usager), ou corrigée par l'agent ; à défaut, le robot la déduit du
+  # téléphone concordant, sinon du courriel du compte, et n'écrit l'annotation
+  # que lorsqu'il l'a déduite.
   #
   # C'est ainsi que le laissez-passer connaît ses engagements : l'API GraphQL
   # ne filtre pas les dossiers par valeur de champ, le lien inverse se construit
@@ -22,13 +24,13 @@ module Dbs
     ETATS_PAR_DEFAUT = %w[en_construction en_instruction accepte].freeze
     ENGAGEMENT_REQUIS = %i[lien_laissez_passer].freeze
     ENGAGEMENT_DEFAUTS = { nom: "Nom et prénom de l'éleveur", telephone: 'Téléphone',
-                           courriel_invitation: nil, courriel_attribution: nil }.freeze
+                           courriel_attribution: nil }.freeze
     LAISSEZ_PASSER_REQUIS = %i[eleveurs engagements_recus engagements_manquants].freeze
     LAISSEZ_PASSER_DEFAUTS = { demarche: nil, nom_eleveur: "Nom et Prénom de l'éleveur",
                                email_eleveur: "Email de l'éleveur", telephone_eleveur: "Téléphone de l'éleveur" }.freeze
 
     def version
-      super + 2
+      super + 3
     end
 
     def required_fields
@@ -95,25 +97,18 @@ module Dbs
                                        attendu: eleveurs.any? { |e| e[:email] == email })
     end
 
-    # Courriel qui rattache l'engagement à une ligne du laissez-passer. Priorité : annotation déjà posée
-    # (l'agent a pu la corriger à la main) > courriel prérempli par le lien d'invitation, s'il correspond
-    # à une ligne > téléphone concordant (lien reçu sans préremplissage) > courriel du compte. Le résultat
-    # est écrit dans l'annotation : l'agent le voit, et une correction de sa part relance le calcul.
+    # Courriel qui rattache l'engagement à une ligne du laissez-passer.
+    # Priorité : annotation présente (préremplie par le lien d'invitation, ou
+    # corrigée par l'agent) > téléphone concordant > courriel du compte ; le
+    # robot n'écrit l'annotation que lorsqu'il l'a déduite.
     def courriel_attribution(eleveurs)
       nom_annotation = @engagement[:courriel_attribution]
       deja = nom_annotation.present? ? champ_value(annotation(nom_annotation, warn_if_empty: false)).to_s.strip.downcase : ''
       return deja if deja.present?
 
-      email = courriel_prerempli(eleveurs) || courriel_par_telephone(eleveurs) || @dossier.usager&.email.to_s.strip.downcase
+      email = courriel_par_telephone(eleveurs) || @dossier.usager&.email.to_s.strip.downcase
       dossier_updated(@dossier) if nom_annotation.present? && email.present? && SetAnnotationValue.set_value(@dossier, instructeur_id, nom_annotation, email)
       email
-    end
-
-    def courriel_prerempli(eleveurs)
-      return nil if @engagement[:courriel_invitation].blank?
-
-      email = champ_value(field(@engagement[:courriel_invitation], warn_if_empty: false)).to_s.strip.downcase
-      email if email.present? && eleveurs.any? { |e| e[:email] == email }
     end
 
     def courriel_par_telephone(eleveurs)

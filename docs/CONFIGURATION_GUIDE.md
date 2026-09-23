@@ -535,7 +535,6 @@ parent, source de vérité unique (voir `docs/superpowers/specs/2026-08-18-dbs-i
       lien_laissez_passer: Numéro du dossier de laissez-passer   # requis — champ lien dossier vers le parent
       nom: Nom et prénom de l'éleveur                            # défaut
       telephone: Téléphone                                       # défaut — repli si le lien n'a pas été prérempli
-      courriel_invitation: Courriel indiqué par votre importateur   # champ prérempli par le lien (clé d'attribution)
       courriel_attribution: Courriel d'attribution               # annotation posée par le robot, corrigeable par l'agent
     laissez_passer:                      # le dossier lié (le parent, ex. démarche 3899)
       demarche: 3899                                             # garde : le lien doit pointer cette démarche
@@ -552,10 +551,12 @@ Les paramètres de `dbs/engagement_recu` sont regroupés par dossier : `engageme
 l'instanciation comme une clé de premier niveau.
 
 Règles : le robot réécrit les zones en entier à chaque passage (pas de doublon, pas de dérive si l'agent a
-touché au texte) ; le rapprochement se fait sur l'annotation « Courriel d'attribution » posée par le robot
-(courriel prérempli par le lien, sinon téléphone concordant, sinon compte), en minuscules ; un enfant dont le
-courriel n'est pas dans le bloc est listé avec « — non attendu ». Les identifiants de champs se relèvent avec
-`bin/describe_demarche` ou l'outil MCP `lire_demarche` ; ils sont stables à la publication.
+touché au texte) ; le rapprochement se fait sur l'annotation privée « Courriel d'attribution », **préremplie
+par le lien d'invitation** (une annotation privée se préremplit par l'URL comme un champ public, sans être
+visible de l'usager) ; si elle est vide, le robot la déduit du téléphone concordant, sinon du courriel du
+compte ; l'agent peut la corriger. Un enfant dont le courriel n'est pas dans le bloc est listé avec « — non
+attendu ». Les identifiants de champs se relèvent avec `bin/describe_demarche` ou l'outil MCP `lire_demarche` ;
+ils sont stables à la publication.
 
 ## Exemples commentés
 

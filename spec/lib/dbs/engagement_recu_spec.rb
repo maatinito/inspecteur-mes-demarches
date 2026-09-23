@@ -10,7 +10,6 @@ RSpec.describe Dbs::EngagementRecu do
         lien_laissez_passer: 'Numéro du dossier de laissez-passer',
         nom: "Nom et prénom de l'éleveur",
         telephone: 'Téléphone',
-        courriel_invitation: 'Courriel indiqué par votre importateur',
         courriel_attribution: "Courriel d'attribution"
       },
       laissez_passer: {
@@ -44,15 +43,13 @@ RSpec.describe Dbs::EngagementRecu do
                             annotations: [recus, manquants], demarche: double('Demarche', number: 3899))
   end
   let(:lien) { champ('Numéro du dossier de laissez-passer', '654000', typename: 'DossierLinkChamp') }
-  let(:courriel_invitation) { 'vaimiti@exemple.pf' }
   let(:telephone_engagement) { '88 65 25 62' }
-  let(:attribution_existante) { nil }
+  let(:attribution_existante) { 'vaimiti@exemple.pf' }
   let(:engagement) do
     double('Engagement', number: 655_888, state: 'en_construction', date_depot: '2026-09-15T22:00:00+00:00',
                          usager: double('Usager', email: 'Vaimiti@exemple.pf'),
                          demandeur: double('PersonneMorale', entreprise: double('Entreprise', raison_sociale: 'EARL HOA')),
                          champs: [lien, champ("Nom et prénom de l'éleveur", 'Vaimiti HOA'),
-                                  champ('Courriel indiqué par votre importateur', courriel_invitation),
                                   champ('Téléphone', telephone_engagement)],
                          annotations: [champ("Courriel d'attribution", attribution_existante)])
   end
@@ -91,7 +88,7 @@ RSpec.describe Dbs::EngagementRecu do
   end
 
   context 'quand le courriel de l engagement n est pas dans la liste du lot' do
-    let(:courriel_invitation) { '' }
+    let(:attribution_existante) { nil }
     let(:telephone_engagement) { '' }
 
     before { allow(engagement).to receive(:usager).and_return(double('Usager', email: 'inconnu@exemple.pf')) }
@@ -143,7 +140,7 @@ RSpec.describe Dbs::EngagementRecu do
   end
 
   context 'quand le compte usager est absent' do
-    let(:courriel_invitation) { '' }
+    let(:attribution_existante) { nil }
     let(:telephone_engagement) { '' }
 
     it 'liste l engagement comme non attendu' do
@@ -159,10 +156,10 @@ RSpec.describe Dbs::EngagementRecu do
   context 'quand l éleveur signe avec un autre compte que le courriel déclaré' do
     before { allow(engagement).to receive(:usager).and_return(double('Usager', email: 'autre.compte@exemple.pf')) }
 
-    it 'rattache l engagement par le courriel prérempli et le pose en annotation' do
+    it "respecte l'annotation présente, préremplie ou corrigée par l'agent" do
       task.process(demarche, engagement)
 
-      expect(SetAnnotationValue).to have_received(:set_value).with(engagement, 'robot', "Courriel d'attribution", 'vaimiti@exemple.pf')
+      expect(SetAnnotationValue).not_to have_received(:set_value).with(engagement, anything, anything, anything)
       expect(SetAnnotationValue).to have_received(:set_value).with(
         laissez_passer, 'robot', 'Engagements reçus',
         'Vaimiti HOA (vaimiti@exemple.pf) — dossier 655888 — déposé le 15/09/2026'
@@ -170,11 +167,11 @@ RSpec.describe Dbs::EngagementRecu do
       expect(SetAnnotationValue).to have_received(:set_value).with(
         laissez_passer, 'robot', 'Engagements manquants', 'Manutere TERE au 87 54 65 75 (manutere@exemple.pf)'
       )
-      expect(task.dossier_updated?).to be true
+      expect(task.dossier_updated?).to be false
     end
 
     context 'et que le lien a été reçu sans préremplissage' do
-      let(:courriel_invitation) { '' }
+      let(:attribution_existante) { nil }
       let(:telephone_engagement) { '+689 87 54 65 75' }
 
       it 'rattache par le téléphone concordant' do
@@ -185,29 +182,15 @@ RSpec.describe Dbs::EngagementRecu do
         )
       end
     end
-
-    context 'et que l agent a déjà corrigé l annotation' do
-      let(:courriel_invitation) { '' }
-      let(:attribution_existante) { 'manutere@exemple.pf' }
-
-      it 'respecte l annotation posée et ne la réécrit pas' do
-        task.process(demarche, engagement)
-        expect(SetAnnotationValue).not_to have_received(:set_value).with(engagement, anything, anything, anything)
-        expect(SetAnnotationValue).to have_received(:set_value).with(
-          laissez_passer, 'robot', 'Engagements reçus',
-          'Vaimiti HOA (manutere@exemple.pf) — dossier 655888 — déposé le 15/09/2026'
-        )
-      end
-    end
   end
 
-  it 'ignore un courriel prérempli qui ne correspond à aucune ligne du lot' do
-    allow(engagement).to receive(:usager).and_return(double('Usager', email: 'vaimiti@exemple.pf'))
-    allow(engagement).to receive(:champs).and_return(
-      [lien, champ("Nom et prénom de l'éleveur", 'Vaimiti HOA'), champ('Courriel indiqué par votre importateur', 'modifie@exemple.pf'), champ('Téléphone', '')]
-    )
+  it 'respecte une annotation préremplie même si elle n est pas dans le lot, et la marque non attendue' do
+    allow(engagement).to receive(:annotations).and_return([champ("Courriel d'attribution", 'ailleurs@exemple.pf')])
     task.process(demarche, engagement)
-    expect(SetAnnotationValue).to have_received(:set_value).with(engagement, 'robot', "Courriel d'attribution", 'vaimiti@exemple.pf')
+    expect(SetAnnotationValue).to have_received(:set_value).with(
+      laissez_passer, 'robot', 'Engagements reçus',
+      'Vaimiti HOA (ailleurs@exemple.pf) — dossier 655888 — déposé le 15/09/2026 — non attendu'
+    )
   end
 
   describe 'validation du paramétrage' do
@@ -218,10 +201,10 @@ RSpec.describe Dbs::EngagementRecu do
     end
 
     it 'refuse une clé inconnue dans un sous-bloc' do
-      t = described_class.new(engagement: { lien_laissez_passer: 'L', champ_nom: 'X' },
+      t = described_class.new(engagement: { lien_laissez_passer: 'L', courriel_invitation: 'X' },
                               laissez_passer: { eleveurs: 'E', engagements_recus: 'R', engagements_manquants: 'M' })
       expect(t).not_to be_valid
-      expect(t.errors.join).to include('champ_nom')
+      expect(t.errors.join).to include('courriel_invitation')
     end
 
     it 'accepte les sous-blocs minimaux et applique les défauts' do
