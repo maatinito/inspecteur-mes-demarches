@@ -1501,6 +1501,117 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
+### Task 11: Rejeu des tâches planifiées portant un identifiant (`dead_line_checker/<n°>`, `schedule/<id>`)
+
+**Contexte (24/09, recette).** `DeadLineChecker#task_identifier` enregistre la tâche planifiée sous le nom
+`dead_line_checker/<numéro de dossier>` (et `Schedule` sous `schedule/<identifiant>`). `ScheduledTaskJob#perform`
+rejoue en faisant `InspectorTask.create_tasks([{ scheduled.task => parameters }])`, qui `camelize` le nom
+complet : `"dead_line_checker/679212".camelize` → `DeadLineChecker::679212` → `NameError: wrong constant name
+679212`. Vu en direct sur le dossier 679212 : la relance « engagements non envoyés » ne pouvait jamais partir.
+Défaut du framework, jamais rencontré en production (aucune configuration n'y utilise `dead_line_checker`).
+
+**Files:**
+- Modify: `app/jobs/scheduled_task_job.rb`
+- Create: `spec/jobs/scheduled_task_job_spec.rb`
+
+**Interfaces:**
+- Produces : `ScheduledTaskJob#task_class_name(stored) → String` (privée) : retire les segments de droite du nom
+  stocké jusqu'à trouver une classe existante ; `"dead_line_checker/679212"` → `"dead_line_checker"`,
+  `"schedule/rappel_1"` → `"schedule"`, `"payzen/payment_order"` → inchangé, `"dead_line_checker"` → inchangé.
+- Consumes : `InspectorTask.create_tasks` (`app/lib/inspector_task.rb`), `ScheduledTask` (modèle),
+  `DossierActions.on_dossier`, `Demarche.find`.
+
+- [ ] **Step 1: Écrire le test qui échoue**
+
+```ruby
+# spec/jobs/scheduled_task_job_spec.rb
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe ScheduledTaskJob do
+  describe '#task_class_name' do
+    subject(:job) { described_class.new }
+
+    it 'retire l identifiant de dossier ajouté par DeadLineChecker' do
+      expect(job.send(:task_class_name, 'dead_line_checker/679212')).to eq 'dead_line_checker'
+    end
+
+    it 'retire l identifiant ajouté par Schedule' do
+      expect(job.send(:task_class_name, 'schedule/rappel_1')).to eq 'schedule'
+    end
+
+    it 'garde intact un nom de classe namespacé' do
+      expect(job.send(:task_class_name, 'payzen/payment_order')).to eq 'payzen/payment_order'
+    end
+
+    it 'garde intact un nom sans identifiant' do
+      expect(job.send(:task_class_name, 'dead_line_checker')).to eq 'dead_line_checker'
+    end
+  end
+
+  describe '#perform' do
+    let(:demarche) { create(:demarche, id: 3899) }
+    let(:dossier) { double('Dossier', number: 679_212, demarche: double('DemarcheGql', number: 3899)) }
+    let(:parameters) { { 'annotation_alertes' => 'Alertes délai', 'instruction' => { 'duree_max' => 0, 'seuils' => [] } } }
+
+    before do
+      demarche
+      ScheduledTask.create!(dossier: 679_212, task: 'dead_line_checker/679212', parameters: parameters.to_json, run_at: 1.minute.ago)
+      allow(DossierActions).to receive(:on_dossier).with(679_212).and_yield(dossier)
+      allow_any_instance_of(DeadLineChecker).to receive(:process)
+      allow(NotificationMailer).to receive(:with).and_call_original
+    end
+
+    it 'rejoue une tâche dead_line_checker enregistrée avec son numéro de dossier, puis la supprime' do
+      expect_any_instance_of(DeadLineChecker).to receive(:process).with(demarche, dossier)
+      described_class.perform_now
+      expect(ScheduledTask.where(dossier: 679_212)).to be_empty
+      expect(NotificationMailer).not_to have_received(:with).with(hash_including(message: a_string_matching(/Error processing/)))
+    end
+  end
+end
+```
+
+- [ ] **Step 2: Lancer, vérifier l'échec** — `bundle exec rspec spec/jobs/scheduled_task_job_spec.rb` : `task_class_name` inexistante (NoMethodError) et, pour `#perform`, la tâche planifiée subsiste (le rejeu lève `wrong constant name 679212`, rattrapé et transformé en courriel d'erreur).
+
+- [ ] **Step 3: Implémenter** — dans `app/jobs/scheduled_task_job.rb` :
+
+```ruby
+        task = InspectorTask.create_tasks([{ task_class_name(scheduled.task) => parameters }]).first
+```
+et, dans la section `private` :
+```ruby
+  # Le nom stocké peut porter un identifiant après la classe (« dead_line_checker/679212 »,
+  # « schedule/rappel_1 ») : on retire les segments de droite jusqu'à retrouver une classe.
+  # Un nom namespacé (« payzen/payment_order ») est une classe entière et reste intact.
+  def task_class_name(stored)
+    segments = stored.split('/')
+    segments.size.downto(1) do |n|
+      candidate = segments.first(n).join('/')
+      return candidate if Object.const_defined?(candidate.camelize)
+    rescue NameError
+      next
+    end
+    stored
+  end
+```
+(`Object.const_defined?("DeadLineChecker::679212")` lève `NameError: wrong constant name`, d'où le `rescue` ;
+`const_defined?` déclenche l'autochargement Zeitwerk, donc `Payzen::PaymentOrder` est reconnu.)
+
+- [ ] **Step 4: Lancer, vérifier le succès** — `bundle exec rspec spec/jobs/scheduled_task_job_spec.rb` (5 exemples, 0 échec), puis `bundle exec rspec spec/lib/dead_line_checker_spec.rb spec/lib/inspector_task_spec.rb`.
+
+- [ ] **Step 5: Rubocop, lint, commit**
+```bash
+bundle exec rubocop -A app/jobs/scheduled_task_job.rb spec/jobs/scheduled_task_job_spec.rb && bundle exec rake lint
+git add app/jobs/scheduled_task_job.rb spec/jobs/scheduled_task_job_spec.rb
+git commit -m "fix(jobs): rejouer une tâche planifiée enregistrée avec un identifiant (dead_line_checker/<n°>)
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+```
+
+---
+
 ## Auto-revue du plan
 
 **Couverture de la spec (périmètre cascade)** : déclencheur n° 1 « case cochée, dossier en instruction » → Task 5 (`conditional_field`) + Task 3 ; lien prérempli (n° LP, importateur, date, vol, effectif, nom, téléphone) → Tasks 1, 3, 5 ; trace non rejouable et réinvitation d'un éleveur ajouté → Task 3 ; « Engagements reçus » / « manquants » réécrits en entier, format fixe, rapprochement courriel, « non attendu » → Tasks 2, 4 ; relance agent après 2 jours → Task 5 ; test de bout en bout → Task 6 ; documentation → Task 7. Hors périmètre volontaire, tranche suivante : visa, « Laissez-passer visé le » sur les engagements, certificats, carnet, courriel d'annulation si refus après envoi.
