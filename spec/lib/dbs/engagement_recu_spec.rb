@@ -16,14 +16,16 @@ RSpec.describe Dbs::EngagementRecu do
         demarche: 3899,
         eleveurs: 'Liste des éleveurs',
         engagements_recus: 'Engagements reçus',
-        engagements_manquants: 'Engagements manquants'
+        engagements_manquants: 'Engagements manquants',
+        importateur_eleveur: { si: "Lieux d'isolement", vaut: 'Chez vous', nom: '{Prénom du responsable} {Nom du responsable}',
+                               email: '{usager.email}', telephone: '{Téléphone}', quantite: '{Quantité de poussins isolés chez vous}' }
       }
     )
   end
   let(:demarche) { instance_double(Demarche, instructeur: 'robot') }
 
   def champ(label, value, typename: 'TextChamp')
-    double(label, label:, __typename: typename, value:, string_value: value)
+    double(label, label:, __typename: typename, value:, string_value: value, int_value: value)
   end
 
   def row(nom, email, tel)
@@ -35,11 +37,14 @@ RSpec.describe Dbs::EngagementRecu do
   let(:recus) { champ('Engagements reçus', recus_texte, typename: 'TextChamp') }
   let(:manquants) { champ('Engagements manquants', '', typename: 'TextChamp') }
   let(:recus_texte) { '' }
+  let(:lieux_values) { [] }
+  let(:lieux) { double('Lieux', label: "Lieux d'isolement", __typename: 'MultipleDropDownListChamp', values: lieux_values) }
   let(:laissez_passer) do
     double('LaissezPasser', number: 654_000,
                             champs: [double('Bloc', label: 'Liste des éleveurs', __typename: 'RepetitionChamp',
                                                     rows: [row('Manutere TERE', 'manutere@exemple.pf', '87 54 65 75'),
-                                                           row('Vaimiti HOA', 'vaimiti@exemple.pf', '88 65 25 62')])],
+                                                           row('Vaimiti HOA', 'vaimiti@exemple.pf', '88 65 25 62')]),
+                                     lieux],
                             annotations: [recus, manquants], demarche: double('Demarche', number: 3899))
   end
   let(:lien) { champ('Numéro du dossier de laissez-passer', '654000', typename: 'DossierLinkChamp') }
@@ -84,6 +89,30 @@ RSpec.describe Dbs::EngagementRecu do
         'Vaimiti HOA (vaimiti@exemple.pf) — dossier 655888 — déposé le 15/09/2026'
       )
       expect(SetAnnotationValue).to have_received(:set_value).with(laissez_passer, 'robot', 'Engagements manquants', '')
+    end
+  end
+
+  context "quand l'importateur isole une partie du lot chez lui" do
+    let(:lieux_values) { ['Chez vous'] }
+    let(:laissez_passer) do
+      double('LaissezPasser', number: 654_000,
+                              usager: double('Usager', email: 'chanel@exemple.pf'),
+                              champs: [double('Bloc', label: 'Liste des éleveurs', __typename: 'RepetitionChamp',
+                                                      rows: [row('Manutere TERE', 'manutere@exemple.pf', '87 54 65 75'),
+                                                             row('Vaimiti HOA', 'vaimiti@exemple.pf', '88 65 25 62')]),
+                                       lieux, champ('Nom du responsable', 'MOLLARD'), champ('Prénom du responsable', 'Vaihere'),
+                                       champ('Téléphone', '40 50 60 70'),
+                                       champ('Quantité de poussins isolés chez vous', 700, typename: 'IntegerNumberChamp')],
+                              annotations: [recus, manquants], demarche: double('Demarche', number: 3899))
+    end
+
+    it "liste l'importateur dans les manquants quand il isole chez lui" do
+      task.process(demarche, engagement)
+
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        laissez_passer, 'robot', 'Engagements manquants',
+        a_string_starting_with('Vaihere MOLLARD au 40 50 60 70 (chanel@exemple.pf)')
+      )
     end
   end
 

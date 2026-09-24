@@ -13,13 +13,16 @@ RSpec.describe Dbs::InviterEleveurs do
       invitations_envoyees: 'Invitations envoyées',
       objet: 'Engagement poussins — {nom_eleveur}',
       message: 'Bonjour {nom_eleveur}, lot {number} : {lien}',
-      prerempli: { 197_027 => 'number', 197_038 => "Nom et Prénom de l'éleveur", 197_047 => "Téléphone de l'éleveur" }
+      prerempli: { 197_027 => 'number', 197_035 => 'Quantité de poussins', 197_038 => "Nom et Prénom de l'éleveur",
+                   197_047 => "Téléphone de l'éleveur" },
+      importateur_eleveur: { si: "Lieux d'isolement", vaut: 'Chez vous', nom: '{Prénom du responsable} {Nom du responsable}',
+                             email: '{usager.email}', telephone: '{Téléphone}', quantite: '{Quantité de poussins isolés chez vous}' }
     )
   end
   let(:demarche) { instance_double(Demarche, instructeur: 'robot') }
 
   def champ(label, value, typename: 'TextChamp')
-    double(label, label:, __typename: typename, value:, string_value: value)
+    double(label, label:, __typename: typename, value:, string_value: value, int_value: value)
   end
 
   def row(nom, email, tel)
@@ -32,7 +35,9 @@ RSpec.describe Dbs::InviterEleveurs do
   let(:bloc) { double('RepetitionChamp', label: 'Liste des éleveurs', __typename: 'RepetitionChamp', rows:) }
   let(:envois) { champ('Invitations envoyées', envois_texte, typename: 'TextChamp') }
   let(:envois_texte) { nil }
-  let(:dossier) { double('Dossier', number: 654_000, state: 'en_instruction', champs: [bloc], annotations: [envois]) }
+  let(:lieux_values) { [] }
+  let(:lieux) { double('Lieux', label: "Lieux d'isolement", __typename: 'MultipleDropDownListChamp', values: lieux_values) }
+  let(:dossier) { double('Dossier', number: 654_000, state: 'en_instruction', champs: [bloc, lieux], annotations: [envois]) }
   let(:mail) { double('Mail', deliver_later: true) }
 
   before do
@@ -110,6 +115,27 @@ RSpec.describe Dbs::InviterEleveurs do
 
       expect(NotificationMailer).to have_received(:with).twice
       expect(textes_annotation).to all(satisfy { |texte| texte.scan('manutere@exemple.pf').size <= 1 })
+    end
+  end
+
+  context "quand l'importateur isole une partie du lot chez lui" do
+    let(:lieux_values) { ['Chez vous'] }
+    let(:dossier) do
+      double('Dossier', number: 654_000, state: 'en_instruction',
+                        usager: double('Usager', email: 'chanel@exemple.pf'),
+                        champs: [bloc, lieux, champ('Nom du responsable', 'MOLLARD'), champ('Prénom du responsable', 'Vaihere'),
+                                 champ('Téléphone', '40 50 60 70'), champ('Quantité de poussins isolés chez vous', 700, typename: 'IntegerNumberChamp')],
+                        annotations: [envois])
+    end
+
+    it "invite aussi l'importateur quand Lieux d'isolement contient Chez vous" do
+      task.process(demarche, dossier)
+
+      expect(NotificationMailer).to have_received(:with).exactly(3).times
+      expect(NotificationMailer).to have_received(:with).with(hash_including(
+                                                                recipients: 'chanel@exemple.pf',
+                                                                message: a_string_including('champ_Q2hhbXAtMTk3MDM1=700', 'champ_Q2hhbXAtMTk3MDM4=Vaihere+MOLLARD')
+                                                              ))
     end
   end
 

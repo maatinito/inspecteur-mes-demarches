@@ -523,6 +523,13 @@ parent, source de vérité unique (voir `docs/superpowers/specs/2026-08-18-dbs-i
     invitations_envoyees: Invitations envoyées               # annotation texte : « courriel — envoyé le … »
     objet: "Signez votre engagement"
     message: "Bonjour {nom_eleveur}, lot {number} : {lien}"  # {lien} et {nom_eleveur} sont fournis par la tâche
+    importateur_eleveur:                                    # optionnel : l'importateur isole une partie du lot chez lui
+      si: Lieux d'isolement                                 # champ à choix multiples du PARENT
+      vaut: Chez vous
+      nom: "{Prénom du responsable} {Nom du responsable}"   # templates résolus sur le dossier PARENT
+      email: "{usager.email}"
+      telephone: "{Téléphone}"
+      quantite: "{Quantité de poussins isolés chez vous}"
     prerempli:                                              # stable_id du champ ENFANT : chemin dans le PARENT
       197027: number                                        # cherché dans la ligne du bloc, puis dans le dossier
       197038: Nom et Prénom de l'éleveur
@@ -542,9 +549,19 @@ parent, source de vérité unique (voir `docs/superpowers/specs/2026-08-18-dbs-i
       nom_eleveur: Nom et Prénom de l'éleveur                    # défaut
       email_eleveur: Email de l'éleveur                          # défaut
       telephone_eleveur: Téléphone de l'éleveur                  # défaut
+      importateur_eleveur:                                       # optionnel, identique à celui du PARENT ci-dessus
+        si: Lieux d'isolement
+        vaut: Chez vous
+        nom: "{Prénom du responsable} {Nom du responsable}"
+        email: "{usager.email}"
+        telephone: "{Téléphone}"
+        quantite: "{Quantité de poussins isolés chez vous}"
       engagements_recus: Engagements reçus                       # requis — « Nom (courriel) — dossier N — déposé le … »
       engagements_manquants: Engagements manquants               # requis — « Nom au téléphone (courriel) »
 ```
+
+`importateur_eleveur` ajoute en tête de la liste une ligne construite depuis le dossier parent quand le champ
+`si` contient `vaut` ; les templates `{…}` se résolvent sur le dossier parent.
 
 Les paramètres de `dbs/engagement_recu` sont regroupés par dossier : `engagement:` pour le dossier courant,
 `laissez_passer:` pour le dossier lié ; une clé inconnue ou manquante dans un sous-bloc est signalée à

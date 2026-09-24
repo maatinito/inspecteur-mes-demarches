@@ -21,16 +21,19 @@ module Dbs
   #   engagement:      le dossier courant (démarche 4038)
   #   laissez_passer:  le dossier lié (démarche 3899)
   class EngagementRecu < FieldChecker
+    include Dbs::EleveursDuLot
+
     ETATS_PAR_DEFAUT = %w[en_construction en_instruction accepte].freeze
     ENGAGEMENT_REQUIS = %i[lien_laissez_passer].freeze
     ENGAGEMENT_DEFAUTS = { nom: "Nom et prénom de l'éleveur", telephone: 'Téléphone',
                            courriel_attribution: nil }.freeze
     LAISSEZ_PASSER_REQUIS = %i[eleveurs engagements_recus engagements_manquants].freeze
     LAISSEZ_PASSER_DEFAUTS = { demarche: nil, nom_eleveur: "Nom et Prénom de l'éleveur",
-                               email_eleveur: "Email de l'éleveur", telephone_eleveur: "Téléphone de l'éleveur" }.freeze
+                               email_eleveur: "Email de l'éleveur", telephone_eleveur: "Téléphone de l'éleveur",
+                               quantite_eleveur: 'Quantité de poussins', importateur_eleveur: nil }.freeze
 
     def version
-      super + 3
+      super + 4
     end
 
     def required_fields
@@ -64,7 +67,7 @@ module Dbs
               "(démarche #{laissez_passer.demarche.number})"
       end
 
-      eleveurs = eleveurs_du_lot(laissez_passer)
+      eleveurs = eleveurs_du_lot(laissez_passer, @laissez_passer)
       email = courriel_attribution(eleveurs)
       engagements = ListeEngagements.upsert(ListeEngagements.parse_recus(texte_annotation(laissez_passer, @laissez_passer[:engagements_recus])),
                                             engagement_courant(eleveurs, email))
@@ -88,7 +91,9 @@ module Dbs
       @errors << "Clé(s) manquante(s) '#{manquants.join(', ')}' dans #{nom} sur dbs/engagement_recu" if manquants.present?
       inconnues = bloc.keys - requis - defauts.keys
       @errors << "#{inconnues.join(', ')} n'existe(nt) pas dans #{nom} sur dbs/engagement_recu" if inconnues.present?
-      defauts.merge(bloc)
+      resultat = defauts.merge(bloc)
+      resultat[:importateur_eleveur] = resultat[:importateur_eleveur].deep_symbolize_keys if resultat[:importateur_eleveur].is_a?(Hash)
+      resultat
     end
 
     def engagement_courant(eleveurs, email)
@@ -133,19 +138,6 @@ module Dbs
 
       demandeur = @dossier.demandeur
       demandeur.respond_to?(:entreprise) ? demandeur.entreprise&.raison_sociale.to_s : ''
-    end
-
-    def eleveurs_du_lot(laissez_passer)
-      rows = dossier_field(laissez_passer, @laissez_passer[:eleveurs], warn_if_empty: false)&.rows || []
-      rows.map do |row|
-        { nom: valeur(row, @laissez_passer[:nom_eleveur]),
-          email: valeur(row, @laissez_passer[:email_eleveur]).downcase,
-          telephone: valeur(row, @laissez_passer[:telephone_eleveur]) }
-      end
-    end
-
-    def valeur(row, label)
-      champs_to_values(select_champ(row.champs, label)).first.to_s.strip
     end
 
     def texte_annotation(laissez_passer, libelle)

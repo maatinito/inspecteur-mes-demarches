@@ -21,6 +21,8 @@ module Dbs
   # jamais la liste entière — l'ordre inverse (tracer puis envoyer) risquerait de
   # marquer un éleveur invité sans qu'aucun courriel ne soit parti, en silence.
   class InviterEleveurs < FieldChecker
+    include Dbs::EleveursDuLot
+
     LIGNE_ENVOI = /\A(?<email>\S+) — envoyé le (?<date>.+)\z/
     ETATS_PAR_DEFAUT = %w[en_instruction].freeze
 
@@ -33,7 +35,7 @@ module Dbs
     end
 
     def authorized_fields
-      super + %i[email_eleveur nom_eleveur]
+      super + %i[email_eleveur nom_eleveur telephone_eleveur quantite_eleveur importateur_eleveur]
     end
 
     def initialize(params)
@@ -41,6 +43,10 @@ module Dbs
       @states = Set.new(ETATS_PAR_DEFAUT) if @params[:etat_du_dossier].blank?
       @champ_email = @params[:email_eleveur] || "Email de l'éleveur"
       @champ_nom = @params[:nom_eleveur] || "Nom et Prénom de l'éleveur"
+      @cfg = { eleveurs: @params[:eleveurs], nom_eleveur: @champ_nom, email_eleveur: @champ_email,
+               telephone_eleveur: @params[:telephone_eleveur] || "Téléphone de l'éleveur",
+               quantite_eleveur: @params[:quantite_eleveur] || 'Quantité de poussins',
+               importateur_eleveur: @params[:importateur_eleveur]&.deep_symbolize_keys }
     end
 
     def process(demarche, dossier)
@@ -50,12 +56,11 @@ module Dbs
       raise "Annotation '#{@params[:invitations_envoyees]}' introuvable sur le dossier #{dossier.number} : aucune invitation envoyée" unless annotation(@params[:invitations_envoyees],
                                                                                                                                                         warn_if_empty: false)
 
-      rows = param_field(:eleveurs)&.rows || []
       lignes = lignes_envois
       deja = lignes.filter_map { |l| LIGNE_ENVOI.match(l)&.[](:email)&.downcase }.to_set
 
-      rows.each do |row|
-        ligne = inviter(row, deja)
+      eleveurs_du_lot(dossier, @cfg).each do |eleveur|
+        ligne = inviter(eleveur, deja)
         next unless ligne
 
         lignes << ligne
@@ -70,11 +75,11 @@ module Dbs
       annotation(@params[:invitations_envoyees], warn_if_empty: false)&.value.to_s.lines.map(&:strip).reject(&:blank?)
     end
 
-    def inviter(row, deja)
-      email = valeur(row, @champ_email).downcase
+    def inviter(eleveur, deja)
+      email = eleveur[:email]
       return nil if email.blank? || deja.include?(email)
 
-      variables = { lien: PrefillURL.build(@params[:demarche_engagement], valeurs_prerempli(row)), nom_eleveur: valeur(row, @champ_nom) }
+      variables = { lien: PrefillURL.build(@params[:demarche_engagement], valeurs_prerempli(eleveur)), nom_eleveur: eleveur[:nom] }
       NotificationMailer.with(subject: instanciate(@params[:objet], variables),
                               message: instanciate(@params[:message], variables),
                               recipients: email).user_mail.deliver_later
@@ -83,15 +88,11 @@ module Dbs
       "#{email} — envoyé le #{Time.zone.now.strftime('%d/%m/%Y %H:%M')}"
     end
 
-    def valeur(row, label)
-      champs_to_values(select_champ(row.champs, label)).first.to_s.strip
-    end
-
-    def valeurs_prerempli(row)
+    def valeurs_prerempli(eleveur)
       @params[:prerempli].to_h do |stable_id, chemin|
-        champs = object_field_values(row, chemin.to_s, log_empty: false)
-        champs = object_field_values(@dossier, chemin.to_s, log_empty: false) if champs.blank?
-        [stable_id, champs_to_values(champs).first]
+        valeur = eleveur[:valeurs][chemin.to_s]
+        valeur = champs_to_values(object_field_values(@dossier, chemin.to_s, log_empty: false)).first if valeur.nil?
+        [stable_id, valeur]
       end
     end
   end
