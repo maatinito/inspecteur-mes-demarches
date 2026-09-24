@@ -252,6 +252,11 @@ par le robot au dépôt de celui-ci.
 **Cycle de vie** : l'éleveur ne « termine » jamais son dossier, il le tient. C'est le vétérinaire qui passe
 en instruction après sa visite de levée, saisit son compte rendu, et accepte.
 
+**L'importateur-éleveur (24/09).** Si « Lieux d'isolement » contient « Chez vous », l'importateur isole une partie
+du lot dans son propre élevage : le robot l'ajoute en tête de la liste des éleveurs (ligne calculée depuis son
+dossier, pas de ressaisie) et il suit exactement le parcours d'un éleveur tiers — invitation, engagement signé
+avec son compte, certificat d'isolement, carnet. Mixin `Dbs::EleveursDuLot`, bloc YAML `importateur_eleveur`.
+
 ### 3.4 Le classeur
 
 Six colonnes, en-tête en ligne 1, une feuille nommée : nom de l'élevage, nom de l'éleveur, courriel,
@@ -777,7 +782,7 @@ dénomination exacte du PIP, qui est un vrai **forçage** métier à conserver.
 | # | Prototype | Spec | Proposition |
 |---|---|---|---|
 | D1 | **Bloc répétable** « Liste des éleveurs » | **Classeur joint** (décision 2 : plusieurs dizaines d'éleveurs, l'importateur a déjà son fichier) | Garder le classeur si la volumétrie annoncée se confirme ; le bloc répétable reste acceptable en dessous d'une dizaine de lignes, mais on perd `excel_vers_grist` et l'annuaire complet. **Demander au service le nombre d'éleveurs par import** |
-| D2 | **« Lieux d'isolement : Chez vous / Chez des éleveurs »** | Non traité : la spec suppose des éleveurs tiers | **Trou de la spec, révélé par le prototype.** L'importateur qui isole lui-même est un éleveur comme les autres : il figure comme ligne de destinataire (son propre élevage) et reçoit engagement + carnet. Une seule mécanique, pas de cas particulier. À confirmer avec le service |
+| D2 | **« Lieux d'isolement : Chez vous / Chez des éleveurs »** | Non traité : la spec suppose des éleveurs tiers | **Tranché le 24/09** : l'importateur qui coche « Chez vous » est un éleveur destinataire comme les autres, **sans ressaisie** — les deux tâches partagent une méthode (`Dbs::EleveursDuLot`) qui ajoute en tête de la liste une ligne construite depuis son dossier (nom du responsable, courriel du compte, téléphone, « Quantité de poussins isolés chez vous »), paramétrée par le bloc YAML `importateur_eleveur` (`si`/`vaut` + templates). Il reçoit invitation, engagement, certificat et carnet par la mécanique commune |
 | D3 | **Bloc paiement complet** (500 F laissez-passer + 6 000 / 12 000 F inspection, PayZen / virement / guichet) et section « CHECK RÉGISSEUR » | **Aucun paiement** dans la spec ni le devis | **Le laissez-passer est une prestation tarifée** (recherche du 14/09, §11.5) : 500 F le laissez-passer, 6 000 / 12 000 F le déplacement du vétérinaire, 3 000 F le prélèvement de fonds de boîte par lot. Les montants du prototype sont donc les bons ; le **5 500 F** du texte virement est le tarif « permis d'importation, particulier, par animal » hérité du clone animaux de compagnie — **faux ici**. Reste à confirmer avec le service qu'il **facture effectivement** le laissez-passer poussins (le papier n'en parle pas) et selon quel détail. **Tranché le 14/09 : le module de paiement entre au devis** (poste 7, §9 ; conception §3.5) |
 | D4 | Nom, prénom, civilité, adresse géographique, téléphone, courriel du responsable **obligatoires** | Champs **barrés** sur le formulaire papier | Toujours la question ouverte n° 3 ; le prototype tranche dans le sens inverse des annotations du service |
 | D5 | « Provenance » propose **Nouvelle-Calédonie** | Les modèles Word du certificat et de l'engagement écrivent « originaires de Nouvelle-Zélande » en dur | Soit la liste se limite à NZ, soit les gabarits prennent un champ de fusion « Provenance » |

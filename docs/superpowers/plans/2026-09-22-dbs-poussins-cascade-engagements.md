@@ -1612,6 +1612,217 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
+### Task 12: L'importateur qui isole lui-même est un éleveur destinataire (ligne calculée, sans ressaisie)
+
+**Contexte (24/09).** Le laissez-passer (3899) porte « Lieux d'isolement » (choix multiples *Chez vous* /
+*Chez des éleveurs*, 132714) et « Quantité de poussins isolés chez vous » (181895). Quand « Chez vous » est coché,
+l'importateur isole une partie du lot dans son propre élevage : il est éleveur destinataire au sens de l'arrêté
+et doit signer un engagement, recevoir un certificat et tenir un carnet. Aujourd'hui rien ne part pour lui,
+seules les lignes du bloc « Liste des éleveurs » sont invitées. Décision : **ne pas lui faire ressaisir** ses
+coordonnées ; les deux tâches utilisent une **méthode commune** qui rend la liste des éleveurs avec, en tête,
+une ligne construite depuis le dossier de l'importateur (nom du responsable, courriel du compte, téléphone,
+quantité « chez vous »). Divergence D2 de la spec (§11.3) tranchée.
+
+**Files:**
+- Create: `app/lib/dbs/eleveurs_du_lot.rb` (mixin), `spec/lib/dbs/eleveurs_du_lot_spec.rb`
+- Modify: `app/lib/dbs/inviter_eleveurs.rb`, `app/lib/dbs/engagement_recu.rb`, leurs specs
+- Modify (non versionnés) : `storage/configurations/dbs_poussins.yml` + copie staging
+- Modify: `docs/CONFIGURATION_GUIDE.md` (section 8)
+
+**Interfaces:**
+- Produces : `Dbs::EleveursDuLot#eleveurs_du_lot(dossier, cfg) → Array<Hash>` (mixin inclus dans les deux
+  tâches) ; chaque élément : `{ nom:, email: (minuscules), telephone:, valeurs: Hash{libellé => valeur} }` où
+  `valeurs` porte les sous-champs par **libellé** (« Nom et Prénom de l'éleveur », « Email de l'éleveur »,
+  « Téléphone de l'éleveur », « Quantité de poussins ») — pour que les chemins `prerempli` s'y résolvent comme
+  sur une vraie ligne. `cfg` = Hash symbolisé avec `eleveurs`, `nom_eleveur`, `email_eleveur`,
+  `telephone_eleveur`, `quantite_eleveur`, et optionnellement `importateur_eleveur:` `{ si:, vaut:, nom:,
+  email:, telephone:, quantite: }` (templates `instanciate`).
+- Nouvelle configuration YAML, identique sous `dbs/inviter_eleveurs` (premier niveau) et sous
+  `laissez_passer:` de `dbs/engagement_recu` (ancre partagée) :
+
+```yaml
+dbs_poussins_importateur_eleveur: &dbs_poussins_importateur_eleveur   # l'importateur isole lui-même une partie du lot
+  si: Lieux d'isolement                                              # champ à choix multiples du laissez-passer
+  vaut: Chez vous
+  nom: "{Prénom du responsable} {Nom du responsable}"
+  email: "{usager.email}"
+  telephone: "{Téléphone}"
+  quantite: "{Quantité de poussins isolés chez vous}"
+```
+
+- [ ] **Step 1: Tests du mixin (échouent : constante inexistante)**
+
+```ruby
+# spec/lib/dbs/eleveurs_du_lot_spec.rb
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe Dbs::EleveursDuLot do
+  # Un FieldChecker minimal qui inclut le mixin, pour exercer instanciate / champs_to_values réels.
+  let(:hote_class) do
+    Class.new(FieldChecker) do
+      include Dbs::EleveursDuLot
+      def process(_demarche, _dossier); end
+    end
+  end
+  let(:hote) { hote_class.new({}) }
+
+  def champ(label, value, typename: 'TextChamp')
+    double(label, label:, __typename: typename, value:, string_value: value)
+  end
+
+  def row(nom, email, tel, quantite)
+    double("Row #{nom}", champs: [champ("Nom et Prénom de l'éleveur", nom), champ("Email de l'éleveur", email),
+                                  champ("Téléphone de l'éleveur", tel), champ('Quantité de poussins', quantite, typename: 'IntegerNumberChamp')])
+  end
+
+  let(:lieux) { double('Lieux', label: "Lieux d'isolement", __typename: 'MultipleDropDownListChamp', values: lieux_values) }
+  let(:lieux_values) { ['Chez des éleveurs'] }
+  let(:dossier) do
+    double('Dossier', number: 654_000, usager: double('Usager', email: 'Chanel@exemple.pf'),
+                      champs: [double('Bloc', label: 'Liste des éleveurs', __typename: 'RepetitionChamp',
+                                              rows: [row('Manutere TERE', 'Manutere@exemple.pf', '87 54 65 75', 300)]),
+                               lieux,
+                               champ('Nom du responsable', 'MOLLARD'), champ('Prénom du responsable', 'Vaihere'),
+                               champ('Téléphone', '40 50 60 70'),
+                               champ('Quantité de poussins isolés chez vous', 700, typename: 'IntegerNumberChamp')],
+                      annotations: [])
+  end
+  let(:cfg) do
+    { eleveurs: 'Liste des éleveurs', nom_eleveur: "Nom et Prénom de l'éleveur", email_eleveur: "Email de l'éleveur",
+      telephone_eleveur: "Téléphone de l'éleveur", quantite_eleveur: 'Quantité de poussins',
+      importateur_eleveur: { si: "Lieux d'isolement", vaut: 'Chez vous', nom: '{Prénom du responsable} {Nom du responsable}',
+                             email: '{usager.email}', telephone: '{Téléphone}', quantite: '{Quantité de poussins isolés chez vous}' } }
+  end
+
+  before { hote.dossier = dossier }
+
+  it 'rend les lignes du bloc, courriel en minuscules, valeurs par libellé' do
+    liste = hote.eleveurs_du_lot(dossier, cfg)
+    expect(liste.size).to eq 1
+    expect(liste.first).to include(nom: 'Manutere TERE', email: 'manutere@exemple.pf', telephone: '87 54 65 75')
+    expect(liste.first[:valeurs]).to include("Email de l'éleveur" => 'Manutere@exemple.pf', 'Quantité de poussins' => '300')
+  end
+
+  context "quand l'importateur isole une partie du lot chez lui" do
+    let(:lieux_values) { ['Chez vous', 'Chez des éleveurs'] }
+
+    it "ajoute en tête une ligne construite depuis le dossier de l'importateur" do
+      liste = hote.eleveurs_du_lot(dossier, cfg)
+      expect(liste.map { |e| e[:email] }).to eq ['chanel@exemple.pf', 'manutere@exemple.pf']
+      expect(liste.first).to include(nom: 'Vaihere MOLLARD', telephone: '40 50 60 70')
+      expect(liste.first[:valeurs]).to include("Nom et Prénom de l'éleveur" => 'Vaihere MOLLARD', "Email de l'éleveur" => 'chanel@exemple.pf',
+                                               "Téléphone de l'éleveur" => '40 50 60 70', 'Quantité de poussins' => '700')
+    end
+  end
+
+  it "n'ajoute rien quand importateur_eleveur n'est pas configuré" do
+    expect(hote.eleveurs_du_lot(dossier, cfg.except(:importateur_eleveur)).size).to eq 1
+  end
+end
+```
+
+- [ ] **Step 2: Implémenter le mixin**
+
+```ruby
+# app/lib/dbs/eleveurs_du_lot.rb
+# frozen_string_literal: true
+
+module Dbs
+  # Les éleveurs destinataires d'un laissez-passer : les lignes du bloc « Liste des éleveurs », plus, si
+  # l'importateur isole lui-même une partie du lot (« Lieux d'isolement » contient « Chez vous »), une ligne
+  # construite depuis son propre dossier — il est éleveur destinataire au même titre que les autres et ne
+  # ressaisit rien. Chaque ligne porte ses valeurs par libellé de sous-champ (`valeurs`), pour que les chemins
+  # `prerempli` d'InviterEleveurs s'y résolvent comme sur une vraie ligne. Mixin pour FieldChecker.
+  module EleveursDuLot
+    def eleveurs_du_lot(dossier, cfg)
+      lignes = (dossier_field(dossier, cfg[:eleveurs], warn_if_empty: false)&.rows || []).map do |row|
+        row.champs.to_h { |c| [c.label, champs_to_values([c]).first.to_s.strip] }
+      end
+      lignes.unshift(ligne_importateur(dossier, cfg)) if importateur_eleveur?(dossier, cfg)
+      lignes.map do |valeurs|
+        { nom: valeurs[cfg[:nom_eleveur]].to_s, email: valeurs[cfg[:email_eleveur]].to_s.downcase,
+          telephone: valeurs[cfg[:telephone_eleveur]].to_s, valeurs: }
+      end
+    end
+
+    private
+
+    def importateur_eleveur?(dossier, cfg)
+      imp = cfg[:importateur_eleveur]
+      return false if imp.blank?
+
+      champs_to_values(object_field_values(dossier, imp[:si].to_s, log_empty: false)).flatten.map(&:to_s).include?(imp[:vaut].to_s)
+    end
+
+    def ligne_importateur(dossier, cfg)
+      imp = cfg[:importateur_eleveur]
+      { cfg[:nom_eleveur] => instanciate(imp[:nom].to_s, dossier).strip,
+        cfg[:email_eleveur] => instanciate(imp[:email].to_s, dossier).strip.downcase,
+        cfg[:telephone_eleveur] => instanciate(imp[:telephone].to_s, dossier).strip,
+        cfg[:quantite_eleveur] => instanciate(imp[:quantite].to_s, dossier).strip }
+    end
+  end
+end
+```
+Note : `instanciate(template, dossier)` résout `{usager.email}` et les libellés sur le dossier passé en source
+(`FieldChecker#get_values_of` : source répondant à `champs`), ou sur `@dossier` si c'est le même objet.
+
+- [ ] **Step 3: Brancher `Dbs::InviterEleveurs`**
+
+- `include Dbs::EleveursDuLot` ; `authorized_fields` += `telephone_eleveur quantite_eleveur importateur_eleveur` ;
+  dans `initialize`, construire `@cfg = { eleveurs: @params[:eleveurs], nom_eleveur: @champ_nom, email_eleveur: @champ_email,
+  telephone_eleveur: @params[:telephone_eleveur] || "Téléphone de l'éleveur", quantite_eleveur: @params[:quantite_eleveur] || 'Quantité de poussins',
+  importateur_eleveur: @params[:importateur_eleveur]&.deep_symbolize_keys }`.
+- `process` : remplacer `rows = param_field(:eleveurs)&.rows || []` et la boucle `rows.each { |row| … inviter(row, deja) }`
+  par `eleveurs_du_lot(dossier, @cfg).each { |eleveur| … inviter(eleveur, deja) }`.
+- `inviter(eleveur, deja)` : `email = eleveur[:email]` ; `nom_eleveur: eleveur[:nom]` ; `valeurs_prerempli(eleveur)`.
+- `valeurs_prerempli(eleveur)` : `valeur = eleveur[:valeurs][chemin.to_s]` ; si `nil`, repli
+  `champs_to_values(object_field_values(@dossier, chemin.to_s, log_empty: false)).first`.
+- Supprimer `valeur(row, label)` devenue inutile. `version` → `super + 3`.
+- Spec `inviter_eleveurs_spec.rb` : les doubles de lignes restent valables (le mixin lit `row.champs` par libellé) ;
+  le dossier double a `annotations: [envois]` déjà ; ajouter à ses `champs` un double « Lieux d'isolement »
+  (`MultipleDropDownListChamp`, `values: []` par défaut) et les params `importateur_eleveur:` de la tâche ; ajouter un
+  exemple « invite aussi l'importateur quand Lieux d'isolement contient Chez vous » (`values: ['Chez vous']`, dossier
+  avec `usager: double(email: 'chanel@exemple.pf')`, champs « Nom du responsable », « Prénom du responsable »,
+  « Téléphone », « Quantité de poussins isolés chez vous ») : trois courriels, le premier à `chanel@exemple.pf` avec un
+  lien contenant `champ_Q2hhbXAtMTk3MDM1=700` (quantité) et `champ_Q2hhbXAtMTk3MDM4=Vaihere+MOLLARD`.
+
+- [ ] **Step 4: Brancher `Dbs::EngagementRecu`**
+
+- `include Dbs::EleveursDuLot` ; `LAISSEZ_PASSER_DEFAUTS` += `quantite_eleveur: 'Quantité de poussins', importateur_eleveur: nil` ;
+  dans `sous_bloc`, un sous-bloc `importateur_eleveur` (Hash) est `deep_symbolize_keys`-é.
+- Supprimer la méthode privée `eleveurs_du_lot(laissez_passer)` de la classe (le mixin la fournit avec la
+  signature `(dossier, cfg)`) et appeler `eleveurs_du_lot(laissez_passer, @laissez_passer)`.
+- `version` → `super + 4`.
+- Spec `engagement_recu_spec.rb` : ajouter au `laissez_passer` double un champ « Lieux d'isolement » (`values: []`)
+  et un exemple « liste l'importateur dans les manquants quand il isole chez lui » (`values: ['Chez vous']`, champs
+  responsable/téléphone/quantité + `usager`) : « Engagements manquants » commence par `Vaihere MOLLARD au 40 50 60 70 (chanel@exemple.pf)`.
+
+- [ ] **Step 5: Lancer** — `bundle exec rspec spec/lib/dbs spec/lib/prefill_url_spec.rb spec/jobs` (0 échec).
+
+- [ ] **Step 6: Configuration** — dans les deux copies de `dbs_poussins.yml` : ajouter l'ancre
+  `dbs_poussins_importateur_eleveur` (bloc ci-dessus) avant `dbs_poussins_inviter` ; dans `dbs_poussins_inviter`
+  ajouter `importateur_eleveur: *dbs_poussins_importateur_eleveur` ; dans `laissez_passer:` de `dbs/engagement_recu`
+  ajouter `importateur_eleveur: *dbs_poussins_importateur_eleveur`. Valider (`ruby -ryaml`, instanciation directe
+  des deux classes → `errors: []`), `diff` des copies identique.
+
+- [ ] **Step 7: Guide** — section 8 : ajouter le bloc `importateur_eleveur` aux deux exemples avec une phrase :
+  « `importateur_eleveur` ajoute en tête de la liste une ligne construite depuis le dossier parent quand le champ
+  `si` contient `vaut` ; les templates `{…}` se résolvent sur le dossier parent ».
+
+- [ ] **Step 8: Rubocop, lint, commit**
+```bash
+bundle exec rubocop -A app/lib/dbs spec/lib/dbs && bundle exec rake lint
+git add app/lib/dbs/eleveurs_du_lot.rb spec/lib/dbs/eleveurs_du_lot_spec.rb app/lib/dbs/inviter_eleveurs.rb spec/lib/dbs/inviter_eleveurs_spec.rb app/lib/dbs/engagement_recu.rb spec/lib/dbs/engagement_recu_spec.rb docs/CONFIGURATION_GUIDE.md
+git commit -m "feat(dbs): inviter aussi l'importateur qui isole lui-même une partie du lot
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+```
+
+---
+
 ## Auto-revue du plan
 
 **Couverture de la spec (périmètre cascade)** : déclencheur n° 1 « case cochée, dossier en instruction » → Task 5 (`conditional_field`) + Task 3 ; lien prérempli (n° LP, importateur, date, vol, effectif, nom, téléphone) → Tasks 1, 3, 5 ; trace non rejouable et réinvitation d'un éleveur ajouté → Task 3 ; « Engagements reçus » / « manquants » réécrits en entier, format fixe, rapprochement courriel, « non attendu » → Tasks 2, 4 ; relance agent après 2 jours → Task 5 ; test de bout en bout → Task 6 ; documentation → Task 7. Hors périmètre volontaire, tranche suivante : visa, « Laissez-passer visé le » sur les engagements, certificats, carnet, courriel d'annulation si refus après envoi.
