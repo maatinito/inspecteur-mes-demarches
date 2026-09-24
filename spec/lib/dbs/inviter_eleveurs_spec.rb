@@ -136,6 +136,9 @@ RSpec.describe Dbs::InviterEleveurs do
                                                                 recipients: 'chanel@exemple.pf',
                                                                 message: a_string_including('champ_Q2hhbXAtMTk3MDM1=700', 'champ_Q2hhbXAtMTk3MDM4=Vaihere+MOLLARD')
                                                               ))
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        dossier, 'robot', 'Invitations envoyées', a_string_starting_with('chanel@exemple.pf — envoyé le')
+      ).at_least(:once)
     end
   end
 

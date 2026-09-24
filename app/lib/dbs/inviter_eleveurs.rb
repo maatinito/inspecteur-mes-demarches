@@ -27,7 +27,7 @@ module Dbs
     ETATS_PAR_DEFAUT = %w[en_instruction].freeze
 
     def version
-      super + 2
+      super + 3
     end
 
     def required_fields

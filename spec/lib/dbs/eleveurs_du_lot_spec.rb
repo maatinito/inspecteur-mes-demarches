@@ -62,6 +62,27 @@ RSpec.describe Dbs::EleveursDuLot do
     end
   end
 
+  context "quand l'importateur se liste aussi lui-même comme ligne du bloc" do
+    let(:lieux_values) { ['Chez vous'] }
+    let(:dossier) do
+      double('Dossier', number: 654_000, usager: double('Usager', email: 'Chanel@exemple.pf'),
+                        champs: [double('Bloc', label: 'Liste des éleveurs', __typename: 'RepetitionChamp',
+                                                rows: [row('Vaihere MOLLARD', 'CHANEL@exemple.pf', '40 50 60 70', 700),
+                                                       row('Manutere TERE', 'Manutere@exemple.pf', '87 54 65 75', 300)]),
+                                 lieux,
+                                 champ('Nom du responsable', 'MOLLARD'), champ('Prénom du responsable', 'Vaihere'),
+                                 champ('Téléphone', '40 50 60 70'),
+                                 champ('Quantité de poussins isolés chez vous', 700, typename: 'IntegerNumberChamp')],
+                        annotations: [])
+    end
+
+    it "ne le liste qu'une fois, la ligne construite depuis le dossier l'emportant" do
+      liste = hote.eleveurs_du_lot(dossier, cfg)
+      expect(liste.map { |e| e[:email] }).to eq ['chanel@exemple.pf', 'manutere@exemple.pf']
+      expect(liste.first).to include(nom: 'Vaihere MOLLARD')
+    end
+  end
+
   it "n'ajoute rien quand importateur_eleveur n'est pas configuré" do
     expect(hote.eleveurs_du_lot(dossier, cfg.except(:importateur_eleveur)).size).to eq 1
   end

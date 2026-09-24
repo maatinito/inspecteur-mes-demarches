@@ -12,10 +12,14 @@ module Dbs
         row.champs.to_h { |c| [c.label, champs_to_values([c]).first.to_s.strip] }
       end
       lignes.unshift(ligne_importateur(dossier, cfg)) if importateur_eleveur?(dossier, cfg)
-      lignes.map do |valeurs|
+      lignes = lignes.map do |valeurs|
         { nom: valeurs[cfg[:nom_eleveur]].to_s, email: valeurs[cfg[:email_eleveur]].to_s.downcase,
           telephone: valeurs[cfg[:telephone_eleveur]].to_s, valeurs: }
       end
+      # L'importateur peut aussi se lister lui-même comme ligne du bloc : on ne garde que la première
+      # occurrence d'un courriel (la ligne importateur est en tête, elle l'emporte). Les courriels vides ne
+      # sont jamais fusionnés entre eux.
+      lignes.each_with_object([]) { |e, acc| acc << e unless e[:email].present? && acc.any? { |a| a[:email] == e[:email] } }
     end
 
     private
@@ -24,7 +28,7 @@ module Dbs
       imp = cfg[:importateur_eleveur]
       return false if imp.blank?
 
-      champs_to_values(object_field_values(dossier, imp[:si].to_s, log_empty: false)).flatten.map(&:to_s).include?(imp[:vaut].to_s)
+      champs_to_values(object_field_values(dossier, imp[:si].to_s, log_empty: false)).map(&:to_s).include?(imp[:vaut].to_s)
     end
 
     def ligne_importateur(dossier, cfg)
