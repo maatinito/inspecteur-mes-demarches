@@ -189,4 +189,37 @@ RSpec.describe PublipostageV3 do
       expect(result['Options']).to eq(%w[a b])
     end
   end
+  describe 'traductions:' do
+    let(:traductions) { { 'Femme' => 'Female / Femme', 'Prévue' => 'Planned / Prévue' } }
+    let(:publipostage) { described_class.new({ traductions: traductions }) }
+
+    it 'est une option autorisée' do
+      expect(described_class.new({}).authorized_fields).to include(:traductions)
+    end
+
+    it 'remplace une valeur qui correspond exactement à une clé' do
+      expect(publipostage.send(:normalize_context, { 'sexe' => 'Femme' })).to eq({ 'sexe' => 'Female / Femme' })
+    end
+
+    it 'ignore les espaces de bord de la valeur' do
+      expect(publipostage.send(:normalize_context, ' Prévue ')).to eq('Planned / Prévue')
+    end
+
+    it 'ne remplace pas une clé au milieu d’un texte' do
+      expect(publipostage.send(:normalize_context, 'Gratification Prévue')).to eq('Gratification Prévue')
+    end
+
+    it 'laisse intacte une valeur absente du dictionnaire' do
+      expect(publipostage.send(:normalize_context, 'Homme')).to eq('Homme')
+    end
+
+    it 'traduit aussi les valeurs des blocs répétables' do
+      result = publipostage.send(:normalize_context, { 'bloc' => [{ 'sexe' => 'Femme' }] })
+      expect(result['bloc'].first).to eq({ 'sexe' => 'Female / Femme' })
+    end
+
+    it 'ne traduit rien sans dictionnaire' do
+      expect(described_class.new({}).send(:normalize_context, 'Femme')).to eq('Femme')
+    end
+  end
 end

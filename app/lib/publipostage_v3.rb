@@ -35,9 +35,25 @@ require 'sablon'
 #   - Syntaxe : `«variable:if(predicate?)»...«variable:endIf»`
 #   - Exemple : `«photo.image:if(present?)»«@photo.image:start»[img]«@photo.image:end»«photo.image:endIf»`
 #
+# Traductions (`traductions:`) : dictionnaire valeur → texte imprimé, appliqué à
+# toutes les valeurs du document, quel que soit le champ. Sert à produire une
+# version dans une autre langue avec le même modèle de données :
+#
+#   traductions:
+#     "Femme": "Female / Femme"
+#     "par heure.": "per hour / par heure"
+#
+# Seule une valeur entière est remplacée (aux espaces de bord près), jamais un
+# morceau de texte. Les calculs et l'empreinte `same_document` voient les
+# valeurs d'origine : la traduction n'intervient qu'à l'impression.
+#
 class PublipostageV3 < PublipostageV2
   def version
     3
+  end
+
+  def authorized_fields
+    super + %i[traductions]
   end
 
   # Génère le document .docx en utilisant Sablon.
@@ -218,10 +234,17 @@ class PublipostageV3 < PublipostageV2
     when Array
       ArrayValue.new(value.map { |v| normalize_context(v) })
     when String
-      convert_markdown_if_detected(value)
+      convert_markdown_if_detected(traduction(value))
     else
       value
     end
+  end
+
+  def traduction(text)
+    traductions = @params[:traductions]
+    return text if traductions.blank?
+
+    traductions.fetch(text.strip, text)
   end
 
   # Convertit en HTML si Markdown détecté, sinon retourne le texte tel quel
