@@ -131,9 +131,8 @@ class Publipostage < FieldChecker
 
   def send_document(demarche, target, annotation, file, batch_number)
     body = instanciate(@params[:message])
-    timestamp = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
     filename = build_filename(@params[:nom_fichier_lot] || @params[:nom_fichier],
-                              { lot: batch_number, horodatage: timestamp }) + File.extname(file)
+                              { lot: batch_number, horodatage: horodatage }) + File.extname(file)
 
     if @mails.present?
       Rails.logger.info("Sending file #{filename} by mail to #{@mails}")
@@ -226,6 +225,15 @@ class Publipostage < FieldChecker
     # Variables volatiles qui ne doivent pas être stockées dans DossierData
     # pour éviter de redéclencher le publipostage à chaque changement
     fields['Aujourd\'hui'] = Time.zone.today.strftime('%d/%m/%Y')
+    # Heure de génération, imprimable dans le document («=horodatage») : la même
+    # valeur sert au `{horodatage}` du nom de fichier, pour que le document et
+    # son nom portent exactement la même minute.
+    @horodatage = Time.zone.now.strftime('%Y-%m-%d %Hh%M')
+    fields['Horodatage'] = @horodatage
+  end
+
+  def horodatage
+    @horodatage || Time.zone.now.strftime('%Y-%m-%d %Hh%M')
   end
 
   def send_mail(demarche, dossier, file, filename, message)
