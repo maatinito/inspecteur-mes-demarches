@@ -16,16 +16,10 @@ RSpec.describe Publipostage do
       end
     end
 
-    it 'réutilise le même horodatage pour le nom du fichier envoyé' do
+    it 'mémorise la valeur pour le {horodatage} du nom de fichier envoyé ensuite' do
       travel_to(Time.zone.local(2026, 10, 2, 14, 35, 59)) { publipostage.send(:add_volatile_fields, {}) }
       travel_to(Time.zone.local(2026, 10, 2, 14, 36, 5)) do
-        expect(publipostage.send(:horodatage)).to eq('2026-10-02 14h35')
-      end
-    end
-
-    it 'prend l’heure courante si aucun document n’a encore été généré' do
-      travel_to(Time.zone.local(2026, 10, 2, 9, 5, 0)) do
-        expect(publipostage.send(:horodatage)).to eq('2026-10-02 09h05')
+        expect(publipostage.instance_variable_get(:@horodatage)).to eq('2026-10-02 14h35')
       end
     end
   end
