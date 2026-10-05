@@ -502,6 +502,79 @@ inspection_2:
 - Impossible à énumérer même avec rate limiting faible
 - Idéal pour accès public via URL ou QR Code
 
+### 8. Invitation préremplie vers une autre démarche
+
+Cas d'usage : un dossier « parent » (ex. laissez-passer) liste des personnes qui doivent déposer chacune un
+dossier « enfant » dans une autre démarche (ex. engagement d'éleveur). Le robot les invite par courriel avec
+un lien prérempli, puis, quand un enfant est déposé, l'inscrit dans le parent.
+
+**Pourquoi une annotation et pas Grist** : l'API GraphQL ne filtre pas les dossiers par valeur de champ ; le
+parent ne peut pas retrouver ses enfants. Le lien se construit donc à l'écriture, dans une annotation texte du
+parent, source de vérité unique (voir `docs/superpowers/specs/2026-08-18-dbs-import-poussins-design.md`, §3.2).
+
+```yaml
+# Côté parent : sous un conditional_field sur une case cochée par l'agent
+- dbs/inviter_eleveurs:
+    etat_du_dossier: en_instruction
+    demarche_engagement: chemin-de-la-demarche-enfant     # segment après /commencer/
+    eleveurs: Liste des éleveurs                            # bloc répétable du parent
+    email_eleveur: Email de l'éleveur                       # sous-champ courriel (défaut)
+    nom_eleveur: Nom et Prénom de l'éleveur                 # sous-champ nom (défaut)
+    invitations_envoyees: Invitations envoyées               # annotation texte : « courriel — envoyé le … »
+    objet: "Signez votre engagement"
+    message: "Bonjour {nom_eleveur}, lot {number} : {lien}"  # {lien} et {nom_eleveur} sont fournis par la tâche
+    importateur_eleveur:                                    # optionnel : l'importateur isole une partie du lot chez lui
+      si: Lieux d'isolement                                 # champ à choix multiples du PARENT
+      vaut: Chez vous
+      nom: "{Prénom du responsable} {Nom du responsable}"   # templates résolus sur le dossier PARENT
+      email: "{usager.email}"
+      telephone: "{Téléphone}"
+      quantite: "{Quantité de poussins isolés chez vous}"
+    prerempli:                                              # stable_id du champ ENFANT : chemin dans le PARENT
+      197027: number                                        # cherché dans la ligne du bloc, puis dans le dossier
+      197038: Nom et Prénom de l'éleveur
+      197031: Date et heure d'atterrissage du vol           # une date part en AAAA-MM-JJ
+
+# Côté enfant : au dépôt, réécrit deux annotations du parent
+- dbs/engagement_recu:
+    etat_du_dossier: [ en_construction, en_instruction, accepte ]
+    engagement:                          # le dossier courant (l'enfant, ex. démarche 4038)
+      lien_laissez_passer: Numéro du dossier de laissez-passer   # requis — champ lien dossier vers le parent
+      nom: Nom et prénom de l'éleveur                            # défaut
+      telephone: Téléphone                                       # défaut — repli si le lien n'a pas été prérempli
+      courriel_attribution: Courriel d'attribution               # annotation posée par le robot, corrigeable par l'agent
+    laissez_passer:                      # le dossier lié (le parent, ex. démarche 3899)
+      demarche: 3899                                             # garde : le lien doit pointer cette démarche
+      eleveurs: Liste des éleveurs                               # requis — bloc du parent
+      nom_eleveur: Nom et Prénom de l'éleveur                    # défaut
+      email_eleveur: Email de l'éleveur                          # défaut
+      telephone_eleveur: Téléphone de l'éleveur                  # défaut
+      importateur_eleveur:                                       # optionnel, identique à celui du PARENT ci-dessus
+        si: Lieux d'isolement
+        vaut: Chez vous
+        nom: "{Prénom du responsable} {Nom du responsable}"
+        email: "{usager.email}"
+        telephone: "{Téléphone}"
+        quantite: "{Quantité de poussins isolés chez vous}"
+      engagements_recus: Engagements reçus                       # requis — « Nom (courriel) — dossier N — déposé le … »
+      engagements_manquants: Engagements manquants               # requis — « Nom au téléphone (courriel) »
+```
+
+`importateur_eleveur` ajoute en tête de la liste une ligne construite depuis le dossier parent quand le champ
+`si` contient `vaut` ; les templates `{…}` se résolvent sur le dossier parent.
+
+Les paramètres de `dbs/engagement_recu` sont regroupés par dossier : `engagement:` pour le dossier courant,
+`laissez_passer:` pour le dossier lié ; une clé inconnue ou manquante dans un sous-bloc est signalée à
+l'instanciation comme une clé de premier niveau.
+
+Règles : le robot réécrit les zones en entier à chaque passage (pas de doublon, pas de dérive si l'agent a
+touché au texte) ; le rapprochement se fait sur l'annotation privée « Courriel d'attribution », **préremplie
+par le lien d'invitation** (une annotation privée se préremplit par l'URL comme un champ public, sans être
+visible de l'usager) ; si elle est vide, le robot la déduit du téléphone concordant, sinon du courriel du
+compte ; l'agent peut la corriger. Un enfant dont le courriel n'est pas dans le bloc est listé avec « — non
+attendu ». Les identifiants de champs se relèvent avec `bin/describe_demarche` ou l'outil MCP `lire_demarche` ;
+ils sont stables à la publication.
+
 ## Exemples commentés
 
 ### Exemple 1 : Génération automatique de permis

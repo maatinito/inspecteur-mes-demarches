@@ -9,7 +9,7 @@ class ScheduledTaskJob < CronJob
     ScheduledTask.where(datetime_arel.lteq(Time.zone.now)).each do |scheduled|
       Rails.logger.tagged("#{scheduled.dossier}:#{scheduled.task}") do
         parameters = JSON.parse(scheduled.parameters).merge('scheduled' => true)
-        task = InspectorTask.create_tasks([{ scheduled.task => parameters }]).first
+        task = InspectorTask.create_tasks([{ task_class_name(scheduled.task) => parameters }]).first
         raise "Impossible d'initialiser la tache #{scheduled.task}: #{task.errors.join(',')}" unless task.valid?
 
         Rails.logger.info("Processing Scheduled Task at #{scheduled.run_at} / #{Time.zone.now}")
@@ -43,5 +43,19 @@ class ScheduledTaskJob < CronJob
         task.process(demarche, dossier)
       end
     end
+  end
+
+  # Le nom stocké peut porter un identifiant après la classe (« dead_line_checker/679212 »,
+  # « schedule/rappel_1 ») : on retire les segments de droite jusqu'à retrouver une classe.
+  # Un nom namespacé (« payzen/payment_order ») est une classe entière et reste intact.
+  def task_class_name(stored)
+    segments = stored.split('/')
+    segments.size.downto(1) do |n|
+      candidate = segments.first(n).join('/')
+      return candidate if Object.const_defined?(candidate.camelize)
+    rescue NameError
+      next
+    end
+    stored
   end
 end
