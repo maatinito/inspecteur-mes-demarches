@@ -1,6 +1,6 @@
 # Importation de poussins d'un jour (DBS / cellule zoosanitaire) — Architecture & devis
 
-- **Date** : 2026-08-18 — **mis à jour le 2026-09-11** après réunion avec le service (voir §10)
+- **Date** : 2026-08-18 — **mis à jour le 2026-09-11** après réunion avec le service (voir §10), **puis le 2026-10-05** après la première démo (voir §12)
 - **Service** : Direction de la biosécurité (DBS), cellule zoosanitaire
 - **Démarches** : 3 à créer — **un prototype de la démarche importateur existe : n° 3899** « Demande de
   laissez-passer pour volailles d'un jour - TIM » (révision brouillon, non publiée), à reprendre ; analyse
@@ -63,9 +63,9 @@ IMPORTATEUR : demande de laissez-passer + classeur des éleveurs
    │   (date d'envoi horodatée dans Attributions → invitation traçable, non rejouable)
    │
    └─► ORDRE DE PAIEMENT (payzen/payment_order) : lien PayZen à l'importateur, 5 jours
-       (dès le DÉPÔT sans correspondance vers une île ; sinon à la saisie du
-       « Créneau d'intervention retenu » par le vétérinaire)
-       payé → « Paiement : Payé » ; expiré → relance + alerte agent (pas de classement : le lot arrive)
+       DÈS LE DÉPÔT, au montant de la formule « Montant à régler » (heure souhaitée
+       pour le contrôle), sans attendre la cascade (05/10)
+       payé → « Paiement : Payé » ; expiré → « Expiré » (pas de classement : le lot arrive)
 
 ÉLEVEUR / ENGAGEMENT
    dépôt = signature, saisit son n° Tahiti et le lieu d'isolement
@@ -107,30 +107,41 @@ DBS : VISA du laissez-passer par l'agent  ──►  déclencheur n° 2 (le lot 
 
 Les champs *barrés* du formulaire papier (nom du responsable, prénom, adresse géographique, courriel) le
 sont parce que Mes-Démarches les connaît déjà par le compte du déposant — **à confirmer avec le service**.
-Les champs *ajoutés* par le service sont le n° Tahiti et le n° de permis d'importation préalable.
+Le service a ajouté le n° de permis d'importation préalable. **Le n° Tahiti n'est plus un champ du
+formulaire (05/10)** : la démarche est en mode personne morale, Mes-Démarches le demande avant d'ouvrir le
+formulaire et en tire l'entreprise. **L'adresse géographique est retirée aussi (05/10)** : l'adresse du
+répertoire est souvent périmée et personne ne l'exploite ; on garde « Commune et Île » pour les statistiques.
 
-**Champs usager** : entreprise, n° Tahiti, BP / code postal / ville, Vini, n° de permis d'importation,
-date d'arrivée, pays de provenance, moyen de transport, n° de vol, n° de LTA, expéditeur, date et n° du
-certificat sanitaire, effectif total, **ponte ou chair (un seul type par dossier — un importateur qui reçoit
-les deux dépose deux dossiers, réponse du service du 11/09)**, race, déclarant en douane, nombre de colis,
-**classeur des destinataires**.
+**Champs usager** (état au 05/10) : n° de permis d'importation, commune et île, responsable (civilité, nom,
+prénom, téléphone), effectif total, **ponte ou chair (un seul type par dossier — un importateur qui reçoit
+les deux dépose deux dossiers, réponse du service du 11/09)**, race, provenance (**Nouvelle-Zélande** ou
+saisie libre — la Nouvelle-Calédonie est retirée), **exportateur** (liste, ou « Autre exportateur » qui fait
+apparaître nom, pays et adresse de l'exportateur), n° de vol, date et heure d'atterrissage, **heure souhaitée
+pour le contrôle vétérinaire**, LTA et certificat sanitaire en pièces jointes facultatives, lieux
+d'isolement (« chez vous » et/ou « chez des éleveurs ») et **destinataires** (bloc répétable, cf. D1).
+La formule publique « Restant à répartir » soustrait de l'effectif total les poussins isolés chez
+l'importateur et ceux répartis chez les éleveurs.
 
-> Le certificat sanitaire et le déclarant en douane ne figurent pas sur le formulaire papier, mais le
-> laissez-passer et le certificat d'isolement les exigent tous les deux.
+> Le certificat sanitaire ne figure pas sur le formulaire papier, mais le laissez-passer et le certificat
+> d'isolement l'exigent. **Le déclarant en douane est supprimé (05/10)**, à la demande du service.
 >
 > **Retour du service (17/09) : la LTA et le certificat sanitaire arrivent tard**, souvent après le dépôt, et
 > leurs références saisies par l'usager sont **souvent erronées** (dossiers dupliqués d'un import à l'autre).
 > Décision : l'usager peut **joindre** les deux documents s'il les a, en **facultatif**, sous un titre qui
-> explique qu'à défaut ils sont à envoyer dans la messagerie **au moins 24 h avant l'arrivée de l'avion** ;
+> explique qu'à défaut ils sont à envoyer dans la messagerie **au plus tôt, et avant l'atterrissage des
+> poussins** (05/10 ; c'était « 24 h avant l'arrivée », et pour le certificat « émis au plus tôt 3 jours
+> avant le départ », sans objet pour des poussins d'un jour) ;
 > les **données** qui en sont tirées (n° de LTA, nombre de colis, n° et date du certificat, vétérinaire
 > officiel signataire) ne sont **plus demandées à l'usager** : c'est **l'agent qui les renseigne en annotations
-> privées**, et le publipostage les lit là. Le déclarant en douane reste un champ usager.
+> privées**, et le publipostage les lit là.
 
-**Annotations privées** : « Importateur » (dénomination exacte du PIP, forçage), **données de la LTA et du
-certificat sanitaire** (n° de LTA, nombre de colis, n° et date du certificat, vétérinaire officiel signataire —
-renseignées par l'agent, 17/09), zones « Engagements reçus » / « Engagements manquants » (§3.2), **créneau
-d'intervention retenu** par le vétérinaire (§3.5), visa de l'agent habilité, date de délivrance, et le bloc
-**Paiement** (§3.5). Les listes de contrôle héritées du laissez-passer chats et chiens (« Demande d'avis
+**Annotations privées** : « Importateur » (dénomination exacte du PIP, forçage), **bloc répétable
+« Certificats sanitaires reçus »** (197862, une ligne par certificat, renseignée par l'agent : désignation des
+poussins, nombre de poussins, n° et date du certificat, vétérinaire officiel signataire, n° de LTA, nombre de
+colis — 05/10, remplace les annotations uniques du 17/09), formules « Total des colis » (197870) et « Écart
+avec la quantité déclarée » (197871, doit valoir 0), zones « Engagements reçus » / « Engagements manquants » (§3.2), **créneau
+**heure de rendez-vous du contrôle** fixée par le·la vétérinaire (§3.5, information sans effet sur le
+tarif), visa de l'agent habilité, date de délivrance, et le bloc **Paiement** (§3.5). Les listes de contrôle héritées du laissez-passer chats et chiens (« Demande d'avis
 vétérinaire », « Informations à vérifier ») sont **supprimées** : les vérifications sont simples ici ; à
 remettre si le service le demande.
 
@@ -283,84 +294,68 @@ ce qui suit est de la configuration.
 du vétérinaire 6 000 F dans les **horaires d'ouverture de la DBS**, ou 12 000 F en dehors, soit
 **6 500 F ou 12 500 F**. **Les prélèvements de fonds de boîte ne sont pas facturés.**
 
-**Ce que l'usager sait, ce que la vétérinaire décide** (18/09, **proposition soumise à l'équipe DBS**). L'usager
-ne connaît ni la durée de l'examen (elle dépend de l'effectif, seule la vétérinaire la connaît) ni l'agenda de
-la DBS : lui demander « l'heure de contrôle souhaitée » ou « l'heure de sortie souhaitée » produit une réponse
-inventée, typiquement 7 h 30. En revanche il connaît deux **faits** : l'heure d'atterrissage du vol, et sa
-**correspondance vers les îles** — un vol qui atterrit à 1 h 30 avec un bateau à 5 h impose de sortir avant 3 h,
-et c'est cette contrainte de correspondance qui justifie un contrôle hors horaires. Le formulaire demande donc :
+> **Révisé après la démo du 05/10 (§12).** Le dispositif du 18/09 — correspondance vers les îles déclarée
+> par l'usager, rendez-vous fixé par la vétérinaire qui déclenche le calcul du tarif, forçage par case
+> « Imposer le tarif » — est **abandonné** : le service veut quelque chose de simple. Les §10 et §11 en
+> gardent la trace.
 
-- « **Date et heure d'atterrissage du vol** » (107912, relibellé comme un fait) ;
-- « **Les poussins repartent-ils vers une île le jour même ?** » (oui/non, **196862**) ; si oui :
-  « **Correspondance** » (bateau / avion inter-îles / autre, **196863**), « **Départ de la correspondance** »
-  (date-heure, **196864**), « **Heure à laquelle les poussins doivent avoir quitté l'aéroport** » (date-heure,
-  **196865**, l'importateur connaît le temps d'acheminement jusqu'au quai).
+**L'usager indique l'heure à laquelle il souhaite le contrôle**, et le formulaire lui affiche le montant :
 
-La vétérinaire remonte le calcul et fixe « **Heure de rendez-vous du contrôle** » (annotation date-heure,
-**196866**, section Véto). **C'est sa seule saisie** : le robot en déduit le tarif (18/09).
+- « **Heure souhaitée pour le contrôle vétérinaire** » (**197857**, obligatoire) : liste par demi-heure,
+  *00h00* à *23h30*, le jour de l'atterrissage. Une liste et non un champ date-heure parce que les
+  formules de Mes-Démarches **n'ont pas de fonction pour extraire l'heure** d'une date-heure ; le texte
+  *HHhMM* se découpe avec `GAUCHE`/`DROITE`.
+- « **Montant à régler (Fcp)** » (**197859**, formule publique) : **12 500** si le jour de l'atterrissage
+  (« Date et heure d'atterrissage du vol », 107912) tombe un samedi, un dimanche ou un **jour férié**, ou si
+  l'heure souhaitée est avant 7 h 30 ou à partir de 15 h 30 (14 h 30 le vendredi) ; **6 500** sinon. Les horaires sont ceux de
+  la régie de Faa'a affichés dans le prototype — **à confirmer par la DBS**. Ils sont désormais écrits dans
+  la formule (la règle du 18/09, « aucun horaire dans le formulaire », est levée) : les changer, c'est
+  modifier la formule, sans déploiement du robot.
 
-**Le tarif est calculé par le robot d'après l'heure de rendez-vous**, contre une **grille d'horaires d'ouverture
-tenue dans la configuration YAML** (une plage par jour de semaine, modifiable sans déploiement). Convention à
-confirmer par la DBS : c'est l'**heure de début** du rendez-vous qui compte. Les horaires ne figurent nulle part
-dans le formulaire. Pour les cas que la grille ne sait pas traiter — jour férié, pont, situation particulière —
-la vétérinaire coche « **Imposer le tarif** » (case à cocher, **196855**), ce qui fait apparaître « **Tarif
-imposé** » (**196867**, *Dans les horaires DBS — 6 500 F* / *Hors horaires — 12 500 F*). La case à cocher est là
-pour la charge mentale : un champ « tarif » visible en permanence serait rempli systématiquement ; caché
-derrière une case, il ne sert qu'à déroger. Le robot n'embarque donc **pas de calendrier des jours fériés** :
-c'est le forçage qui les couvre.
+**Jours fériés facturés hors horaires** (confirmé par le service le 05/10) : la formule embarque les fériés de
+Polynésie française. À date fixe : 1er janvier, 5 mars (arrivée de l'Évangile), 1er et 8 mai, 29 juin (fête de
+l'autonomie), 14 juillet, 15 août, 1er et 11 novembre, **20 novembre (Matāri'i i ni'a)**, 25 décembre.
+Dépendant de Pâques : Vendredi saint, lundi de Pâques, Ascension, lundi de Pentecôte, **listés en dur de 2026
+à 2032**. **Maintenance : avant 2033, ajouter les années suivantes** dans la formule. Elle est à 997 caractères
+pour une limite de 1 000 : la place manque pour d'autres années. La technique est donc à revoir avant 2033 :
+champ intermédiaire, ou fonction « férié » côté plateforme.
 
-**Déclenchement en deux régimes** (décision du service, 17/09, déclencheur révisé le 18/09) :
+Pour tenir dans la limite, l'heure se lit avec `VALEUR(SUBSTITUE(heure, "h3", ",5"))` (« 07h30 » → 7,5), et
+les fériés se testent par `CHERCHE` de la clé `MMJJ` (entre « / ») ou `AAAAMMJJ` dans une chaîne de dates.
+Formule testée sur 18 cas avec le calculateur de la plateforme (`FormulaCalculationService.new_calculator`).
 
-| Correspondance déclarée | Déclencheur de la demande de paiement | Montant |
-|---|---|---|
-| non | **dès le dépôt** du dossier, automatiquement | 6 500 F |
-| oui | **quand la vétérinaire renseigne « Heure de rendez-vous du contrôle »** — seule à savoir si le contrôle tient dans les horaires d'ouverture avant la correspondance | calculé : 6 500 F si le rendez-vous est dans la grille, 12 500 F sinon ; « Tarif imposé » s'il est renseigné |
+**Limite assumée** : un contrôle souhaité après minuit pour un vol du soir est compté sur le jour de
+l'atterrissage.
 
-Le robot n'a **aucune durée à calculer** : le régime se lit sur la réponse oui/non, et le tarif sur l'heure de
-rendez-vous. Sans correspondance, il pose le montant et émet l'ordre sans attendre ; avec correspondance, il ne
-fait rien tant que le rendez-vous est vide, puis pose le montant et émet l'ordre, avec l'heure de rendez-vous
-dans le message. Un atterrissage dans les horaires avec correspondance déclarée passe quand même par la
-vétérinaire : c'est elle qui confirme que le rendez-vous tient avant le bateau.
+**La demande de paiement part dès le dépôt** (05/10), indépendamment de la cascade d'engagements :
 
-**Champs et annotations** (repris du prototype, corrigés) :
+1. `set_field` recopie la formule dans l'annotation « **Montant à payer** » (79230, entier, `si_vide`) —
+   `payzen/payment_order` ne lit le montant que dans une annotation ;
+2. `payzen/payment_order` émet l'ordre PayZen (boutique de la régie DBS, la même que pour les chats et
+   chiens) et l'envoie à l'importateur, avec en recours la régie et le virement ; il suit ensuite le
+   paiement en construction comme en instruction.
 
-- champ usager « Paiement des frais » : *En ligne par carte / Virement / Au guichet* (existant, 68139) ; les
-  textes d'explication sont à corriger — le virement dit 5 500 F, tarif du permis particulier hérité du clone ;
-- annotations de la section Véto : **« Heure de rendez-vous du contrôle »** (196866, seule saisie de la
-  vétérinaire), **« Imposer le tarif »** (case, 196855) et **« Tarif imposé »** (196867, affiché seulement si la
-  case est cochée) ;
-- annotations « Montant à payer » (**entier, initialisé par le robot** : 6 500 F sans correspondance, sinon
-  d'après le créneau retenu ; **modifiable par l'agent**), « Demande de paiement » (identifiant PayZen), « Statut du
-  paiement » (*Demandé / Payé / Expiré / Gratuit*), « Moyen de paiement » (*PayZen / Virement / Sur place*), « Expiration de la
-  demande », « Visa régisseur » — le bloc régisseur du prototype, aligné sur la 3888.
+**Plus de choix du mode de paiement par l'usager** (05/10) : la section « Modalités de paiement » (choix
+carte / virement / guichet, explications, preuve de paiement) est supprimée. Virement et guichet restent
+possibles, présentés dans le message de la demande ; le régisseur pose alors « Payé » et le « Moyen de
+paiement » à la main.
 
-**Cycle** : la demande de paiement part **dès le dépôt** (régime standard) ou **à la saisie du créneau** par le
-vétérinaire (régime hors horaires) — dans les deux cas indépendamment de la cascade d'engagements, qui part au
-passage en instruction ; rien ne s'attend. `quand_payé` pose le statut ; il **ne
-fait pas accepter le dossier** (contrairement à la généalogie DAF), car la délivrance reste l'acte du
-vétérinaire au visa. `quand_expiré` **ne classe pas sans suite** : les poussins arrivent physiquement et le
-contrôle a lieu quoi qu'il en soit ; le robot relance l'importateur et alerte l'agent. Virement et guichet
-suivent le circuit régie : le régisseur pose **« Payé »** à la main et renseigne « Moyen de paiement » (virement ou sur place) — c'est la combinaison des deux qui dit qu'un règlement est passé par la régie, il n'y a pas de statut dédié (18/09).
+**Annotations** (section Régisseur) : « Montant à payer » (79230), « Date limite du paiement » (78025),
+« Références de transaction » (79231, identifiant PayZen — la vider après avoir corrigé le montant régénère
+une demande), « Moyen de paiement » (79232 : *PayZen / Virement / Sur place Faaa / Sur place Motu Uta*),
+« Statut du paiement » (79233 : *Demandé / Payé / Expiré / Gratuit*).
+
+**Cycle** : `quand_demandé` pose la date limite et le statut *Demandé* ; `quand_payé` pose *PayZen* et
+*Payé* et **ne fait pas accepter le dossier** (la délivrance reste l'acte du vétérinaire au visa) ;
+`quand_expiré` pose *Expiré* et **ne classe pas sans suite** (les poussins arrivent physiquement) ;
+`quand_gratuit` pose *Gratuit*.
 
 **Garde à la délivrance** : la tâche de publipostage du laissez-passer, déclenchée par le visa, vérifie que le
-statut est *Payé* ou *Gratuit* ; sinon elle n'émet rien et le signale à l'agent. Le
-vétérinaire garde la main (il peut poser *Gratuit*), le robot n'émet pas un acte impayé par inadvertance.
+statut est *Payé* ou *Gratuit* ; sinon elle n'émet rien et le signale à l'agent.
 
-**La boutique PayZen de la régie DBS existe déjà** : le robot encaisse en production les laissez-passer
-chats et chiens (`dbs_chat_chien.yml`, ancre `dbs_boutique`, démarches 1933 et 1950) avec clé de production.
-Le bloc poussins réutilise cette ancre et le même schéma d'annotations ; aucune démarche auprès de la régie
-pour ouvrir un compte. Deux différences assumées par rapport aux chats et chiens : pas de `dossier_accepter`
-au paiement, pas de `dossier_classer_sans_suite` à l'expiration (voir *Cycle*).
-
-**Réglé le 17/09** : lignes facturées = laissez-passer + déplacement, sans fonds de boîte. **Les horaires
-d'ouverture ne sont écrits nulle part dans le formulaire ni dans le robot** (18/09) : ils varient (le vendredi
-notamment) et la vétérinaire les connaît ; c'est son choix de créneau qui fait foi, pas une borne codée.
-**Reste à confirmer** : le non-paiement ne bloque pas le contrôle à l'arrivée mais bloque la remise du laissez-passer.
-
-**Deux sections pour un même tarif, volontairement** (18/09) : la section Véto porte la décision (heure de
-rendez-vous, forçage éventuel) ; « Montant à payer » (section Régisseur, **entier**) est la valeur que le robot
-**initialise** à partir de cette décision et que le régisseur lit. Redondant, mais les deux sections ne sont pas
-regardées par les mêmes personnes.
+**Configuration** : `storage/configurations/dbs_poussins.yml`, ancres `dbs_poussins_boutique`,
+`dbs_poussins_message_paiement`, `dbs_poussins_paiement` ; `mode_test: oui` tant que la démarche est en
+test, à passer à `non` à la publication.
 
 ---
 
@@ -525,8 +520,12 @@ est le bon support d'accès. **La liste de diffusion électronique reste à obte
 - **Les clés sont normalisées**, d'où des collisions entre un champ et une annotation aux libellés proches
   à la casse ou aux accents près. Risque concret ici : « Nombre de poussins » existe côté importateur,
   côté certificat d'isolement et côté carnet. **Libellés distincts à fixer dès la conception.**
-- **Tableau des articles réglementés** du laissez-passer : **une seule ligne, confirmé le 11/09** (un
-  dossier = un type, ponte ou chair ; code NC 010511, *Gallus gallus*). Pas de boucle de tableau.
+- **Tableau des articles réglementés** du laissez-passer : **une ligne par certificat sanitaire** (révisé le
+  05/10, cf. §12 ; c'était « une seule ligne » le 11/09). Boucle `«Certificats sanitaires reçus:each(c)»` sur le
+  bloc d'annotations ; code NC 010511, *Gallus gallus*, pays d'origine NZ et « NA » en poids restent fixes ;
+  ligne « Total » = formule « Total des colis ». L'en-tête « N° conteneur(s)/LTA » met les LTA bout à bout.
+- **« Affaire suivie par »** : variable `Dernier instructeur.prénom/nom` de `calculs/email_to_names` (le
+  dernier agent à suivre le dossier, nom et fonction lus dans la table `mails:`). La signataire vient du visa.
 
 ---
 
@@ -554,9 +553,11 @@ est le bon support d'accès. **La liste de diffusion électronique reste à obte
 | 19 | LTA et certificat sanitaire : pièces jointes **facultatives** avec consigne « messagerie, 24 h avant l'avion » ; **données relevées par l'agent** en annotations (17/09) | Champs usager obligatoires : documents émis après le dépôt, références souvent fausses (dossiers dupliqués) |
 | 20 | Pas de facturation des fonds de boîte (17/09) | Ligne « + 3 000 F » du barème : non pratiquée par le service |
 | 21 | Listes de contrôle agent du laissez-passer chats/chiens supprimées (17/09) | Les garder : vérifications simples ici ; à remettre sur demande |
-| 22 | **Proposition (18/09, à valider par la DBS)** : l'usager déclare l'atterrissage et sa correspondance vers les îles ; la vétérinaire fixe l'heure de rendez-vous ; le régime de paiement se lit sur « correspondance oui/non » | Demander une heure de contrôle ou de sortie souhaitée : l'usager ne connaît ni la durée de l'examen ni l'agenda, il répond 7 h 30 par réflexe |
-| 23 | **Tarif calculé par le robot** d'après l'heure de rendez-vous et une grille d'horaires en configuration YAML ; forçage derrière une case « Imposer le tarif » pour fériés et cas rares (18/09) | Menu « créneau retenu » saisi par la vétérinaire : double saisie avec le rendez-vous ; champ « tarif imposé » toujours visible : rempli systématiquement par réflexe ; calendrier des fériés dans le robot : maintenance annuelle pour des cas rares |
-| 18 | **Module de paiement dans le périmètre** : `payzen/payment_order` dès le dépôt (horaires DBS) ou à la saisie du créneau par le vétérinaire (hors horaires), statut vérifié au visa, expiration → relance sans classement (14/09, régimes précisés 17/09) | Hors périmètre (devis d'août) : le laissez-passer est tarifé et le prototype le prévoyait ; classement sans suite à l'expiration : le lot arrive physiquement, le contrôle a lieu de toute façon |
+| 22 | ~~**Proposition (18/09)**~~ **REJETÉE à la démo du 05/10, remplacée par 24** : l'usager déclare l'atterrissage et sa correspondance vers les îles ; la vétérinaire fixe l'heure de rendez-vous ; le régime de paiement se lit sur « correspondance oui/non » | Demander une heure de contrôle ou de sortie souhaitée : l'usager ne connaît ni la durée de l'examen ni l'agenda, il répond 7 h 30 par réflexe |
+| 23 | ~~**Tarif calculé par le robot**~~ **ABANDONNÉ le 05/10, remplacé par 24** : d'après l'heure de rendez-vous et une grille d'horaires en configuration YAML ; forçage derrière une case « Imposer le tarif » pour fériés et cas rares (18/09) | Menu « créneau retenu » saisi par la vétérinaire : double saisie avec le rendez-vous ; champ « tarif imposé » toujours visible : rempli systématiquement par réflexe ; calendrier des fériés dans le robot : maintenance annuelle pour des cas rares |
+| 18 | **Module de paiement dans le périmètre** : `payzen/payment_order`, statut vérifié au visa, expiration sans classement (14/09 ; déclenchement **dès le dépôt** depuis le 05/10, cf. 24) | Hors périmètre (devis d'août) : le laissez-passer est tarifé et le prototype le prévoyait ; classement sans suite à l'expiration : le lot arrive physiquement, le contrôle a lieu de toute façon |
+| 24 | **L'usager choisit une heure souhaitée pour le contrôle** (liste par demi-heure) ; une **formule publique affiche le montant** d'après cette heure et le jour d'atterrissage ; **la demande de paiement part dès le dépôt** à ce montant (05/10) | Correspondance déclarée + rendez-vous de la vétérinaire + tarif calculé par le robot (22, 23) : trop compliqué pour le service. Jours fériés **inclus** dans la formule (fériés de Pâques listés jusqu'en 2032) |
+| 25 | **Pas de choix du mode de paiement dans le formulaire** (05/10) : lien PayZen envoyé d'office, régie et virement en recours dans le message | Section « Modalités de paiement » héritée des chats/chiens : question inutile, demande automatisée |
 
 ---
 
@@ -930,3 +931,107 @@ stables pour les champs conservés ; ceux des démarches engagement et carnet re
   nettoyage via MCP est de la configuration. Il monte si D3 (paiement) est confirmé.
 - Les `stable_id` ci-dessus sont ceux du brouillon : les champs supprimés puis recréés en changeront, à
   relever une fois la révision stabilisée (poste 2, ids base64 des préremplissages).
+
+---
+
+## 12. Retours de la première démo (05/10/2026)
+
+Retours du service sur le prototype 3899, appliqués le jour même à la révision brouillon (via le MCP, puis
+une correction manuelle dans l'admin pour « Restant à répartir », la dépendance au bloc des éleveurs n'étant
+pas reprise par le MCP).
+
+| # | Retour du service | Traitement |
+|---|---|---|
+| 1 | N° Tahiti demandé deux fois (le mode personne morale le demande avant le formulaire) | Champ 192140 supprimé |
+| 2 | Retirer la Nouvelle-Calédonie de la provenance | Provenance : Nouvelle-Zélande, saisie libre conservée |
+| 3 | Exportateur hors liste : demander nom, pays, adresse | Option « Autre exportateur » → « Nom de l'exportateur » (197860), « Pays de l'exportateur » (197858, type pays), « Adresse de l'exportateur » (197856), obligatoires et conditionnés ; la liste n'est plus conditionnée à la provenance |
+| 4 | Supprimer le déclarant en douane | Champ 196200 supprimé |
+| 5 | « le·la vétérinaire », séparateur inclusif et non « / » | Descriptions de l'atterrissage, de l'heure souhaitée, des documents d'importation et du rendez-vous |
+| 6 | Correspondance : revenir à quelque chose de simple, demander l'heure souhaitée du contrôle | Champs 196862 à 196865 supprimés ; « Heure souhaitée pour le contrôle vétérinaire » (197857) |
+| 7 | Certificat sanitaire : supprimer « au plus tôt 3 jours », dire « au plus tôt et avant l'atterrissage » | Descriptions du certificat (132716), de sa date (196859), de la LTA (192135) et de l'en-tête « Documents d'importation » (181908) alignées |
+| 8 | « Restant à répartir » tient-il compte des poussins isolés chez l'importateur ? | Non ; formule 197143 corrigée |
+| 9 | Pas de modalité de paiement, demande automatisée ; formule de montant selon l'horaire ? | Section supprimée (67623, 68139, 112666, 112669, 112730, 112668) ; formule « Montant à régler (Fcp) » (197859) ; demande dès le dépôt (§3.5) |
+| — | Adresse fournie par le n° Tahiti mais souvent périmée | « Adresse géographique » (188457) supprimée ; « Commune et Île » gardée pour les statistiques |
+
+**Annotations retirées par voie de conséquence** : « Imposer le tarif » (196855) et « Tarif imposé » (196867),
+sans objet depuis que la demande part au dépôt. « Heure de rendez-vous du contrôle » (196866) est gardée comme
+information pour le service.
+
+**Configuration** : bloc paiement ajouté à `dbs_poussins.yml` (§3.5) ; au passage, libellé du bloc des
+éleveurs corrigé (« Liste des élevages destinataires », renommé dans le formulaire depuis la recette du 24/09).
+
+**Jours fériés** : le service confirme qu'ils sont facturés hors horaires (12 000 F) ; ajoutés à la formule,
+avec le 20 novembre (Matāri'i), le jour même. **À confirmer par la DBS** : les horaires de la formule
+(7 h 30 – 15 h 30, vendredi 14 h 30).
+
+### 12.1 Plusieurs certificats pour un même lot (retour du 05/10, après la démo)
+
+Un importateur (TAMARU FARM, laissez-passer papier du 02/10/2026, `docs/dbs/import_volaille/Laissez passer
+TAMARU FARM du 02 10 26.pdf`) a fourni **deux LTA et deux certificats** pour un même vol : 1 040 poussins de
+chair ROSS 308 (16 colis) et 358 poussins parentaux pour la couveuse (6 colis). C'est ce qui explique le
+tableau multi-lignes du modèle Word. **Le principe « un dossier = ponte ou chair » n'est pas remis en cause
+pour l'instant.**
+
+| Décision | Traitement sur la 3899 |
+|---|---|
+| L'**agent** relève une ligne par certificat | Bloc d'annotations « Certificats sanitaires reçus » (197862) : désignation (197869), nombre de poussins (197868), n° (197867) et date (197866) du certificat, vétérinaire signataire (197865), n° de LTA (197864), colis (197863). Les annotations uniques 196856-196860 sont supprimées |
+| Contrôle des quantités | Formule « Écart avec la quantité déclarée » (197871) = quantité totale − somme des lignes |
+| Total des colis | Formule « Total des colis » (197870) |
+| « Affaire suivie par » = dernier instructeur qui suit le dossier | `calculs/email_to_names` expose `Dernier instructeur.*` (dernier de `dossier.instructeurs`, ordre de l'API) en plus de `Instructeur.*` |
+| Expéditeur AVIAGEN absent de la liste | Ajouté en tête des exportateurs |
+| Pièces jointes usager au pluriel | « Lettre(s) de transport aérien (LTA) », « Certificat(s) sanitaire(s) du pays exportateur » : un fichier par document, photo prise au téléphone acceptée |
+
+Le laissez-passer réel confirme aussi la ligne « Déclarant en douane » **vide** : à retirer du modèle.
+
+**Piège plateforme** : une formule posée par l'API (MCP) qui agrège un bloc (`{Bloc/Sous-champ}`) n'enregistre
+pas la dépendance au bloc — `FormulaExpressionService.convert_to_stable_ids` ne traduit pas la forme
+`Bloc/Sous-champ`. La valeur se calcule, mais ne se recalcule pas quand une ligne change. Contournement :
+réenregistrer la formule dans l'admin (fait pour « Restant à répartir », **à faire pour 197870 et 197871**).
+
+### 12.2 Délivrance du laissez-passer (05/10)
+
+- **Déclencheur** : visa de l'agent habilité (196201) sur un dossier **en instruction**, **sans lien avec le
+  paiement** (décision du service ; la garde « Payé / Gratuit » de §3.5 est abandonnée). **Pas de statut
+  « Gratuit »** dans cette démarche (hérité d'une autre) : retiré de « Statut du paiement » et du YAML.
+- **Séquence** (`dbs_poussins.yml`, révisée le 05/10) : deux `publipostage_v3` sur la même ancre
+  `dbs_poussins_publipostage_lp`, déclenchées par `si_presence_champ` sur le visa ; la date du document
+  (« Faa'a, le ») est la variable volatile `Aujourd'hui` de la publipostage, hors empreinte — l'annotation
+  « Date de délivrance » (196206) et son `set_field` sont supprimés :
+  l'une range le PDF dans « Laissez-passer délivré » (197873), l'autre l'envoie à l'importateur par la
+  messagerie (avec une annotation cible, la publipostage n'envoie rien à l'usager).
+- **Gabarit** : `storage/models/dbs/poussins/Laissez-passer poussins.docx`, construit depuis le modèle vierge
+  par script (vrais `fldSimple MERGEFIELD`, surlignage des pointillés retiré). N° = n° de dossier ; réf. 4 =
+  permis préalable ; réf. 5 = n° et date de dépôt ; réf. 6 = « Certificat(s) d'isolement n° … du … sur le site
+  d'élevage … » (une mention par engagement reçu) ; destinataires = tous les élevages ; ligne « Déclarant en
+  douane » retirée ; tableau = boucle Sablon sur « Certificats sanitaires reçus » (lignes de contrôle
+  `:each`/`:endEach` autour de la ligne modèle) ; signature = nom et fonction de l'agent du visa. Rendu vérifié
+  avec les données du laissez-passer TAMARU FARM.
+- **Calcul `dbs/references_laissez_passer`** (`app/lib/dbs/references_laissez_passer.rb`) : prépare
+  `Destinataires`, `Certificats d'isolement` et `LTA`, qui croisent bloc des éleveurs, zone « Engagements
+  reçus » et bloc des certificats. L'élevage d'un engagement se retrouve par le courriel d'attribution ;
+  l'importateur qui isole chez lui a pour élevage sa raison sociale.
+- **Expéditeur** : formule d'annotation « Expéditeur sur le laissez-passer » (197872) = l'exportateur de la liste,
+  ou nom, adresse et pays de l'« Autre exportateur ».
+- **Agents** : table `dbs_poussins_agents` (prénom, NOM, fonction ; courriel = prenom.nom@administration.gov.pf),
+  fonction par défaut « Contrôleur biosécurité » ; Séverine SAMPIETRO = « vétérinaire officielle » comme sur le
+  document papier.
+- **Effet de bord assumé** : la publipostage régénère et renvoie le laissez-passer si ses données changent
+  après le visa (engagement reçu ensuite, certificat corrigé).
+
+### 12.3 Provenance, exportateur et tableau simplifiés (05/10)
+
+- **Provenance** (69269) : *Nouvelle-Zélande* / *Autre pays*, sans saisie libre ; « Pays de provenance » (197874,
+  type pays) si autre pays. **Exportateur** (liste NZ + « Autre exportateur ») affiché **seulement pour la
+  Nouvelle-Zélande** ; « Nom » (197860) et « Adresse de l'exportateur » (197856) si autre pays **ou** autre
+  exportateur. « Pays de l'exportateur » supprimé : c'est le pays de provenance.
+- **Tableau** : dans le cas courant (un certificat), l'agent ne relève que n°, date, vétérinaire, LTA et colis ;
+  « Désignation » et « Nombre de poussins » du bloc sont **facultatifs** et, vides, sont repris des champs de
+  l'importateur (quantité totale, « poussins de <destination> de race <race> »). Pays d'origine = provenance.
+  « Écart avec la quantité déclarée » vaut 0 tant qu'aucune quantité n'est détaillée.
+- **Numéro du document** : « N° <dossier> / MPR / DBS / ZOO » (syntaxe obligatoire).
+- **Référence 6** : **une référence numérotée par certificat d'isolement** (6/, 7/, …), « Certificat d'isolement
+  n° <engagement>/MPR/DBS/ZOO du <date> sur le site d'élevage <élevage> », ponctuation « ; » sauf la dernière —
+  boucle de paragraphes Sablon. Rendus vérifiés : cas courant (une ligne) et cas TAMARU FARM (deux certificats
+  sanitaires, deux engagements).
+- Le calcul `dbs/references_laissez_passer` fournit désormais `Articles` (lignes du tableau), `Pays d'origine`
+  et `Certificats d'isolement` sous forme de liste structurée.

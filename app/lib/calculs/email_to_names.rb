@@ -16,8 +16,10 @@ module Calculs
     end
 
     def process_row(dossier, output)
-      instructeur_email = dossier.instructeurs.first&.email
-      handle(output, 'Instructeur', instructeur_email)
+      instructeurs = dossier.instructeurs
+      handle(output, 'Instructeur', instructeurs.first&.email)
+      # Le dernier à suivre le dossier : « Affaire suivie par » quand plusieurs agents se sont succédé.
+      handle(output, 'Dernier instructeur', instructeurs.last&.email)
       dossier.annotations.filter { |c| c.__typename == 'VisaChamp' }.each { |champ| handle(output, champ.label, champ.string_value) }
       dossier.annotations.filter { |c| c.__typename == 'TextChamp' && c.value.is_a?(String) && c.value.match?(URI::MailTo::EMAIL_REGEXP) }.each { |champ| handle(output, champ.label, champ.value) }
     end
