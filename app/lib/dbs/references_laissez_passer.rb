@@ -12,6 +12,9 @@ module Dbs
   #                            viennent des champs de l'importateur. Sans certificat relevé, une ligne quand même.
   #   LTA                      numéros de LTA des certificats, sans doublon
   #   Pays d'origine           Nouvelle-Zélande, ou le pays saisi pour « Autre pays »
+  #   Date de la demande       date de dépôt du dossier, jour seul (référence 5)
+  # Dans le gabarit, ces valeurs se lisent sous leur nom normalisé (parameterize) : destinataires,
+  # certificats_d_isolement, articles, lta, pays_d_origine, date_de_la_demande.
   class ReferencesLaissezPasser < FieldChecker
     include Dbs::EleveursDuLot
 
@@ -32,7 +35,7 @@ module Dbs
     }.freeze
 
     def version
-      super + 2
+      super + 3
     end
 
     def required_fields
@@ -58,6 +61,7 @@ module Dbs
       lignes = lignes_certificats(dossier)
       output['Articles'] = articles(dossier, lignes, pays)
       output['LTA'] = lignes.filter_map { |l| l[@cfg[:numero_lta]].presence }.uniq.join(', ')
+      output['Date de la demande'] = date_demande(dossier)
     end
 
     private
@@ -82,6 +86,10 @@ module Dbs
     def designation_declaree(dossier)
       race = Array(@cfg[:races]).map { |libelle| valeur(dossier, libelle) }.find(&:present?)
       ["poussins de #{valeur(dossier, @cfg[:destination]).downcase}", race.presence && "de race #{race}"].compact.join(' ')
+    end
+
+    def date_demande(dossier)
+      Time.zone.parse(dossier.date_depot.to_s)&.strftime('%d/%m/%Y').to_s
     end
 
     def pays_origine(dossier)
