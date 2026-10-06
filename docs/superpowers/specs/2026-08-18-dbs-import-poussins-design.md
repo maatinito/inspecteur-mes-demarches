@@ -1035,3 +1035,11 @@ réenregistrer la formule dans l'admin (fait pour « Restant à répartir », **
   sanitaires, deux engagements).
 - Le calcul `dbs/references_laissez_passer` fournit désormais `Articles` (lignes du tableau), `Pays d'origine`
   et `Certificats d'isolement` sous forme de liste structurée.
+
+### 12.4 Engagements de l'éleveur relus par le service (05/10)
+
+Textes des 7 cases de la 4038 corrigés selon la relecture du service : « En clair » des engagements 1 (sans
+contact avec d'autres animaux ; vérification quotidienne de l'état de santé), 2, 3 (« si une maladie grave est
+détectée »), 5 (pédiluve = tremper et désinfecter ses chaussures) ; texte officiel de l'engagement 6 précisé
+(« le fournir **au plus tard** à l'issue des 21 jours »). Les versions « En clair » sont validées : la mention
+« à valider par la vétérinaire » est retirée de l'en-tête « Engagements ».
