@@ -1072,3 +1072,13 @@ détectée »), 5 (pédiluve = tremper et désinfecter ses chaussures) ; texte o
   n'intercepte pas les erreurs (génération en échec ⇒ pas d'acceptation) et relit le dossier après une tâche
   qui l'a modifié (le contrôle voit l'annotation remplie dans le même passage).
 - Gabarit retouché par l'utilisateur : lignes du tableau insécables et en-tête répété en haut de page.
+
+### 12.7 Visa régisseur posé par le robot (06/10)
+
+- Nouvelle annotation « Visa » (197878) en fin de section Régisseur. À chaque mise à jour des champs de paiement
+  (`quand_demandé`, `quand_payé`, `quand_expiré`), le robot y inscrit son adresse
+  (`robot-mes-demarches@administration.gov.pf`). Le visa ne verrouille les champs qu'**à l'écran**
+  (`visa_controller.ts`) : l'API, donc le robot, écrit toujours ; l'API ne contrôle pas non plus la liste des
+  personnes habilitées (écriture vérifiée sur 683290). Le régisseur décoche pour modifier, puis revise.
+- Annotations « Robot » (121103, explication vide) et « Rappel » (121104, texte vide), héritées du clone et
+  inutilisées : supprimées.
