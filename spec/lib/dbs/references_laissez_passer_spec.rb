@@ -8,7 +8,10 @@ RSpec.describe Dbs::ReferencesLaissezPasser do
       'certificats' => 'Certificats sanitaires reçus' }
   end
   let(:calcul) { described_class.new(params) }
-  let(:dossier) { double('dossier', demandeur: double('demandeur', entreprise: double('entreprise', raison_sociale: 'TAMARU FARM'))) }
+  let(:dossier) do
+    double('dossier', date_depot: '2026-10-01T09:02:00-10:00',
+                      demandeur: double('demandeur', entreprise: double('entreprise', raison_sociale: 'TAMARU FARM')))
+  end
   let(:eleveurs) do
     [{ nom: 'Sébastien MOLLARD', email: 'seb@ferme.pf', valeurs: { "Nom de l'élevage" => '' } },
      { nom: 'Jean DUPONT', email: 'jean@dupont.pf', valeurs: { "Nom de l'élevage" => 'Ferme Dupont' } }]
@@ -110,6 +113,10 @@ RSpec.describe Dbs::ReferencesLaissezPasser do
         expect(subject['Articles'].first['pays']).to eq 'Australie'
       end
     end
+  end
+
+  it 'gives the filing date, day only' do
+    expect(subject['Date de la demande']).to eq '01/10/2026'
   end
 
   context 'without required fields' do
