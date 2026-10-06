@@ -1065,3 +1065,10 @@ détectée »), 5 (pédiluve = tremper et désinfecter ses chaussures) ; texte o
   (elle n'est pas reprise dans le mail). Effets : statut clair (accepté = délivré), date de traitement = J0 des
   carnets (décision 13), plus de régénération du laissez-passer après délivrance (la publipostage ne traite
   que les dossiers en instruction).
+- **Un seul passage du robot entre le visa et le mail** (06/10, proposition de l'utilisateur) : un
+  `conditional_field` sur le visa enchaîne la publipostage puis un `conditional_field` sur « Laissez-passer
+  délivré » qui accepte le dossier. Avant : deux passages (publipostage, puis acceptation au passage suivant),
+  alors que la vétérinaire et l'importateur attendent le document sur place. Sûreté : `conditional_field`
+  n'intercepte pas les erreurs (génération en échec ⇒ pas d'acceptation) et relit le dossier après une tâche
+  qui l'a modifié (le contrôle voit l'annotation remplie dans le même passage).
+- Gabarit retouché par l'utilisateur : lignes du tableau insécables et en-tête répété en haut de page.
