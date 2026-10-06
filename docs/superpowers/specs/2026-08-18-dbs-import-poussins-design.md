@@ -1052,3 +1052,16 @@ détectée »), 5 (pédiluve = tremper et désinfecter ses chaussures) ; texte o
   (retour du service).
 - Bloc « Certificats sanitaires reçus » réordonné comme on lit un certificat : n° et date du certificat, n° de
   LTA, puis désignation, nombre de poussins et nombre de colis.
+
+### 12.6 Paiement à l'instruction, acceptation automatique (06/10)
+
+- **La demande de paiement part au passage en instruction**, plus au dépôt : en construction, l'usager pouvait
+  changer d'horaire après la demande, qui devenait obsolète, et l'API PayZen du robot ne sait pas annuler une
+  demande émise (risque de double paiement). En instruction, le dossier n'est plus modifiable par l'usager. Le
+  suivi PayZen continue sur un dossier accepté (`etat_du_dossier: [en_instruction, accepte]`). Cas résiduel —
+  dossier renvoyé en construction après la demande — laissé de côté pour l'instant (pas d'alerte).
+- **Le robot accepte le dossier** dès que « Laissez-passer délivré » est rempli (après le visa, en instruction) :
+  le mail d'acceptation porte le lien vers ce document, donc plus d'envoi par la messagerie ; pas de motivation
+  (elle n'est pas reprise dans le mail). Effets : statut clair (accepté = délivré), date de traitement = J0 des
+  carnets (décision 13), plus de régénération du laissez-passer après délivrance (la publipostage ne traite
+  que les dossiers en instruction).
