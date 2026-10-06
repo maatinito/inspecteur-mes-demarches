@@ -1043,3 +1043,12 @@ contact avec d'autres animaux ; vérification quotidienne de l'état de santé),
 détectée »), 5 (pédiluve = tremper et désinfecter ses chaussures) ; texte officiel de l'engagement 6 précisé
 (« le fournir **au plus tard** à l'issue des 21 jours »). Les versions « En clair » sont validées : la mention
 « à valider par la vétérinaire » est retirée de l'en-tête « Engagements ».
+
+### 12.5 Annotations allégées (05/10)
+
+- « Heure de rendez-vous du contrôle » (196866) supprimée : ni le robot ni le laissez-passer ne s'en servent ;
+  le rendez-vous est confirmé à l'importateur par la messagerie.
+- « Vétérinaire officiel signataire du certificat » (197865) supprimé du bloc des certificats : non utilisé
+  (retour du service).
+- Bloc « Certificats sanitaires reçus » réordonné comme on lit un certificat : n° et date du certificat, n° de
+  LTA, puis désignation, nombre de poussins et nombre de colis.
