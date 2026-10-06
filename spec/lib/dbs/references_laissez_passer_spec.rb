@@ -30,21 +30,13 @@ RSpec.describe Dbs::ReferencesLaissezPasser do
   end
   let(:lignes) { [ligne_certificat] }
 
-  subject do
-    result = {}
-    calcul.process_row(dossier, result)
-    result
-  end
+  subject { {}.tap { |result| calcul.process_row(dossier, result) } }
 
   before do
     allow(calcul).to receive(:eleveurs_du_lot).and_return(eleveurs)
     allow(calcul).to receive(:valeur) { |_dossier, libelle| valeurs.fetch(libelle, '') }
     allow(calcul).to receive(:texte_annotation).and_return(engagements_recus)
     allow(calcul).to receive(:lignes_certificats).and_return(lignes)
-  end
-
-  it 'is valid with its three required fields' do
-    expect(calcul.errors).to be_empty
   end
 
   it 'lists every destinataire with his élevage, the raison sociale standing for an empty one' do
@@ -119,11 +111,8 @@ RSpec.describe Dbs::ReferencesLaissezPasser do
     expect(subject['Date de la demande']).to eq '01/10/2026'
   end
 
-  context 'without required fields' do
-    let(:params) { {} }
-
-    it 'reports them' do
-      expect(calcul.errors.join).to include('eleveurs')
-    end
+  it 'requires the three fields eleveurs, engagements_recus and certificats' do
+    expect(calcul.errors).to be_empty
+    expect(described_class.new({}).errors.join).to include('eleveurs')
   end
 end
