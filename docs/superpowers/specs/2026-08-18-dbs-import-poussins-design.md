@@ -138,8 +138,8 @@ l'importateur et ceux répartis chez les éleveurs.
 **Annotations privées** : « Importateur » (dénomination exacte du PIP, forçage), **bloc répétable
 « Certificats sanitaires reçus »** (197862, une ligne par certificat, renseignée par l'agent : désignation des
 poussins, nombre de poussins, n° et date du certificat, vétérinaire officiel signataire, n° de LTA, nombre de
-colis — 05/10, remplace les annotations uniques du 17/09), formules « Total des colis » (197870) et « Écart
-avec la quantité déclarée » (197871, doit valoir 0), zones « Engagements reçus » / « Engagements manquants » (§3.2), **créneau
+colis — 05/10, remplace les annotations uniques du 17/09), formules « Total des colis » (197871) et « Écart
+avec la quantité déclarée » (197870, doit valoir 0), zones « Engagements reçus » / « Engagements manquants » (§3.2), **créneau
 **heure de rendez-vous du contrôle** fixée par le·la vétérinaire (§3.5, information sans effet sur le
 tarif), visa de l'agent habilité, date de délivrance, et le bloc **Paiement** (§3.5). Les listes de contrôle héritées du laissez-passer chats et chiens (« Demande d'avis
 vétérinaire », « Informations à vérifier ») sont **supprimées** : les vérifications sont simples ici ; à
@@ -975,8 +975,8 @@ pour l'instant.**
 | Décision | Traitement sur la 3899 |
 |---|---|
 | L'**agent** relève une ligne par certificat | Bloc d'annotations « Certificats sanitaires reçus » (197862) : désignation (197869), nombre de poussins (197868), n° (197867) et date (197866) du certificat, vétérinaire signataire (197865), n° de LTA (197864), colis (197863). Les annotations uniques 196856-196860 sont supprimées |
-| Contrôle des quantités | Formule « Écart avec la quantité déclarée » (197871) = quantité totale − somme des lignes |
-| Total des colis | Formule « Total des colis » (197870) |
+| Contrôle des quantités | Formule « Écart avec la quantité déclarée » (197870) = quantité totale − somme des lignes |
+| Total des colis | Formule « Total des colis » (197871) |
 | « Affaire suivie par » = dernier instructeur qui suit le dossier | `calculs/email_to_names` expose `Dernier instructeur.*` (dernier de `dossier.instructeurs`, ordre de l'API) en plus de `Instructeur.*` |
 | Expéditeur AVIAGEN absent de la liste | Ajouté en tête des exportateurs |
 | Pièces jointes usager au pluriel | « Lettre(s) de transport aérien (LTA) », « Certificat(s) sanitaire(s) du pays exportateur » : un fichier par document, photo prise au téléphone acceptée |
@@ -986,7 +986,7 @@ Le laissez-passer réel confirme aussi la ligne « Déclarant en douane » **vid
 **Piège plateforme** : une formule posée par l'API (MCP) qui agrège un bloc (`{Bloc/Sous-champ}`) n'enregistre
 pas la dépendance au bloc — `FormulaExpressionService.convert_to_stable_ids` ne traduit pas la forme
 `Bloc/Sous-champ`. La valeur se calcule, mais ne se recalcule pas quand une ligne change. Contournement :
-réenregistrer la formule dans l'admin (fait pour « Restant à répartir », **à faire pour 197870 et 197871**).
+réenregistrer la formule dans l'admin (fait pour « Restant à répartir », fait pour 197870 et 197871 après le correctif de la plateforme du 05/10).
 
 ### 12.2 Délivrance du laissez-passer (05/10)
 
