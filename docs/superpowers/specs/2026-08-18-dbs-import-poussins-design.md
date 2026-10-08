@@ -1082,3 +1082,15 @@ détectée »), 5 (pédiluve = tremper et désinfecter ses chaussures) ; texte o
   personnes habilitées (écriture vérifiée sur 683290). Le régisseur décoche pour modifier, puis revise.
 - Annotations « Robot » (121103, explication vide) et « Rappel » (121104, texte vide), héritées du clone et
   inutilisées : supprimées.
+
+### 12.8 Décisions du 08/10/2026
+
+- **Horaires de la formule de montant validés** : 7 h 30 – 15 h 30, 14 h 30 le vendredi.
+- **Référence 5 sans suffixe** « /MPR/DBS/ZOO/AR » : c'est une référence de l'usager (sa demande), pas un document
+  émis par la DBS.
+- **Courriel d'information aux services (MPR, DDI, DAG, DGAE) mis de côté** : le circuit actuel privilégie le
+  papier ; à rouvrir sur demande.
+- **Recette du laissez-passer confiée à la DBS** (passe de test en cours chez eux). Les démarches 3899 et 4038
+  **ne sont pas publiées** : le projet continue avec le certificat d'isolement puis le carnet de suivi de 21 jours.
+- **Formule de montant à 997/1 000 caractères** : si nécessaire, la décomposer en deux champs formule, ou
+  relever la limite dans Mes-Démarches (maintenue par l'équipe).
