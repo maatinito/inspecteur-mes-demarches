@@ -178,6 +178,10 @@ frais exclusifs sans indemnisation : **une validation juridique explicite du ser
 voir ci-dessous), « Certificat d'isolement établi le » (197030), « Date de levée d'isolement prévue » (197032,
 J0 + 21 j, posée par le robot) ; section « Instruction » : carnet de notes (197036).
 
+> **Remplacé le 08/10/2026** : le certificat d'isolement est désormais émis **avant** le laissez-passer, à la
+> validation de l'engagement par un visa — voir `2026-10-08-dbs-poussins-certificat-isolement-design.md`. La
+> mécanique ci-dessous (certificat au visa du laissez-passer) est abandonnée.
+
 C'est cette démarche qui porte le **certificat d'isolement**, nominatif par élevage. **Il n'est pas produit au
 dépôt de l'engagement mais au visa du laissez-passer** (décision du service, 11/09) : le certificat atteste
 une mise en isolement, il n'a de sens qu'une fois le lot arrivé. Mécanique retenue, sans dépendre d'un
