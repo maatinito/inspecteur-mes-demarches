@@ -8,10 +8,10 @@ module Dbs
   # lendemain : un carnet silencieux n'est jamais modifié, donc jamais réinspecté sans ce rejeu.
   class SuiviCarnet < FieldChecker
     ETATS_PAR_DEFAUT = %w[en_construction en_instruction].freeze
-    DEFAUTS = { seuil: 0.03, fenetre: 3, silence: 4, nb_jours: 42, heure_rejeu: 7 }.freeze
+    DEFAUTS = { seuil: 0.03, fenetre: 3, silence: 4, nb_jours: 42, heure_rejeu: 7, duree: 21 }.freeze
 
     def version
-      super + 1
+      super + 2
     end
 
     def required_fields
@@ -37,16 +37,21 @@ module Dbs
         return
       end
 
+      # Replanifié d'abord : une erreur plus loin (après un envoi) ne laisse pas la ligne planifiée en place,
+      # que ScheduledTaskJob rejouerait chaque minute en renvoyant le même message.
+      replanifier
       j0 = date_champ(@params[:j0])
       recu = entier(@params[:recu])
-      return if j0.nil? || recu.nil?
+      if j0.nil? || recu.nil?
+        Rails.logger.warn("Carnet #{dossier.number} : J0 ou effectif reçu absent, suivi impossible")
+        return
+      end
 
       morts = (1..@cfg[:nb_jours].to_i).map { |n| entier("#{@params[:prefixe_jour]} #{n}") }
       alerter(recu, morts)
       relancer((Time.zone.today - j0).to_i, morts)
       tableau_de_bord(recu, morts)
       garde_fou_prolongation
-      replanifier
     end
 
     private
@@ -69,9 +74,19 @@ module Dbs
       dernier = CarnetMortalite.dernier_jour_saisi(morts)
       return if jour - dernier < @cfg[:silence].to_i || texte(@params[:relance]) == dernier.to_s
 
-      a_saisir = ((dernier + 1)..[jour, morts.size].min).to_a.join(', ')
+      # Jours prévus : 21 + la prolongation la plus longue (saisie par l'éleveur ou accordée) ; au-delà, les
+      # champs sont masqués ou la période est finie (pas de relance après la période, spec K8).
+      limite = [jour, fin_de_periode, morts.size].min
+      return if dernier >= limite
+
+      a_saisir = ((dernier + 1)..limite).to_a.join(', ')
       SendMessage.deliver_message(@dossier, instructeur_id, instanciate(@params[:message_relance], { jours_a_saisir: a_saisir }))
       ecrire(@params[:relance], dernier.to_s)
+    end
+
+    def fin_de_periode
+      prolongations = [@params[:prolongation_usager], @params[:prolongation_accordee]].compact_blank.map { |l| entier(l).to_i }
+      @cfg[:duree].to_i + (prolongations.max || 0)
     end
 
     def tableau_de_bord(recu, morts)

@@ -11,7 +11,7 @@ RSpec.describe Dbs::SuiviCarnet do
       alertes: 'Alertes mortalité', relance: 'Relance silence', dernier_jour: 'Dernier jour saisi',
       mortalite: 'Mortalité sur 3 jours (%)', destinataires_alerte: 'cellule@exemple.pf',
       objet_alerte: 'Mortalité J{jour}', message_alerte: '{morts} morts / {restant}', message_relance: 'Saisir {jours_a_saisir}',
-      nb_jours: 6, prolongation_usager: 'Durée de prolongation (jours)', prolongation_accordee: 'Prolongation totale (jours)',
+      nb_jours: 30, prolongation_usager: 'Durée de prolongation (jours)', prolongation_accordee: 'Prolongation totale (jours)',
       ecart_signale: 'Écart prolongation signalé', destinataires_veterinaire: 'veto@exemple.pf', message_ecart: '{saisi}/{accorde}' }
   end
   let(:task) { described_class.new(params) }
@@ -27,7 +27,7 @@ RSpec.describe Dbs::SuiviCarnet do
   def txt(label, val) = double(label, label:, __typename: 'TextChamp', value: val, string_value: val)
 
   let(:dossier) do
-    jours = (1..6).map { |n| int("Morts du jour #{n}", morts[n - 1]) }
+    jours = (1..30).map { |n| int("Morts du jour #{n}", morts[n - 1]) }
     j0 = double('J0', label: "Date de début d'isolement (J0)", __typename: 'DateChamp', date_value: '2026-10-01',
                       string_value: '1 octobre 2026')
     double('Carnet', number: 700_001, state: etat,
@@ -88,6 +88,41 @@ RSpec.describe Dbs::SuiviCarnet do
         task.process(demarche, dossier)
         expect(SendMessage).not_to have_received(:deliver_message)
       end
+    end
+  end
+
+  context 'au-delà de la période (jour 25)' do
+    let(:morts) { [0] * 21 }
+
+    before { travel_to Time.zone.local(2026, 10, 26, 9, 0) }
+
+    it 'ne relance pas des jours non prévus quand rien n a été prolongé' do
+      task.process(demarche, dossier)
+      expect(SendMessage).not_to have_received(:deliver_message)
+    end
+
+    context 'avec une prolongation accordée de 10 jours' do
+      let(:trace) { super().merge('Prolongation totale (jours)' => 10, 'Écart prolongation signalé' => '0/10') }
+
+      it 'relance les jours prolongés' do
+        task.process(demarche, dossier)
+        expect(SendMessage).to have_received(:deliver_message).with(dossier, 'robot', 'Saisir 22, 23, 24, 25')
+      end
+    end
+  end
+
+  context "quand l'écriture d'une trace échoue après un envoi" do
+    let(:morts) { [1] }
+
+    before do
+      travel_to Time.zone.local(2026, 10, 6, 9, 0)
+      allow(SetAnnotationValue).to receive(:set_value).and_raise('boom')
+    end
+
+    it 'a déjà replanifié au lendemain : pas de nouvel essai à la minute' do
+      expect { task.process(demarche, dossier) }.to raise_error('boom')
+      expect(ScheduledTask).to have_received(:enqueue).with(700_001, 'dbs/suivi_carnet/700001', anything,
+                                                            Time.zone.local(2026, 10, 7, 7))
     end
   end
 
