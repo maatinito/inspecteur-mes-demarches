@@ -50,8 +50,8 @@ automatique au dépôt ; date de levée d'isolement (→ carnet).
 
 | Élément | Action |
 |---|---|
-| « Visa de l'agent habilité » (visa) | **Ajouté**, section Instruction ; mêmes personnes habilitées que le visa de la 3899 |
-| « Certificat d'isolement délivré » (pièce jointe) | **Ajoutée**, section « Suivi robot » |
+| « Visa de l'agent habilité » (visa, **198027**) | **Ajouté**, section Instruction ; mêmes personnes habilitées que le visa de la 3899 |
+| « Certificat d'isolement délivré » (pièce jointe, **198028**) | **Ajoutée**, section « Suivi robot » |
 | « Laissez-passer visé le » (197028) | **Supprimée** (mécanique abandonnée) |
 | « Certificat d'isolement établi le » (197030) | **Supprimée** (doublon de la date d'acceptation) |
 | « Date de levée d'isolement prévue » (197032) | **Conservée, non remplie** : calcul reporté au carnet (base = date d'arrivée, plus le visa) |
@@ -107,12 +107,12 @@ colonnes du YAML de la publipostage, préfixées par le champ lien « Numéro du
 | Donnée du certificat | Chemin |
 |---|---|
 | N° de la demande | `Numéro du dossier de laissez-passer.number` |
-| Date de dépôt de la demande | `Numéro du dossier de laissez-passer.date_depot` (texte « JJ/MM/AAAA à HHhMM » : jour seul à obtenir, cf. plan) |
-| Adresse de l'importateur | `Numéro du dossier de laissez-passer.demandeur…` (adresse de l'établissement, cf. plan) |
+| Date de dépôt de la demande | `Numéro du dossier de laissez-passer.Demande déposée le` — **annotation formule sur la 3899 (198029)**, jour seul (la date de dépôt brute arrive avec l'heure) |
+| Adresse de l'importateur | `Numéro du dossier de laissez-passer.demandeur.adresse` (adresse complète de l'établissement) |
 | Permis | `Numéro du dossier de laissez-passer.Numéro de permis d'importation préalable` |
 | Lot total | `Numéro du dossier de laissez-passer.Quantité totale` |
 | Expéditeur | `Numéro du dossier de laissez-passer.Expéditeur sur le laissez-passer` |
-| Pays d'origine | `Numéro du dossier de laissez-passer.Pays d'origine` — **nouvelle annotation formule sur la 3899** : `SI({Provenance} == "Autre pays", {Pays de provenance}, {Provenance})` |
+| Pays d'origine | `Numéro du dossier de laissez-passer.Pays d'origine` — **nouvelle annotation formule sur la 3899 (198030)** : `SI({Provenance} == "Autre pays", {Pays de provenance}, {Provenance})` |
 
 Signataire et « Dossier suivi par » : `calculs/email_to_names` (existant) sur **l'engagement** — visa de
 l'engagement et son dernier instructeur, résolus par la table `dbs_poussins_agents`.
