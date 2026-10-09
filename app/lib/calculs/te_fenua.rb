@@ -30,7 +30,14 @@ module Calculs
       texte = champ&.string_value.to_s
       return {} if texte.blank?
 
-      JSON.parse(texte).dig('markers', 'features', 0, 'properties') || {}
+      # Forme attendue : { markers: { features: [ { properties: { … } } ] } }. Toute autre forme (valeurs
+      # historiques en tableau, null…) donne un lieu vide plutôt qu'une erreur qui bloquerait le document.
+      geo = JSON.parse(texte)
+      marqueurs = geo.is_a?(Hash) ? geo['markers'] : nil
+      features = marqueurs.is_a?(Hash) ? marqueurs['features'] : nil
+      premier = features.is_a?(Array) ? features.first : nil
+      proprietes = premier.is_a?(Hash) ? premier['properties'] : nil
+      proprietes.is_a?(Hash) ? proprietes : {}
     rescue JSON::ParserError
       {}
     end
