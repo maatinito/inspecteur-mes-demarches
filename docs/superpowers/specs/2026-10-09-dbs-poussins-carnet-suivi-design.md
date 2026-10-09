@@ -29,7 +29,7 @@ LP accepté (visa) ──► dbs/inviter_carnets : un lien prérempli par engage
 ÉLEVEUR : dépose le carnet à J0 (effectif reçu) ; puis saisit « Morts du jour N » et dépose ses modifications
 ROBOT (rejeu quotidien) : alerte mortalité ; relance silence ; annotations du tableau de bord
 VÉTÉRINAIRE : visite → compte rendu + Décision + visa
-   Prolongation ──► message (compte rendu inclus) ; cumul de la durée ; visa vidé ; dossier ouvert
+   Prolongation ──► message (compte rendu + total accordé) ; visa vidé ; dossier ouvert
    Levée        ──► suite administrative publipostée ──► dossier accepté
    Abattage     ──► suite administrative publipostée ──► dossier refusé (motivation)
 ```
@@ -72,6 +72,10 @@ dépôt ; les messages de relance le rappellent.
 | K10 | **Alerte de mortalité** le jour même à la cellule : morts du jour ≥ **3 %** de l'effectif restant la veille (paramètre) | Seuil cumulé ; base initiale |
 | K11 | **Compte rendu de visite en zones de texte** (vaccins et traitements compris) | Bloc répétable (lourd pour la vétérinaire, compliqué à traiter) |
 
+**Principe de conception (09/10)** : limiter le nombre de plugins spécifiques — chacun est une maintenance. Cette
+version n'en ajoute que deux, `dbs/inviter_carnets` (dont le plan examinera s'il peut n'être qu'une configuration
+de `dbs/inviter_eleveurs`) et `dbs/suivi_carnet` ; tout le reste est du YAML et des formules.
+
 Hors périmètre de cette version : relance « carnet jamais ouvert » (la vétérinaire lit « Carnets envoyés ») ;
 lettre GEDA ; SMS.
 
@@ -98,10 +102,11 @@ corrigeable : casse au transport).
 - tableau de bord (§5.3) : « Jour de suivi (agent) » (formule, recalculée chaque nuit), « Dernier jour saisi »,
   « Mortalité sur 3 jours (%) », « Mortalité totale (%) » (formule) ;
 - traces du robot : « Alertes mortalité » (jours signalés), « Relance silence » (dernier jour relancé),
-  « Écart prolongation signalé » ; « Prolongation accordée (jours) » (cumul, écrit par `dbs/cumuler_prolongation`) ;
+  « Écart prolongation signalé » ;
 - **visite réutilisable** : « Date de visite », « Agents », « Vaccins et traitements », « Niveau d'activité »,
   « Alimentation », « Présence de signes cliniques », « Autre » (zones de texte) ; « Décision » (Levée /
-  Prolongation / Abattage) ; si Prolongation : « Durée accordée (jours) », « Prochaine visite » ; si Abattage :
+  Prolongation / Abattage) ; si Prolongation : « Prolongation totale (jours) » (total accordé depuis le début,
+  0-21, description « saisissez le nouveau total, pas l'ajout »), « Prochaine visite » ; si Abattage :
   « Date d'abattage », « Motif » ; « Visa de la vétérinaire » (visa) ;
 - « Suite administrative délivrée » (pièce jointe).
 
@@ -128,7 +133,7 @@ leur lien part au passage suivant.
   « Relance silence » = D. **Une relance par silence** : une nouvelle saisie change D.
 - **Tableau de bord** : écrit « Dernier jour saisi » = D et « Mortalité sur 3 jours (%) » =
   morts des 3 derniers jours saisis ÷ effectif restant avant ces jours (paramètre `fenetre: 3`).
-- **Garde-fou de prolongation** : si « Durée de prolongation » (usager) ≠ « Prolongation accordée » (annotation)
+- **Garde-fou de prolongation** : si « Durée de prolongation » (usager) ≠ « Prolongation totale » (annotation)
   → courriel à la vétérinaire ; trace « Écart prolongation signalé » = la paire « saisi/accordé » signalée
   (pas de nouveau courriel tant que la paire ne change pas).
 - **Rejeu quotidien** : un carnet silencieux n'est pas modifié, donc pas réinspecté ; la tâche **planifie son
@@ -146,10 +151,9 @@ textes des messages, libellés.
 `conditional_field` sur « Visa de la vétérinaire » (non vide), puis sur « Décision » :
 - **Prolongation** : message à l'éleveur (modèle du YAML : compte rendu complet — date, agents, vaccins et
   traitements, activité, alimentation, signes cliniques, autre —, durée accordée, cumul, prochaine visite,
-  consigne « indiquez <cumul> dans Durée de prolongation »), puis **`dbs/cumuler_prolongation`** (petite tâche de
-  code : `set_field` ne sait pas additionner) qui ajoute « Durée accordée » à « Prolongation accordée » **et** vide
-  « Visa de la vétérinaire » (`""`) dans le même passage — le visa vidé empêche de cumuler deux fois la même
-  décision. Dossier laissé ouvert.
+  consigne « indiquez <Prolongation totale> dans Durée de prolongation »), puis `set_field` « Visa de la
+  vétérinaire » = `""`. Dossier laissé ouvert. **Aucun cumul à calculer** : la vétérinaire saisit le **total**
+  accordé (« Prolongation totale (jours) » : 10, puis 15), valeur absolue qu'elle écrase à chaque prolongation.
 - **Levée** : `publipostage_v3` (acte, `champ_cible: Suite administrative délivrée`) → si la pièce est présente :
   `dossier_accepter`.
 - **Abattage** : même acte (texte d'abattage, date et motif) → si présent : `dossier_refuser` avec motivation
@@ -183,8 +187,6 @@ depuis `storage/` **après** déploiement du code dont le YAML dépend.
   distincts ; base « restant la veille » ; relance silence à 4 jours, pas deux fois pour le même silence, de
   nouveau après une nouvelle saisie puis un silence ; mortalité sur 3 jours ; garde-fou de prolongation ;
   planification du passage suivant.
-- `dbs/cumuler_prolongation` : cumul correct sur deux prolongations successives ; visa vidé ; rien si le visa
-  est déjà vide.
-- Chaîne de visite : prolongation (message, cumul, visa vidé) ; levée (acte puis acceptation) ; abattage (acte puis
+- Chaîne de visite : prolongation (message avec le total, visa vidé) ; levée (acte puis acceptation) ; abattage (acte puis
   refus motivé) ; pas de clôture sans acte.
 - Bout en bout : carnet de test rejoué sans rien envoyer ; rendu de l'acte sans champ brut.
