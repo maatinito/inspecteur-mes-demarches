@@ -10,11 +10,15 @@ module Dbs
   # Invariant : le robot doit pouvoir relire tout ce qu'il écrit — format_recus
   # et parse_recus sont inverses l'un de l'autre.
   class ListeEngagements
-    Engagement = Struct.new(:nom, :email, :numero, :date, :attendu)
+    Engagement = Struct.new(:nom, :email, :numero, :date, :attendu, :delivre_le)
 
     TIRET = ' — '
     NON_ATTENDU = 'non attendu'
-    LIGNE_RECU = %r{\A(?<nom>.*?) ?\((?<email>[^)]*)\)#{TIRET}dossier (?<numero>\d+)#{TIRET}déposé le (?<date>\d{2}/\d{2}/\d{4})(?<suffixe>#{TIRET}#{NON_ATTENDU})?\z}
+    DELIVRE = 'certificat délivré le'
+    DATE = %r{\d{2}/\d{2}/\d{4}}
+    DEBUT_RECU = /(?<nom>.*?) ?\((?<email>[^)]*)\)#{TIRET}dossier (?<numero>\d+)#{TIRET}déposé le (?<date>#{DATE})/
+    FIN_RECU = /(?<suffixe>#{TIRET}#{NON_ATTENDU})?(?:#{TIRET}#{DELIVRE} (?<delivre>#{DATE}))?/
+    LIGNE_RECU = /\A#{DEBUT_RECU}#{FIN_RECU}\z/
 
     def self.parse_recus(texte)
       texte.to_s.lines.map(&:strip).reject(&:blank?).filter_map do |ligne|
@@ -25,14 +29,17 @@ module Dbs
         next unless date
 
         Engagement.new(nom: m[:nom], email: m[:email].downcase, numero: m[:numero].to_i,
-                       date: date, attendu: m[:suffixe].nil?)
+                       date: date, attendu: m[:suffixe].nil?,
+                       delivre_le: m[:delivre] && date_ou_nil(m[:delivre]))
       end
     end
 
     def self.format_recus(engagements)
       engagements.sort_by(&:numero).map do |e|
         ligne = "#{e.nom} (#{e.email})#{TIRET}dossier #{e.numero}#{TIRET}déposé le #{e.date.strftime('%d/%m/%Y')}"
-        e.attendu ? ligne : "#{ligne}#{TIRET}#{NON_ATTENDU}"
+        ligne += "#{TIRET}#{NON_ATTENDU}" unless e.attendu
+        ligne += "#{TIRET}#{DELIVRE} #{e.delivre_le.strftime('%d/%m/%Y')}" if e.delivre_le
+        ligne
       end.join("\n")
     end
 

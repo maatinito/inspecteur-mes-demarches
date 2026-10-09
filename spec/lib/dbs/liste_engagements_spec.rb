@@ -41,6 +41,20 @@ RSpec.describe Dbs::ListeEngagements do
       sans_nom = described_class::Engagement.new(nom: '', email: 'x@y.pf', numero: 2, date: Date.new(2026, 9, 16), attendu: true)
       expect(described_class.parse_recus(described_class.format_recus([sans_email, sans_nom]))).to eq [sans_email, sans_nom]
     end
+
+    it 'écrit et relit la date de délivrance du certificat, après « non attendu »' do
+      delivre = described_class::Engagement.new(nom: 'Vaimiti HOA', email: 'vaimiti@exemple.pf', numero: 655_888,
+                                                date: Date.new(2026, 9, 15), attendu: false,
+                                                delivre_le: Date.new(2026, 10, 7))
+      ligne = described_class.format_recus([delivre])
+      expect(ligne).to eq 'Vaimiti HOA (vaimiti@exemple.pf) — dossier 655888 — déposé le 15/09/2026 — non attendu — ' \
+                          'certificat délivré le 07/10/2026'
+      expect(described_class.parse_recus(ligne)).to eq [delivre]
+    end
+
+    it 'relit une ancienne ligne sans date de délivrance' do
+      expect(described_class.parse_recus(texte).map(&:delivre_le)).to eq [nil, nil]
+    end
   end
 
   describe '.upsert' do
