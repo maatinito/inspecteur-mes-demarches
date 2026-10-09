@@ -24,7 +24,7 @@ une ou plusieurs **visites** ; chacune se conclut par une **décision** : prolon
 acceptation) ou abattage (acte + refus).
 
 ```
-LP accepté (visa) ──► dbs/inviter_carnets : un lien prérempli par engagement reçu (trace « Carnets envoyés »)
+LP accepté (visa) ──► dbs/inviter_eleveurs (option seulement_engages) : un lien par engagement reçu (trace « Carnets envoyés »)
    engagement déposé plus tard ──► réécrit le LP ──► passage suivant : son lien part aussi (régularisation)
 ÉLEVEUR : dépose le carnet à J0 (effectif reçu) ; puis saisit « Morts du jour N » et dépose ses modifications
 ROBOT (rejeu quotidien) : alerte mortalité ; relance silence ; annotations du tableau de bord
@@ -62,7 +62,7 @@ dépôt ; les messages de relance le rappellent.
 |---|---|---|
 | K1 | **Démarche carnet à part**, rattachée à l'engagement (champ lien) | Tout dans le dossier d'engagement (clos à la délivrance du certificat, engagements modifiables 21 jours) ; démarche « levée » séparée (4ᵉ dossier) |
 | K2 | **Lien envoyé à chaque éleveur dont l'engagement est déposé**, certificat délivré ou non ; un engagement tardif reçoit son lien au passage suivant (régularisation) | Seuls les certificats délivrés (lot reçu sans suivi) ; tous les éleveurs de la liste (pas de rattachement à un engagement, localisation perdue) |
-| K3 | **Le laissez-passer est le seul expéditeur** des liens (`dbs/inviter_carnets`, trace « Carnets envoyés ») : un engagement tardif réécrit déjà le LP, qui repasse en inspection | Deux expéditeurs (LP + engagement) ; signal posé sur l'engagement |
+| K3 | **Le laissez-passer est le seul expéditeur** des liens — `dbs/inviter_eleveurs` réutilisé avec l'option `seulement_engages`, trace « Carnets envoyés » : un engagement tardif réécrit déjà le LP, qui repasse en inspection | Deux expéditeurs (LP + engagement) ; signal posé sur l'engagement ; plugin `dbs/inviter_carnets` dédié |
 | K4 | **42 champs « Morts du jour N »** : 1-21 affichés si « Jour de suivi ≥ N », 22-42 si « Jour de suivi ≥ N » ET « Durée d'isolement ≥ N » | Bloc répétable « jours supplémentaires » (pas d'obligation, alerte plus complexe) |
 | K5 | **Prolongation saisie par l'éleveur** (« Durée de prolongation », à la demande de la vétérinaire), car une condition ne peut s'appuyer que sur un champ usager placé avant ; **garde-fou** : le robot compare à la durée accordée (annotation) et prévient la vétérinaire en cas d'écart | Décision agent pilotant directement l'affichage (impossible : ni condition ni formule publique ne lisent une annotation) |
 | K6 | **Décisions** : prolongation = **message** dans la messagerie (contient le **compte rendu**, trace officielle) ; levée = **acte publiposté + acceptation** ; abattage = **acte publiposté + refus** (mail de refus paramétrable, étiquette « refusé » acceptée) | Suite administrative pour la prolongation ; deux gabarits |
@@ -73,8 +73,8 @@ dépôt ; les messages de relance le rappellent.
 | K11 | **Compte rendu de visite en zones de texte** (vaccins et traitements compris) | Bloc répétable (lourd pour la vétérinaire, compliqué à traiter) |
 
 **Principe de conception (09/10)** : limiter le nombre de plugins spécifiques — chacun est une maintenance. Cette
-version n'en ajoute que deux, `dbs/inviter_carnets` (dont le plan examinera s'il peut n'être qu'une configuration
-de `dbs/inviter_eleveurs`) et `dbs/suivi_carnet` ; tout le reste est du YAML et des formules.
+version n'en ajoute **qu'un**, `dbs/suivi_carnet` ; les invitations réutilisent `dbs/inviter_eleveurs` (une option),
+tout le reste est du YAML et des formules.
 
 Hors périmètre de cette version : relance « carnet jamais ouvert » (la vétérinaire lit « Carnets envoyés ») ;
 lettre GEDA ; SMS.
@@ -112,15 +112,28 @@ corrigeable : casse au transport).
 
 ## 5. Robot
 
-### 5.1 Côté laissez-passer (3899) — `dbs/inviter_carnets` (nouvelle tâche)
+### 5.1 Côté laissez-passer (3899) — invitations aux carnets : **`dbs/inviter_eleveurs` réutilisé**
 
-Active sur un laissez-passer **accepté**. Relit « Engagements reçus » (`Dbs::ListeEngagements`) ; pour chaque
-engagement absent de la trace « Carnets envoyés » (nouvelle annotation texte, une ligne par envoi, format fixe
-relisible), envoie à l'éleveur (courriel de la ligne) le lien prérempli vers le carnet (`PrefillURL`) : n° de
-l'engagement, élevage et effectif (ligne de la liste des éleveurs, rapprochée par courriel — `Dbs::EleveursDuLot`),
-J0 = date de traitement du laissez-passer. Écrit la trace **après chaque envoi** (comme `dbs/inviter_eleveurs`).
-Les engagements tardifs (dépôt après acceptation) réécrivent « Engagements reçus », ce qui fait repasser le LP :
-leur lien part au passage suivant.
+Pas de nouveau plugin : une **seconde instance** de `dbs/inviter_eleveurs` (celle des invitations aux engagements),
+avec une **option nouvelle** :
+
+- **`seulement_engages: Engagements reçus`** — ne retient que les éleveurs du lot (bloc + importateur qui isole chez
+  lui, `Dbs::EleveursDuLot`) dont le courriel figure dans « Engagements reçus » (`Dbs::ListeEngagements`), et ajoute
+  à leur ligne la valeur « Numéro d'engagement » (n° du dossier d'engagement) pour le préremplissage du champ lien.
+
+Configuration : `etat_du_dossier: [accepte]`, démarche cible = carnet, trace **« Carnets envoyés »** (nouvelle
+annotation texte du LP, même format que « Invitations envoyées »), `prerempli` : Numéro d'engagement (lien),
+Nom de l'élevage et Quantité de poussins (ligne de l'éleveur), **J0 = `date_traitement`** du LP (attribut du
+dossier). Les engagements tardifs réécrivent « Engagements reçus », ce qui fait repasser le LP : leur lien part au
+passage suivant.
+
+Petites évolutions du plugin, testées :
+- le paramètre `demarche_engagement` devient `demarche_cible` (l'ancien nom reste accepté) ;
+- `valeurs_prerempli` laisse passer une **date** telle quelle : aujourd'hui, un attribut date du dossier
+  (`date_traitement`, ISO 8601 dans l'API) arrive à `PrefillURL` déjà formaté « JJ/MM/AAAA à HHhMM » par
+  `champ_value`, alors que le préremplissage exige « AAAA-MM-JJ » (`PrefillURL.format_value` ne convertit que les
+  objets date) ;
+- le libellé du journal « Invitation à signer l'engagement » devient générique.
 
 ### 5.2 Côté carnet — `dbs/suivi_carnet` (nouvelle tâche, unique bloc de la démarche)
 
@@ -181,8 +194,9 @@ depuis `storage/` **après** déploiement du code dont le YAML dépend.
 
 ## 7. Tests
 
-- `dbs/inviter_carnets` : un lien par engagement reçu non tracé ; trace écrite après chaque envoi ; engagement
-  tardif invité au passage suivant ; rien sur un LP non accepté.
+- `dbs/inviter_eleveurs` avec `seulement_engages` : seuls les éleveurs à engagement reçu sont invités, avec leur
+  numéro d'engagement ; engagement tardif invité au passage suivant ; date préremplie au format ISO ; l'ancien
+  paramètre `demarche_engagement` reste accepté ; comportement inchangé sans l'option.
 - `dbs/suivi_carnet` : alerte au seuil (égalité comprise), pas sous le seuil, une seule par jour, plusieurs jours
   distincts ; base « restant la veille » ; relance silence à 4 jours, pas deux fois pour le même silence, de
   nouveau après une nouvelle saisie puis un silence ; mortalité sur 3 jours ; garde-fou de prolongation ;
