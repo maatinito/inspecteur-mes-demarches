@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe Dbs::ReferencesLaissezPasser do
   let(:params) do
     { 'eleveurs' => 'Liste des élevages destinataires', 'engagements_recus' => 'Engagements reçus',
@@ -17,8 +18,9 @@ RSpec.describe Dbs::ReferencesLaissezPasser do
      { nom: 'Jean DUPONT', email: 'jean@dupont.pf', valeurs: { "Nom de l'élevage" => 'Ferme Dupont' } }]
   end
   let(:engagements_recus) do
-    "Jean DUPONT (jean@dupont.pf) — dossier 680145 — déposé le 01/10/2026\n" \
-      'Sébastien MOLLARD (seb@ferme.pf) — dossier 680123 — déposé le 30/09/2026'
+    "Jean DUPONT (jean@dupont.pf) — dossier 680145 — déposé le 01/10/2026 — certificat délivré le 03/10/2026\n" \
+      "Sébastien MOLLARD (seb@ferme.pf) — dossier 680123 — déposé le 30/09/2026 — certificat délivré le 02/10/2026\n" \
+      'Paul ATTENTE (paul@attente.pf) — dossier 680150 — déposé le 02/10/2026'
   end
   let(:valeurs) do
     { 'Quantité totale' => '1398', 'Destination des poussins' => 'Chair', 'Race ponte' => '', 'Race chair' => 'ROSS 308',
@@ -44,15 +46,25 @@ RSpec.describe Dbs::ReferencesLaissezPasser do
   end
 
   describe "certificats d'isolement" do
-    it 'gives one numbered reference per engagement reçu, from 6/, ordered by dossier number' do
+    it 'cite les seuls certificats délivrés, datés de leur délivrance, à partir de 6/' do
       expect(subject["Certificats d'isolement"]).to eq [
-        { 'rang' => 6, 'numero' => 680_123, 'date' => '30/09/2026', 'site' => 'TAMARU FARM', 'fin' => ' ;' },
-        { 'rang' => 7, 'numero' => 680_145, 'date' => '01/10/2026', 'site' => 'Ferme Dupont', 'fin' => '' }
+        { 'rang' => 6, 'numero' => 680_123, 'date' => '02/10/2026', 'site' => 'TAMARU FARM', 'fin' => ' ;' },
+        { 'rang' => 7, 'numero' => 680_145, 'date' => '03/10/2026', 'site' => 'Ferme Dupont', 'fin' => '' }
       ]
     end
 
+    context 'sans aucun certificat délivré' do
+      let(:engagements_recus) { 'Paul ATTENTE (paul@attente.pf) — dossier 680150 — déposé le 02/10/2026' }
+
+      it 'rend une liste vide' do
+        expect(subject["Certificats d'isolement"]).to eq []
+      end
+    end
+
     context 'with an engagement that matches no destinataire' do
-      let(:engagements_recus) { 'Paul INCONNU (paul@x.pf) — dossier 680200 — déposé le 01/10/2026 — non attendu' }
+      let(:engagements_recus) do
+        'Paul INCONNU (paul@x.pf) — dossier 680200 — déposé le 01/10/2026 — non attendu — certificat délivré le 02/10/2026'
+      end
 
       it 'falls back on the name written in the engagement' do
         expect(subject["Certificats d'isolement"].first['site']).to eq 'Paul INCONNU'
@@ -116,3 +128,4 @@ RSpec.describe Dbs::ReferencesLaissezPasser do
     expect(described_class.new({}).errors.join).to include('eleveurs')
   end
 end
+# rubocop:enable Metrics/BlockLength

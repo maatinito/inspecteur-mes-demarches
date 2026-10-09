@@ -4,8 +4,9 @@ module Dbs
   # Calcul de publipostage du laissez-passer poussins (démarche 3899) : prépare ce que le gabarit ne sait pas
   # assembler seul, parce que cela croise plusieurs sources du dossier.
   #   Destinataires            « Nom (élevage) ; … » — bloc des éleveurs + importateur qui isole chez lui
-  #   Certificats d'isolement  une référence numérotée par engagement reçu, à partir de 6/ (les références 1 à 5
-  #                            du modèle sont fixes) : { rang, numero, date, site, fin } ; le n° est celui du
+  #   Certificats d'isolement  une référence numérotée par certificat d'isolement DÉLIVRÉ (ligne d'engagement
+  #                            portant « certificat délivré le J »), à partir de 6/ (les références 1 à 5 du modèle
+  #                            sont fixes) : { rang, numero, date de délivrance, site, fin } ; le n° est celui du
   #                            dossier d'engagement, l'élevage est retrouvé par le courriel d'attribution
   #   Articles                 lignes du tableau : une par certificat sanitaire relevé par l'agent. Dans le cas
   #                            courant (un seul certificat), l'agent ne saisit ni le nombre ni la désignation : ils
@@ -35,7 +36,7 @@ module Dbs
     }.freeze
 
     def version
-      super + 3
+      super + 4
     end
 
     def required_fields
@@ -67,10 +68,11 @@ module Dbs
     private
 
     def certificats_isolement(dossier, eleveurs)
-      engagements = ListeEngagements.parse_recus(texte_annotation(dossier, @cfg[:engagements_recus])).sort_by(&:numero)
-      engagements.each_with_index.map do |e, i|
-        { 'rang' => PREMIER_RANG + i, 'numero' => e.numero, 'date' => e.date.strftime('%d/%m/%Y'),
-          'site' => site(e, eleveurs, dossier), 'fin' => i < engagements.size - 1 ? ' ;' : '' }
+      delivres = ListeEngagements.parse_recus(texte_annotation(dossier, @cfg[:engagements_recus]))
+                                 .select(&:delivre_le).sort_by(&:numero)
+      delivres.each_with_index.map do |e, i|
+        { 'rang' => PREMIER_RANG + i, 'numero' => e.numero, 'date' => e.delivre_le.strftime('%d/%m/%Y'),
+          'site' => site(e, eleveurs, dossier), 'fin' => i < delivres.size - 1 ? ' ;' : '' }
       end
     end
 

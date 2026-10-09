@@ -178,6 +178,10 @@ frais exclusifs sans indemnisation : **une validation juridique explicite du ser
 voir ci-dessous), « Certificat d'isolement établi le » (197030), « Date de levée d'isolement prévue » (197032,
 J0 + 21 j, posée par le robot) ; section « Instruction » : carnet de notes (197036).
 
+> **Remplacé le 08/10/2026** : le certificat d'isolement est désormais émis **avant** le laissez-passer, à la
+> validation de l'engagement par un visa — voir `2026-10-08-dbs-poussins-certificat-isolement-design.md`. La
+> mécanique ci-dessous (certificat au visa du laissez-passer) est abandonnée.
+
 C'est cette démarche qui porte le **certificat d'isolement**, nominatif par élevage. **Il n'est pas produit au
 dépôt de l'engagement mais au visa du laissez-passer** (décision du service, 11/09) : le certificat atteste
 une mise en isolement, il n'a de sens qu'une fois le lot arrivé. Mécanique retenue, sans dépendre d'un
@@ -1052,3 +1056,45 @@ détectée »), 5 (pédiluve = tremper et désinfecter ses chaussures) ; texte o
   (retour du service).
 - Bloc « Certificats sanitaires reçus » réordonné comme on lit un certificat : n° et date du certificat, n° de
   LTA, puis désignation, nombre de poussins et nombre de colis.
+
+### 12.6 Paiement à l'instruction, acceptation automatique (06/10)
+
+- **La demande de paiement part au passage en instruction**, plus au dépôt : en construction, l'usager pouvait
+  changer d'horaire après la demande, qui devenait obsolète, et l'API PayZen du robot ne sait pas annuler une
+  demande émise (risque de double paiement). En instruction, le dossier n'est plus modifiable par l'usager. Le
+  suivi PayZen continue sur un dossier accepté (`etat_du_dossier: [en_instruction, accepte]`). Cas résiduel —
+  dossier renvoyé en construction après la demande — laissé de côté pour l'instant (pas d'alerte).
+- **Le robot accepte le dossier** dès que « Laissez-passer délivré » est rempli (après le visa, en instruction) :
+  le mail d'acceptation porte le lien vers ce document, donc plus d'envoi par la messagerie ; pas de motivation
+  (elle n'est pas reprise dans le mail). Effets : statut clair (accepté = délivré), date de traitement = J0 des
+  carnets (décision 13), plus de régénération du laissez-passer après délivrance (la publipostage ne traite
+  que les dossiers en instruction).
+- **Un seul passage du robot entre le visa et le mail** (06/10, proposition de l'utilisateur) : un
+  `conditional_field` sur le visa enchaîne la publipostage puis un `conditional_field` sur « Laissez-passer
+  délivré » qui accepte le dossier. Avant : deux passages (publipostage, puis acceptation au passage suivant),
+  alors que la vétérinaire et l'importateur attendent le document sur place. Sûreté : `conditional_field`
+  n'intercepte pas les erreurs (génération en échec ⇒ pas d'acceptation) et relit le dossier après une tâche
+  qui l'a modifié (le contrôle voit l'annotation remplie dans le même passage).
+- Gabarit retouché par l'utilisateur : lignes du tableau insécables et en-tête répété en haut de page.
+
+### 12.7 Visa régisseur posé par le robot (06/10)
+
+- Nouvelle annotation « Visa » (197878) en fin de section Régisseur. À chaque mise à jour des champs de paiement
+  (`quand_demandé`, `quand_payé`, `quand_expiré`), le robot y inscrit son adresse
+  (`robot-mes-demarches@administration.gov.pf`). Le visa ne verrouille les champs qu'**à l'écran**
+  (`visa_controller.ts`) : l'API, donc le robot, écrit toujours ; l'API ne contrôle pas non plus la liste des
+  personnes habilitées (écriture vérifiée sur 683290). Le régisseur décoche pour modifier, puis revise.
+- Annotations « Robot » (121103, explication vide) et « Rappel » (121104, texte vide), héritées du clone et
+  inutilisées : supprimées.
+
+### 12.8 Décisions du 08/10/2026
+
+- **Horaires de la formule de montant validés** : 7 h 30 – 15 h 30, 14 h 30 le vendredi.
+- **Référence 5 sans suffixe** « /MPR/DBS/ZOO/AR » : c'est une référence de l'usager (sa demande), pas un document
+  émis par la DBS.
+- **Courriel d'information aux services (MPR, DDI, DAG, DGAE) mis de côté** : le circuit actuel privilégie le
+  papier ; à rouvrir sur demande.
+- **Recette du laissez-passer confiée à la DBS** (passe de test en cours chez eux). Les démarches 3899 et 4038
+  **ne sont pas publiées** : le projet continue avec le certificat d'isolement puis le carnet de suivi de 21 jours.
+- **Formule de montant à 997/1 000 caractères** : si nécessaire, la décomposer en deux champs formule, ou
+  relever la limite dans Mes-Démarches (maintenue par l'équipe).
