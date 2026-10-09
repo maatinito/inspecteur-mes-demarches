@@ -161,3 +161,16 @@ en bout sur un vrai dossier **sans aucun champ brut** dans le PDF, publication p
 - `Dbs::ReferencesLaissezPasser` : la référence 6/ ne cite que les certificats délivrés.
 - Bout en bout : rejouer la publipostage du certificat sur l'engagement 683297 (lié à 683290) en `rails runner`,
   sans rien envoyer, et relire le PDF.
+
+## 7. Lieu d'isolement : commune du cadastre (09/10/2026)
+
+Le champ « Commune ou île du lieu d'isolement » (197044, passé de code postal à commune de Polynésie le 09/10)
+lit le **référentiel des codes postaux** de Mes-Démarches : une même ville y a plusieurs libellés (« Papeete
+(Domicile) », « Papeete (B.P. & P.R.) », « Papeete-C.T.C. (B.P. & P.R.) »…), impropres sur un certificat et faux
+pour des statistiques. Le certificat imprime donc la **commune canonique du cadastre** et la **parcelle**, lues
+dans la carte Te Fenua par `calculs/te_fenua` (« PAPEETE (Tahiti), parcelle AB 5 »).
+
+À faire côté plateforme (décision du 09/10) : exposer dans le champ commune un **nom de commune canonique** à côté
+du libellé postal — bénéficie à toutes les démarches et aux statistiques. Idée connexe pour le robot : permettre
+aux chemins pointés de descendre dans le GeoJSON d'un champ Te Fenua (`Carte.commune`, `.parcelle`), ce qui
+rendrait `calculs/te_fenua` inutile.
