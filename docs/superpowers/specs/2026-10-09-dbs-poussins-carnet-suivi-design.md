@@ -110,6 +110,14 @@ corrigeable : casse au transport).
   « Date d'abattage », « Motif » ; « Visa de la vétérinaire » (visa) ;
 - « Suite administrative délivrée » (pièce jointe).
 
+**Construite le 09/10/2026 : démarche 4054** (brouillon). Champs préremplis : n° d'engagement 198182, élevage 198183,
+éleveur 198184, effectif attribué 198185, J0 198186 ; effectif reçu 198187 ; « Jour de suivi » 198189,
+« Durée de prolongation (jours) » 198190, « Durée d'isolement » 198191 ; « Morts du jour N » = 198234 − N ;
+« Total des morts » 198234, « Effectif restant » 198235. Annotations : Dernier jour saisi 198258, Mortalité sur 3 jours
+198257, Mortalité totale 198256, Alertes 198254, Relance 198253, Écart 198252, Décision 198243, Prolongation totale
+198242, Visa de la vétérinaire 198238 (habilités : vétérinaire officielle + clautier pour la recette), Suite
+administrative délivrée 198237. Laissez-passer 3899 : « Carnets envoyés » 198260.
+
 ## 5. Robot
 
 ### 5.1 Côté laissez-passer (3899) — invitations aux carnets : **`dbs/inviter_eleveurs` réutilisé**
