@@ -31,7 +31,8 @@ RSpec.describe Calculs::TeFenua do
     end
   end
 
-  [nil, '', '{"markers":{"features":[]}}', 'pas du json'].each do |vide|
+  [nil, '', '{"markers":{"features":[]}}', 'pas du json', '[]', '{"markers":[]}', 'null', '123', '"x"',
+   '{"markers":{"features":[{"properties":"x"}]}}'].each do |vide|
     context "avec la valeur #{vide.inspect}" do
       let(:valeur) { vide }
 
