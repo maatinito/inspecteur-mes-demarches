@@ -109,6 +109,7 @@ visa de l'engagement. Sorties (lues dans le gabarit sous leur nom normalisé) :
 | `Permis` | « Numéro de permis d'importation préalable » du dossier lié |
 | `Lot total` | « Quantité totale » du dossier lié |
 | `Expéditeur` | « Expéditeur sur le laissez-passer » du dossier lié |
+| `Pays d'origine` | « Provenance » du dossier lié, ou « Pays de provenance » si « Autre pays » |
 | `Signataire.prénom / nom / fonction` | visa de l'engagement, résolu par la table des agents (`dbs_poussins_agents`) |
 | `Dossier suivi par` | dernier instructeur du dossier lié |
 
