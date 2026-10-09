@@ -97,24 +97,28 @@ Seule la référence 6/ change : `dbs/references_laissez_passer` ne cite que les
 « certificat délivré », avec la date de délivrance (« Certificat d'isolement n° N/MPR/DBS/ZOO du J2 sur le site
 d'élevage … »).
 
-### 4.4 Calcul `dbs/donnees_lot` (nouveau, publipostage du certificat)
+### 4.4 Lecture de la demande liée — sans code
 
-Lit la **demande de laissez-passer** liée par le champ « Numéro du dossier de laissez-passer » (197027) et le
-visa de l'engagement. Sorties (lues dans le gabarit sous leur nom normalisé) :
+Le robot traverse déjà un champ lien de dossier : un nom de champ **pointé** (`object_field_values`,
+`field_checker.rb`) lit l'en-tête, les champs **et** les annotations du dossier lié, chargés par la requête
+GraphQL (même mécanisme que la recopie 3190 → 3604 de la Diren). Les données du lot sont donc de simples
+colonnes du YAML de la publipostage, préfixées par le champ lien « Numéro du dossier de laissez-passer » (197027) :
 
-| Sortie | Source |
+| Donnée du certificat | Chemin |
 |---|---|
-| `Demande` (n°, date de dépôt) | dossier lié |
-| `Adresse de l'importateur` | demandeur du dossier lié (établissement : adresse, commune) + téléphone |
-| `Permis` | « Numéro de permis d'importation préalable » du dossier lié |
-| `Lot total` | « Quantité totale » du dossier lié |
-| `Expéditeur` | « Expéditeur sur le laissez-passer » du dossier lié |
-| `Pays d'origine` | « Provenance » du dossier lié, ou « Pays de provenance » si « Autre pays » |
-| `Signataire.prénom / nom / fonction` | visa de l'engagement, résolu par la table des agents (`dbs_poussins_agents`) |
-| `Dossier suivi par` | dernier instructeur du dossier lié |
+| N° de la demande | `Numéro du dossier de laissez-passer.number` |
+| Date de dépôt de la demande | `Numéro du dossier de laissez-passer.date_depot` (texte « JJ/MM/AAAA à HHhMM » : jour seul à obtenir, cf. plan) |
+| Adresse de l'importateur | `Numéro du dossier de laissez-passer.demandeur…` (adresse de l'établissement, cf. plan) |
+| Permis | `Numéro du dossier de laissez-passer.Numéro de permis d'importation préalable` |
+| Lot total | `Numéro du dossier de laissez-passer.Quantité totale` |
+| Expéditeur | `Numéro du dossier de laissez-passer.Expéditeur sur le laissez-passer` |
+| Pays d'origine | `Numéro du dossier de laissez-passer.Pays d'origine` — **nouvelle annotation formule sur la 3899** : `SI({Provenance} == "Autre pays", {Pays de provenance}, {Provenance})` |
 
-Lus directement dans l'engagement (colonnes du YAML) : n° du dossier, date de dépôt, importateur, date
-d'arrivée, vol, effectif attribué, nom de l'éleveur, entreprise (établissement), commune ou île.
+Signataire et « Dossier suivi par » : `calculs/email_to_names` (existant) sur **l'engagement** — visa de
+l'engagement et son dernier instructeur, résolus par la table `dbs_poussins_agents`.
+
+Lus directement dans l'engagement : n° du dossier, date de dépôt, importateur, date d'arrivée, vol, effectif
+attribué, nom de l'éleveur, entreprise (établissement), commune ou île.
 
 **Adresse du lieu d'isolement** : le champ carte Te Fenua (197045) n'est pas lisible aujourd'hui par le robot
 (`champ_value` rend `TeFenuaChamp`). Le plan vérifie ce que l'API expose (adresse texte du point) ; à défaut,
@@ -122,7 +126,8 @@ le certificat imprime la **commune ou île** (197044).
 
 ### 4.5 Sécurités
 
-- Demande liée introuvable ou d'une autre démarche : **erreur explicite** (comme `engagement_recu`).
+- Demande liée absente : les données du lot sortent vides — c'est l'agent qui vise l'engagement après relecture
+  (le lien est prérempli par l'invitation et obligatoire). Pas de contrôle codé.
 - Engagement refusé ou classé sans suite : la chaîne ne tourne pas (états `en_construction, en_instruction`).
 - Engagement accepté : plus de régénération du certificat (la publipostage ne traite pas l'état `accepte`).
 - Certificat absent après la génération : pas d'acceptation (contrôle dans la chaîne).
@@ -154,6 +159,5 @@ en bout sur un vrai dossier **sans aucun champ brut** dans le PDF, publication p
   existantes, ordre avec « non attendu ».
 - `Dbs::EngagementRecu` : date de délivrance posée quand l'engagement est accepté, absente sinon.
 - `Dbs::ReferencesLaissezPasser` : la référence 6/ ne cite que les certificats délivrés.
-- `Dbs::DonneesLot` : sorties à partir d'un dossier lié simulé ; erreur si la demande est introuvable.
 - Bout en bout : rejouer la publipostage du certificat sur l'engagement 683297 (lié à 683290) en `rails runner`,
   sans rien envoyer, et relire le PDF.
