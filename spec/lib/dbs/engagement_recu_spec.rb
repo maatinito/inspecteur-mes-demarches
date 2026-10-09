@@ -10,7 +10,8 @@ RSpec.describe Dbs::EngagementRecu do
         lien_laissez_passer: 'Numéro du dossier de laissez-passer',
         nom: "Nom et prénom de l'éleveur",
         telephone: 'Téléphone',
-        courriel_attribution: "Courriel d'attribution"
+        courriel_attribution: "Courriel d'attribution",
+        certificat: "Certificat d'isolement délivré"
       },
       laissez_passer: {
         demarche: 3899,
@@ -75,6 +76,40 @@ RSpec.describe Dbs::EngagementRecu do
       laissez_passer, 'robot', 'Engagements manquants',
       'Manutere TERE au 87 54 65 75 (manutere@exemple.pf)'
     )
+  end
+
+  context 'quand l engagement est accepté' do
+    let(:fichiers) { [double('Fichier', filename: 'Certificat 655888.pdf')] }
+    let(:engagement) do
+      double('Engagement', number: 655_888, state: 'accepte', date_depot: '2026-09-15T22:00:00+00:00',
+                           date_traitement: '2026-10-07T09:30:00-10:00',
+                           usager: double('Usager', email: 'Vaimiti@exemple.pf'),
+                           demandeur: double('PersonneMorale', entreprise: double('Entreprise', raison_sociale: 'EARL HOA')),
+                           champs: [lien, champ("Nom et prénom de l'éleveur", 'Vaimiti HOA'), champ('Téléphone', telephone_engagement)],
+                           annotations: [champ("Courriel d'attribution", attribution_existante),
+                                         double('PJ', label: "Certificat d'isolement délivré", __typename: 'PieceJustificativeChamp',
+                                                      files: fichiers, string_value: '')])
+    end
+
+    it 'ajoute la date de délivrance du certificat à sa ligne' do
+      task.process(demarche, engagement)
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        laissez_passer, 'robot', 'Engagements reçus',
+        'Vaimiti HOA (vaimiti@exemple.pf) — dossier 655888 — déposé le 15/09/2026 — certificat délivré le 07/10/2026'
+      )
+    end
+
+    context 'sans certificat (accepté à la main)' do
+      let(:fichiers) { [] }
+
+      it 'ne dit pas « certificat délivré »' do
+        task.process(demarche, engagement)
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          laissez_passer, 'robot', 'Engagements reçus',
+          'Vaimiti HOA (vaimiti@exemple.pf) — dossier 655888 — déposé le 15/09/2026'
+        )
+      end
+    end
   end
 
   context 'quand le laissez-passer a déjà des engagements' do

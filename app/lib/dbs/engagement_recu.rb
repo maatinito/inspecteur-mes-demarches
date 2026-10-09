@@ -26,14 +26,14 @@ module Dbs
     ETATS_PAR_DEFAUT = %w[en_construction en_instruction accepte].freeze
     ENGAGEMENT_REQUIS = %i[lien_laissez_passer].freeze
     ENGAGEMENT_DEFAUTS = { nom: "Nom et prénom de l'éleveur", telephone: 'Téléphone',
-                           courriel_attribution: nil }.freeze
+                           courriel_attribution: nil, certificat: nil }.freeze
     LAISSEZ_PASSER_REQUIS = %i[eleveurs engagements_recus engagements_manquants].freeze
     LAISSEZ_PASSER_DEFAUTS = { demarche: nil, nom_eleveur: "Nom et Prénom de l'éleveur",
                                email_eleveur: "Email de l'éleveur", telephone_eleveur: "Téléphone de l'éleveur",
                                quantite_eleveur: 'Quantité de poussins', importateur_eleveur: nil }.freeze
 
     def version
-      super + 4
+      super + 5
     end
 
     def required_fields
@@ -99,7 +99,19 @@ module Dbs
     def engagement_courant(eleveurs, email)
       ListeEngagements::Engagement.new(nom: nom_eleveur, email:, numero: @dossier.number,
                                        date: date_depot,
-                                       attendu: eleveurs.any? { |e| e[:email] == email })
+                                       attendu: eleveurs.any? { |e| e[:email] == email },
+                                       delivre_le: certificat_delivre_le)
+    end
+
+    # Date de délivrance du certificat d'isolement : l'engagement est accepté ET son annotation certificat
+    # contient un fichier (un engagement accepté à la main, sans certificat, n'en a pas).
+    def certificat_delivre_le
+      return nil unless @dossier.state == 'accepte' && @engagement[:certificat].present?
+
+      pj = annotation(@engagement[:certificat], warn_if_empty: false)
+      return nil if pj.nil? || pj.files.blank?
+
+      Time.zone.parse(@dossier.date_traitement.to_s)&.to_date
     end
 
     # Courriel qui rattache l'engagement à une ligne du laissez-passer.
