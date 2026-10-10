@@ -118,6 +118,16 @@ corrigeable : casse au transport).
 198242, Visa de la vétérinaire 198238 (habilités : vétérinaire officielle + clautier pour la recette), Suite
 administrative délivrée 198237. Laissez-passer 3899 : « Carnets envoyés » 198260.
 
+**Ajustements du 09/10 (après construction)** : « Nom de l'élevage » supprimé (l'élevage est l'entreprise du compte,
+inconnue du laissez-passer ; l'acte la lit par « Numéro du dossier d'engagement.demandeur.entreprise.raison_sociale »).
+Tableau de bord triable : « Dernier jour saisi » en entier, « Mortalité sur 3 jours (%) » en décimal (le robot écrit
+désormais les annotations décimales), formule « Jours sans saisie » (198261) =
+`MAX(0, MIN({Jour de suivi (agent)}, {Durée d'isolement}) − {Dernier jour saisi})`, colonne de tri principale.
+Garde-fou de prolongation : l'écart est noté le jour où il apparaît et signalé à la vétérinaire s'il persiste
+2 jours (trace « 0/10 vu le … » puis « 0/10 signalé le … »). Visite : niveau d'activité, alimentation, signes
+cliniques et autre en texte court ; vaccins et traitements en zone de texte. Chemin de test :
+`/commencer/aae74a23-9afe-480b-a170-ca7e7b5474bc`.
+
 ## 5. Robot
 
 ### 5.1 Côté laissez-passer (3899) — invitations aux carnets : **`dbs/inviter_eleveurs` réutilisé**
