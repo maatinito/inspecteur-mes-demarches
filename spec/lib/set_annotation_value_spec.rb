@@ -56,6 +56,25 @@ RSpec.describe SetAnnotationValue do
       end
     end
 
+    context 'annotation DecimalNumber' do
+      let(:annotation) { annotation_double('DecimalNumberChamp', decimal_value: nil) }
+
+      it 'convertit la String en Float avant la mutation' do
+        expect(SetAnnotationValue).to receive(:raw_set_value)
+          .with(dossier.id, instructeur, annotation.id, 2.5)
+        expect(SetAnnotationValue.set_value(dossier, instructeur, 'annotation', '2.5')).to be true
+      end
+
+      context 'déjà à la même valeur' do
+        let(:annotation) { annotation_double('DecimalNumberChamp', decimal_value: 2.5) }
+
+        it 'ne réécrit pas (comparaison typée)' do
+          expect(SetAnnotationValue).not_to receive(:raw_set_value)
+          expect(SetAnnotationValue.set_value(dossier, instructeur, 'annotation', '2,5')).to be false
+        end
+      end
+    end
+
     context 'annotation Checkbox' do
       let(:annotation) { annotation_double('CheckboxChamp', checked: false) }
 
@@ -160,6 +179,11 @@ RSpec.describe SetAnnotationValue do
     it 'route un DatetimeValue vers la mutation DateTime' do
       expect(described_class.typed_query(DatetimeValue.iso8601('2026-07-27T09:30:00+10:00')))
         .to eq(SetAnnotationValue::Queries::SetDateTime)
+    end
+
+    it 'route un nombre décimal vers la mutation DecimalNumber' do
+      expect(described_class.typed_query(2.5)).to eq(SetAnnotationValue::Queries::SetDecimal)
+      expect(described_class.typed_query(BigDecimal('2.5'))).to eq(SetAnnotationValue::Queries::SetDecimal)
     end
 
     it 'route un DateValue vers la mutation Date' do
