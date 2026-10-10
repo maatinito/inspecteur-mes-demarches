@@ -64,8 +64,8 @@ RSpec.describe Dbs::SuiviCarnet do
 
   it 'écrit le tableau de bord et replanifie au lendemain 7 h' do
     task.process(demarche, dossier)
-    expect(SetAnnotationValue).to have_received(:set_value).with(dossier, 'robot', 'Dernier jour saisi', '2')
-    expect(SetAnnotationValue).to have_received(:set_value).with(dossier, 'robot', 'Mortalité sur 3 jours (%)', '4.0')
+    expect(SetAnnotationValue).to have_received(:set_value).with(dossier, 'robot', 'Dernier jour saisi', 2)
+    expect(SetAnnotationValue).to have_received(:set_value).with(dossier, 'robot', 'Mortalité sur 3 jours (%)', 4.0)
     expect(ScheduledTask).to have_received(:enqueue).with(700_001, 'dbs/suivi_carnet/700001', anything,
                                                           Time.zone.local(2026, 10, 4, 7))
   end
@@ -102,7 +102,7 @@ RSpec.describe Dbs::SuiviCarnet do
     end
 
     context 'avec une prolongation accordée de 10 jours' do
-      let(:trace) { super().merge('Prolongation totale (jours)' => 10, 'Écart prolongation signalé' => '0/10') }
+      let(:trace) { super().merge('Prolongation totale (jours)' => 10, 'Écart prolongation signalé' => '0/10 signalé le 20/10/2026') }
 
       it 'relance les jours prolongés' do
         task.process(demarche, dossier)
@@ -141,18 +141,52 @@ RSpec.describe Dbs::SuiviCarnet do
   context 'écart de prolongation' do
     let(:trace) { super().merge('Prolongation totale (jours)' => 10, 'Alertes mortalité' => 'J2') }
 
-    it 'prévient la vétérinaire une fois par écart' do
+    it "le note sans prévenir le jour où il apparaît (l'éleveur n'a pas encore lu le compte rendu)" do
       task.process(demarche, dossier)
-      expect(NotificationMailer).to have_received(:with).with(hash_including(recipients: 'veto@exemple.pf', message: '0/10'))
-      expect(SetAnnotationValue).to have_received(:set_value).with(dossier, 'robot', 'Écart prolongation signalé', '0/10')
+      expect(NotificationMailer).not_to have_received(:with)
+      expect(SetAnnotationValue).to have_received(:set_value).with(dossier, 'robot', 'Écart prolongation signalé',
+                                                                   '0/10 vu le 03/10/2026')
+    end
+
+    context 'vu depuis 1 jour seulement' do
+      let(:trace) { super().merge('Écart prolongation signalé' => '0/10 vu le 02/10/2026') }
+
+      it 'attend encore' do
+        task.process(demarche, dossier)
+        expect(NotificationMailer).not_to have_received(:with)
+      end
+    end
+
+    context 'toujours là 2 jours plus tard' do
+      let(:trace) { super().merge('Écart prolongation signalé' => '0/10 vu le 01/10/2026') }
+
+      it 'prévient la vétérinaire et le trace' do
+        task.process(demarche, dossier)
+        expect(NotificationMailer).to have_received(:with).with(hash_including(recipients: 'veto@exemple.pf', message: '0/10'))
+        expect(SetAnnotationValue).to have_received(:set_value).with(dossier, 'robot', 'Écart prolongation signalé',
+                                                                     '0/10 signalé le 03/10/2026')
+      end
     end
 
     context 'déjà signalé' do
-      let(:trace) { super().merge('Écart prolongation signalé' => '0/10') }
+      let(:trace) { super().merge('Écart prolongation signalé' => '0/10 signalé le 02/10/2026') }
 
       it 'ne reprévient pas' do
         task.process(demarche, dossier)
         expect(NotificationMailer).not_to have_received(:with)
+      end
+    end
+
+    context 'un autre écart apparaît (nouvelle prolongation)' do
+      let(:trace) do
+        super().merge('Prolongation totale (jours)' => 15, 'Écart prolongation signalé' => '0/10 signalé le 01/10/2026')
+      end
+
+      it 'repart de zéro' do
+        task.process(demarche, dossier)
+        expect(NotificationMailer).not_to have_received(:with)
+        expect(SetAnnotationValue).to have_received(:set_value).with(dossier, 'robot', 'Écart prolongation signalé',
+                                                                     '0/15 vu le 03/10/2026')
       end
     end
   end

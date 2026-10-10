@@ -8,10 +8,10 @@ module Dbs
   # lendemain : un carnet silencieux n'est jamais modifié, donc jamais réinspecté sans ce rejeu.
   class SuiviCarnet < FieldChecker
     ETATS_PAR_DEFAUT = %w[en_construction en_instruction].freeze
-    DEFAUTS = { seuil: 0.03, fenetre: 3, silence: 4, nb_jours: 42, heure_rejeu: 7, duree: 21 }.freeze
+    DEFAUTS = { seuil: 0.03, fenetre: 3, silence: 4, nb_jours: 42, heure_rejeu: 7, duree: 21, delai_ecart: 2 }.freeze
 
     def version
-      super + 2
+      super + 3
     end
 
     def required_fields
@@ -90,21 +90,32 @@ module Dbs
     end
 
     def tableau_de_bord(recu, morts)
-      ecrire(@params[:dernier_jour], CarnetMortalite.dernier_jour_saisi(morts).to_s)
-      ecrire(@params[:mortalite], CarnetMortalite.mortalite_fenetre(recu, morts, @cfg[:fenetre].to_i).to_s)
+      ecrire(@params[:dernier_jour], CarnetMortalite.dernier_jour_saisi(morts))
+      ecrire(@params[:mortalite], CarnetMortalite.mortalite_fenetre(recu, morts, @cfg[:fenetre].to_i))
     end
 
+    # Écart entre la prolongation saisie par l'éleveur et le total accordé : noté le jour où il apparaît
+    # (« 0/10 vu le JJ/MM/AAAA »), signalé à la vétérinaire s'il est toujours là `delai_ecart` jours plus tard
+    # (« 0/10 signalé le … ») — le jour de la visite, l'éleveur n'a pas encore lu le compte rendu.
     def garde_fou_prolongation
       return if @params[:prolongation_accordee].blank?
 
       saisi = entier(@params[:prolongation_usager]).to_i
       accorde = entier(@params[:prolongation_accordee]).to_i
+      return if saisi == accorde
+
       paire = "#{saisi}/#{accorde}"
-      return if saisi == accorde || texte(@params[:ecart_signale]) == paire
+      trace = texte(@params[:ecart_signale])
+      return if trace.start_with?("#{paire} signalé")
+
+      vu_le = trace[%r{\A#{Regexp.escape(paire)} vu le (\d{2}/\d{2}/\d{4})\z}, 1]
+      aujourdhui = Time.zone.today
+      return ecrire(@params[:ecart_signale], "#{paire} vu le #{aujourdhui.strftime('%d/%m/%Y')}") if vu_le.nil?
+      return if (aujourdhui - Date.strptime(vu_le, '%d/%m/%Y')).to_i < @cfg[:delai_ecart].to_i
 
       courriel(@params[:destinataires_veterinaire], "Carnet #{@dossier.number} : prolongation à vérifier",
                @params[:message_ecart], { saisi:, accorde: })
-      ecrire(@params[:ecart_signale], paire)
+      ecrire(@params[:ecart_signale], "#{paire} signalé le #{aujourdhui.strftime('%d/%m/%Y')}")
     end
 
     def replanifier
