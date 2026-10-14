@@ -151,6 +151,75 @@ RSpec.describe Travail::Daeth do
     end
   end
 
+  # Des employeurs découvrent leur obligation tardivement et rattrapent plusieurs
+  # années d'un coup (2024 et 2025 déposées en octobre 2026). La date de dépôt ne
+  # dit plus rien de l'année déclarée : le formulaire la demande désormais.
+  describe "#default_numbers — année saisie par l'usager" do
+    let(:controle) { FactoryBot.build :daeth, champ_annee: 'Année de la déclaration' }
+    let(:date_depot) { '2026-10-14T10:43:21-10:00' }
+    let(:forced_year) { nil }
+    let(:user_year) { integer_champ(2024) }
+    let(:effectif) { integer_champ(30) }
+    let(:effectifs_file) { nil }
+
+    def integer_champ(int)
+      double('IntegerNumberChamp', __typename: 'IntegerNumberChamp', int_value: int)
+    end
+
+    before do
+      fields = { champ_annee: user_year, champ_effectif: effectif, champ_effectifs: effectifs_file }
+      allow(controle).to receive(:annotation) { |label, **| label == Travail::Daeth::YEAR ? forced_year : nil }
+      allow(controle).to receive(:param_field) { |name, **| fields[name] }
+      controle.instance_variable_set(:@dossier, dossier)
+      controle.instance_variable_set(:@msgs, [])
+    end
+
+    it "reprend l'année saisie plutôt que de la déduire de la date de dépôt" do
+      expect(controle.send(:default_numbers)[Travail::Daeth::YEAR]).to eq(2024)
+    end
+
+    context "quand un agent a forcé l'annotation" do
+      let(:forced_year) { integer_champ(2023) }
+
+      it "l'annotation l'emporte sur la saisie de l'usager" do
+        expect(controle.send(:default_numbers)[Travail::Daeth::YEAR]).to eq(2023)
+      end
+    end
+
+    # L'effectif est désormais demandé à tous pour aiguiller le formulaire : sa
+    # présence ne signifie plus « mode simplifié ». C'est le fichier qui décide.
+    context 'quand le fichier des effectifs est joint' do
+      let(:effectifs_file) { double('PieceJustificativeChamp', files: [double(filename: 'effectifs.xlsx')]) }
+      let(:excel_year) { 2024 }
+
+      before do
+        allow(controle).to receive(:default_numbers_based_on_excel)
+          .and_return({ Travail::Daeth::YEAR => excel_year, Travail::Daeth::FTE => 170.0 })
+      end
+
+      it "calcule à partir du fichier même si l'effectif est renseigné" do
+        expect(controle.send(:default_numbers)[Travail::Daeth::FTE]).to eq(170.0)
+      end
+
+      context "dont l'année diffère de celle saisie" do
+        let(:excel_year) { 2025 }
+
+        it "garde l'année saisie et signale l'écart" do
+          expect(controle.send(:default_numbers)[Travail::Daeth::YEAR]).to eq(2024)
+          expect(controle.instance_variable_get(:@msgs).join).to include('2025').and include('2024')
+        end
+      end
+    end
+
+    context 'sans fichier ni année saisie (dossier antérieur au champ)' do
+      let(:user_year) { nil }
+
+      it 'déduit encore l’année de la date de dépôt' do
+        expect(controle.send(:default_numbers)[Travail::Daeth::YEAR]).to eq(2026)
+      end
+    end
+  end
+
   context 'params correct' do
     let(:date_depot) { Date.new(2025, 1, 1) }
     let(:fte) { 170.0 }

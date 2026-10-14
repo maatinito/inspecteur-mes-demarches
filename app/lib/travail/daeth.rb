@@ -26,7 +26,7 @@ module Travail
     end
 
     def authorized_fields
-      super + %i[smig]
+      super + %i[smig champ_annee]
     end
 
     def initialize(params)
@@ -44,16 +44,7 @@ module Travail
     end
 
     def in_excel(&block)
-      champ = param_field(:champ_effectifs)
-      if champ.blank?
-        @msgs << "Champ #{@params[:champ_effectifs]} vide."
-        return block.call(nil)
-      end
-      begin
-        champ_files = champ.files
-      rescue GraphQL::Client::InvariantError
-        champ_files = [champ.file]
-      end
+      champ_files = effectifs_files
       if champ_files.blank?
         @msgs << "Champ #{@params[:champ_effectifs]} vide."
         return block.call(nil)
@@ -64,6 +55,15 @@ module Travail
         return block.call(nil)
       end
       read_file(file, &block)
+    end
+
+    def effectifs_files
+      champ = param_field(:champ_effectifs, warn_if_empty: false)
+      return [] if champ.blank?
+
+      champ.files
+    rescue GraphQL::Client::InvariantError
+      [champ.file].compact
     end
 
     def bad_extension?(extension)
@@ -179,27 +179,35 @@ module Travail
         SURCHARGE => champ_value(annotation(SURCHARGE, warn_if_empty: false)).to_i,
         OUTSOURCING => champ_value(param_field(:champ_prestations, warn_if_empty: false)).presence.to_f
       }
-      effectif = param_field(:champ_effectif, warn_if_empty: false)
-      base.merge!(effectif.present? ? default_numbers_based_on_size(effectif) : default_numbers_based_on_excel)
+      base.merge!(simplified_mode? ? default_numbers_based_on_size(param_field(:champ_effectif)) : default_numbers_based_on_excel)
       base[YEAR] = declared_year(base[YEAR])
       @year = base[YEAR]
       base
     end
 
-    # L'année déclarée n'est pas demandée dans le formulaire : le robot la déduit
-    # du fichier des effectifs, ou de la date de dépôt en mode simplifié où ce
-    # fichier n'existe pas. Ce n'est donc qu'une supposition, et un agent doit
-    # pouvoir la corriger — typiquement pour une déclaration rattrapée une ou
-    # deux années plus tard. On ne l'initialise que si l'annotation est vide,
-    # sinon la valeur saisie serait écrasée à chaque passage du robot.
-    def declared_year(deduced_year)
-      champ_value(annotation(YEAR, warn_if_empty: false)).presence&.to_i || deduced_year
+    # L'effectif est demandé à tous pour aiguiller le formulaire vers le fichier
+    # détaillé : sa présence ne signifie plus « mode simplifié ». Seule l'absence
+    # du fichier des effectifs le signifie.
+    def simplified_mode?
+      effectifs_files.blank? && param_field(:champ_effectif, warn_if_empty: false).present?
+    end
+
+    # Priorité : l'annotation, que l'agent peut forcer ; puis l'année saisie par
+    # l'usager ; puis la cellule du fichier ; enfin la date de dépôt, pour les
+    # dossiers antérieurs au champ. L'annotation n'est initialisée que si elle
+    # est vide, sinon la correction de l'agent serait écrasée à chaque passage.
+    def declared_year(file_year)
+      file_year = file_year.to_s[/\d{4}/]&.to_i
+      user_year = champ_value(param_field(:champ_annee, warn_if_empty: false)).presence&.to_i if @params[:champ_annee].present?
+      @msgs << "L'année du fichier des effectifs (#{file_year}) diffère de l'année déclarée (#{user_year})." if user_year && file_year && user_year != file_year
+
+      champ_value(annotation(YEAR, warn_if_empty: false)).presence&.to_i || user_year || file_year || year_from_date_depot
     end
 
     def default_numbers_based_on_excel
       in_excel do |sheet|
         {
-          YEAR => cell(sheet, @params[:cellule_annee], year_from_date_depot),
+          YEAR => cell(sheet, @params[:cellule_annee], nil),
           FTE => cell(sheet, @params[:cellule_ETP], 0.0).to_f.round(3),
           ECAP_FTE => cell(sheet, @params[:cellule_ETP_ECAP], 0.0).to_f.round(3),
           ASSESSMENT_BASE => cell(sheet, @params[:cellule_assiette], 0.0).to_f.round(3),
@@ -212,7 +220,6 @@ module Travail
     def default_numbers_based_on_size(effectif)
       effectif = champ_value(effectif)&.to_f
       {
-        YEAR => year_from_date_depot,
         FTE => effectif,
         ECAP_FTE => 0.0,
         ASSESSMENT_BASE => effectif,
