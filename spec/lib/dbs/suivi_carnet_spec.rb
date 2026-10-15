@@ -23,7 +23,8 @@ RSpec.describe Dbs::SuiviCarnet do
   end
   let(:etat) { 'en_construction' }
 
-  def int(label, val) = double(label, label:, __typename: 'IntegerNumberChamp', int_value: val, string_value: val&.to_s)
+  # Comme l'API : int_value arrive en chaîne ("5000").
+  def int(label, val) = double(label, label:, __typename: 'IntegerNumberChamp', int_value: val&.to_s, string_value: val&.to_s)
   def txt(label, val) = double(label, label:, __typename: 'TextChamp', value: val, string_value: val)
 
   let(:dossier) do

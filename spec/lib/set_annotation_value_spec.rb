@@ -46,6 +46,15 @@ RSpec.describe SetAnnotationValue do
         expect(SetAnnotationValue.set_value(dossier, instructeur, 'annotation', '1000000')).to be true
       end
 
+      context "déjà à la même valeur, renvoyée en chaîne par l'API" do
+        let(:annotation) { annotation_double('IntegerNumberChamp', int_value: '1000000') }
+
+        it 'ne réécrit pas un entier écrit en Integer' do
+          expect(SetAnnotationValue).not_to receive(:raw_set_value)
+          expect(SetAnnotationValue.set_value(dossier, instructeur, 'annotation', 1_000_000)).to be false
+        end
+      end
+
       context 'déjà à la même valeur' do
         let(:annotation) { annotation_double('IntegerNumberChamp', int_value: 1_000_000) }
 

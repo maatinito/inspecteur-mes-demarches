@@ -137,9 +137,11 @@ module Dbs
 
     def champ(libelle) = object_field_values(@dossier, libelle, log_empty: false).first
 
+    # L'API renvoie int_value en chaîne (« 5000 ») ; nil = jour non saisi, distinct de 0.
     def entier(libelle)
       c = champ(libelle)
-      c.respond_to?(:int_value) ? c.int_value : nil
+      valeur = c.respond_to?(:int_value) ? c.int_value : nil
+      valeur.presence&.to_i
     end
 
     def texte(libelle) = champ(libelle)&.string_value.to_s
