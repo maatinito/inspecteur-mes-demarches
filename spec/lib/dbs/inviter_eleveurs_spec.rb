@@ -165,5 +165,50 @@ RSpec.describe Dbs::InviterEleveurs do
       expect(NotificationMailer).not_to have_received(:with)
     end
   end
+
+  context 'invitations aux carnets (seulement_engages)' do
+    let(:task_carnet) do
+      described_class.new(
+        etat_du_dossier: 'accepte',
+        demarche_cible: 'carnet-poussins',
+        seulement_engages: 'Engagements reçus',
+        eleveurs: 'Liste des éleveurs',
+        invitations_envoyees: 'Carnets envoyés',
+        objet: 'Carnet — {nom_eleveur}',
+        message: '{lien}',
+        prerempli: { 198_100 => "Numéro d'engagement", 198_102 => 'date_traitement' }
+      )
+    end
+    let(:recus_texte) { 'Vaimiti HOA (vaimiti@exemple.pf) — dossier 655888 — déposé le 15/09/2026' }
+    let(:dossier) do
+      double('Dossier', number: 654_000, state: 'accepte', date_traitement: '2026-10-09T10:00:00-10:00',
+                        champs: [bloc, lieux],
+                        annotations: [champ('Carnets envoyés', nil), champ('Engagements reçus', recus_texte)])
+    end
+
+    it "n'invite que les éleveurs engagés, avec leur numéro d'engagement et J0 au format ISO" do
+      task_carnet.process(demarche, dossier)
+      expect(NotificationMailer).to have_received(:with).once
+      expect(NotificationMailer).to have_received(:with).with(
+        hash_including(recipients: 'vaimiti@exemple.pf',
+                       message: 'https://md.test/commencer/carnet-poussins?champ_Q2hhbXAtMTk4MTAw=655888&champ_Q2hhbXAtMTk4MTAy=2026-10-09')
+      )
+    end
+
+    context 'sans engagement reçu' do
+      let(:recus_texte) { nil }
+
+      it "n'envoie rien et ne lève pas" do
+        expect { task_carnet.process(demarche, dossier) }.not_to raise_error
+        expect(NotificationMailer).not_to have_received(:with)
+      end
+    end
+  end
+
+  it 'exige demarche_cible ou demarche_engagement' do
+    sans = described_class.new(eleveurs: 'L', invitations_envoyees: 'I', objet: 'o', message: 'm', prerempli: {})
+    expect(sans.errors.join).to include('demarche_cible')
+    expect(task.errors).to be_empty
+  end
 end
 # rubocop:enable Metrics/BlockLength

@@ -8,10 +8,11 @@ class DossierRefuser < DossierChangerEtat
     @motivation = @params[:motivation]
   end
 
+  # La motivation accepte les variables du dossier : « motif : {Motif de l'abattage} ».
   def motivation
     raise StandardError, 'Aucune motivation indiqué pour le classement sans suite' unless @motivation.present?
 
-    @motivation
+    instanciate(@motivation)
   end
 
   def change_state(demarche, dossier)

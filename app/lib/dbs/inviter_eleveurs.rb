@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
 module Dbs
-  # Déclencheur n° 1 de la cascade poussins (spec §5) : pour chaque ligne du bloc
+  # Déclencheur de la cascade poussins (spec §5) : pour chaque ligne du bloc
   # « Liste des éleveurs » du laissez-passer, envoie à l'éleveur un courriel
-  # avec un lien prérempli vers la démarche engagement. La trace des envois est
+  # avec un lien prérempli vers la démarche cible. Deux usages : invitations aux
+  # engagements (demande en instruction), puis invitations aux carnets de suivi
+  # (laissez-passer accepté, option `seulement_engages` : seuls les éleveurs dont
+  # l'engagement figure dans « Engagements reçus », chacun avec son
+  # « Numéro d'engagement » utilisable dans `prerempli`). La trace des envois est
   # l'annotation texte « Invitations envoyées » du laissez-passer, une ligne
   # « courriel — envoyé le JJ/MM/AAAA HH:MM » par éleveur : un éleveur déjà
   # présent n'est pas réinvité, un éleveur ajouté après coup l'est au passage
@@ -27,20 +31,23 @@ module Dbs
     ETATS_PAR_DEFAUT = %w[en_instruction].freeze
 
     def version
-      super + 3
+      super + 4
     end
 
     def required_fields
-      super + %i[demarche_engagement eleveurs invitations_envoyees objet message prerempli]
+      super + %i[eleveurs invitations_envoyees objet message prerempli]
     end
 
     def authorized_fields
-      super + %i[email_eleveur nom_eleveur telephone_eleveur quantite_eleveur importateur_eleveur]
+      super + %i[demarche_engagement demarche_cible seulement_engages email_eleveur nom_eleveur telephone_eleveur
+                 quantite_eleveur importateur_eleveur]
     end
 
     def initialize(params)
       super
       @states = Set.new(ETATS_PAR_DEFAUT) if @params[:etat_du_dossier].blank?
+      @demarche_cible = @params[:demarche_cible] || @params[:demarche_engagement]
+      @errors << 'demarche_cible (ou demarche_engagement) est requis sur dbs/inviter_eleveurs' if @demarche_cible.blank?
       @champ_email = @params[:email_eleveur] || "Email de l'éleveur"
       @champ_nom = @params[:nom_eleveur] || "Nom et Prénom de l'éleveur"
       @cfg = { eleveurs: @params[:eleveurs], nom_eleveur: @champ_nom, email_eleveur: @champ_email,
@@ -59,7 +66,7 @@ module Dbs
       lignes = lignes_envois
       deja = lignes.filter_map { |l| LIGNE_ENVOI.match(l)&.[](:email)&.downcase }.to_set
 
-      eleveurs_du_lot(dossier, @cfg).each do |eleveur|
+      eleveurs_a_inviter(dossier).each do |eleveur|
         ligne = inviter(eleveur, deja)
         next unless ligne
 
@@ -79,19 +86,36 @@ module Dbs
       email = eleveur[:email]
       return nil if email.blank? || deja.include?(email)
 
-      variables = { lien: PrefillURL.build(@params[:demarche_engagement], valeurs_prerempli(eleveur)), nom_eleveur: eleveur[:nom] }
+      variables = { lien: PrefillURL.build(@demarche_cible, valeurs_prerempli(eleveur)), nom_eleveur: eleveur[:nom] }
       NotificationMailer.with(subject: instanciate(@params[:objet], variables),
                               message: instanciate(@params[:message], variables),
                               recipients: email).user_mail.deliver_later
       deja << email
-      Rails.logger.info("Invitation à signer l'engagement envoyée à #{email}")
+      Rails.logger.info("Invitation envoyée à #{email} (#{@demarche_cible})")
       "#{email} — envoyé le #{Time.zone.now.strftime('%d/%m/%Y %H:%M')}"
+    end
+
+    # Avec seulement_engages : les seuls éleveurs ayant déposé un engagement, avec son numéro (invitation au carnet).
+    def eleveurs_a_inviter(dossier)
+      eleveurs = eleveurs_du_lot(dossier, @cfg)
+      return eleveurs if @params[:seulement_engages].blank?
+
+      texte = annotation(@params[:seulement_engages], warn_if_empty: false)&.value.to_s
+      numeros = ListeEngagements.parse_recus(texte).to_h { |e| [e.email, e.numero.to_s] }
+      eleveurs.filter_map do |e|
+        numero = numeros[e[:email]]
+        e.merge(valeurs: e[:valeurs].merge("Numéro d'engagement" => numero)) if numero
+      end
     end
 
     def valeurs_prerempli(eleveur)
       @params[:prerempli].to_h do |stable_id, chemin|
         valeur = eleveur[:valeurs][chemin.to_s]
-        valeur = champs_to_values(object_field_values(@dossier, chemin.to_s, log_empty: false)).first if valeur.nil?
+        if valeur.nil?
+          brut = object_field_values(@dossier, chemin.to_s, log_empty: false).first
+          # Une date (attribut du dossier : date_traitement…) reste un objet date : PrefillURL la met en AAAA-MM-JJ.
+          valeur = brut.is_a?(Date) ? brut : champs_to_values([brut].compact).first
+        end
         [stable_id, valeur]
       end
     end

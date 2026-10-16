@@ -155,6 +155,21 @@ class SetAnnotationValue
       }
     }
 
+    mutation SetDecimal($dossier_id: ID!, $instructeur_id: ID!, $annotation_id: ID!, $value: Float!, $client_mutation_id: String!) {
+      dossierModifierAnnotationDecimalNumber(input: {
+        dossierId: $dossier_id,
+        instructeurId: $instructeur_id,
+        annotationId: $annotation_id,
+        value: $value,
+        clientMutationId: $client_mutation_id
+	    }) {
+        clientMutationId
+        errors {
+            message
+        }
+      }
+    }
+
     mutation SetPieceJustificative($dossier_id: ID!, $instructeur_id: ID!, $annotation_id: ID!, $attachment_id: ID!, $client_mutation_id: String!) {
       dossierModifierAnnotationPieceJustificative(input: {
         dossierId: $dossier_id
@@ -205,6 +220,8 @@ class SetAnnotationValue
     case annotation.__typename
     when 'IntegerNumberChamp'
       value.to_i
+    when 'DecimalNumberChamp'
+      value.tr(',', '.').to_f
     when 'CheckboxChamp', 'YesNoChamp'
       %w[true oui].include?(value.downcase)
     when 'DateChamp'
@@ -228,6 +245,8 @@ class SetAnnotationValue
       Queries::SetDate
     when Integer
       Queries::SetInteger
+    when Float, BigDecimal
+      Queries::SetDecimal
     when TrueClass, FalseClass
       Queries::SetCheckBox
     else
