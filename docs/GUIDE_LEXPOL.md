@@ -113,7 +113,7 @@ Ces méthodes sont **bien plus rapides et plus fiables que Playwright** : pas de
 - **Consulter d'abord la liste des variables disponibles** : paramétrage du champ Lexpol, puis « Afficher les variables disponibles » (section 3.3). On y lit les noms exacts déjà fournis par Mes-Démarches, champs, identité et métadonnées.
 - Pour chacune, déterminer d'où vient la valeur :
   - une variable **déjà disponible** (champ usager, identité du demandeur, métadonnée) ;
-  - une donnée **dérivée** d'un champ, comme le registre Numéro Tahiti : à déclarer dans « Variables Lexpol », par l'utilisateur ;
+  - une donnée **dérivée** d'un champ (hors Numéro Tahiti, désormais envoyé d'office, section 3.1) : à déclarer dans « Variables Lexpol », par l'utilisateur ;
   - un **calcul** (Vrai/Faux) ou une **composition**, à faire dans Lexpol ;
   - un **nouveau champ** à créer dans Mes-Démarches.
 - Remplir la **table de correspondance**, et la faire valider par l'utilisateur :
@@ -170,7 +170,8 @@ Ces règles ont été constatées dans la prévisualisation, et non dans la docu
 | | `<libellé> (liste)` | liste HTML `<ul><li>A ;</li>…</ul>` |
 | Date | libellé du champ | `jj/mm/aaaa` |
 | **Titre de section** | libellé de la section | résumé des champs de la section |
-| **Numéro Tahiti** (Siret) | libellé du champ | le numéro seul (ex. `031864001`). Les autres données du registre (raison sociale, nom commercial, adresse…) **ne sont envoyées que si on les déclare** dans la zone « **Variables Lexpol** » du champ Lexpol (section 3.3), par exemple `Numéro Tahiti.etablissement.entreprise_raison_sociale = Raison sociale`. |
+| **Numéro Tahiti** (Siret) | libellé du champ | le numéro seul (ex. `031864001`) |
+| | `<libellé> – Entreprise SIREN`, `<libellé> – Entreprise date de création`, `<libellé> – Entreprise forme juridique`, `<libellé> – Entreprise nom commercial`, `<libellé> – Entreprise raison sociale`, `<libellé> – Libellé NAF` | données du registre, **envoyées d'office** depuis un correctif de Mes-Démarches : plus besoin de les déclarer dans « Variables Lexpol ». Séparateur : **tiret demi-cadratin « – »** entouré d'espaces, à reproduire exactement dans le nom de la variable Lexpol |
 | Bloc répétable | libellé du bloc | tableau HTML |
 | Métadonnées | `Date de dépôt`, `État du dossier`, `Groupe instructeur`, `Motivation de la décision`… | |
 
@@ -184,7 +185,7 @@ Côté API GraphQL, les mêmes données existent sous d'autres noms : `dossier.d
 - **Les fautes de frappe dans les options** passent telles quelles dans l'acte. Les signaler à l'utilisateur, sans corriger sans accord.
 - **Les conditions d'affichage** se posent champ par champ. Dans la 3558, chaque champ porte sa propre condition (« Baleines Est Oui »), y compris derrière un titre de section conditionné. L'effet d'une condition posée sur le seul titre n'a pas été vérifié : faire de même par prudence.
 - **Dans un formulaire, deux libellés identiques** (« Numéro de téléphone » en double, par exemple) produiraient deux variables du même nom. Ce n'est pas vérifié, mais c'est à éviter.
-- **Une donnée masquée par une condition** arrive vide dans Lexpol. Vérifier, **cas d'usage par cas d'usage**, que chaque variable dont l'acte a besoin est alimentée. Exemple : pour une personne morale résidente, la 3558 n'affiche que le Numéro Tahiti, et il a fallu vérifier d'où venait la raison sociale.
+- **Une donnée masquée par une condition** arrive vide dans Lexpol. Vérifier, **cas d'usage par cas d'usage**, que chaque variable dont l'acte a besoin est alimentée. Exemple : pour une personne morale résidente, la 3558 n'affiche que le Numéro Tahiti : la raison sociale vient alors de `Numéro Tahiti – Entreprise raison sociale` (ou d'une déclaration dans « Variables Lexpol » sur les modèles antérieurs au correctif).
 - **Un dossier en construction modifié** n'est transmis qu'après **« Déposer les modifications »**.
 - **Une démarche « en test »** : les dossiers de test ont survécu aux modifications de champs, mais le bandeau prévient qu'ils peuvent être supprimés.
 
@@ -195,7 +196,7 @@ Côté API GraphQL, les mêmes données existent sous d'autres noms : `dossier.d
 | Réglage | Rôle | À retenir |
 |---|---|---|
 | **Sélectionner un modèle Lexpol** | le modèle à partir duquel les actes sont créés | c'est **ici** qu'on voit et qu'on règle le modèle, que l'API n'expose pas. Le libellé affiché est le **nom** du modèle (ex. « 2025-Dérogation prise de vu et de son_mes_démarches »), pas son numéro : le faire correspondre au « Modèle utilisé : NNNNNN » d'un acte de test |
-| **Variables Lexpol** (zone de texte) | **variables supplémentaires** calculées à partir des données du dossier, une par ligne : `chemin de la donnée = nom de la variable Lexpol` | Exemple de la 3558 : `Numéro Tahiti.etablissement.entreprise_raison_sociale = Raison sociale` et `Numéro Tahiti.etablissement.entreprise_nom_commercial = Nom commercial`. C'est ainsi que la raison sociale du registre arrive dans la variable `Raison sociale`. **Le chemin part du libellé du champ**, puis suit la structure des données (`etablissement.entreprise_…`) |
+| **Variables Lexpol** (zone de texte) | **variables supplémentaires** calculées à partir des données du dossier, une par ligne : `chemin de la donnée = nom de la variable Lexpol` | **N'est plus nécessaire pour le Numéro Tahiti**, dont les données arrivent d'office (section 3.1). Reste utile pour **renommer** une donnée en un nom court, ou pour une autre donnée dérivée. Exemple historique de la 3558 : `Numéro Tahiti.etablissement.entreprise_raison_sociale = Raison sociale` et `Numéro Tahiti.etablissement.entreprise_nom_commercial = Nom commercial`. **Le chemin part du libellé du champ**, puis suit la structure des données (`etablissement.entreprise_…`) |
 | **Afficher les variables disponibles** | la **liste de toutes les variables** que ce champ peut envoyer à Lexpol : champs, métadonnées, identité… | à **consulter en premier**, dès l'étape 2, pour savoir quels noms existent avant de créer une variable dans Lexpol |
 | Logique conditionnelle | condition d'affichage du champ Lexpol lui-même | |
 
@@ -228,26 +229,36 @@ Côté API GraphQL, les mêmes données existent sous d'autres noms : `dossier.d
 - **Formats** : `:majuscules`, `:minuscules`, `:prem_majuscule`, `:prem_minuscule`, `:minuscules_prem_majuscule`, `:date_en_lettres`.
 - **Enchaîner deux formats** :
   - `{@x@:minuscules:prem_majuscule}` **ne fonctionne pas** (testé) ;
-  - il faut passer par une **variable intermédiaire**. Lexpol résout d'abord les variables contenues, **puis** applique le format. Exemple testé et validé : une variable Texte `raison sociale minuscules` = `{@Raison sociale@:minuscules}`, puis dans le texte `{@raison sociale minuscules@:prem_majuscule}`, ce qui donne « Electricite de tahiti ».
-  - C'est le même mécanisme qui permet `{@designation demandeur@:prem_majuscule}` : « La société… » en début de phrase.
+  - il faut passer par une **variable intermédiaire**. Lexpol résout d'abord les variables contenues, **puis** applique le format. Exemple testé : une variable Texte `raison sociale minuscules` = `{@Raison sociale@:minuscules}`, puis `{@raison sociale minuscules@:prem_majuscule}`, ce qui donne « Electricite de tahiti ».
+  - C'est le même mécanisme qui permet `demandeur debut de phrase` = `{@demandeur milieu de phrase@:prem_majuscule}` : « La société… » en début de phrase (section 4.2).
+- **Aucun format dans les textes de l'acte pour les variables de composition** : écrire `{@demandeur debut de phrase@}`, jamais `{@demandeur milieu de phrase@:prem_majuscule}`. Si l'utilisateur corrige à la main la valeur de la variable dans le dossier (un accent dans une raison sociale, par exemple), un format posé dans le texte s'appliquerait encore par-dessus et déferait sa correction. **La mise en forme se fait dans la valeur de la variable**, jamais dans le texte.
 - **Nom de variable** : ni `@ / { } ;`, ni espace collée aux `@`.
 - **Convention de nommage** :
   - une variable **alimentée** par Mes-Démarches porte le **libellé exact** du champ ;
   - une variable **calculée** porte un nom en minuscules **suffixé par `_`** (`personne_morale_`) ;
-  - une variable de **composition** porte un nom explicite (`designation demandeur`).
+  - une variable de **composition** porte un nom explicite (`demandeur milieu de phrase`, `demandeur debut de phrase`).
 
 ### 4.2 Modèle générique : désignation du demandeur
 
-Variable Texte `designation demandeur` :
+Deux variables Texte, **une par position dans la phrase**, utilisées **sans format** dans les textes (section 4.1).
+
+`demandeur milieu de phrase` :
 
 ```
-{@SI_personne_morale_@}la société {@raison sociale minuscules@:prem_majuscule}{@/SI_personne_morale_@}{@SI_personne_physique_@}{@Demandeur civilité@}[espace insécable]{@Demandeur prénom@:minuscules_prem_majuscule} {@Demandeur nom@:majuscules}{@/SI_personne_physique_@}
+{@SI_personne_morale_@}la société {@Raison sociale@:minuscules_prem_majuscule}{@/SI_personne_morale_@}{@SI_personne_physique_@}{@Demandeur civilité@}[espace insécable]{@Demandeur prénom@:minuscules_prem_majuscule} {@Demandeur nom@:majuscules}{@/SI_personne_physique_@}
+```
+
+`demandeur debut de phrase` :
+
+```
+{@demandeur milieu de phrase@:prem_majuscule}
 ```
 
 - `personne_morale_` = `{@Personne morale ?@}="true"`
 - `personne_physique_` = `NON({@Personne morale ?@}="true")`. On pourrait aussi écrire `{@SI_NON_personne_morale_@}`, voir la section 4.6.
-- `raison sociale minuscules` = `{@Raison sociale@:minuscules}` : c'est la variable intermédiaire (section 4.1).
-- Milieu de phrase : `{@designation demandeur@}`. Début de phrase : `{@designation demandeur@:prem_majuscule}`, **validé dans le PDF** (« La société… »).
+- `{@Raison sociale@:minuscules_prem_majuscule}` donne « Electricite De Tahiti » (choix de l'utilisateur, section 4.7). L'accent ne se devine pas : il se corrige à la main dans la valeur de la variable du dossier.
+- Milieu de phrase : `{@demandeur milieu de phrase@}` (intitulé). Début de phrase : `{@demandeur debut de phrase@}` (article 1).
+- Si l'utilisateur corrige `demandeur milieu de phrase` dans un dossier, `demandeur debut de phrase` reprend sa correction avec une majuscule initiale. S'il corrige `demandeur debut de phrase`, sa valeur remplace la formule.
 - Le cas personne physique (« M. Prénom NOM ») reste à valider dans un PDF.
 - Règles de rédaction : « Prénom NOM », c'est-à-dire le prénom avec une majuscule initiale et le nom en capitales ; civilité abrégée (M., Mme) ; espace insécable après la civilité.
 
@@ -290,6 +301,7 @@ Identifiants : `idw` est l'identifiant du dossier ou du modèle dans l'URL (`ged
 - **Articles** (éditeur Summernote) :
   - écrire : `jQuery('#article<ide>_<bloc>_<n>_txt').summernote('code', html)` ;
   - **enregistrer** : ouvrir l'éditeur avec `EditerModeleArticle(ide,bloc,n)`, cliquer dans `#article…_contenu .note-editable`, puis cliquer **en dehors**. L'enregistrement se fait à la sortie de l'éditeur. Vérifier qu'une requête `modifiercontenuarticle` part ;
+  - **piège constaté le 21/10** : une requête `modifiercontenuarticle` peut partir avec **l'ancien** contenu. Ce qui fonctionne : ouvrir l'éditeur, **puis** écrire (`summernote('code', html)`), contrôler que `#article…_contenu .note-editable` contient bien le nouveau texte, cliquer dedans, puis en dehors. Un enregistrement réussi est suivi de `elementarticlehtmlget`. Toujours relire après rechargement ;
   - le bouton « Editer / Enregistrer » ne fait qu'ouvrir et fermer l'éditeur : il n'enregistre pas ;
   - ne jamais ouvrir l'éditeur de **titre** (`modifier_titre_article`) et celui de **contenu** du même article en même temps, car ils se ferment l'un l'autre ;
   - garde-fou : relire la valeur actuelle, **ne remplacer qu'un segment exact**, et s'arrêter s'il est introuvable.
@@ -372,7 +384,7 @@ Sources fournies par l'utilisateur : « Guide utilisation Plateforme GEDA Variab
 |---|---|---|
 | Majuscules en général | pas d'expressions entières en majuscules, sauf sigles, acronymes et noms de famille | |
 | **Personne physique** | prénom(s) d'abord, séparés par une virgule, avec une majuscule initiale. **Nom de famille entièrement en majuscules.** Ex. : « Pierre, Alain, Denis DELOIN », « Mme Sophie DUPUIS épouse BONNET ». Valable aussi pour les entreprises individuelles | `{@Demandeur prénom@:minuscules_prem_majuscule} {@Demandeur nom@:majuscules}`. **À tester** sur un prénom composé (« Jean-Pierre ») : le format ne doit pas donner « Jean-pierre » |
-| **Personne morale de droit privé**, navire, projet, événement | **jamais entièrement en majuscules, jamais entre guillemets**. Seuls les premiers caractères des mots distinctifs prennent une majuscule. Ex. : « EURL Super Tours », « GIE Moorea Tourisme » | Une raison sociale reçue en capitales (« ELECTRICITE DE TAHITI ») est **non conforme**. Aucun format n'est parfait, car ni les accents ni les noms propres ne se devinent : `:minuscules_prem_majuscule` donne « Electricite De Tahiti », et la variable intermédiaire (minuscules, puis `:prem_majuscule`) donne « Electricite de tahiti ». **Solution retenue sur la 3558 : la variable intermédiaire** (validée par l'utilisateur le 21/10) |
+| **Personne morale de droit privé**, navire, projet, événement | **jamais entièrement en majuscules, jamais entre guillemets**. Seuls les premiers caractères des mots distinctifs prennent une majuscule. Ex. : « EURL Super Tours », « GIE Moorea Tourisme » | Une raison sociale reçue en capitales (« ELECTRICITE DE TAHITI ») est **non conforme**. Aucun format n'est parfait, car ni les accents ni les noms propres ne se devinent : `:minuscules_prem_majuscule` donne « Electricite De Tahiti », et la variable intermédiaire (minuscules, puis `:prem_majuscule`) donne « Electricite de tahiti ». **Solution retenue sur la 3558 : `:minuscules_prem_majuscule`** (choix de l'utilisateur le 21/10, après un premier essai avec la variable intermédiaire). L'accent se corrige à la main dans la variable du dossier |
 | **Nom de navire** | en *italique*. Ex. : « immatriculation PY XXXXX *Moana III* » | mettre la variable en italique dans le texte, en sélectionnant `{@Nom du navire@}` accolades comprises |
 | Archipels, îles, communes, terres, lieux | seul le premier caractère de chaque mot prend une majuscule, sans guillemets. Ex. : « Bora Bora », « lotissement agricole Mutuhionoa » | vérifier les options des listes (Tahiti, Moorea…) |
 | Voies | nom propre avec une majuscule, terme générique en minuscule. Ex. : « rue Vénus », « boulevard de la Reine-Pomare-IV » | |
@@ -506,8 +518,8 @@ Les sessions expirent (Mes-Démarches comme Lexpol). Si une page de connexion ap
 - **Lire les conditions existantes** (testé) : chaque élément a un lien `a.btnCondition`, avec `id="btnCondition_<ide>_<bloc>_<n>"` pour un article. Son attribut **`title`** vaut « Gérer une condition » s'il n'y a pas de condition, ou « **Variable : {@Baleines@} = Vrai** » s'il y en a une ; s'y ajoutent `data-idcondition` (différent de 0) et `data-conditionvaleur="true"`. Les attendus (`…_ATTENDUS_<n>`) et les ampliataires portent le même mécanisme, mais restent hors du périmètre.
 
 ### 8.9 Créer une variable de composition (texte conditionnel réutilisable)
-- C'est une variable **Texte** dont la valeur contient des `{@SI_…@}` et d'autres `{@variables@}`. Exemple : `designation demandeur` (section 4.2).
-- On l'utilise ensuite partout avec `{@nom@}`, et un format au besoin (`:prem_majuscule` en début de phrase).
+- C'est une variable **Texte** dont la valeur contient des `{@SI_…@}` et d'autres `{@variables@}`. Exemple : `demandeur milieu de phrase` (section 4.2).
+- On l'utilise ensuite partout avec `{@nom@}`, **sans format** (section 4.1). Pour le début de phrase, une seconde variable de composition (`demandeur debut de phrase`).
 - Avantage : une seule définition, réutilisée dans l'intitulé et les articles.
 
 ### 8.9 bis Repérer et marquer les données personnelles
@@ -568,7 +580,8 @@ Les sessions expirent (Mes-Démarches comme Lexpol). Si une page de connexion ap
 | Paragraphe vide | même cause, avec des `<p>` | appliquer la section 4.3 |
 | L'acte n'a pas les corrections du modèle | dossier Lexpol créé avant la correction | recréer l'acte |
 | Variables inattendues (ancienne version) | l'acte a été créé depuis **un autre modèle** | « Modèle utilisé » dans Lexpol ; « Sélectionner un modèle Lexpol » dans le paramétrage du champ |
-| Une donnée connue de Mes-Démarches (registre Tahiti…) n'arrive pas | elle n'est pas déclarée dans « **Variables Lexpol** » | paramétrage du champ Lexpol ; ajouter la ligne `chemin = nom` (par l'utilisateur) |
+| Une donnée du registre Tahiti n'arrive pas | 1. nom de la variable Lexpol différent de `Numéro Tahiti – Entreprise …` (souvent un trait d'union « - » au lieu du tiret « – ») · 2. établissement non sélectionné dans le dossier · 3. acte créé avant le correctif | « Prévisualiser les variables » du dossier |
+| Une autre donnée dérivée n'arrive pas | elle n'est pas déclarée dans « **Variables Lexpol** » | paramétrage du champ Lexpol ; ajouter la ligne `chemin = nom` (par l'utilisateur) |
 | Dépôt impossible : « X doit être rempli » | case à cocher seule marquée obligatoire | rendre la case facultative |
 | La modification d'un dossier n'apparaît pas | « Déposer les modifications » non cliqué | page `/modifier` |
 
@@ -593,26 +606,26 @@ Les sessions expirent (Mes-Démarches comme Lexpol). Si une page de connexion ap
 
 ## 11. Annexe : exemple de référence, le modèle 630543 (démarche 3558, au 21/10/2026)
 
-Il fonctionne et sert de modèle type. Le dossier de test ZZZ26000726TT (idw 661657, cas personne morale résidente) en est une copie conforme.
+Il fonctionne et sert de modèle type. Le dossier de test ZZZ26000726TT (idw 661657, cas personne morale résidente) en est une copie conforme, à deux variables inutilisées près (`designation demandeur debut phrase`, `raison sociale minuscules`, à supprimer).
 
-**Typologie de ses 44 variables :**
+**Typologie de ses 45 variables :**
 
 | Famille | Variables | Type | Source |
 |---|---|---|---|
 | Champs texte, liste et date | `Nom du projet`, `Espèce(s) de …`, `Localisation des …`, `Début/Fin d'approche des …`, `Type de plongée` | Texte | libellé exact du champ Mes-Démarches |
-| Données du registre | `Raison sociale`, `Nom commercial` | Texte | déclarées dans la zone « Variables Lexpol » du champ Lexpol (`Numéro Tahiti.etablissement.entreprise_raison_sociale = Raison sociale`…) ; `Raison sociale` est aussi le libellé d'un champ texte de la démarche |
+| Données du registre | `Raison sociale`, `Nom commercial` | Texte | déclarées dans la zone « Variables Lexpol » du champ Lexpol (`Numéro Tahiti.etablissement.entreprise_raison_sociale = Raison sociale`…) ; `Raison sociale` est aussi le libellé d'un champ texte de la démarche *(depuis le correctif, ces déclarations ne sont plus indispensables : `Numéro Tahiti – Entreprise raison sociale` est envoyé d'office)* |
 | Cases à cocher | `Baleines`, `Requins`, `Tortues`, `Dauphins`, `Crabes`, `A terre`, `Avec mise à l'eau`, `Drone` | **Vrai/Faux** (elles reçoivent `true`) | cases Mes-Démarches |
 | Oui/Non | `Résident`, `Personne morale ?` | Texte (`true`/`false`) | champs Oui/Non |
 | Titre de section | `Conditions d'approche` | Texte | résumé envoyé par Mes-Démarches |
 | Identité | `Demandeur civilité`, `Demandeur prénom`, `Demandeur nom` | Texte | étape Identité |
 | Calculées | `personne_morale_` = `{@Personne morale ?@}="true"` · `personne_physique_` = `NON({@Personne morale ?@}="true")` · `resident_` = `{@Résident@}="true"` | Vrai/Faux calculée | formules |
-| Intermédiaire | `raison sociale minuscules` = `{@Raison sociale@:minuscules}` | Texte | enchaînement de formats |
-| Composition | `designation demandeur` (section 4.2) | Texte | bloc conditionnel |
+| Intermédiaire, **inutilisée** | `raison sociale minuscules` = `{@Raison sociale@:minuscules}` | Texte | plus référencée depuis le 21/10 : à supprimer |
+| Composition | `demandeur milieu de phrase`, `demandeur debut de phrase` (section 4.2) | Texte | bloc conditionnel ; la seconde = la première avec `:prem_majuscule` |
 | Anciennes, encore présentes | `demandeur`, `date_demande` | Texte | utilisées par l'attendu « Vu la demande de … » (hors périmètre) |
 
 **Structure des textes :**
-- **Intitulé** : `autorisant {@designation demandeur@} à exercer…`
-- **Article 1** : `{@designation demandeur@:prem_majuscule} est autorisé(e)…`
+- **Intitulé** : `autorisant {@demandeur milieu de phrase@} à exercer…`
+- **Article 1** : `{@demandeur debut de phrase@} est autorisé(e)…` (sans format dans le texte, section 4.1)
 - **Article 2** : `{@Nom du projet@}`, puis un tableau Groupe / Espèces / Zones / Période, avec une **ligne conditionnelle par animal** (technique de la section 4.3).
 - **Article 3** : `{@Conditions d'approche@}`, puis des paragraphes conditionnels (mise à l'eau, baleines, drone) avec les balises accolées.
 - **Article « Modalités… des baleines »** : **condition d'article** `{@Baleines@} = Vrai` (zone conditionnée).
