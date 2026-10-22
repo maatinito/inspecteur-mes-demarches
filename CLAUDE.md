@@ -87,6 +87,10 @@ rails jobs:display_schedule
 rails jobs:work
 ```
 
+## Arrêtés Lexpol (formulaire Mes-Démarches → acte)
+
+Pour construire un formulaire Mes-Démarches et un modèle Lexpol à partir d'un projet d'arrêté, ou tester la génération d'un acte, lire d'abord le guide : [docs/GUIDE_LEXPOL.md](docs/GUIDE_LEXPOL.md)
+
 ## Project Structure
 
 The application is organized around:

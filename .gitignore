@@ -68,3 +68,6 @@ production.log
 # MCP local (contient MD_API_TOKEN) — ne pas committer
 .mcp.json
 /old/
+
+# Captures et sessions Playwright MCP (contenu de pages, données potentiellement sensibles)
+/.playwright-mcp/
