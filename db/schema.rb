@@ -34,7 +34,7 @@ ActiveRecord::Schema[7.2].define(version: 20_260_604_013_631) do
     t.datetime 'checked_at', precision: nil
     t.bigint 'version', default: 1
     t.integer 'demarche_id'
-    t.boolean 'failed'
+    t.boolean 'failed', default: false
     t.boolean 'posted', default: false
     t.datetime 'failed_at'
     t.index %w[dossier checker], name: 'unicity', unique: true

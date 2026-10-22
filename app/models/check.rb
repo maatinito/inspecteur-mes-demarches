@@ -8,7 +8,7 @@
 #  checked_at  :datetime
 #  checker     :string
 #  dossier     :integer
-#  failed      :boolean
+#  failed      :boolean          default(FALSE)
 #  failed_at   :datetime
 #  posted      :boolean          default(FALSE)
 #  version     :bigint           default(1)
