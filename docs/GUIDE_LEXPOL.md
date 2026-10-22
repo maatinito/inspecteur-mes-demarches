@@ -76,7 +76,7 @@ Principe : **utiliser l'accès direct chaque fois qu'il existe** (API, fichiers 
 
 Les scripts d'API se placent dans le dossier temporaire de session, et les scripts Playwright réutilisables dans `.playwright-mcp/`, qui est ignoré par git.
 
-#### Boîte à outils d'accès direct (dépôt `inspecteur-mes-demarches-prod`)
+#### Boîte à outils d'accès direct (dépôt `inspecteur-mes-demarches`)
 
 Ces méthodes sont **bien plus rapides et plus fiables que Playwright** : pas de navigateur, pas de connexion à faire, pas de lenteur d'interface. On les lance depuis la racine du dépôt. Le jeton d'accès vient du `.env` (`GRAPHQL_BEARER`) : ne jamais l'afficher.
 
