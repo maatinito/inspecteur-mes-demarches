@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Retire les marqueurs du correcteur orthographique Word (<w:proofErr/>) des modèles
+# de publipostage v3. Quand Word les glisse à l'intérieur d'un champ de fusion (souvent
+# sur les clés à soulignés : numero_du_dossier, montant_a_regler…), Sablon ne reconnaît
+# plus le champ et imprime «=champ» tel quel, sans erreur. Les retirer ne change rien
+# au rendu. À relancer après chaque enregistrement du modèle dans Word (Word fermé).
+#
+# Usage : bin/nettoyer_modele <modele.docx> [<modele.docx>…]
+# Une copie horodatée de chaque modèle est gardée dans old/ à côté de lui.
+set -euo pipefail
+
+if [ $# -eq 0 ]; then
+  echo "Usage : $0 <modele.docx> [<modele.docx>…]" >&2
+  exit 1
+fi
+
+for fichier in "$@"; do
+  modele=$(realpath "$fichier")
+  nom=$(basename "$modele" .docx)
+  # Verrou Word : « ~$ » + nom amputé de ses 2 premiers caractères (ou nom entier s'il est court)
+  if [ -e "$(dirname "$modele")/~\$${nom:2}.docx" ] || [ -e "$(dirname "$modele")/~\$$nom.docx" ]; then
+    echo "Attention : $nom.docx semble ouvert dans Word ; un nouvel enregistrement écraserait le nettoyage." >&2
+  fi
+  n=$(unzip -p "$modele" word/document.xml | { grep -o '<w:proofErr[^>]*/>' || true; } | wc -l)
+  if [ "$n" -eq 0 ]; then
+    echo "$nom.docx : rien à nettoyer"
+    continue
+  fi
+
+  mkdir -p "$(dirname "$modele")/old"
+  cp "$modele" "$(dirname "$modele")/old/$nom-$(date +%Y%m%d-%H%M%S).docx"
+  tmp=$(mktemp -d)
+  (cd "$tmp" && unzip -q "$modele")
+  sed -i 's#<w:proofErr[^>]*/>##g' "$tmp/word/document.xml"
+  (cd "$tmp" && rm -f "$modele" && zip -qXr "$modele" .)
+  rm -rf "$tmp"
+  echo "$nom.docx : $n marqueur(s) retiré(s)"
+done

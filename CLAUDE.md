@@ -72,6 +72,12 @@ bin/describe_demarche <numero_demarche>
 # default; --publiee reads the published one.
 bin/generer_annexe <numero_demarche> [output.docx] [--publiee]
 # Example: bin/generer_annexe 3698 storage/models/upf/stage/annexe-champs.docx
+
+# Strip Word spell-check markers (<w:proofErr/>) from publipostage v3 templates.
+# Inserted inside a merge field, they make Sablon print «=field» verbatim. Run it
+# after every save in Word (Word closed); a timestamped copy goes to old/.
+bin/nettoyer_modele <modele.docx> [<modele.docx>…]
+# Example: bin/nettoyer_modele storage/models/ccism/facture.docx
 ```
 
 ### Jobs
