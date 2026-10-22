@@ -91,7 +91,9 @@ module Admin
         demarche_descriptor,
         application_id: target.application_external_id,
         table_name: main_table_name_for(target),
-        excluded_field_ids: target.excluded_field_ids
+        existing_table_id: target.main_table_external_id.presence,
+        excluded_field_ids: target.excluded_field_ids,
+        demandeur_modes: demandeur_modes
       )
       target.update!(main_table_external_id: result[:table_id].to_s, last_synced_at: Time.current)
 
@@ -313,20 +315,43 @@ module Admin
       end
     end
 
+    # Objet démarche GraphQL (mémoïsé pour la requête). Expose la révision et un
+    # échantillon de dossiers (pour la détection du type de demandeur).
+    def demarche_object
+      @demarche_object ||= begin
+        result = MesDemarches.query(MesDemarches::Queries::DemarcheRevision, variables: { demarche: @demarche.id })
+        raise "Erreur accès démarche #{@demarche.id}: #{result.errors.map(&:message).join(', ')}" if result.errors.any?
+
+        demarche = result.data&.demarche
+        raise "Démarche #{@demarche.id} introuvable ou accès non autorisé" if demarche.nil?
+
+        demarche
+      end
+    end
+
     # Charge le descripteur GraphQL de la démarche et retourne sa révision (draft
     # ou published) qui expose `champ_descriptors` / `annotation_descriptors`
     # consommés par MainTableBuilder.
     def demarche_descriptor
-      result = MesDemarches.query(MesDemarches::Queries::DemarcheRevision, variables: { demarche: @demarche.id })
-      raise "Erreur accès démarche #{@demarche.id}: #{result.errors.map(&:message).join(', ')}" if result.errors.any?
-
-      demarche = result.data&.demarche
-      raise "Démarche #{@demarche.id} introuvable ou accès non autorisé" if demarche.nil?
-
-      revision = demarche.draft_revision || demarche.published_revision
+      revision = demarche_object.draft_revision || demarche_object.published_revision
       raise "Démarche #{@demarche.id} sans révision disponible" unless revision
 
       revision
+    end
+
+    # Détecte le(s) mode(s) demandeur de la démarche en échantillonnant un
+    # dossier (le type est figé par la démarche, jamais mixte). Repli sur les
+    # deux modes si aucun dossier n'existe encore (indétectable).
+    def demandeur_modes
+      @demandeur_modes ||= begin
+        nodes = demarche_object.dossiers&.nodes || []
+        typename = nodes.first&.demandeur&.__typename
+        mode = SchemaBuilders::MetadataFields.mode_for_typename(typename)
+        mode ? [mode] : %i[physique morale]
+      rescue StandardError => e
+        Rails.logger.warn "demandeur_modes: détection impossible (#{e.message}), repli sur les deux modes"
+        %i[physique morale]
+      end
     end
 
     def main_table_name_for(_target)

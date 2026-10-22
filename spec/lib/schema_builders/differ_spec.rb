@@ -67,6 +67,10 @@ RSpec.describe SchemaBuilders::Differ do
     described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: demarche_descriptor)
   end
 
+  # BaserowTarget#table_ref renvoie l'id nu ; on reproduit ce passthrough pour
+  # que les stubs get_table_fields gardent leurs ids ('101', '500'...).
+  before { allow(adapter).to receive(:table_ref) { |_app, tid| tid } }
+
   describe '#main_table_diff' do
     context 'avec une table cible existante' do
       before do

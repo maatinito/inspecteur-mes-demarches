@@ -115,6 +115,7 @@ RSpec.describe SchemaBuilders::BlockBuilder do
         allow(target).to receive(:table_exists?).with(17, 'Pièces').and_return(true)
         allow(target).to receive(:list_tables).with(17).and_return([{ 'id' => 50, 'name' => 'Pièces' }])
         allow(target).to receive(:create_table).with(17, 'Articles', kind_of(Array)).and_return({ 'id' => 60 })
+        allow(target).to receive(:table_ref) { |_app, tid| tid }
         allow(target).to receive(:update_fields)
 
         results = builder.build!(demarche_descriptor, application_id: 17, main_table_id: 100)

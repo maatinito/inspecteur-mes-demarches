@@ -27,6 +27,17 @@ module SchemaBuilders
       raise NotImplementedError
     end
 
+    # Construit la référence de table attendue par `update_fields` /
+    # `get_table_fields` / `field_exists?` à partir d'un id de table « nu »
+    # (tel que stocké dans `main_table_external_id` / `backend_table_id`) et de
+    # l'application.
+    #
+    # - Baserow : l'id nu suffit, on le renvoie tel quel.
+    # - Grist   : ces méthodes exigent un id composite "doc_id:table_id".
+    def table_ref(_application_id, table_id)
+      table_id
+    end
+
     def table_exists?(_application_id, _name)
       raise NotImplementedError
     end

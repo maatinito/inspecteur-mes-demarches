@@ -534,6 +534,13 @@ module MesDemarches
       demarche(number: $demarche) {
         title
         number
+        dossiers(first: 1) {
+          nodes {
+            demandeur {
+              __typename
+            }
+          }
+        }
         draftRevision {
           ...RevisionInfo
         }

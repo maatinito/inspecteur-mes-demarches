@@ -98,8 +98,8 @@ RSpec.describe SchemaBuilders::TypeMapper do
         expect(mapper.call('TextareaChampDescriptor')).to eq('Text')
       end
 
-      it 'mappe IntegerNumberChampDescriptor sur Integer' do
-        expect(mapper.call('IntegerNumberChampDescriptor')).to eq('Integer')
+      it 'mappe IntegerNumberChampDescriptor sur Int' do
+        expect(mapper.call('IntegerNumberChampDescriptor')).to eq('Int')
       end
 
       it 'mappe DecimalNumberChampDescriptor sur Numeric' do

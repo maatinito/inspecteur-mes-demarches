@@ -60,7 +60,18 @@ module SchemaBuilders
           { id: name, columns: Array(fields) }
         ]
       }
-      @client.create_tables(application_id, payload)
+      response = @client.create_tables(application_id, payload)
+      # L'API Grist renvoie { "tables" => [{ "id" => "<tableId réel>" }] } ;
+      # on normalise vers { 'id' => ... } pour s'aligner sur BaserowTarget et
+      # permettre au builder d'extraire l'id de la table créée.
+      created = Array(response.is_a?(Hash) ? (response['tables'] || response[:tables]) : response).first || {}
+      { 'id' => created['id'] || created[:id] }
+    end
+
+    # Grist requiert un id composite "doc_id:table_id" pour les opérations sur
+    # les colonnes (cf. doc de classe). On le reconstruit depuis le doc et l'id nu.
+    def table_ref(application_id, table_id)
+      "#{application_id}#{SEPARATOR}#{table_id}"
     end
 
     # `table_id` doit être au format composite "doc_id:table_id".
@@ -94,23 +105,33 @@ module SchemaBuilders
     # `table_id` doit être au format composite "doc_id:table_id".
     # Retourne un tableau de hashes normalisés au format { 'name' => ..., 'type' => ... }
     # pour rester compatible avec la convention BaserowTarget.
+    #
+    # `name` est le LIBELLÉ de la colonne (`fields.label`), pas son id interne :
+    # le Differ apparie les champs sur le libellé Mes-Démarches. Sans ça, l'id
+    # assaini ('nom') ne matche jamais le libellé ('Nom') → tout en « à créer ».
     def get_table_fields(table_id)
       doc_id, real_table_id = parse_composite_id(table_id)
       columns = list_columns_safe(doc_id, real_table_id)
       columns.map do |c|
         fields = c['fields'] || c[:fields] || {}
+        label = fields['label'] || fields[:label]
         {
-          'name' => (c['id'] || c[:id]).to_s,
+          'name' => (label.presence || c['id'] || c[:id]).to_s,
           'type' => (fields['type'] || fields[:type]).to_s
         }
       end
     end
 
     # `table_id` doit être au format composite "doc_id:table_id".
+    # Apparie sur le libellé (`fields.label`) ou, à défaut, l'id de colonne.
     def field_exists?(table_id, name)
       doc_id, real_table_id = parse_composite_id(table_id)
       columns = list_columns_safe(doc_id, real_table_id)
-      columns.any? { |c| (c['id'] || c[:id])&.to_s == name.to_s }
+      columns.any? do |c|
+        fields = c['fields'] || c[:fields] || {}
+        label = fields['label'] || fields[:label]
+        label.to_s == name.to_s || (c['id'] || c[:id])&.to_s == name.to_s
+      end
     rescue Grist::APIError
       false
     end

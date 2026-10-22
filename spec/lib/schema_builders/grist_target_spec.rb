@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe SchemaBuilders::GristTarget do
   let(:client) { instance_double(Grist::Client) }
   let(:target) { described_class.new(client: client) }
@@ -57,6 +58,18 @@ RSpec.describe SchemaBuilders::GristTarget do
                                                      }).and_return({ 'tables' => [{ 'id' => 'Ma_table' }] })
 
       target.create_table('doc1', 'Ma_table', [{ id: 'A', fields: { label: 'A', type: 'Text' } }])
+    end
+
+    it 'normalise la réponse Grist vers { "id" => <tableId réel> }' do
+      allow(client).to receive(:create_tables).and_return({ 'tables' => [{ 'id' => 'Ma_table' }] })
+
+      expect(target.create_table('doc1', 'Ma table', [])).to eq({ 'id' => 'Ma_table' })
+    end
+  end
+
+  describe '#table_ref' do
+    it 'construit l\'id composite "doc_id:table_id"' do
+      expect(target.table_ref('doc1', 'T1')).to eq('doc1:T1')
     end
   end
 
@@ -117,5 +130,37 @@ RSpec.describe SchemaBuilders::GristTarget do
       expect(client).to receive(:list_columns).with('doc1', 'T1').and_raise(Grist::APIError.new({ 'error' => 'fail' }, 500))
       expect(target.field_exists?('doc1:T1', 'A')).to be false
     end
+
+    it 'apparie sur le libellé (fields.label) et pas seulement l\'id' do
+      expect(client).to receive(:list_columns).with('doc1', 'T1').and_return({
+                                                                               'columns' => [{ 'id' => 'nom', 'fields' => { 'label' => 'Nom' } }]
+                                                                             })
+      expect(target.field_exists?('doc1:T1', 'Nom')).to be true
+    end
+  end
+
+  describe '#get_table_fields' do
+    it 'normalise les colonnes avec le LIBELLÉ comme name (pas l\'id assaini)' do
+      expect(client).to receive(:list_columns).with('doc1', 'T1').and_return({
+                                                                               'columns' => [
+                                                                                 { 'id' => 'nom', 'fields' => { 'label' => 'Nom', 'type' => 'Text' } },
+                                                                                 { 'id' => 'montant', 'fields' => { 'label' => 'Montant', 'type' => 'Int' } }
+                                                                               ]
+                                                                             })
+
+      expect(target.get_table_fields('doc1:T1')).to eq([
+                                                         { 'name' => 'Nom', 'type' => 'Text' },
+                                                         { 'name' => 'Montant', 'type' => 'Int' }
+                                                       ])
+    end
+
+    it 'retombe sur l\'id de colonne si le libellé est absent' do
+      expect(client).to receive(:list_columns).with('doc1', 'T1').and_return({
+                                                                               'columns' => [{ 'id' => 'A', 'fields' => { 'type' => 'Text' } }]
+                                                                             })
+
+      expect(target.get_table_fields('doc1:T1')).to eq([{ 'name' => 'A', 'type' => 'Text' }])
+    end
   end
 end
+# rubocop:enable Metrics/BlockLength

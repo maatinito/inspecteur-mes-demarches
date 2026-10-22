@@ -56,7 +56,7 @@ module SchemaBuilders
         if target.table_exists?(application_id, spec[:table_name])
           existing = find_existing_table(application_id, spec[:table_name])
           table_id = existing && (existing['id'] || existing[:id])
-          target.update_fields(table_id, spec[:fields])
+          target.update_fields(target.table_ref(application_id, table_id), spec[:fields])
           spec.merge(table_id: table_id, action: :updated)
         else
           created = target.create_table(application_id, spec[:table_name], spec[:fields])
@@ -154,7 +154,7 @@ module SchemaBuilders
 
     def grist_structural_fields(main_table_id)
       [
-        { id: 'Ligne', fields: { label: 'Ligne', type: 'Integer', isFormula: false } },
+        { id: 'Ligne', fields: { label: 'Ligne', type: 'Int', isFormula: false } },
         { id: 'Dossier', fields: { label: 'Dossier', type: "Ref:#{main_table_id}", isFormula: false } },
         { id: 'Bloc', fields: {
           label: 'Bloc', type: 'Text', isFormula: true,
