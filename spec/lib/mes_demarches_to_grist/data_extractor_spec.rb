@@ -76,8 +76,31 @@ RSpec.describe MesDemarchesToGrist::DataExtractor do
         'Section' => { type: 'Text', id: 'Section', isFormula: false },
         'Casse' => { type: 'Text', id: 'Casse', isFormula: false },
         'Identité' => { type: 'Attachments', id: 'Identite', isFormula: false },
-        'PJ' => { type: 'Attachments', id: 'PJ', isFormula: false }
+        'PJ' => { type: 'Attachments', id: 'PJ', isFormula: false },
+        'Surface' => { type: 'Int', id: 'Surface', isFormula: false }
       }
+    end
+
+    # Une démarche peut porter le même libellé sur une PJ et sur un autre champ
+    # (3135 : « Extrait du cadastre » en PJ et en Oui/Non). Le champ sans fichiers
+    # ne doit ni planter ni toucher la colonne de pièces jointes.
+    it 'ignore un champ homonyme sans fichiers sur une colonne Attachments' do
+      pj = double('PieceJustificativeChamp', __typename: 'PieceJustificativeChamp', label: 'PJ', files: [
+                    double('file', filename: 'plan.pdf', byte_size: 10, url: 'https://x/plan.pdf')
+                  ])
+      oui_non = double('YesNoChamp', __typename: 'YesNoChamp', label: 'PJ', checked: true)
+
+      data = extractor.send(:extract_fields, [pj, oui_non])
+
+      expect(data['PJ']).to eq([{ url: 'https://x/plan.pdf', visible_name: 'plan.pdf' }])
+    end
+
+    it 'convertit en entier pour une colonne Int' do
+      champ = double('IntegerNumberChamp', __typename: 'IntegerNumberChamp', label: 'Surface', int_value: '42')
+
+      data = extractor.send(:extract_fields, [champ])
+
+      expect(data['Surface']).to eq(42)
     end
 
     it 'conserve les valeurs nil pour permettre la réinitialisation de la cellule Grist' do
