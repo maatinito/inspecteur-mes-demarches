@@ -21,10 +21,14 @@ module MesDemarchesToGrist
     # UnfetchedFieldError hérite de NoMethodError, pas de GraphQL::Client::Error.
     CHAMP_READ_ERRORS = [GraphQL::Client::Error, GraphQL::Client::UnfetchedFieldError].freeze
 
-    def initialize(field_metadata, options = {}, attachment_metadata: {})
+    # `block_columns` : ->(libellé du bloc) { { libellé de colonne => métadonnées } | nil },
+    # fourni par le coordinateur pour remplir les sous-colonnes des champs
+    # composites d'un bloc (appelé seulement si le bloc en contient).
+    def initialize(field_metadata, options = {}, attachment_metadata: {}, block_columns: nil)
       @field_metadata = field_metadata
       @options = options
       @attachment_metadata = attachment_metadata || {}
+      @block_columns = block_columns
     end
 
     def extract_all(dossier, _existing_row = nil)
@@ -41,6 +45,7 @@ module MesDemarchesToGrist
       data.merge!(extract_system_fields(dossier))
       data.merge!(extract_champs(dossier))
       data.merge!(extract_annotations(dossier))
+      data.merge!(extract_sous_colonnes(dossier.champs + dossier.annotations, @field_metadata, dossier.number))
       data
     end
 
@@ -132,6 +137,7 @@ module MesDemarchesToGrist
 
     def extract_block_rows(dossier, repetition_champ)
       rows = []
+      colonnes = block_columns_for(repetition_champ)
 
       repetition_champ.rows.each_with_index do |row, index|
         ligne_number = index + 1
@@ -149,11 +155,56 @@ module MesDemarchesToGrist
         rescue *CHAMP_READ_ERRORS => e
           Rails.logger.warn("GristSync: champ de bloc #{field_name} illisible (#{champ.__typename}), ignoré — #{e.message}")
         end
+        row_data.merge!(extract_sous_colonnes(row.champs, colonnes, dossier.number)) if colonnes
 
         rows << row_data
       end
 
       rows
+    end
+
+    # Colonnes de la table d'un bloc, seulement s'il contient un champ composite
+    # (évite de lire les colonnes de chaque table de bloc à chaque dossier).
+    def block_columns_for(repetition_champ)
+      return nil unless @block_columns
+      return nil unless repetition_champ.rows.any? { |row| row.champs.any? { |c| ChampsComposites.composite?(c) } }
+
+      @block_columns.call(repetition_champ.label)
+    end
+
+    # Colonnes « <libellé> – <sous-colonne> » des champs composites, converties
+    # selon le type de la colonne Grist. Une valeur inconvertible vide la cellule
+    # (une valeur périmée passerait inaperçue) et est journalisée.
+    def extract_sous_colonnes(champs, colonnes, dossier_number)
+      ChampsComposites.rapprocher(colonnes.keys, champs).each_with_object({}) do |(colonne, (champ, sous_colonne)), data|
+        brute = ChampsComposites.valeur(champ, sous_colonne)
+        next if brute == ChampsComposites::ABSENTE
+
+        data[colonne] = convertir_sous_valeur(brute, colonnes[colonne][:type])
+      rescue ArgumentError => e
+        Rails.logger.warn("GristSync: dossier #{dossier_number}, colonne #{colonne} : valeur #{brute.inspect} inconvertible, cellule vidée — #{e.message}")
+        data[colonne] = nil
+      rescue *CHAMP_READ_ERRORS => e
+        Rails.logger.warn("GristSync: dossier #{dossier_number}, colonne #{colonne} illisible, cellule laissée intacte — #{e.message}")
+      end
+    end
+
+    def convertir_sous_valeur(brute, grist_type)
+      return nil if brute.nil? || brute == ''
+
+      case grist_type
+      when 'Date', /\ADateTime/ then ChampsComposites.en_date(brute).to_time.to_i
+      when 'Int', 'Integer' then entier(ChampsComposites.en_nombre(brute))
+      when 'Numeric' then ChampsComposites.en_nombre(brute).to_f
+      when 'Bool' then ChampsComposites.en_booleen(brute)
+      else brute.to_s
+      end
+    end
+
+    def entier(nombre)
+      raise ArgumentError, "#{nombre} n'est pas un entier" unless (nombre % 1).zero?
+
+      nombre.to_i
     end
 
     def normalize_value(champ, grist_type)

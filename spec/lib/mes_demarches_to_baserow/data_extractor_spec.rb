@@ -508,5 +508,58 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
       expect(Rails.logger).to have_received(:warn).with(/Plan de masse/)
     end
   end
+  # Parité avec Grist : « <libellé> – <sous-colonne> », valeur convertie selon
+  # le type de la colonne Baserow (cf. ChampsComposites).
+  describe 'sous-colonnes des champs composites' do
+    let(:dn) do
+      double('NumeroDnChamp', __typename: 'NumeroDnChamp', label: 'N° DN', value: '1234567',
+                              date_de_naissance: '1980-05-12', numero_dn: '1234567')
+    end
+    let(:rubrique) do
+      double('ReferentielDePolynesieChamp',
+             __typename: 'ReferentielDePolynesieChamp', label: 'Rubrique', string_value: '2131-c', value: '2131-c',
+             columns: [double(name: 'seuil', value: '12,5'), double(name: 'actif', value: 'non'),
+                       double(name: 'note', value: 'environ 20')])
+    end
+    let(:field_metadata) do
+      {
+        'N° DN – Date de naissance' => { 'type' => 'date' },
+        'Rubrique - seuil' => { 'type' => 'number' },
+        'Rubrique - actif' => { 'type' => 'boolean' },
+        'Rubrique - note' => { 'type' => 'number' }
+      }
+    end
+    let(:dossier) { double('dossier', number: 616_223, champs: [dn, rubrique], annotations: []) }
+
+    before do
+      allow(extractor).to receive(:extract_system_fields).and_return({})
+      allow(Rails.logger).to receive(:warn)
+    end
+
+    it 'convertit chaque sous-colonne selon le type de la colonne Baserow' do
+      data = extractor.send(:extract_main_table, dossier)
+
+      expect(data).to include('N° DN – Date de naissance' => '1980-05-12', 'Rubrique - seuil' => 12.5,
+                              'Rubrique - actif' => false)
+    end
+
+    it 'vide la cellule et journalise une valeur inconvertible' do
+      data = extractor.send(:extract_main_table, dossier)
+
+      expect(data['Rubrique - note']).to be_nil
+      expect(Rails.logger).to have_received(:warn).with(/616223.*Rubrique - note.*environ 20/)
+    end
+
+    it 'remplit les sous-colonnes des lignes de bloc avec les colonnes de la table du bloc' do
+      bloc = double('RepetitionChamp', __typename: 'RepetitionChamp', label: 'Rubriques',
+                                       rows: [double('row', champs: [rubrique])])
+      block_columns = { 'Rubrique - seuil' => { 'type' => 'number' } }
+      extractor = described_class.new(field_metadata, {}, block_columns: ->(label) { block_columns if label == 'Rubriques' })
+
+      rows = extractor.send(:extract_block_rows, double('dossier', number: 616_223), bloc)
+
+      expect(rows.first).to include('Ligne' => 1, 'Rubrique - seuil' => 12.5)
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength

@@ -24,7 +24,10 @@ module MesDemarchesToGrist
           id: col_data[:id],
           type: col_data[:type],
           isFormula: col_data[:isFormula],
-          readonly: col_data[:isFormula] == true
+          # Une colonne vide (isFormula sans formule, état d'une colonne créée
+          # dans Grist avant toute saisie) est inscriptible : la première
+          # écriture la convertit en colonne de données.
+          readonly: col_data[:isFormula] == true && col_data[:formula].present?
         }
       end
 

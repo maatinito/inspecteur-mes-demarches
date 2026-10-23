@@ -46,7 +46,8 @@ module MesDemarchesToBaserow
       existing_row = find_existing_row(@main_table, dossier.number)
 
       # 2. Extraire les données du dossier
-      data_extractor = DataExtractor.new(@main_field_metadata, @options)
+      data_extractor = DataExtractor.new(@main_field_metadata, @options,
+                                         block_columns: ->(label) { block_columns_by_label(label) })
       extracted_data = data_extractor.extract_all(dossier, existing_row)
 
       # 3. Filtrer les champs read-only
@@ -329,6 +330,13 @@ module MesDemarchesToBaserow
       Rails.logger.error "BaserowSync: Erreur chargement métadonnées bloc #{table_id}: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
       raise # Re-lever pour que l'erreur soit gérée au niveau supérieur
+    end
+
+    # Colonnes de la table d'un bloc (sous-colonnes des champs composites) ;
+    # les deux appels sont déjà mis en cache.
+    def block_columns_by_label(block_label)
+      table_id = discover_application_tables[block_label]
+      table_id && load_block_field_metadata(table_id)
     end
 
     def discover_application_tables
