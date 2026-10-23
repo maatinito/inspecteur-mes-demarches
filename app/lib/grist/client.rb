@@ -154,6 +154,14 @@ module Grist
       handle_response(response)
     end
 
+    # Applique des actions utilisateur Grist (celles de l'interface), pour ce
+    # que l'API REST n'expose pas, ex. ["SetDisplayFormula", table, nil, colRef, formule].
+    # POST /api/docs/{docId}/apply
+    def apply_actions(doc_id, actions)
+      response = make_request(:post, "/api/docs/#{doc_id}/apply", body: actions.to_json)
+      handle_response(response)
+    end
+
     # === Fichiers ===
 
     # Récupère les métadonnées d'un attachment (fileName, fileSize)

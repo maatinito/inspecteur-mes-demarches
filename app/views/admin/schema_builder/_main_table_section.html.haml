@@ -35,14 +35,19 @@
               - diff[:excluded].each do |field|
                 = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: false
         - to_sync_count = diff[:to_add].size + diff[:to_modify].size
+        - sync_label = to_sync_count.zero? ? 'Synchroniser le schéma' : "Synchroniser #{to_sync_count} champ#{'s' if to_sync_count > 1}"
         %div.mt-4
-          = button_to "Synchroniser #{to_sync_count} champ#{'s' if to_sync_count > 1}",
+          - if to_sync_count.zero?
+            %p.text-success.small.mb-2
+              ✓ Champs de la démarche déjà à jour.
+              %br
+              %span.text-muted La synchronisation (re)crée aussi les colonnes système non listées ci-dessus (Dossier, Statut, dates, groupe instructeur, identité demandeur…).
+          = button_to sync_label,
                       build_main_table_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
                       method: :post,
-                      class: "btn btn-primary schema-builder-sync-btn #{'disabled' if to_sync_count.zero?}",
+                      class: 'btn btn-primary schema-builder-sync-btn',
                       form: { data: { turbo_frame: "main-table-#{target.id}", turbo_confirm: 'Synchroniser ?' } },
-                      data: { controller: 'build-action', action: 'click->build-action#start' },
-                      disabled: to_sync_count.zero?
+                      data: { controller: 'build-action', action: 'click->build-action#start' }
   - elsif local_assigns[:build_result]
     %div.card.mt-3
       %div.card-header.d-flex.justify-content-between.align-items-center

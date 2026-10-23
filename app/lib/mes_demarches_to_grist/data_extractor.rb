@@ -168,7 +168,7 @@ module MesDemarchesToGrist
         normalize_choice_list(champ)
       when 'Attachments'
         normalize_files(champ)
-      when 'Integer'
+      when 'Int', 'Integer'
         normalize_integer(champ)
       when 'Numeric'
         normalize_numeric(champ)
@@ -251,7 +251,10 @@ module MesDemarchesToGrist
     # Réutilise les attachment_id existants si nom + taille identiques,
     # ne prépare l'upload que pour les fichiers nouveaux/modifiés.
     def normalize_files(champ, existing_attachments = nil)
-      return nil if champ.respond_to?(:files) && champ.files.blank?
+      # Un champ sans fichiers peut porter le libellé d'une colonne de PJ
+      # (homonymie dans la démarche) : il ne la touche pas.
+      return nil unless champ.respond_to?(:files)
+      return nil if champ.files.blank?
 
       existing_index = (existing_attachments || []).map do |att|
         { id: att[:id], fileName: att[:fileName], fileSize: att[:fileSize] }

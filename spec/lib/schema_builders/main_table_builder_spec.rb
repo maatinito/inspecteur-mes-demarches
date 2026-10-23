@@ -126,6 +126,7 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
       it 'appelle target.update_fields quand la table existe déjà' do
         allow(target).to receive(:table_exists?).with(17, 'Dossiers').and_return(true)
         allow(target).to receive(:list_tables).with(17).and_return([{ 'id' => 50, 'name' => 'Dossiers' }])
+        allow(target).to receive(:table_ref) { |_app, tid| tid }
         allow(target).to receive(:update_fields)
 
         result = builder.build!(demarche_descriptor, application_id: 17, table_name: 'Dossiers')
@@ -133,6 +134,30 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
         expect(target).to have_received(:update_fields).with(50, kind_of(Array))
         expect(result[:table_id]).to eq(50)
         expect(result[:action]).to eq(:updated)
+      end
+
+      it 'met à jour la table déjà sélectionnée (existing_table_id) sans la recréer' do
+        allow(target).to receive(:list_tables).with(17).and_return([{ 'id' => 50, 'name' => 'Renommée' }])
+        allow(target).to receive(:table_ref) { |_app, tid| tid }
+        allow(target).to receive(:update_fields)
+        allow(target).to receive(:create_table)
+
+        result = builder.build!(demarche_descriptor, application_id: 17, table_name: 'Dossiers', existing_table_id: 50)
+
+        expect(target).to have_received(:update_fields).with(50, kind_of(Array))
+        expect(target).not_to have_received(:create_table)
+        expect(result[:action]).to eq(:updated)
+      end
+
+      it 'recrée si existing_table_id n\'existe plus côté cible' do
+        allow(target).to receive(:list_tables).with(17).and_return([{ 'id' => 99, 'name' => 'Autre' }])
+        allow(target).to receive(:table_exists?).with(17, 'Dossiers').and_return(false)
+        allow(target).to receive(:create_table).and_return({ 'id' => 123 })
+
+        result = builder.build!(demarche_descriptor, application_id: 17, table_name: 'Dossiers', existing_table_id: 50)
+
+        expect(target).to have_received(:create_table)
+        expect(result[:action]).to eq(:created)
       end
 
       it 'transmet uniquement les champs supportés (post-filtrage) à create_table' do
@@ -146,7 +171,73 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
         builder.build!(demarche_descriptor, application_id: 17, table_name: 'Dossiers')
 
         names = captured_fields.map { |f| f[:name] }
-        expect(names).to contain_exactly('Nom', 'Montant')
+        # Champs de la démarche : seuls les types supportés passent.
+        expect(names).to include('Nom', 'Montant')
+        expect(names).not_to include('Section', 'Bloc rep')
+      end
+
+      it 'ajoute toujours la colonne primaire Dossier (numéro de dossier)' do
+        captured_fields = nil
+        allow(target).to receive(:table_exists?).and_return(false)
+        allow(target).to receive(:create_table) do |_app, _name, fields|
+          captured_fields = fields
+          { 'id' => 1 }
+        end
+
+        builder.build!(demarche_descriptor, application_id: 17, table_name: 'Dossiers')
+
+        dossier = captured_fields.find { |f| f[:name] == 'Dossier' }
+        expect(dossier).to include(name: 'Dossier', type: 'number', number_decimal_places: 0)
+      end
+
+      it 'ajoute les colonnes système de métadonnées' do
+        captured_fields = nil
+        allow(target).to receive(:table_exists?).and_return(false)
+        allow(target).to receive(:create_table) do |_app, _name, fields|
+          captured_fields = fields
+          { 'id' => 1 }
+        end
+
+        builder.build!(demarche_descriptor, application_id: 17, table_name: 'Dossiers')
+
+        names = captured_fields.map { |f| f[:name] }
+        expect(names).to include('Statut', 'Date de dépôt', 'Email usager', 'Groupe instructeur', 'Labels')
+      end
+
+      it 'déduplique une colonne métadonnée et un champ démarche de même libellé' do
+        # « Raison sociale » existe comme champ demandeur (métadonnée morale) ET
+        # comme annotation de la démarche : on ne doit créer la colonne qu'une fois.
+        descriptor_with_collision = TestMainTableDemarcheDescriptor.new(
+          [descriptor(id: 'rs', label: 'Raison sociale', typename: 'TextChampDescriptor')],
+          []
+        )
+
+        captured_fields = nil
+        allow(target).to receive(:table_exists?).and_return(false)
+        allow(target).to receive(:create_table) do |_app, _name, fields|
+          captured_fields = fields
+          { 'id' => 1 }
+        end
+
+        builder.build!(descriptor_with_collision, application_id: 17, table_name: 'Dossiers', demandeur_modes: [:morale])
+
+        names = captured_fields.map { |f| f[:name] }
+        expect(names.count { |n| n == 'Raison sociale' }).to eq(1)
+      end
+
+      it 'ajoute les colonnes demandeur selon les modes détectés (:morale)' do
+        captured_fields = nil
+        allow(target).to receive(:table_exists?).and_return(false)
+        allow(target).to receive(:create_table) do |_app, _name, fields|
+          captured_fields = fields
+          { 'id' => 1 }
+        end
+
+        builder.build!(demarche_descriptor, application_id: 17, table_name: 'Dossiers', demandeur_modes: [:morale])
+
+        names = captured_fields.map { |f| f[:name] }
+        expect(names).to include('Numéro TAHITI', 'Raison sociale')
+        expect(names).not_to include('Civilité', 'Prénom')
       end
 
       it 'filtre les champs présents dans excluded_field_ids' do
@@ -169,7 +260,8 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
                                             excluded_field_ids: ['champ_montant'])
 
         names = captured_fields.map { |f| f[:name] }
-        expect(names).to contain_exactly('Nom')
+        expect(names).to include('Nom')
+        expect(names).not_to include('Montant')
       end
 
       it 'accepte des excluded_field_ids en symbol ou en string' do
@@ -188,7 +280,11 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
         builder.build!(descriptor_with_ids, application_id: 17, table_name: 'X',
                                             excluded_field_ids: [:a])
 
-        expect(captured_fields).to be_empty
+        # Le champ 'a' (Nom) est exclu ; seules les colonnes de métadonnées restent
+        # (aucun demandeur_mode ici, donc pas de colonne demandeur 'Nom').
+        names = captured_fields.map { |f| f[:name] }
+        expect(names).not_to include('Nom')
+        expect(names).to include('Dossier', 'Statut')
       end
     end
   end
@@ -202,8 +298,15 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
       preview = builder.preview(demarche_descriptor, application_id: 'doc1', table_name: 'Dossiers')
 
       expect(preview[:fields]).to all(include(:id, :fields))
-      first = preview[:fields].first
-      expect(first[:fields]).to include(label: 'Nom', type: 'Text', isFormula: false)
+      nom = preview[:fields].find { |f| f[:fields][:label] == 'Nom' }
+      expect(nom[:fields]).to include(label: 'Nom', type: 'Text', isFormula: false)
+    end
+
+    it 'ajoute la colonne primaire Dossier (type Int) en tête' do
+      preview = builder.preview(demarche_descriptor, application_id: 'doc1', table_name: 'Dossiers')
+
+      expect(preview[:fields].first).to include(id: 'Dossier')
+      expect(preview[:fields].first[:fields]).to include(label: 'Dossier', type: 'Int')
     end
   end
 end

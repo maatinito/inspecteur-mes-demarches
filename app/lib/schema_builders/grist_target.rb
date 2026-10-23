@@ -26,6 +26,8 @@ module SchemaBuilders
     include SchemaBuilders::Target
 
     SEPARATOR = ':'
+    # Id de la colonne numéro de dossier, référencé par les formules des blocs.
+    DOSSIER_COL_ID = 'Dossier'
 
     attr_reader :client
 
@@ -60,21 +62,42 @@ module SchemaBuilders
           { id: name, columns: Array(fields) }
         ]
       }
-      @client.create_tables(application_id, payload)
+      response = @client.create_tables(application_id, payload)
+      # L'API Grist renvoie { "tables" => [{ "id" => "<tableId réel>" }] } ;
+      # on normalise vers { 'id' => ... } pour s'aligner sur BaserowTarget et
+      # permettre au builder d'extraire l'id de la table créée.
+      created = Array(response.is_a?(Hash) ? (response['tables'] || response[:tables]) : response).first || {}
+      { 'id' => created['id'] || created[:id] }
+    end
+
+    # Grist requiert un id composite "doc_id:table_id" pour les opérations sur
+    # les colonnes (cf. doc de classe). On le reconstruit depuis le doc et l'id nu.
+    def table_ref(application_id, table_id)
+      "#{application_id}#{SEPARATOR}#{table_id}"
     end
 
     # `table_id` doit être au format composite "doc_id:table_id".
     # Met à jour les colonnes existantes et crée celles qui manquent.
+    #
+    # L'id réel d'une colonne peut différer de l'id assaini : Grist tient les ids
+    # pour uniques sans égard à la casse et renomme l'id d'une colonne liée à son
+    # libellé. On retrouve donc la colonne par id exact, puis par id sans casse,
+    # puis par libellé — sinon chaque build recrée une copie suffixée (Dossier2).
+    # Seul l'id de la colonne Dossier est rétabli s'il ne diffère que par la
+    # casse : les formules des tables de blocs référencent `$Dossier.Dossier`.
+    # Les autres ids ne sont jamais renommés (formules écrites par le service).
     def update_fields(table_id, fields)
       doc_id, real_table_id = parse_composite_id(table_id)
       existing = list_columns_safe(doc_id, real_table_id)
-      existing_ids = existing.to_set { |c| c['id'] }
 
       to_create = []
       Array(fields).each do |field|
         col_id = field[:id] || field['id']
-        if col_id && existing_ids.include?(col_id)
-          @client.update_column(doc_id, real_table_id, col_id, field[:fields] || field['fields'] || field)
+        attributes = field[:fields] || field['fields'] || field
+        existing_id = find_existing_column_id(existing, col_id, attributes[:label] || attributes['label'])
+        if existing_id
+          attributes = attributes.merge(colId: col_id) if col_id == DOSSIER_COL_ID && existing_id != col_id
+          @client.update_column(doc_id, real_table_id, existing_id, attributes)
         else
           to_create << field
         end
@@ -85,7 +108,7 @@ module SchemaBuilders
 
     def table_exists?(application_id, name)
       tables = list_tables(application_id)
-      tables.any? { |t| (t['id'] || t[:id])&.to_s == name.to_s }
+      tables.any? { |t| Target.same_table_name?(t['id'] || t[:id], name) }
     rescue Grist::APIError
       false
     end
@@ -94,34 +117,73 @@ module SchemaBuilders
     # `table_id` doit être au format composite "doc_id:table_id".
     # Retourne un tableau de hashes normalisés au format { 'name' => ..., 'type' => ... }
     # pour rester compatible avec la convention BaserowTarget.
+    #
+    # `name` est le LIBELLÉ de la colonne (`fields.label`), pas son id interne :
+    # le Differ apparie les champs sur le libellé Mes-Démarches. Sans ça, l'id
+    # assaini ('nom') ne matche jamais le libellé ('Nom') → tout en « à créer ».
     def get_table_fields(table_id)
       doc_id, real_table_id = parse_composite_id(table_id)
       columns = list_columns_safe(doc_id, real_table_id)
       columns.map do |c|
         fields = c['fields'] || c[:fields] || {}
+        label = fields['label'] || fields[:label]
         {
-          'name' => (c['id'] || c[:id]).to_s,
+          'name' => (label.presence || c['id'] || c[:id]).to_s,
           'type' => (fields['type'] || fields[:type]).to_s
         }
       end
     end
 
     # `table_id` doit être au format composite "doc_id:table_id".
+    # Apparie sur le libellé (`fields.label`) ou, à défaut, l'id de colonne.
     def field_exists?(table_id, name)
       doc_id, real_table_id = parse_composite_id(table_id)
       columns = list_columns_safe(doc_id, real_table_id)
-      columns.any? { |c| (c['id'] || c[:id])&.to_s == name.to_s }
+      columns.any? do |c|
+        fields = c['fields'] || c[:fields] || {}
+        label = fields['label'] || fields[:label]
+        label.to_s == name.to_s || (c['id'] || c[:id])&.to_s == name.to_s
+      end
     rescue Grist::APIError
       false
     end
 
+    # Une colonne Ref affiche par défaut l'id de la ligne pointée : on y montre la
+    # colonne Dossier de la table principale, comme le fait l'interface Grist
+    # (visibleCol + formule d'affichage, absente de l'API REST).
+    def show_dossier_number(application_id, table_id, main_table_id)
+      main_col = column_ref(application_id, main_table_id, DOSSIER_COL_ID)
+      block_col = column_ref(application_id, table_id, DOSSIER_COL_ID)
+      return unless main_col && block_col
+
+      @client.update_column(application_id, table_id, DOSSIER_COL_ID, { visibleCol: main_col })
+      @client.apply_actions(application_id, [['SetDisplayFormula', table_id, nil, block_col, "$#{DOSSIER_COL_ID}.#{DOSSIER_COL_ID}"]])
+    end
+
     private
+
+    def column_ref(doc_id, table_id, col_id)
+      column = list_columns_safe(doc_id, table_id).find { |c| (c['id'] || c[:id]).to_s == col_id }
+      column && (column['fields'] || column[:fields] || {}).then { |f| f['colRef'] || f[:colRef] }
+    end
 
     def parse_composite_id(table_id)
       doc_id, real_table_id = table_id.to_s.split(SEPARATOR, 2)
       raise ArgumentError, "table_id Grist attendu au format 'doc_id:table_id', reçu #{table_id.inspect}" if doc_id.blank? || real_table_id.blank?
 
       [doc_id, real_table_id]
+    end
+
+    def find_existing_column_id(columns, col_id, label)
+      ids = columns.map { |c| (c['id'] || c[:id]).to_s }
+      return col_id if col_id && ids.include?(col_id.to_s)
+
+      by_case = col_id && ids.find { |id| id.casecmp?(col_id.to_s) }
+      return by_case if by_case
+      return nil if label.blank?
+
+      match = columns.find { |c| (c['fields'] || c[:fields] || {}).then { |f| f['label'] || f[:label] }.to_s == label.to_s }
+      match && (match['id'] || match[:id]).to_s
     end
 
     def list_columns_safe(doc_id, table_id)

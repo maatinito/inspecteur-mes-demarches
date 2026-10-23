@@ -160,8 +160,7 @@ module MesDemarchesToGrist
       available_tables = discover_document_tables
 
       blocks_data.each do |block_name, rows|
-        # Chercher la table par nom exact ou par ID parameterizé
-        table_id = available_tables[block_name] || available_tables[block_name.parameterize(separator: '_')]
+        table_id = available_tables[table_key(block_name)]
 
         unless table_id
           Rails.logger.debug "GristSync: Table '#{block_name}' non trouvée dans le document Grist, skip du bloc répétable"
@@ -178,11 +177,18 @@ module MesDemarchesToGrist
       tables = result['tables'] || []
 
       tables.to_h do |table|
-        [table['id'], table['id']]
+        [table_key(table['id']), table['id']]
       end
     rescue StandardError => e
       Rails.logger.error "GristSync: Erreur découverte tables: #{e.message}"
       raise
+    end
+
+    # Clé de rapprochement libellé de bloc ↔ id de table. Grist dérive l'id du
+    # nom en gardant la casse (« Rubriques concernées ICPE » →
+    # Rubriques_concernees_ICPE) : on compare sans casse ni accents.
+    def table_key(name)
+      name.to_s.parameterize(separator: '_')
     end
 
     def sync_block_rows(dossier_number, table_id, rows, main_record_id)
@@ -214,10 +220,12 @@ module MesDemarchesToGrist
       raise unless @options['continuer_si_erreur']
     end
 
+    # Les champs sans colonne (exclus à la construction du schéma) sont ignorés :
+    # Grist refuserait la ligne entière (« Invalid column »).
     def convert_block_row(row_data, block_label_to_col_id)
       row_data.each_with_object({}) do |(key, value), result|
-        col_id = block_label_to_col_id[key] || key
-        result[col_id] = value
+        col_id = block_label_to_col_id[key]
+        result[col_id] = value if col_id
       end
     end
 

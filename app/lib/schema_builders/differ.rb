@@ -163,7 +163,8 @@ module SchemaBuilders
     def fetch_target_fields(external_table_id)
       return [] if external_table_id.blank?
 
-      Array(@adapter.get_table_fields(external_table_id)).map do |f|
+      ref = @adapter.table_ref(@target.application_external_id, external_table_id)
+      Array(@adapter.get_table_fields(ref)).map do |f|
         {
           name: f['name'] || f[:name],
           type: f['type'] || f[:type]

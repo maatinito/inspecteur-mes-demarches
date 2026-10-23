@@ -47,7 +47,7 @@ module SchemaBuilders
     GRIST_MAPPINGS = {
       'TextChampDescriptor' => { type: 'Text', config: {} },
       'TextareaChampDescriptor' => { type: 'Text', config: {} },
-      'IntegerNumberChampDescriptor' => { type: 'Integer', config: {} },
+      'IntegerNumberChampDescriptor' => { type: 'Int', config: {} },
       'DecimalNumberChampDescriptor' => { type: 'Numeric', config: {} },
       'DateChampDescriptor' => { type: 'Date', config: {} },
       'DatetimeChampDescriptor' => { type: 'DateTime:UTC', config: {} },

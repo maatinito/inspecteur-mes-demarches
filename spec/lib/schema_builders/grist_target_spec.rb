@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe SchemaBuilders::GristTarget do
   let(:client) { instance_double(Grist::Client) }
   let(:target) { described_class.new(client: client) }
@@ -58,6 +59,18 @@ RSpec.describe SchemaBuilders::GristTarget do
 
       target.create_table('doc1', 'Ma_table', [{ id: 'A', fields: { label: 'A', type: 'Text' } }])
     end
+
+    it 'normalise la réponse Grist vers { "id" => <tableId réel> }' do
+      allow(client).to receive(:create_tables).and_return({ 'tables' => [{ 'id' => 'Ma_table' }] })
+
+      expect(target.create_table('doc1', 'Ma table', [])).to eq({ 'id' => 'Ma_table' })
+    end
+  end
+
+  describe '#table_ref' do
+    it 'construit l\'id composite "doc_id:table_id"' do
+      expect(target.table_ref('doc1', 'T1')).to eq('doc1:T1')
+    end
   end
 
   describe '#update_fields' do
@@ -76,8 +89,53 @@ RSpec.describe SchemaBuilders::GristTarget do
                            ])
     end
 
+    # Grist tient les ids de colonne pour uniques sans égard à la casse et
+    # renomme l'id d'une colonne liée à son libellé : apparier sur l'id exact
+    # recréait à chaque build une copie suffixée (Dossier2, Dossier3…).
+    it "retrouve une colonne existante dont l'id diffère par la casse et rétablit l'id attendu" do
+      allow(client).to receive(:list_columns).and_return({
+                                                           'columns' => [{ 'id' => 'dossier', 'fields' => { 'label' => 'Dossier' } }]
+                                                         })
+      expect(client).to receive(:update_column).with('doc1', 'T1', 'dossier', { label: 'Dossier', type: 'Int', colId: 'Dossier' })
+      expect(client).not_to receive(:create_columns)
+
+      target.update_fields('doc1:T1', [{ id: 'Dossier', fields: { label: 'Dossier', type: 'Int' } }])
+    end
+
+    it 'retrouve une colonne existante par son libellé quand Grist a dérivé un autre id' do
+      allow(client).to receive(:list_columns).and_return({
+                                                           'columns' => [{ 'id' => 'Agent_en_charge', 'fields' => { 'label' => 'Agent en charge' } }]
+                                                         })
+      expect(client).to receive(:update_column).with('doc1', 'T1', 'Agent_en_charge', { label: 'Agent en charge', type: 'Text' })
+      expect(client).not_to receive(:create_columns)
+
+      target.update_fields('doc1:T1', [{ id: 'agent_en_charge', fields: { label: 'Agent en charge', type: 'Text' } }])
+    end
+
     it 'lève ArgumentError si table_id n\'est pas au format composite' do
       expect { target.update_fields('justatable', []) }.to raise_error(ArgumentError)
+    end
+  end
+
+  describe '#show_dossier_number' do
+    it 'règle la colonne visible et la formule d’affichage de la colonne Dossier' do
+      allow(client).to receive(:list_columns).with('doc1', 'Main').and_return({
+                                                                                'columns' => [{ 'id' => 'Dossier', 'fields' => { 'colRef' => 2 } }]
+                                                                              })
+      allow(client).to receive(:list_columns).with('doc1', 'Bloc').and_return({
+                                                                                'columns' => [{ 'id' => 'Dossier', 'fields' => { 'colRef' => 7 } }]
+                                                                              })
+      expect(client).to receive(:update_column).with('doc1', 'Bloc', 'Dossier', { visibleCol: 2 })
+      expect(client).to receive(:apply_actions).with('doc1', [['SetDisplayFormula', 'Bloc', nil, 7, '$Dossier.Dossier']])
+
+      target.show_dossier_number('doc1', 'Bloc', 'Main')
+    end
+
+    it 'ne fait rien si la table principale n’a pas de colonne Dossier' do
+      allow(client).to receive(:list_columns).and_return({ 'columns' => [] })
+      expect(client).not_to receive(:apply_actions)
+
+      target.show_dossier_number('doc1', 'Bloc', 'Main')
     end
   end
 
@@ -87,6 +145,11 @@ RSpec.describe SchemaBuilders::GristTarget do
                                                                         'tables' => [{ 'id' => 'Dossier' }, { 'id' => 'Autre' }]
                                                                       })
       expect(target.table_exists?('doc1', 'Dossier')).to be true
+    end
+
+    it "retourne true quand l'id est dérivé du nom (casse et accents)" do
+      expect(client).to receive(:list_tables).with('doc1').and_return({ 'tables' => [{ 'id' => 'Rubriques_concernees_ICPE' }] })
+      expect(target.table_exists?('doc1', 'Rubriques concernées ICPE')).to be true
     end
 
     it 'retourne false sinon' do
@@ -117,5 +180,37 @@ RSpec.describe SchemaBuilders::GristTarget do
       expect(client).to receive(:list_columns).with('doc1', 'T1').and_raise(Grist::APIError.new({ 'error' => 'fail' }, 500))
       expect(target.field_exists?('doc1:T1', 'A')).to be false
     end
+
+    it 'apparie sur le libellé (fields.label) et pas seulement l\'id' do
+      expect(client).to receive(:list_columns).with('doc1', 'T1').and_return({
+                                                                               'columns' => [{ 'id' => 'nom', 'fields' => { 'label' => 'Nom' } }]
+                                                                             })
+      expect(target.field_exists?('doc1:T1', 'Nom')).to be true
+    end
+  end
+
+  describe '#get_table_fields' do
+    it 'normalise les colonnes avec le LIBELLÉ comme name (pas l\'id assaini)' do
+      expect(client).to receive(:list_columns).with('doc1', 'T1').and_return({
+                                                                               'columns' => [
+                                                                                 { 'id' => 'nom', 'fields' => { 'label' => 'Nom', 'type' => 'Text' } },
+                                                                                 { 'id' => 'montant', 'fields' => { 'label' => 'Montant', 'type' => 'Int' } }
+                                                                               ]
+                                                                             })
+
+      expect(target.get_table_fields('doc1:T1')).to eq([
+                                                         { 'name' => 'Nom', 'type' => 'Text' },
+                                                         { 'name' => 'Montant', 'type' => 'Int' }
+                                                       ])
+    end
+
+    it 'retombe sur l\'id de colonne si le libellé est absent' do
+      expect(client).to receive(:list_columns).with('doc1', 'T1').and_return({
+                                                                               'columns' => [{ 'id' => 'A', 'fields' => { 'type' => 'Text' } }]
+                                                                             })
+
+      expect(target.get_table_fields('doc1:T1')).to eq([{ 'name' => 'A', 'type' => 'Text' }])
+    end
   end
 end
+# rubocop:enable Metrics/BlockLength

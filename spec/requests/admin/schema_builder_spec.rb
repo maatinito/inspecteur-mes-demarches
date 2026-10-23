@@ -171,6 +171,7 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
                                                                           ])
       # list_tables est appelé par autodetect_avis_table dans show — défaut vide.
       allow(adapter).to receive(:list_tables).with('17').and_return([])
+      allow(adapter).to receive(:table_ref) { |_app, table_id| table_id }
       allow_any_instance_of(Admin::SchemaBuilderController)
         .to receive(:demarche_descriptor).and_return(demarche_descriptor)
       allow_any_instance_of(Admin::SchemaBuilderController)

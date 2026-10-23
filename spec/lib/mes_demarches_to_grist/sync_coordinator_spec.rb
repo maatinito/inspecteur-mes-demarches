@@ -115,4 +115,51 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
       expect(table).to have_received(:find_by).with('Dossier', ['l', 617_871]).at_least(:once)
     end
   end
+
+  # Grist dérive l'id d'une table de son nom en gardant la casse
+  # (« Rubriques concernées ICPE » → Rubriques_concernees_ICPE) : la recherche de
+  # la table d'un bloc ne doit dépendre ni de la casse ni des accents.
+  context 'avec un bloc répétable' do
+    let(:block_columns) do
+      {
+        'Dossier' => { id: 'Dossier', label: 'Dossier', type: 'Ref:Dossiers', isFormula: false },
+        'Ligne' => { id: 'Ligne', label: 'Ligne', type: 'Int', isFormula: false },
+        'rubrique' => { id: 'rubrique', label: 'Rubrique', type: 'Text', isFormula: false }
+      }
+    end
+    let(:block_table) { instance_double(Grist::Table, columns: block_columns, client: client) }
+    let(:extractor) { instance_double(MesDemarchesToGrist::DataExtractor) }
+
+    before do
+      allow(client).to receive(:list_tables).and_return({ 'tables' => [{ 'id' => 'Dossiers' }, { 'id' => 'Rubriques_concernees_ICPE' }] })
+      allow(Grist::Config).to receive(:table).with('doc', 'Rubriques_concernees_ICPE', nil).and_return(block_table)
+      allow(block_table).to receive(:find_by).and_return([])
+      allow(block_table).to receive(:upsert_records)
+      allow(table).to receive(:find_by).and_return([{ 'id' => 7, 'fields' => {} }])
+      allow(MesDemarchesToGrist::DataExtractor).to receive(:new).and_return(extractor)
+      allow(extractor).to receive(:extract_all).and_return(
+        main_table: { 'Dossier' => 617_871, 'Statut' => 'accepte' },
+        repetable_blocks: { 'Rubriques concernées ICPE' => [{ 'Ligne' => 1, 'Rubrique' => '1510', 'Commune' => 'Papeete' }] }
+      )
+    end
+
+    it 'retrouve la table du bloc malgré la casse et les accents' do
+      coordinator.sync_dossier(dossier_double)
+
+      expect(block_table).to have_received(:upsert_records) do |records|
+        expect(records.first[:fields]).to include('rubrique' => '1510', 'Dossier' => 7)
+      end
+    end
+
+    # Un champ du bloc exclu à la construction n'a pas de colonne : Grist
+    # refuserait toute la ligne (« Invalid column »), on l'ignore comme pour la
+    # table principale.
+    it "ignore les champs du bloc sans colonne dans la table" do
+      coordinator.sync_dossier(dossier_double)
+
+      expect(block_table).to have_received(:upsert_records) do |records|
+        expect(records.first[:fields].keys).not_to include('Commune')
+      end
+    end
+  end
 end

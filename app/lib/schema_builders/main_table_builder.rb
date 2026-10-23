@@ -13,6 +13,9 @@ module SchemaBuilders
   # la forme native attendue par la cible (Baserow flat hash vs Grist
   # `{id:, fields:}`).
   class MainTableBuilder
+    # Colonne primaire portant le numéro de dossier Mes-Démarches.
+    DOSSIER_FIELD_NAME = SchemaBuilders::MetadataFields.dossier.name
+
     attr_reader :target, :type_mapper, :field_filter
 
     def initialize(target:, type_mapper:, field_filter: nil)
@@ -26,9 +29,13 @@ module SchemaBuilders
     # `champ_descriptors`/`annotation_descriptors` ou contenant une révision).
     # `excluded_field_ids`: IDs MD (champ_descriptor.id) à filtrer avant
     # transformation en field-spec natif.
-    def preview(demarche_descriptor, application_id:, table_name:, include_annotations: true, excluded_field_ids: [])
+    # `demandeur_modes`: modes demandeur détectés (Array de :physique/:morale) ;
+    # détermine les colonnes d'identité ajoutées (cf. MetadataFields).
+    def preview(demarche_descriptor, application_id:, table_name:, include_annotations: true,
+                excluded_field_ids: [], demandeur_modes: [])
       fields = build_field_specs(demarche_descriptor, include_annotations: include_annotations,
-                                                      excluded_field_ids: excluded_field_ids)
+                                                      excluded_field_ids: excluded_field_ids,
+                                                      demandeur_modes: demandeur_modes)
       {
         table_name: table_name,
         application_id: application_id,
@@ -37,24 +44,53 @@ module SchemaBuilders
     end
 
     # Crée la table si absente, sinon synchronise ses champs.
+    # `existing_table_id` : id (nu) d'une table déjà sélectionnée/synchronisée
+    # (combo « Table principale »). S'il est fourni et que la table existe
+    # toujours côté cible, on la met à jour au lieu d'en recréer une — évite la
+    # recréation à chaque synchro quand la table a été renommée.
+    # `demandeur_modes` : cf. #preview.
     # Retourne `{ table_id:, table_name:, action: :created | :updated, fields: [...] }`.
-    def build!(demarche_descriptor, application_id:, table_name:, include_annotations: true, excluded_field_ids: [])
+    def build!(demarche_descriptor, application_id:, table_name:, include_annotations: true,
+               excluded_field_ids: [], existing_table_id: nil, demandeur_modes: [])
       fields = build_field_specs(demarche_descriptor, include_annotations: include_annotations,
-                                                      excluded_field_ids: excluded_field_ids)
+                                                      excluded_field_ids: excluded_field_ids,
+                                                      demandeur_modes: demandeur_modes)
 
-      if target.table_exists?(application_id, table_name)
-        existing = find_existing_table(application_id, table_name)
-        table_id = existing && (existing['id'] || existing[:id])
-        target.update_fields(table_id, fields)
+      table_id = resolve_existing_table_id(application_id, table_name, existing_table_id)
+
+      if table_id
+        target.update_fields(target.table_ref(application_id, table_id), fields)
         { table_id: table_id, table_name: table_name, action: :updated, fields: fields }
       else
         created = target.create_table(application_id, table_name, fields)
-        table_id = created.is_a?(Hash) ? (created['id'] || created[:id]) : nil
-        { table_id: table_id, table_name: table_name, action: :created, fields: fields }
+        { table_id: extract_table_id(created), table_name: table_name, action: :created, fields: fields }
       end
     end
 
     private
+
+    # Détermine l'id de la table à mettre à jour, ou nil s'il faut la créer.
+    # 1. Table explicitement sélectionnée (combo) et toujours présente côté cible.
+    # 2. Repli : correspondance par nom (compat comportement historique).
+    def resolve_existing_table_id(application_id, table_name, existing_table_id)
+      return existing_table_id if existing_table_id.present? && table_id_present?(application_id, existing_table_id)
+      return nil unless target.table_exists?(application_id, table_name)
+
+      existing = find_existing_table(application_id, table_name)
+      existing && (existing['id'] || existing[:id])
+    end
+
+    def table_id_present?(application_id, table_id)
+      Array(target.list_tables(application_id)).any? do |t|
+        (t['id'] || t[:id]).to_s == table_id.to_s
+      end
+    end
+
+    def extract_table_id(created)
+      return nil unless created.is_a?(Hash)
+
+      created['id'] || created[:id]
+    end
 
     # Récupère la révision (draft ou published) et concatène champs + annotations.
     def collect_descriptors(demarche_descriptor, include_annotations:)
@@ -66,11 +102,46 @@ module SchemaBuilders
       descriptors
     end
 
-    def build_field_specs(demarche_descriptor, include_annotations:, excluded_field_ids: [])
+    def build_field_specs(demarche_descriptor, include_annotations:, excluded_field_ids: [], demandeur_modes: [])
       excluded_set = Array(excluded_field_ids).to_set(&:to_s)
-      collect_descriptors(demarche_descriptor, include_annotations: include_annotations).filter_map do |descriptor|
+      descriptor_specs = collect_descriptors(demarche_descriptor, include_annotations: include_annotations).filter_map do |descriptor|
         spec_for_descriptor(descriptor, excluded_set: excluded_set)
       end
+      dedupe_specs(metadata_field_specs(demandeur_modes) + descriptor_specs)
+    end
+
+    # Déduplique les specs par identifiant de colonne cible (id Grist / name
+    # Baserow), en gardant la PREMIÈRE occurrence. Indispensable car un champ ou
+    # une annotation de la démarche peut porter le même libellé qu'une colonne de
+    # métadonnée (ex. « Raison sociale » présent comme annotation ET comme champ
+    # demandeur) : sans ça, deux colonnes de même id sont envoyées à la cible,
+    # ce qui casse la création/MAJ (Grist refuse, ou crée des doublons).
+    # Les métadonnées étant en tête, elles l'emportent (schéma déterministe).
+    def dedupe_specs(specs)
+      seen = Set.new
+      specs.select do |spec|
+        key = spec[:id] || spec[:name]
+        key.nil? || seen.add?(key)
+      end
+    end
+
+    # Colonnes de métadonnées (Dossier + système + identité demandeur) au format
+    # natif de la cible, depuis la source unique MetadataFields.
+    def metadata_field_specs(demandeur_modes)
+      MetadataFields.all(demandeur_modes).map { |field| metadata_spec(field) }
+    end
+
+    # Construit le field spec natif d'un MetadataFields::Field.
+    #
+    # Côté Grist, on force l'id de la colonne Dossier à 'Dossier' (et non l'id
+    # assaini en minuscules) car les formules des tables de blocs y référencent
+    # explicitement `$Dossier.Dossier`. Les autres colonnes gardent leur id
+    # assaini (la synchro apparie par libellé).
+    def metadata_spec(field)
+      options = field.options ? { 'options' => field.options } : {}
+      spec = type_mapper.field_spec(field.name, field.typename, options)
+      spec[:id] = field.name if field.primary? && spec.key?(:id)
+      spec
     end
 
     # Construit un field spec natif pour un descripteur Mes-Démarches.
