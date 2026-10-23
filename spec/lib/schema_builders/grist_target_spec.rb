@@ -89,6 +89,29 @@ RSpec.describe SchemaBuilders::GristTarget do
                            ])
     end
 
+    # Grist tient les ids de colonne pour uniques sans égard à la casse et
+    # renomme l'id d'une colonne liée à son libellé : apparier sur l'id exact
+    # recréait à chaque build une copie suffixée (Dossier2, Dossier3…).
+    it "retrouve une colonne existante dont l'id diffère par la casse et rétablit l'id attendu" do
+      allow(client).to receive(:list_columns).and_return({
+                                                           'columns' => [{ 'id' => 'dossier', 'fields' => { 'label' => 'Dossier' } }]
+                                                         })
+      expect(client).to receive(:update_column).with('doc1', 'T1', 'dossier', { label: 'Dossier', type: 'Int', colId: 'Dossier' })
+      expect(client).not_to receive(:create_columns)
+
+      target.update_fields('doc1:T1', [{ id: 'Dossier', fields: { label: 'Dossier', type: 'Int' } }])
+    end
+
+    it 'retrouve une colonne existante par son libellé quand Grist a dérivé un autre id' do
+      allow(client).to receive(:list_columns).and_return({
+                                                           'columns' => [{ 'id' => 'Agent_en_charge', 'fields' => { 'label' => 'Agent en charge' } }]
+                                                         })
+      expect(client).to receive(:update_column).with('doc1', 'T1', 'Agent_en_charge', { label: 'Agent en charge', type: 'Text' })
+      expect(client).not_to receive(:create_columns)
+
+      target.update_fields('doc1:T1', [{ id: 'agent_en_charge', fields: { label: 'Agent en charge', type: 'Text' } }])
+    end
+
     it 'lève ArgumentError si table_id n\'est pas au format composite' do
       expect { target.update_fields('justatable', []) }.to raise_error(ArgumentError)
     end

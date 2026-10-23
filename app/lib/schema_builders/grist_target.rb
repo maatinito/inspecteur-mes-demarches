@@ -26,6 +26,8 @@ module SchemaBuilders
     include SchemaBuilders::Target
 
     SEPARATOR = ':'
+    # Id de la colonne numéro de dossier, référencé par les formules des blocs.
+    DOSSIER_COL_ID = 'Dossier'
 
     attr_reader :client
 
@@ -76,16 +78,26 @@ module SchemaBuilders
 
     # `table_id` doit être au format composite "doc_id:table_id".
     # Met à jour les colonnes existantes et crée celles qui manquent.
+    #
+    # L'id réel d'une colonne peut différer de l'id assaini : Grist tient les ids
+    # pour uniques sans égard à la casse et renomme l'id d'une colonne liée à son
+    # libellé. On retrouve donc la colonne par id exact, puis par id sans casse,
+    # puis par libellé — sinon chaque build recrée une copie suffixée (Dossier2).
+    # Seul l'id de la colonne Dossier est rétabli s'il ne diffère que par la
+    # casse : les formules des tables de blocs référencent `$Dossier.Dossier`.
+    # Les autres ids ne sont jamais renommés (formules écrites par le service).
     def update_fields(table_id, fields)
       doc_id, real_table_id = parse_composite_id(table_id)
       existing = list_columns_safe(doc_id, real_table_id)
-      existing_ids = existing.to_set { |c| c['id'] }
 
       to_create = []
       Array(fields).each do |field|
         col_id = field[:id] || field['id']
-        if col_id && existing_ids.include?(col_id)
-          @client.update_column(doc_id, real_table_id, col_id, field[:fields] || field['fields'] || field)
+        attributes = field[:fields] || field['fields'] || field
+        existing_id = find_existing_column_id(existing, col_id, attributes[:label] || attributes['label'])
+        if existing_id
+          attributes = attributes.merge(colId: col_id) if col_id == DOSSIER_COL_ID && existing_id != col_id
+          @client.update_column(doc_id, real_table_id, existing_id, attributes)
         else
           to_create << field
         end
@@ -143,6 +155,18 @@ module SchemaBuilders
       raise ArgumentError, "table_id Grist attendu au format 'doc_id:table_id', reçu #{table_id.inspect}" if doc_id.blank? || real_table_id.blank?
 
       [doc_id, real_table_id]
+    end
+
+    def find_existing_column_id(columns, col_id, label)
+      ids = columns.map { |c| (c['id'] || c[:id]).to_s }
+      return col_id if col_id && ids.include?(col_id.to_s)
+
+      by_case = col_id && ids.find { |id| id.casecmp?(col_id.to_s) }
+      return by_case if by_case
+      return nil if label.blank?
+
+      match = columns.find { |c| (c['fields'] || c[:fields] || {}).then { |f| f['label'] || f[:label] }.to_s == label.to_s }
+      match && (match['id'] || match[:id]).to_s
     end
 
     def list_columns_safe(doc_id, table_id)
