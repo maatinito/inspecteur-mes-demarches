@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe MesDemarchesToGrist::SyncCoordinator do
   # Colonnes indexées par id, comme les renvoie Grist::Table#columns.
   let(:columns) do
@@ -154,7 +155,7 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
     # Un champ du bloc exclu à la construction n'a pas de colonne : Grist
     # refuserait toute la ligne (« Invalid column »), on l'ignore comme pour la
     # table principale.
-    it "ignore les champs du bloc sans colonne dans la table" do
+    it 'ignore les champs du bloc sans colonne dans la table' do
       coordinator.sync_dossier(dossier_double)
 
       expect(block_table).to have_received(:upsert_records) do |records|
@@ -163,3 +164,4 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
     end
   end
 end
+# rubocop:enable Metrics/BlockLength
