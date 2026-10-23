@@ -320,7 +320,7 @@ module Admin
     def demarche_object
       @demarche_object ||= begin
         result = MesDemarches.query(MesDemarches::Queries::DemarcheRevision, variables: { demarche: @demarche.id })
-        raise "Erreur accès démarche #{@demarche.id}: #{result.errors.map(&:message).join(', ')}" if result.errors.any?
+        raise "Erreur accès démarche #{@demarche.id}: #{result.errors.messages.values.flatten.join(', ')}" if result.errors.any?
 
         demarche = result.data&.demarche
         raise "Démarche #{@demarche.id} introuvable ou accès non autorisé" if demarche.nil?
