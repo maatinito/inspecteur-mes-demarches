@@ -53,16 +53,18 @@ module SchemaBuilders
               main_table_id: main_table_id,
               excluded_block_ids: excluded_block_ids,
               excluded_fields_per_block: excluded_fields_per_block).map do |spec|
-        if target.table_exists?(application_id, spec[:table_name])
-          existing = find_existing_table(application_id, spec[:table_name])
-          table_id = existing && (existing['id'] || existing[:id])
-          target.update_fields(target.table_ref(application_id, table_id), spec[:fields])
-          spec.merge(table_id: table_id, action: :updated)
-        else
-          created = target.create_table(application_id, spec[:table_name], spec[:fields])
-          table_id = created.is_a?(Hash) ? (created['id'] || created[:id]) : nil
-          spec.merge(table_id: table_id, action: :created)
-        end
+        result = if target.table_exists?(application_id, spec[:table_name])
+                   existing = find_existing_table(application_id, spec[:table_name])
+                   table_id = existing && (existing['id'] || existing[:id])
+                   target.update_fields(target.table_ref(application_id, table_id), spec[:fields])
+                   spec.merge(table_id: table_id, action: :updated)
+                 else
+                   created = target.create_table(application_id, spec[:table_name], spec[:fields])
+                   table_id = created.is_a?(Hash) ? (created['id'] || created[:id]) : nil
+                   spec.merge(table_id: table_id, action: :created)
+                 end
+        target.show_dossier_number(application_id, result[:table_id], main_table_id) if result[:table_id]
+        result
       end
     end
 
@@ -167,7 +169,7 @@ module SchemaBuilders
       tables = Array(target.list_tables(application_id))
       tables.find do |t|
         name = t['name'] || t[:name] || t['id'] || t[:id]
-        name.to_s.casecmp(table_name.to_s).zero?
+        Target.same_table_name?(name, table_name)
       end
     end
 

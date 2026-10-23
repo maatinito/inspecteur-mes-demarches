@@ -108,7 +108,7 @@ module SchemaBuilders
 
     def table_exists?(application_id, name)
       tables = list_tables(application_id)
-      tables.any? { |t| (t['id'] || t[:id])&.to_s == name.to_s }
+      tables.any? { |t| Target.same_table_name?(t['id'] || t[:id], name) }
     rescue Grist::APIError
       false
     end
@@ -148,7 +148,24 @@ module SchemaBuilders
       false
     end
 
+    # Une colonne Ref affiche par défaut l'id de la ligne pointée : on y montre la
+    # colonne Dossier de la table principale, comme le fait l'interface Grist
+    # (visibleCol + formule d'affichage, absente de l'API REST).
+    def show_dossier_number(application_id, table_id, main_table_id)
+      main_col = column_ref(application_id, main_table_id, DOSSIER_COL_ID)
+      block_col = column_ref(application_id, table_id, DOSSIER_COL_ID)
+      return unless main_col && block_col
+
+      @client.update_column(application_id, table_id, DOSSIER_COL_ID, { visibleCol: main_col })
+      @client.apply_actions(application_id, [['SetDisplayFormula', table_id, nil, block_col, "$#{DOSSIER_COL_ID}.#{DOSSIER_COL_ID}"]])
+    end
+
     private
+
+    def column_ref(doc_id, table_id, col_id)
+      column = list_columns_safe(doc_id, table_id).find { |c| (c['id'] || c[:id]).to_s == col_id }
+      column && (column['fields'] || column[:fields] || {}).then { |f| f['colRef'] || f[:colRef] }
+    end
 
     def parse_composite_id(table_id)
       doc_id, real_table_id = table_id.to_s.split(SEPARATOR, 2)

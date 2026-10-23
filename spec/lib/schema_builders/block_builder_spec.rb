@@ -69,6 +69,8 @@ RSpec.describe SchemaBuilders::BlockBuilder do
 
   describe 'avec une cible Baserow' do
     let(:target) { instance_double(SchemaBuilders::BaserowTarget) }
+
+    before { allow(target).to receive(:show_dossier_number) }
     let(:type_mapper) { SchemaBuilders::TypeMapper.for(:baserow) }
     let(:builder) { described_class.new(target: target, type_mapper: type_mapper) }
 
@@ -208,6 +210,32 @@ RSpec.describe SchemaBuilders::BlockBuilder do
 
       bloc = articles[:fields].find { |f| f[:id] == 'Bloc' }
       expect(bloc[:fields]).to include(isFormula: true)
+    end
+
+    # Grist dérive l'id de table du nom en gardant la casse : le bloc
+    # « Pièces » existe sous l'id Pieces et doit être mis à jour, pas recréé.
+    it "retrouve une table de bloc existante dont l'id est dérivé du libellé" do
+      allow(target).to receive(:table_exists?).and_return(true)
+      allow(target).to receive(:list_tables).with('doc1').and_return([{ 'id' => 'Articles' }, { 'id' => 'Pieces' }])
+      allow(target).to receive(:table_ref) { |app, tid| "#{app}:#{tid}" }
+      allow(target).to receive(:update_fields)
+      allow(target).to receive(:show_dossier_number)
+
+      results = builder.build!(demarche_descriptor, application_id: 'doc1', main_table_id: 'MainTable')
+
+      expect(target).to have_received(:update_fields).with('doc1:Pieces', kind_of(Array))
+      expect(results.find { |r| r[:table_name] == 'Pièces' }).to include(table_id: 'Pieces', action: :updated)
+    end
+
+    it 'fait afficher le numéro de dossier dans la colonne Dossier de chaque bloc' do
+      allow(target).to receive(:table_exists?).and_return(false)
+      allow(target).to receive(:create_table).and_return({ 'id' => 'Articles' }, { 'id' => 'Pieces' })
+      allow(target).to receive(:show_dossier_number)
+
+      builder.build!(demarche_descriptor, application_id: 'doc1', main_table_id: 'MainTable')
+
+      expect(target).to have_received(:show_dossier_number).with('doc1', 'Articles', 'MainTable')
+      expect(target).to have_received(:show_dossier_number).with('doc1', 'Pieces', 'MainTable')
     end
 
     it 'inclut les champs métier au format Grist' do

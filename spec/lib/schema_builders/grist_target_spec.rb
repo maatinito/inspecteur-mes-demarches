@@ -117,12 +117,39 @@ RSpec.describe SchemaBuilders::GristTarget do
     end
   end
 
+  describe '#show_dossier_number' do
+    it 'règle la colonne visible et la formule d’affichage de la colonne Dossier' do
+      allow(client).to receive(:list_columns).with('doc1', 'Main').and_return({
+                                                                                'columns' => [{ 'id' => 'Dossier', 'fields' => { 'colRef' => 2 } }]
+                                                                              })
+      allow(client).to receive(:list_columns).with('doc1', 'Bloc').and_return({
+                                                                                'columns' => [{ 'id' => 'Dossier', 'fields' => { 'colRef' => 7 } }]
+                                                                              })
+      expect(client).to receive(:update_column).with('doc1', 'Bloc', 'Dossier', { visibleCol: 2 })
+      expect(client).to receive(:apply_actions).with('doc1', [['SetDisplayFormula', 'Bloc', nil, 7, '$Dossier.Dossier']])
+
+      target.show_dossier_number('doc1', 'Bloc', 'Main')
+    end
+
+    it 'ne fait rien si la table principale n’a pas de colonne Dossier' do
+      allow(client).to receive(:list_columns).and_return({ 'columns' => [] })
+      expect(client).not_to receive(:apply_actions)
+
+      target.show_dossier_number('doc1', 'Bloc', 'Main')
+    end
+  end
+
   describe '#table_exists?' do
     it 'retourne true quand une table porte ce nom' do
       expect(client).to receive(:list_tables).with('doc1').and_return({
                                                                         'tables' => [{ 'id' => 'Dossier' }, { 'id' => 'Autre' }]
                                                                       })
       expect(target.table_exists?('doc1', 'Dossier')).to be true
+    end
+
+    it "retourne true quand l'id est dérivé du nom (casse et accents)" do
+      expect(client).to receive(:list_tables).with('doc1').and_return({ 'tables' => [{ 'id' => 'Rubriques_concernees_ICPE' }] })
+      expect(target.table_exists?('doc1', 'Rubriques concernées ICPE')).to be true
     end
 
     it 'retourne false sinon' do
