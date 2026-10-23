@@ -60,6 +60,7 @@ module MesDemarchesToGrist
 
       # 6. Traiter les uploads de fichiers (seuls les nouveaux sont uploadés)
       syncable_data = process_file_uploads(syncable_data)
+      ensure_choices(syncable_data)
 
       # 7. Upsert dans la table principale
       upserter = RowUpserter.new(@main_table, @options, @main_field_metadata, dossier_col_id: @dossier_col_id)
@@ -267,6 +268,49 @@ module MesDemarchesToGrist
 
       block_table.delete_records(orphan_ids)
       Rails.logger.info "GristSync: #{orphan_ids.length} row(s) orpheline(s) supprimée(s) (dossier #{dossier_number})"
+    end
+
+    # Ajoute à la volée les choix manquants des colonnes Choice/ChoiceList
+    # (instructeurs, labels, listes déroulantes), comme BaserowSync crée les
+    # options de ses colonnes select. Sans ça Grist garde la valeur mais
+    # l'affiche hors liste. En cas d'échec la valeur est écrite quand même.
+    def ensure_choices(data)
+      data.each do |col_id, value|
+        type = @main_field_metadata.dig(col_id, :type)
+        next unless %w[Choice ChoiceList].include?(type)
+
+        values = type == 'ChoiceList' ? Array(value).drop(1) : [value] # ChoiceList : ["L", v1, v2…]
+        values = values.compact.map(&:to_s).reject(&:blank?)
+        add_missing_choices(col_id, values) if values.any?
+      end
+    end
+
+    def add_missing_choices(col_id, values)
+      options = widget_options(col_id)
+      choices = Array(options['choices'])
+      missing = values.uniq - choices
+      return if missing.empty?
+
+      options['choices'] = choices + missing
+      @main_table.update_column(col_id, { widgetOptions: options.to_json })
+      Rails.logger.info "GristSync: Choix ajoutés à la colonne #{col_id} : #{missing.join(', ')}"
+    rescue Grist::APIError => e
+      Rails.logger.error "GristSync: Ajout des choix impossible (colonne #{col_id}) : #{e.message}"
+    end
+
+    # widgetOptions des colonnes de la table principale (JSON en chaîne côté
+    # Grist), lus une fois puis tenus à jour par add_missing_choices.
+    def widget_options(col_id)
+      @widget_options ||= @main_table.client.list_columns(@doc_id, @table_id)['columns'].to_h do |column|
+        [column['id'], parse_widget_options(column.dig('fields', 'widgetOptions'))]
+      end
+      @widget_options[col_id] ||= {}
+    end
+
+    def parse_widget_options(json)
+      json.present? ? JSON.parse(json) : {}
+    rescue JSON::ParserError
+      {}
     end
 
     def convert_labels_to_col_ids(data)

@@ -119,14 +119,17 @@ module MesDemarchesToBaserow
     end
 
     # Mise en forme Baserow : dates → ISO8601 UTC ; multi-choix → liste de noms
-    # (en capturant les couleurs des labels) ; sinon valeur brute.
+    # (seuls les Labels capturent leurs couleurs : extract_label_names les
+    # réinitialise, un autre multi-choix les effacerait) ; sinon valeur brute.
     def format_metadata_value(field, raw)
       return nil if raw.nil?
 
       if field.datetime?
         format_datetime(raw)
-      elsif field.multiple?
+      elsif field.key == :labels
         extract_label_names(raw)
+      elsif field.multiple?
+        Array(raw).map(&:to_s)
       else
         raw
       end

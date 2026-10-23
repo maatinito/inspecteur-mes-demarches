@@ -9,7 +9,16 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
     {
       'Dossier' => { id: 'Dossier', label: 'Dossier', type: 'Int', isFormula: false },
       'statut' => { id: 'statut', label: 'Statut', type: 'Choice', isFormula: false },
-      'importateur' => { id: 'importateur', label: 'Importateur', type: 'Text', isFormula: false }
+      'importateur' => { id: 'importateur', label: 'Importateur', type: 'Text', isFormula: false },
+      'instructeurs' => { id: 'instructeurs', label: 'Instructeurs', type: 'ChoiceList', isFormula: false }
+    }
+  end
+
+  # Choix déclarés des colonnes Choice/ChoiceList (widgetOptions, JSON en chaîne).
+  let(:widget_options) do
+    {
+      'statut' => { choices: %w[en_construction en_instruction accepte refuse sans_suite] }.to_json,
+      'instructeurs' => { choices: ['alain.teva'], choiceOptions: { 'alain.teva' => { fillColor: '#FF0000' } } }.to_json
     }
   end
 
@@ -31,7 +40,9 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
            date_traitement: nil,
            usager: nil,
            groupe_instructeur: nil,
-           labels: [])
+           labels: [],
+           instructeurs: [],
+           traitements: [])
   end
 
   def champ_double(label:, value:, typename: 'TextChamp')
@@ -47,6 +58,10 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
     allow(table).to receive(:upsert_records)
     allow(table).to receive(:find_by).and_return([])
     allow(client).to receive(:list_tables).and_return({ 'tables' => [] })
+    allow(client).to receive(:list_columns).with('doc', 'Dossiers').and_return(
+      { 'columns' => widget_options.map { |id, options| { 'id' => id, 'fields' => { 'widgetOptions' => options } } } }
+    )
+    allow(table).to receive(:update_column)
   end
 
   subject(:coordinator) { described_class.new(1536, grist_config, {}) }
@@ -94,6 +109,43 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
 
     expect(table).to have_received(:upsert_records) do |records|
       expect(records.first[:fields]['statut']).to eq('en_instruction')
+    end
+  end
+
+  # Ajout à la volée des choix manquants (parité avec Baserow, qui crée les
+  # options de ses colonnes select) : sans ça Grist affiche la valeur hors liste.
+  describe 'choix des colonnes Choice/ChoiceList' do
+    def suivi_par(*emails)
+      dossier_double.tap do |d|
+        allow(d).to receive(:instructeurs).and_return(emails.map { |e| double(email: e) })
+      end
+    end
+
+    it 'ajoute les choix manquants en conservant les choix et options existants' do
+      coordinator.sync_dossier(suivi_par('alain.teva@administration.gov.pf', 'zoe.martin@administration.gov.pf'))
+
+      expect(table).to have_received(:update_column).with('instructeurs', kind_of(Hash)) do |_col, fields|
+        options = JSON.parse(fields[:widgetOptions])
+        expect(options['choices']).to eq(%w[alain.teva zoe.martin])
+        expect(options['choiceOptions']).to eq('alain.teva' => { 'fillColor' => '#FF0000' })
+      end
+    end
+
+    it 'ne touche pas une colonne dont toutes les valeurs sont déjà des choix' do
+      coordinator.sync_dossier(suivi_par('alain.teva@administration.gov.pf'))
+
+      expect(table).not_to have_received(:update_column)
+    end
+
+    it "écrit quand même la valeur si l'ajout des choix échoue" do
+      allow(table).to receive(:update_column).and_raise(Grist::APIError.new({ 'error' => 'refusé' }, 403))
+      allow(Rails.logger).to receive(:error)
+
+      coordinator.sync_dossier(suivi_par('zoe.martin@administration.gov.pf'))
+
+      expect(table).to have_received(:upsert_records) do |records|
+        expect(records.first[:fields]['instructeurs']).to eq(%w[L zoe.martin])
+      end
     end
   end
 
