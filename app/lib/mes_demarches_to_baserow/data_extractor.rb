@@ -25,9 +25,13 @@ module MesDemarchesToBaserow
 
     attr_reader :label_colors
 
-    def initialize(field_metadata, options = {})
+    # `block_columns` : ->(libellé du bloc) { { nom de colonne => métadonnées } | nil },
+    # fourni par le coordinateur pour remplir les sous-colonnes des champs
+    # composites d'un bloc (appelé seulement si le bloc en contient).
+    def initialize(field_metadata, options = {}, block_columns: nil)
       @field_metadata = field_metadata
       @options = options
+      @block_columns = block_columns
       @existing_row = nil
       @label_colors = {}
     end
@@ -95,6 +99,7 @@ module MesDemarchesToBaserow
         annotations_data = annotations_data.except(*collisions)
       end
       data.merge!(annotations_data)
+      data.merge!(extract_sous_colonnes(dossier.champs + dossier.annotations, @field_metadata, dossier.number))
 
       data
     end
@@ -195,6 +200,7 @@ module MesDemarchesToBaserow
 
     def extract_block_rows(dossier, repetition_champ)
       rows = []
+      colonnes = block_columns_for(repetition_champ)
 
       repetition_champ.rows.each_with_index do |row, index|
         ligne_number = index + 1
@@ -214,11 +220,50 @@ module MesDemarchesToBaserow
         rescue *CHAMP_READ_ERRORS => e
           Rails.logger.warn("BaserowSync: champ de bloc #{field_name} illisible (#{champ.__typename}), ignoré — #{e.message}")
         end
+        row_data.merge!(extract_sous_colonnes(row.champs, colonnes, dossier.number)) if colonnes
 
         rows << row_data
       end
 
       rows
+    end
+
+    # Colonnes de la table d'un bloc, seulement s'il contient un champ composite
+    # (évite de lire les colonnes de chaque table de bloc à chaque dossier).
+    def block_columns_for(repetition_champ)
+      return nil unless @block_columns
+      return nil unless repetition_champ.rows.any? { |row| row.champs.any? { |c| ChampsComposites.composite?(c) } }
+
+      @block_columns.call(repetition_champ.label)
+    end
+
+    # Colonnes « <libellé> – <sous-colonne> » des champs composites, converties
+    # selon le type de la colonne Baserow. Une valeur inconvertible vide la
+    # cellule (une valeur périmée passerait inaperçue) et est journalisée.
+    def extract_sous_colonnes(champs, colonnes, dossier_number)
+      ChampsComposites.rapprocher(colonnes.keys, champs).each_with_object({}) do |(colonne, (champ, sous_colonne)), data|
+        brute = ChampsComposites.valeur(champ, sous_colonne)
+        next if brute == ChampsComposites::ABSENTE
+
+        data[colonne] = convertir_sous_valeur(brute, colonnes[colonne]['type'])
+      rescue ArgumentError => e
+        Rails.logger.warn("BaserowSync: dossier #{dossier_number}, colonne #{colonne} : valeur #{brute.inspect} inconvertible, cellule vidée — #{e.message}")
+        data[colonne] = nil
+      rescue *CHAMP_READ_ERRORS => e
+        Rails.logger.warn("BaserowSync: dossier #{dossier_number}, colonne #{colonne} illisible, cellule laissée intacte — #{e.message}")
+      end
+    end
+
+    def convertir_sous_valeur(brute, baserow_type)
+      return nil if brute.nil? || brute == ''
+
+      case baserow_type
+      when 'date' then ChampsComposites.en_date(brute).iso8601
+      when 'number' then ChampsComposites.en_nombre(brute)
+      when 'boolean' then ChampsComposites.en_booleen(brute)
+      when 'single_select' then brute.to_s.presence
+      else brute.to_s
+      end
     end
 
     def normalize_value(champ, baserow_type)

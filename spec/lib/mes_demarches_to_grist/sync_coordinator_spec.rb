@@ -163,5 +163,41 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
       end
     end
   end
+  # Bout en bout avec le vrai extracteur : la colonne « Rubrique – numero » de
+  # la table du bloc reçoit la colonne du référentiel, convertie en entier.
+  context 'avec un référentiel de Polynésie dans un bloc' do
+    let(:block_columns) do
+      {
+        'Dossier' => { id: 'Dossier', label: 'Dossier', type: 'Ref:Dossiers', isFormula: false },
+        'Ligne' => { id: 'Ligne', label: 'Ligne', type: 'Int', isFormula: false },
+        'Rubrique_numero' => { id: 'Rubrique_numero', label: 'Rubrique – numero', type: 'Int', isFormula: false }
+      }
+    end
+    let(:block_table) { instance_double(Grist::Table, columns: block_columns, client: client) }
+    let(:rubrique) do
+      double('ReferentielDePolynesieChamp', __typename: 'ReferentielDePolynesieChamp', label: 'Rubrique',
+                                            string_value: '2131-c', value: '2131-c',
+                                            columns: [double(name: 'numero', value: '2131')])
+    end
+    let(:bloc) do
+      double('RepetitionChamp', __typename: 'RepetitionChamp', label: 'Rubriques', rows: [double('row', champs: [rubrique])])
+    end
+
+    before do
+      allow(client).to receive(:list_tables).and_return({ 'tables' => [{ 'id' => 'Dossiers' }, { 'id' => 'Rubriques' }] })
+      allow(Grist::Config).to receive(:table).with('doc', 'Rubriques', nil).and_return(block_table)
+      allow(block_table).to receive(:find_by).and_return([])
+      allow(block_table).to receive(:upsert_records)
+      allow(table).to receive(:find_by).and_return([{ 'id' => 7, 'fields' => {} }])
+    end
+
+    it 'remplit la sous-colonne de la table du bloc' do
+      coordinator.sync_dossier(dossier_double(champs: [bloc]))
+
+      expect(block_table).to have_received(:upsert_records) do |records|
+        expect(records.first[:fields]).to include('Rubrique_numero' => 2131)
+      end
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength

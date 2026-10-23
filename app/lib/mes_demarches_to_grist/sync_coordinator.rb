@@ -47,7 +47,9 @@ module MesDemarchesToGrist
       attachment_metadata = existing_record ? fetch_attachment_metadata(existing_record) : {}
 
       # 3. Extraire les données du dossier (clés = labels)
-      data_extractor = DataExtractor.new(@field_metadata_by_label, @options, attachment_metadata: attachment_metadata)
+      data_extractor = DataExtractor.new(@field_metadata_by_label, @options,
+                                         attachment_metadata: attachment_metadata,
+                                         block_columns: ->(label) { block_columns_by_label(label) })
       extracted_data = data_extractor.extract_all(dossier)
 
       # 4. Convertir les clés labels → col_ids Grist
@@ -170,6 +172,16 @@ module MesDemarchesToGrist
         Rails.logger.info "GristSync: Synchronisation bloc répétable '#{block_name}' vers table #{table_id}"
         sync_block_rows(dossier_number, table_id, rows, main_record_id)
       end
+    end
+
+    # Colonnes de la table d'un bloc, indexées par libellé (sous-colonnes des
+    # champs composites). Mises en cache pour la durée du coordinateur.
+    def block_columns_by_label(block_label)
+      @block_columns_cache ||= {}
+      return @block_columns_cache[block_label] if @block_columns_cache.key?(block_label)
+
+      table_id = discover_document_tables[table_key(block_label)]
+      @block_columns_cache[block_label] = table_id && get_table(@doc_id, table_id).columns.values.index_by { |meta| meta[:label] }
     end
 
     def discover_document_tables

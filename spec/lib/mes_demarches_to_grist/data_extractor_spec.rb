@@ -192,5 +192,66 @@ RSpec.describe MesDemarchesToGrist::DataExtractor do
       expect(result).to eq(3.14)
     end
   end
+  # Sous-colonnes des champs composites : « <libellé> – <sous-colonne> », valeur
+  # convertie selon le type de la colonne Grist (cf. ChampsComposites).
+  describe 'sous-colonnes des champs composites' do
+    let(:rubrique) do
+      double('ReferentielDePolynesieChamp',
+             __typename: 'ReferentielDePolynesieChamp', label: 'Rubrique', string_value: '2131-c',
+             columns: [double(name: 'numero', value: '2131'), double(name: 'seuil', value: '12,5'),
+                       double(name: 'date', value: '12/05/2024'), double(name: 'actif', value: 'vrai'),
+                       double(name: 'classe', value: '2ème classe'), double(name: 'note', value: 'environ 20')])
+    end
+    let(:field_metadata) do
+      {
+        'Rubrique' => { type: 'Text' },
+        'Rubrique – numero' => { type: 'Int' },
+        'Rubrique – seuil' => { type: 'Numeric' },
+        'Rubrique – date' => { type: 'Date' },
+        'Rubrique - actif' => { type: 'Bool' },
+        'Rubrique - classe' => { type: 'Text' },
+        'Rubrique - note' => { type: 'Int' },
+        'Rubrique - inconnue' => { type: 'Text' }
+      }
+    end
+    let(:dossier) { double('dossier', number: 616_223, champs: [rubrique], annotations: []) }
+
+    before do
+      allow(rubrique).to receive(:value).and_return('2131-c')
+      allow(extractor).to receive(:extract_system_fields).and_return({})
+      allow(Rails.logger).to receive(:warn)
+    end
+
+    it 'convertit chaque sous-colonne selon le type de la colonne Grist' do
+      data = extractor.send(:extract_main_table, dossier)
+
+      expect(data).to include('Rubrique' => '2131-c', 'Rubrique – numero' => 2131, 'Rubrique – seuil' => 12.5,
+                              'Rubrique – date' => Date.new(2024, 5, 12).to_time.to_i,
+                              'Rubrique - actif' => true, 'Rubrique - classe' => '2ème classe')
+    end
+
+    it 'vide la cellule et journalise une valeur inconvertible' do
+      data = extractor.send(:extract_main_table, dossier)
+
+      expect(data).to have_key('Rubrique - note')
+      expect(data['Rubrique - note']).to be_nil
+      expect(Rails.logger).to have_received(:warn).with(/616223.*Rubrique - note.*environ 20/)
+    end
+
+    it "ne touche pas une colonne dont la sous-colonne n'existe pas" do
+      expect(extractor.send(:extract_main_table, dossier)).not_to have_key('Rubrique - inconnue')
+    end
+
+    it 'remplit les sous-colonnes des lignes de bloc avec les colonnes de la table du bloc' do
+      bloc = double('RepetitionChamp', __typename: 'RepetitionChamp', label: 'Rubriques',
+                                       rows: [double('row', champs: [rubrique])])
+      block_columns = { 'Rubrique' => { type: 'Text' }, 'Rubrique – numero' => { type: 'Int' } }
+      extractor = described_class.new(field_metadata, {}, block_columns: ->(label) { block_columns if label == 'Rubriques' })
+
+      rows = extractor.send(:extract_block_rows, double('dossier', number: 616_223), bloc)
+
+      expect(rows.first).to include('Ligne' => 1, 'Rubrique – numero' => 2131)
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength
