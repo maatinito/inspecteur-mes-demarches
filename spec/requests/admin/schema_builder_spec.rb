@@ -85,13 +85,18 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
       end
     end
 
-    context 'avec une cible Grist' do
-      before { create(:schema_target, demarche: demarche, target_type: 'grist') }
+    context 'avec une cible Grist et table principale créée' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'grist', main_table_external_id: 'Dossiers') }
 
-      it 'affiche la section Avis avec message indisponible (pas de boutons)' do
+      before do
+        allow_any_instance_of(SchemaBuilders::GristTarget).to receive(:list_tables).and_return([])
+      end
+
+      it 'affiche la section Avis en lazy load, comme pour Baserow' do
         get "/admin/demarches/#{demarche.id}/schema"
         expect(response.body).to include('Table Avis')
-        expect(response.body).to include('indisponible pour Grist')
+        expect(response.body).to include("avis-#{target.id}")
+        expect(response.body).to include('/avis/preview')
       end
     end
   end

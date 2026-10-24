@@ -1,6 +1,6 @@
--# Section "Table Avis" — schéma fixe (6 champs définis dans AvisBuilder).
+-# Section "Table Avis" — schéma fixe (AvisBuilder, Baserow et Grist).
 -# 3 modes : lazy (src=preview_avis) / diff chargé / résultat de Build.
-- lazy_src = (local_assigns[:diff].nil? && local_assigns[:build_result].nil? && target.target_type != 'grist' && target.main_table_external_id.present?) ? preview_avis_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type) : nil
+- lazy_src = (local_assigns[:diff].nil? && local_assigns[:build_result].nil? && target.main_table_external_id.present?) ? preview_avis_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type) : nil
 
 %turbo-frame{ id: "avis-#{target.id}", src: lazy_src, loading: :lazy }
   .card.mt-3
@@ -10,10 +10,7 @@
         %span.badge.ms-2{ class: avis_status_class(target) }= avis_status_label(target)
 
     .card-body
-      - if target.target_type == 'grist'
-        %p.text-muted.mb-0{ title: "Non supporté par Grist pour l'instant" }
-          Fonctionnalité indisponible pour Grist
-      - elsif target.main_table_external_id.blank?
+      - if target.main_table_external_id.blank?
         %p.text-muted.mb-0
           La table principale doit être créée avant la table Avis.
       - elsif local_assigns[:diff]

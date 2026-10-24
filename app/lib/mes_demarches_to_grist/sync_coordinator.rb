@@ -69,6 +69,9 @@ module MesDemarchesToGrist
       # 8. Synchroniser les blocs répétables
       sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks], main_record_id)
 
+      # 9. Synchroniser les avis (table Avis_<n° démarche>, auto-découverte)
+      sync_avis(dossier.number, main_record_id)
+
       Rails.logger.info "GristSync: Dossier #{dossier.number} synchronisé avec succès"
     end
 
@@ -183,6 +186,27 @@ module MesDemarchesToGrist
 
       table_id = discover_document_tables[table_key(block_label)]
       @block_columns_cache[block_label] = table_id && get_table(@doc_id, table_id).columns.values.index_by { |meta| meta[:label] }
+    end
+
+    # Avis du dossier vers la table Avis_<n° démarche> (ou « Avis » à défaut),
+    # si elle existe. Le syncer est conservé pour la démarche : sa vérification
+    # de structure n'est faite qu'une fois.
+    def sync_avis(dossier_number, main_record_id)
+      table_id = avis_table_id
+      return unless table_id
+
+      @avis_syncer ||= AvisSyncer.new(doc_id: @doc_id, table_id: table_id, main_table_id: @table_id,
+                                      options: @options, token_config: @grist_config['token_config'])
+      @avis_syncer.sync(dossier_number, main_record_id)
+    rescue StandardError => e
+      Rails.logger.error "GristSync.avis: erreur synchro avis (dossier #{dossier_number}) : #{e.message}"
+      raise unless @options['continuer_si_erreur']
+    end
+
+    def avis_table_id
+      tables = discover_document_tables
+      nom = SchemaBuilders::AvisBuilder::TABLE_NAME
+      ["#{nom}_#{@demarche_number}", nom].filter_map { |candidat| tables[table_key(candidat)] }.first
     end
 
     def discover_document_tables

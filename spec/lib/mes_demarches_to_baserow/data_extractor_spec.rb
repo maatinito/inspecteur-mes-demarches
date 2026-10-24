@@ -384,6 +384,19 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
 
     let(:extractor_avis) { described_class.new(avis_field_metadata, {}) }
 
+    # dateReponse = date de dernière modification de l'avis côté Mes-Démarches,
+    # renseignée même sans réponse : la recopier donnerait un délai nul.
+    it 'vide Date réponse pour un avis en attente' do
+      en_attente = double('Avis', id: 'A', question: 'Q ?', reponse: nil, question_label: nil, question_answer: nil,
+                                  date_question: '2026-05-01T10:00:00Z', date_reponse: '2026-05-01T10:00:00Z',
+                                  expert: expert, claimant: claimant, attachments: [])
+
+      row = extractor_avis.extract_avis_row(en_attente, 42, [])
+
+      expect(row).to have_key('Date réponse')
+      expect(row['Date réponse']).to be_nil
+    end
+
     it 'extrait tous les champs présents dans field_metadata' do
       row = extractor_avis.extract_avis_row(avis, 42, [])
 

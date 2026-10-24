@@ -251,5 +251,28 @@ RSpec.describe MesDemarchesToGrist::SyncCoordinator do
       end
     end
   end
+  describe 'avis' do
+    let(:avis_syncer) { instance_double(MesDemarchesToGrist::AvisSyncer, sync: nil) }
+
+    before do
+      allow(MesDemarchesToGrist::AvisSyncer).to receive(:new).and_return(avis_syncer)
+      allow(table).to receive(:find_by).and_return([{ 'id' => 7, 'fields' => {} }])
+    end
+
+    it 'synchronise les avis quand la table Avis_<n° démarche> existe' do
+      allow(client).to receive(:list_tables).and_return({ 'tables' => [{ 'id' => 'Dossiers' }, { 'id' => 'Avis_1536' }] })
+
+      coordinator.sync_dossier(dossier_double)
+
+      expect(MesDemarchesToGrist::AvisSyncer).to have_received(:new).with(hash_including(table_id: 'Avis_1536', main_table_id: 'Dossiers'))
+      expect(avis_syncer).to have_received(:sync).with(617_871, 7)
+    end
+
+    it 'ne fait rien sans table Avis' do
+      coordinator.sync_dossier(dossier_double)
+
+      expect(MesDemarchesToGrist::AvisSyncer).not_to have_received(:new)
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength

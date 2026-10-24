@@ -106,7 +106,6 @@ module Admin
 
     def preview_avis
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
-      return head :bad_request if target.target_type == 'grist'
       return head :precondition_failed if target.main_table_external_id.blank?
 
       diff = compute_avis_diff(target)
@@ -127,11 +126,11 @@ module Admin
 
     def build_avis
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
-      return head :bad_request if target.target_type == 'grist'
       return head :precondition_failed if target.main_table_external_id.blank?
 
       builder = avis_builder_for(target)
-      result = builder.build!(application_id: target.application_external_id, main_table_id: target.main_table_external_id)
+      result = builder.build!(application_id: target.application_external_id, main_table_id: target.main_table_external_id,
+                              demarche_number: @demarche.id)
       # TODO: last_synced_at est partagé entre main_table et avis ; envisager un avis_last_synced_at dédié.
       target.update!(avis_table_external_id: result[:table_id].to_s, last_synced_at: Time.current)
 
@@ -365,7 +364,8 @@ module Admin
       builder = avis_builder_for(target)
       expected_fields = builder.preview(
         application_id: target.application_external_id,
-        main_table_id: target.main_table_external_id
+        main_table_id: target.main_table_external_id,
+        demarche_number: @demarche.id
       )[:fields]
       actual_fields = fetch_avis_target_fields(target)
       classify_avis_fields(expected_fields, actual_fields)
@@ -374,7 +374,9 @@ module Admin
     def fetch_avis_target_fields(target)
       return [] if target.avis_table_external_id.blank?
 
-      Array(target_adapter_for(target).get_table_fields(target.avis_table_external_id)).map do |f|
+      adapter = target_adapter_for(target)
+      ref = adapter.table_ref(target.application_external_id, target.avis_table_external_id)
+      Array(adapter.get_table_fields(ref)).map do |f|
         { name: f['name'] || f[:name], type: f['type'] || f[:type] }
       end
     rescue StandardError => e
@@ -387,8 +389,9 @@ module Admin
       actual_by_name = actual.index_by { |f| f[:name].to_s }
 
       expected.each do |field|
-        name = (field[:name] || field['name']).to_s
-        type = (field[:type] || field['type']).to_s
+        # Baserow : { name:, type: } ; Grist : { id:, fields: { label:, type: } }.
+        name = (field[:name] || field.dig(:fields, :label)).to_s
+        type = (field[:type] || field.dig(:fields, :type)).to_s
         existing = actual_by_name[name]
         normalized = { name: name, type: type }
 
@@ -406,16 +409,17 @@ module Admin
 
     # Best-effort : si la table Avis existe déjà côté cible (cas typique des
     # démarches synchronisées par l'ancien builder), on persiste son ID pour
-    # éviter le faux "Jamais sync" dans le dashboard. Cible Grist ignorée
-    # (AvisBuilder non supporté). Erreurs silencieuses pour ne pas casser le show.
+    # éviter le faux "Jamais sync" dans le dashboard (Grist : la table n'a pas
+    # de nom, seulement un id). Erreurs silencieuses pour ne pas casser le show.
     def autodetect_avis_table(target)
       return if target.avis_table_external_id.present?
-      return if target.target_type == 'grist'
       return if target.application_external_id.blank?
 
       adapter = target_adapter_for(target)
       tables = Array(adapter.list_tables(target.application_external_id))
-      match = tables.find { |t| (t['name'] || t[:name]) == SchemaBuilders::AvisBuilder::TABLE_NAME }
+      match = tables.find do |t|
+        SchemaBuilders::Target.same_table_name?(t['name'] || t[:name] || t['id'] || t[:id], avis_builder_for(target).table_name(@demarche.id))
+      end
       target.update!(avis_table_external_id: (match['id'] || match[:id]).to_s) if match
     rescue StandardError => e
       Rails.logger.warn "autodetect_avis_table: #{e.message} (target #{target.id})"

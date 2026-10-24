@@ -281,10 +281,14 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       expect(response.body).to include('Dossier')
     end
 
-    it 'refuse pour target_type grist' do
-      create(:schema_target, demarche: demarche, target_type: 'grist', application_external_id: '17', main_table_external_id: '101')
+    it 'accepte une cible Grist et lit ses champs au format Grist' do
+      create(:schema_target, demarche: demarche, target_type: 'grist', application_external_id: 'doc1', main_table_external_id: 'Dossiers')
+      allow(builder_double).to receive(:preview).and_return(
+        preview_result.merge(fields: [{ id: 'Question', fields: { label: 'Question', type: 'Text' } }])
+      )
       get :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
-      expect(response).to have_http_status(:bad_request)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Question')
     end
 
     it 'renvoie 412 si la table principale n\'est pas construite' do
@@ -316,10 +320,12 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       expect(response.body).to include('créée')
     end
 
-    it 'refuse pour target_type grist' do
-      create(:schema_target, demarche: demarche, target_type: 'grist', application_external_id: '17', main_table_external_id: '101')
+    it 'construit la table Avis pour une cible Grist' do
+      grist = create(:schema_target, demarche: demarche, target_type: 'grist', application_external_id: 'doc1', main_table_external_id: 'Dossiers')
+      allow(builder_double).to receive(:build!).and_return(table_id: 'Avis', table_name: 'Avis', action: :created)
       post :build_avis, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
-      expect(response).to have_http_status(:bad_request)
+      expect(response).to have_http_status(:ok)
+      expect(grist.reload.avis_table_external_id).to eq('Avis')
     end
 
     it 'renvoie 412 si la table principale n\'est pas construite' do
