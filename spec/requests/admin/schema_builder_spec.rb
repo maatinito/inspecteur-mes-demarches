@@ -216,6 +216,19 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
       expect(response.body).to include('À ajouter (1)')
     end
 
+    it "PATCH toggle exclusion décoche une colonne système et l'affiche comme exclue" do
+      patch "/admin/demarches/#{demarche.id}/schema/targets/baserow/main_table/fields/metadata:email_usager/exclusion",
+            params: { excluded: 'true' },
+            headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
+
+      expect(response).to have_http_status(:ok)
+      expect(target.reload.excluded_field_ids).to include('metadata:email_usager')
+      total = SchemaBuilders::MetadataFields.all(%i[physique morale]).count { |f| !f.primary? }
+      expect(response.body).to include("Colonnes système (#{total - 1}/#{total})")
+      case_email = Nokogiri::HTML(response.body).at_css('input[id="exclusion_metadata:email_usager"]')
+      expect(case_email['checked']).to be_nil
+    end
+
     it 'GET preview après exclusion fait apparaître Montant dans Ignorés' do
       target.update!(excluded_field_ids: ['c_b_id'])
 

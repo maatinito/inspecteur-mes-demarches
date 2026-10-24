@@ -34,6 +34,15 @@
             .ms-3.mt-2
               - diff[:excluded].each do |field|
                 = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: false
+        - if diff[:metadata].present?
+          - retenues = diff[:metadata].count { |field| !field[:excluded] }
+          %details.mt-3{ open: retenues < diff[:metadata].size }
+            %summary.h6.text-secondary ⚙️ Colonnes système (#{retenues}/#{diff[:metadata].size}) (cliquer pour déplier)
+            %p.small.text-muted.ms-3.mb-1
+              Décocher une colonne évite qu'elle soit (re)créée. Une colonne déjà présente reste à supprimer dans la cible.
+            .ms-3
+              - diff[:metadata].each do |field|
+                = render 'field_checkbox', target: target, field: field, scope: :main_table, checked: !field[:excluded]
         - to_sync_count = diff[:to_add].size + diff[:to_modify].size
         - sync_label = to_sync_count.zero? ? 'Synchroniser le schéma' : "Synchroniser #{to_sync_count} champ#{'s' if to_sync_count > 1}"
         %div.mt-4
@@ -41,7 +50,7 @@
             %p.text-success.small.mb-2
               ✓ Champs de la démarche déjà à jour.
               %br
-              %span.text-muted La synchronisation (re)crée aussi les colonnes système non listées ci-dessus (Dossier, Statut, dates, groupe instructeur, identité demandeur…).
+              %span.text-muted La synchronisation (re)crée aussi les colonnes système cochées, et toujours la colonne Dossier.
           = button_to sync_label,
                       build_main_table_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
                       method: :post,

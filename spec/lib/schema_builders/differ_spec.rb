@@ -80,6 +80,19 @@ RSpec.describe SchemaBuilders::Differ do
                                                                             ])
       end
 
+      # Colonnes système (MetadataFields) : section à part, désactivables comme
+      # un champ (clé metadata:<clé>), sauf Dossier, clé de la synchro.
+      it 'liste les colonnes système à part, avec leur état d’exclusion' do
+        schema_target.update!(excluded_field_ids: ['metadata:email_usager'])
+
+        system = differ.main_table_diff[:metadata]
+
+        expect(system.map { |f| f[:label] }).to include('Statut', 'Email usager', 'Instructeurs')
+        expect(system.map { |f| f[:label] }).not_to include('Dossier')
+        expect(system.find { |f| f[:label] == 'Email usager' }).to include(id: 'metadata:email_usager', excluded: true)
+        expect(system.find { |f| f[:label] == 'Statut' }).to include(excluded: false, type: 'single_select')
+      end
+
       it 'classe le champ conforme dans ok' do
         diff = differ.main_table_diff
         expect(diff[:ok].map { |f| f[:id] }).to include('a')

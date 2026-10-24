@@ -23,10 +23,15 @@ module SchemaBuilders
     # main ou décidé (un retour en construction ne compte pas).
     ETATS_INSTRUCTEUR = %w[en_instruction accepte refuse sans_suite].freeze
 
+    # Préfixe des métadonnées dans SchemaTarget#excluded_field_ids (à côté des
+    # ids de champs Mes-Démarches) : « metadata:email_usager ».
+    EXCLUSION_PREFIX = 'metadata:'
+
     Field = Struct.new(:key, :name, :typename, :options, :source) do
       def datetime? = typename == 'DatetimeChampDescriptor'
       def multiple? = typename == 'MultipleDropDownListChampDescriptor'
       def primary? = key == :dossier
+      def exclusion_id = "#{EXCLUSION_PREFIX}#{key}"
     end
 
     DEMANDEUR_DEFS = {
@@ -107,6 +112,13 @@ module SchemaBuilders
     # `modes` : Array de :physique / :morale (souvent un seul ; les deux en repli).
     def all(modes)
       [dossier] + system + Array(modes).uniq.flat_map { |m| demandeur(m) }
+    end
+
+    # Colonnes de métadonnées hors exclusions. Dossier, clé de la synchro et
+    # cible des formules des blocs, n'est jamais exclue.
+    def retenues(modes, excluded_ids)
+      exclues = Array(excluded_ids).to_set(&:to_s)
+      all(modes).reject { |field| !field.primary? && exclues.include?(field.exclusion_id) }
     end
 
     # Déduit le mode demandeur (:physique / :morale) depuis le __typename d'un

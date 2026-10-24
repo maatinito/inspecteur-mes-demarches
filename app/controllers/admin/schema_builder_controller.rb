@@ -249,7 +249,8 @@ module Admin
         target: target,
         adapter: target_adapter_for(target),
         type_mapper: SchemaBuilders::TypeMapper.for(target.target_type.to_sym),
-        demarche_descriptor: demarche_descriptor
+        demarche_descriptor: demarche_descriptor,
+        demandeur_modes: demandeur_modes
       )
     end
 
