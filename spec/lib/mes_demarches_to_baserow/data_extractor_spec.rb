@@ -384,6 +384,19 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
 
     let(:extractor_avis) { described_class.new(avis_field_metadata, {}) }
 
+    # dateReponse = date de dernière modification de l'avis côté Mes-Démarches,
+    # renseignée même sans réponse : la recopier donnerait un délai nul.
+    it 'vide Date réponse pour un avis en attente' do
+      en_attente = double('Avis', id: 'A', question: 'Q ?', reponse: nil, question_label: nil, question_answer: nil,
+                                  date_question: '2026-05-01T10:00:00Z', date_reponse: '2026-05-01T10:00:00Z',
+                                  expert: expert, claimant: claimant, attachments: [])
+
+      row = extractor_avis.extract_avis_row(en_attente, 42, [])
+
+      expect(row).to have_key('Date réponse')
+      expect(row['Date réponse']).to be_nil
+    end
+
     it 'extrait tous les champs présents dans field_metadata' do
       row = extractor_avis.extract_avis_row(avis, 42, [])
 
@@ -491,6 +504,8 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
              date_traitement: nil,
              usager: nil,
              groupe_instructeur: nil,
+             instructeurs: [],
+             traitements: [],
              demandeur: nil,
              champs: [champ_plan],
              annotations: [annotation_plan_historique, annotation_notes])
@@ -559,6 +574,26 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
       rows = extractor.send(:extract_block_rows, double('dossier', number: 616_223), bloc)
 
       expect(rows.first).to include('Ligne' => 1, 'Rubrique - seuil' => 12.5)
+    end
+  end
+  describe 'métadonnées Instructeurs' do
+    let(:field_metadata) { {} }
+    let(:dossier) do
+      double('Dossier', number: 1, state: 'en_instruction', date_depot: nil, date_passage_en_instruction: nil,
+                        date_traitement: nil, usager: nil, groupe_instructeur: nil, demandeur: nil,
+                        labels: [double('label', name: 'Urgent', color: 'red')],
+                        instructeurs: [double(email: 'zoe.martin@administration.gov.pf')],
+                        traitements: [])
+    end
+
+    # La liste des instructeurs est un multi-choix comme les Labels : elle ne
+    # doit pas effacer les couleurs des labels capturées pour créer les options.
+    it 'remplit Instructeurs sans perdre les couleurs des labels' do
+      data = extractor.send(:extract_system_fields, dossier)
+
+      expect(data['Instructeurs']).to eq(['zoe.martin'])
+      expect(data['Labels']).to eq(['Urgent'])
+      expect(extractor.label_colors).to eq('Urgent' => 'red')
     end
   end
 end

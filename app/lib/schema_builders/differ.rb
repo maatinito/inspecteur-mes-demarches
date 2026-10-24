@@ -18,19 +18,25 @@ module SchemaBuilders
   class Differ
     REPETITION_TYPENAME = 'RepetitionChampDescriptor'
 
-    def initialize(target:, adapter:, demarche_descriptor:, type_mapper: nil)
+    # `demandeur_modes` : modes demandeur détectés (cf. MetadataFields), pour
+    # lister les colonnes d'identité ; les deux par défaut.
+    def initialize(target:, adapter:, demarche_descriptor:, type_mapper: nil, demandeur_modes: %i[physique morale])
       @target = target
       @adapter = adapter
       @demarche_descriptor = demarche_descriptor
       @type_mapper = type_mapper || TypeMapper.for(target.target_type.to_sym)
+      @demandeur_modes = demandeur_modes
     end
 
+    # Les 4 zones des champs de la démarche, plus `metadata` : les colonnes
+    # système, à part pour ne pas entrer en collision avec un champ homonyme.
     def main_table_diff
       md_fields = filterable_main_fields
       target_fields = fetch_target_fields(@target.main_table_external_id)
 
       classify(md_fields, target_fields,
                excluded_predicate: ->(f) { @target.field_excluded?(f[:id]) })
+        .merge(metadata: metadata_fields)
     end
 
     # Calcule le diff par bloc répétable :
@@ -57,6 +63,18 @@ module SchemaBuilders
     end
 
     private
+
+    # Colonnes système désactivables (Dossier, clé de la synchro, ne l'est pas).
+    def metadata_fields
+      MetadataFields.all(@demandeur_modes).reject(&:primary?).map do |field|
+        {
+          id: field.exclusion_id,
+          label: field.name,
+          type: @type_mapper.map_field_type(field.typename, { 'options' => field.options })[:type],
+          excluded: @target.field_excluded?(field.exclusion_id)
+        }
+      end
+    end
 
     # Entrée diff pour un bloc inclus : auto-création du SchemaBlockTarget,
     # puis classification de ses champs internes.

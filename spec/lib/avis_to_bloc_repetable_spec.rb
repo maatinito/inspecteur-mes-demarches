@@ -195,7 +195,7 @@ RSpec.describe AvisToBlocRepetable do
     context 'when GraphQL query fails' do
       before do
         error_result = double('error_result',
-                              errors: [double('error', message: 'GraphQL Error')],
+                              errors: ['GraphQL Error'], # GraphQL::Client renvoie des messages (chaînes)
                               data: nil)
 
         allow(MesDemarches).to receive(:query)

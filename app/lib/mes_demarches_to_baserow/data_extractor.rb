@@ -64,13 +64,18 @@ module MesDemarchesToBaserow
       }
 
       candidates['Date question'] = normalize_avis_date(avis.date_question, 'Date question')
-      candidates['Date réponse'] = normalize_avis_date(avis.date_reponse, 'Date réponse')
+      # dateReponse est la date de dernière modification de l'avis, renseignée
+      # même sans réponse : on ne la garde que pour un avis répondu.
+      repondu = MesDemarches::AvisFetcher.repondu?(avis)
+      candidates['Date réponse'] = repondu ? normalize_avis_date(avis.date_reponse, 'Date réponse') : nil
       candidates['Pièces jointes'] = normalize_avis_attachments(avis.attachments, existing_attachments)
 
       # Filtrer selon ce qui existe vraiment dans la table Baserow
       candidates.each_with_object({}) do |(key, value), result|
         next unless @field_metadata.key?(key)
-        next if value.nil?
+        # nil conservé pour Date réponse (avis en attente) : vide une date
+        # recopiée à tort par les versions précédentes.
+        next if value.nil? && key != 'Date réponse'
         next if value.is_a?(Array) && value.empty?
 
         result[key] = value
@@ -119,14 +124,17 @@ module MesDemarchesToBaserow
     end
 
     # Mise en forme Baserow : dates → ISO8601 UTC ; multi-choix → liste de noms
-    # (en capturant les couleurs des labels) ; sinon valeur brute.
+    # (seuls les Labels capturent leurs couleurs : extract_label_names les
+    # réinitialise, un autre multi-choix les effacerait) ; sinon valeur brute.
     def format_metadata_value(field, raw)
       return nil if raw.nil?
 
       if field.datetime?
         format_datetime(raw)
-      elsif field.multiple?
+      elsif field.key == :labels
         extract_label_names(raw)
+      elsif field.multiple?
+        Array(raw).map(&:to_s)
       else
         raw
       end

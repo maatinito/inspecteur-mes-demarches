@@ -60,4 +60,36 @@ RSpec.describe SchemaBuilders::MetadataFields do
       expect(statut.source.call(dossier)).to eq('en_instruction')
     end
   end
+
+  describe 'instructeurs' do
+    def field(key) = described_class.system.find { |f| f.key == key }
+
+    def traitement(state, email, processed_at)
+      double('traitement', state: state, instructeur_email: email, processed_at: processed_at)
+    end
+
+    it "liste les instructeurs qui suivent le dossier, sans le domaine et triés (l'ordre de l'API n'est pas garanti)" do
+      dossier = double('dossier', instructeurs: [double(email: 'zoe.martin@administration.gov.pf'),
+                                                 double(email: 'alain.teva@administration.gov.pf')])
+
+      expect(field(:instructeurs).source.call(dossier)).to eq(%w[alain.teva zoe.martin])
+      expect(field(:instructeurs)).to be_multiple
+    end
+
+    it "retient l'auteur du dernier passage en instruction ou de la dernière décision" do
+      dossier = double('dossier', traitements: [
+                         traitement('en_construction', nil, '2026-01-02T10:00:00-10:00'),
+                         traitement('accepte', 'zoe.martin@administration.gov.pf', '2026-03-01T10:00:00-10:00'),
+                         traitement('en_instruction', 'alain.teva@administration.gov.pf', '2026-02-01T10:00:00-10:00')
+                       ])
+
+      expect(field(:instructeur_decideur).source.call(dossier)).to eq('zoe.martin')
+    end
+
+    it "ignore les retours en construction et reste vide tant qu'aucun instructeur n'a agi" do
+      dossier = double('dossier', traitements: [traitement('en_construction', 'alain.teva@administration.gov.pf', '2026-01-02T10:00:00-10:00')])
+
+      expect(field(:instructeur_decideur).source.call(dossier)).to be_nil
+    end
+  end
 end

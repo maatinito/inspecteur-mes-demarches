@@ -77,7 +77,7 @@ class AvisToBlocRepetable < FieldChecker
     result = MesDemarches.query(Query::DossierAvis, variables: { dossier: dossier.number })
 
     if result.errors.present?
-      Rails.logger.error("Erreur lors de la récupération des avis pour le dossier #{dossier.number}: #{result.errors.map(&:message).join(', ')}")
+      Rails.logger.error("Erreur lors de la récupération des avis pour le dossier #{dossier.number}: #{result.errors.join(', ')}")
       return []
     end
 

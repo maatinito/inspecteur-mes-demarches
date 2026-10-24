@@ -63,6 +63,15 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
         )
       end
 
+      it 'omet les colonnes système exclues, jamais la colonne Dossier' do
+        preview = builder.preview(demarche_descriptor, application_id: 17, table_name: 'Dossiers',
+                                                       excluded_field_ids: %w[metadata:email_usager metadata:dossier])
+        names = preview[:fields].map { |f| f[:name] }
+
+        expect(names).to include('Dossier', 'Statut')
+        expect(names).not_to include('Email usager')
+      end
+
       it 'exclut les sections (HeaderSectionChampDescriptor)' do
         preview = builder.preview(demarche_descriptor, application_id: 17, table_name: 'Dossiers')
         names = preview[:fields].map { |f| f[:name] }

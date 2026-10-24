@@ -46,7 +46,8 @@ RSpec.describe MesDemarches::AvisFetcher do
       let(:graphql_response) do
         double(
           'GraphQLResponse',
-          errors: [double('Error', message: 'Erreur réseau')],
+          # GraphQL::Client renvoie des messages (chaînes), pas des objets erreur.
+          errors: ['Erreur réseau'],
           data: nil
         )
       end
@@ -59,7 +60,7 @@ RSpec.describe MesDemarches::AvisFetcher do
       it 'log l\'erreur et retourne un tableau vide' do
         result = described_class.fetch(dossier_number)
         expect(result).to eq([])
-        expect(Rails.logger).to have_received(:error).with(/AvisFetcher.*12345/)
+        expect(Rails.logger).to have_received(:error).with(/AvisFetcher.*12345.*Erreur réseau/)
       end
     end
 
@@ -79,6 +80,20 @@ RSpec.describe MesDemarches::AvisFetcher do
       it 'retourne un tableau vide' do
         expect(described_class.fetch(12_345)).to eq([])
       end
+    end
+  end
+
+  # `dateReponse` est la date de dernière modification de l'avis (updated_at
+  # côté Mes-Démarches) : renseignée même sans réponse. Seul un avis répondu a
+  # une vraie date de réponse.
+  describe '.repondu?' do
+    it 'est vrai pour une réponse écrite ou une réponse fermée' do
+      expect(described_class.repondu?(double(reponse: 'Favorable', question_answer: nil))).to be(true)
+      expect(described_class.repondu?(double(reponse: nil, question_answer: false))).to be(true)
+    end
+
+    it 'est faux pour un avis en attente' do
+      expect(described_class.repondu?(double(reponse: '', question_answer: nil))).to be(false)
     end
   end
 end

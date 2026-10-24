@@ -33,13 +33,20 @@ module MesDemarches
       }
     GRAPHQL
 
+    # Un avis est répondu s'il a une réponse écrite ou une réponse fermée.
+    # À tester avant d'utiliser `dateReponse` : c'est la date de dernière
+    # modification de l'avis (updated_at), renseignée même sans réponse.
+    def self.repondu?(avis)
+      avis.reponse.present? || !avis.question_answer.nil?
+    end
+
     def self.fetch(dossier_number)
       result = MesDemarches.query(Query::DossierAvis, variables: { dossier: dossier_number })
 
       if result.errors.present?
         Rails.logger.error(
           "AvisFetcher: erreur GraphQL pour dossier #{dossier_number}: " \
-          "#{result.errors.map(&:message).join(', ')}"
+          "#{result.errors.join(', ')}"
         )
         return []
       end

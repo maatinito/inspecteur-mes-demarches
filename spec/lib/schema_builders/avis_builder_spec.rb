@@ -2,10 +2,16 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe SchemaBuilders::AvisBuilder do
   describe 'avec une cible Baserow' do
     let(:target) { instance_double(SchemaBuilders::BaserowTarget) }
     let(:builder) { described_class.new(target: target) }
+
+    before do
+      allow(target).to receive(:table_ref) { |_app, table_id| table_id }
+      allow(target).to receive(:show_dossier_number)
+    end
 
     describe '#preview' do
       it 'retourne le schéma fixe avec le link_row Dossier' do
@@ -78,11 +84,62 @@ RSpec.describe SchemaBuilders::AvisBuilder do
   end
 
   describe 'avec une cible Grist' do
-    let(:target) { SchemaBuilders::GristTarget.new(client: instance_double(Grist::Client)) }
+    let(:target) { instance_double(SchemaBuilders::GristTarget) }
+    let(:builder) { described_class.new(target: target, type_mapper: SchemaBuilders::TypeMapper.for(:grist)) }
 
-    it 'lève NotImplementedError à l\'initialisation' do
-      expect { described_class.new(target: target) }
-        .to raise_error(NotImplementedError, /Avis non supporté/)
+    def field(fields, col_id) = fields.find { |f| f[:id] == col_id }
+
+    it 'décrit les colonnes au format Grist, Dossier en référence vers la table principale' do
+      fields = builder.preview(application_id: 'doc1', main_table_id: 'Dossiers')[:fields]
+
+      expect(fields.map { |f| f[:fields][:label] }).to include(
+        'Avis', 'Dossier', 'Question', 'Réponse', 'Libellé question', 'Réponse fermée',
+        'Date question', 'Date réponse', 'Email expert', 'Email demandeur', 'Pièces jointes'
+      )
+      expect(field(fields, 'Avis')[:fields][:type]).to eq('Text')
+      expect(field(fields, 'Dossier')[:fields][:type]).to eq('Ref:Dossiers')
+      expect(fields.find { |f| f[:fields][:label] == 'Pièces jointes' }[:fields][:type]).to eq('Attachments')
+    end
+
+    # Avec l'heure : le délai de réponse d'un avis se compte souvent en jours, parfois en heures.
+    it 'garde l’heure des dates de question et de réponse' do
+      fields = builder.preview(application_id: 'doc1', main_table_id: 'Dossiers')[:fields]
+
+      dates = fields.select { |f| f[:fields][:label].start_with?('Date') }.map { |f| f[:fields][:type] }
+      expect(dates).to all(start_with('DateTime'))
+    end
+
+    # Un document Grist peut réunir plusieurs démarches (DIREN : 3135 et 3091) :
+    # une table « Avis » unique n'aurait qu'une table principale possible.
+    it 'nomme la table Avis_<n° démarche>' do
+      expect(builder.preview(application_id: 'doc1', main_table_id: 'Dossiers', demarche_number: 3135)[:table_name])
+        .to eq('Avis_3135')
+    end
+
+    it 'crée la table et fait afficher le numéro de dossier dans la colonne Dossier' do
+      allow(target).to receive(:table_exists?).with('doc1', 'Avis_3135').and_return(false)
+      allow(target).to receive(:create_table).and_return({ 'id' => 'Avis_3135' })
+      allow(target).to receive(:show_dossier_number)
+
+      result = builder.build!(application_id: 'doc1', main_table_id: 'Dossiers', demarche_number: 3135)
+
+      expect(target).to have_received(:create_table).with('doc1', 'Avis_3135', kind_of(Array))
+      expect(target).to have_received(:show_dossier_number).with('doc1', 'Avis_3135', 'Dossiers')
+      expect(result).to include(table_id: 'Avis_3135', action: :created, table_name: 'Avis_3135')
+    end
+
+    it 'met à jour une table existante via sa référence composite' do
+      allow(target).to receive(:table_exists?).and_return(true)
+      allow(target).to receive(:list_tables).with('doc1').and_return([{ 'id' => 'Avis_3135' }])
+      allow(target).to receive(:table_ref).with('doc1', 'Avis_3135').and_return('doc1:Avis_3135')
+      allow(target).to receive(:update_fields)
+      allow(target).to receive(:show_dossier_number)
+
+      result = builder.build!(application_id: 'doc1', main_table_id: 'Dossiers', demarche_number: 3135)
+
+      expect(target).to have_received(:update_fields).with('doc1:Avis_3135', kind_of(Array))
+      expect(result).to include(table_id: 'Avis_3135', action: :updated)
     end
   end
 end
+# rubocop:enable Metrics/BlockLength

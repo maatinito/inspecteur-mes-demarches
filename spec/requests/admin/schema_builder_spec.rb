@@ -85,13 +85,18 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
       end
     end
 
-    context 'avec une cible Grist' do
-      before { create(:schema_target, demarche: demarche, target_type: 'grist') }
+    context 'avec une cible Grist et table principale créée' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'grist', main_table_external_id: 'Dossiers') }
 
-      it 'affiche la section Avis avec message indisponible (pas de boutons)' do
+      before do
+        allow_any_instance_of(SchemaBuilders::GristTarget).to receive(:list_tables).and_return([])
+      end
+
+      it 'affiche la section Avis en lazy load, comme pour Baserow' do
         get "/admin/demarches/#{demarche.id}/schema"
         expect(response.body).to include('Table Avis')
-        expect(response.body).to include('indisponible pour Grist')
+        expect(response.body).to include("avis-#{target.id}")
+        expect(response.body).to include('/avis/preview')
       end
     end
   end
@@ -209,6 +214,19 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
       expect(response.body).to include('Ignorés (1)')
       expect(response.body).to include('Montant')
       expect(response.body).to include('À ajouter (1)')
+    end
+
+    it "PATCH toggle exclusion décoche une colonne système et l'affiche comme exclue" do
+      patch "/admin/demarches/#{demarche.id}/schema/targets/baserow/main_table/fields/metadata:email_usager/exclusion",
+            params: { excluded: 'true' },
+            headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
+
+      expect(response).to have_http_status(:ok)
+      expect(target.reload.excluded_field_ids).to include('metadata:email_usager')
+      total = SchemaBuilders::MetadataFields.all(%i[physique morale]).count { |f| !f.primary? }
+      expect(response.body).to include("Colonnes système (#{total - 1}/#{total})")
+      case_email = Nokogiri::HTML(response.body).at_css('input[id="exclusion_metadata:email_usager"]')
+      expect(case_email['checked']).to be_nil
     end
 
     it 'GET preview après exclusion fait apparaître Montant dans Ignorés' do

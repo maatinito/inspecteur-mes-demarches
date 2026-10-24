@@ -19,10 +19,19 @@ module SchemaBuilders
     # Valeurs brutes de l'état d'un dossier (dossier.state).
     ETAT_CHOICES = %w[en_construction en_instruction accepte refuse sans_suite].freeze
 
+    # États d'un traitement qui désignent l'instructeur ayant pris le dossier en
+    # main ou décidé (un retour en construction ne compte pas).
+    ETATS_INSTRUCTEUR = %w[en_instruction accepte refuse sans_suite].freeze
+
+    # Préfixe des métadonnées dans SchemaTarget#excluded_field_ids (à côté des
+    # ids de champs Mes-Démarches) : « metadata:email_usager ».
+    EXCLUSION_PREFIX = 'metadata:'
+
     Field = Struct.new(:key, :name, :typename, :options, :source) do
       def datetime? = typename == 'DatetimeChampDescriptor'
       def multiple? = typename == 'MultipleDropDownListChampDescriptor'
       def primary? = key == :dossier
+      def exclusion_id = "#{EXCLUSION_PREFIX}#{key}"
     end
 
     DEMANDEUR_DEFS = {
@@ -64,8 +73,32 @@ module SchemaBuilders
         Field.new(key: :groupe_instructeur, name: 'Groupe instructeur', typename: 'TextChampDescriptor',
                   source: ->(d) { d.groupe_instructeur&.label }),
         Field.new(key: :labels, name: 'Labels', typename: 'MultipleDropDownListChampDescriptor',
-                  source: ->(d) { (d.respond_to?(:labels) && d.labels) || [] })
+                  source: ->(d) { (d.respond_to?(:labels) && d.labels) || [] }),
+        Field.new(key: :instructeurs, name: 'Instructeurs', typename: 'MultipleDropDownListChampDescriptor',
+                  source: method(:instructeurs)),
+        Field.new(key: :instructeur_decideur, name: 'Instructeur décideur', typename: 'TextChampDescriptor',
+                  source: method(:instructeur_decideur))
       ]
+    end
+
+    # Instructeurs qui suivent le dossier. Triés : l'ordre de l'API n'est pas
+    # garanti et un ordre changeant réécrirait la cellule à chaque passage.
+    def instructeurs(dossier)
+      Array(dossier.instructeurs).map { |i| identifiant_agent(i.email) }.compact.sort
+    end
+
+    # Auteur du dernier passage en instruction ou de la dernière décision.
+    def instructeur_decideur(dossier)
+      dernier = Array(dossier.traitements)
+                .select { |t| ETATS_INSTRUCTEUR.include?(t.state) && t.instructeur_email.present? }
+                .max_by { |t| Time.zone.parse(t.processed_at.to_s) }
+      dernier && identifiant_agent(dernier.instructeur_email)
+    end
+
+    # « prenom.nom@administration.gov.pf » → « prenom.nom » : plus lisible dans
+    # un tableau croisé, l'homonymie au sein d'un service étant négligeable.
+    def identifiant_agent(email)
+      email.to_s.split('@').first.presence
     end
 
     # Champs d'identité du demandeur pour un mode donné (:physique ou :morale).
@@ -79,6 +112,13 @@ module SchemaBuilders
     # `modes` : Array de :physique / :morale (souvent un seul ; les deux en repli).
     def all(modes)
       [dossier] + system + Array(modes).uniq.flat_map { |m| demandeur(m) }
+    end
+
+    # Colonnes de métadonnées hors exclusions. Dossier, clé de la synchro et
+    # cible des formules des blocs, n'est jamais exclue.
+    def retenues(modes, excluded_ids)
+      exclues = Array(excluded_ids).to_set(&:to_s)
+      all(modes).reject { |field| !field.primary? && exclues.include?(field.exclusion_id) }
     end
 
     # Déduit le mode demandeur (:physique / :morale) depuis le __typename d'un

@@ -107,7 +107,7 @@ module SchemaBuilders
       descriptor_specs = collect_descriptors(demarche_descriptor, include_annotations: include_annotations).filter_map do |descriptor|
         spec_for_descriptor(descriptor, excluded_set: excluded_set)
       end
-      dedupe_specs(metadata_field_specs(demandeur_modes) + descriptor_specs)
+      dedupe_specs(metadata_field_specs(demandeur_modes, excluded_set) + descriptor_specs)
     end
 
     # Déduplique les specs par identifiant de colonne cible (id Grist / name
@@ -127,8 +127,9 @@ module SchemaBuilders
 
     # Colonnes de métadonnées (Dossier + système + identité demandeur) au format
     # natif de la cible, depuis la source unique MetadataFields.
-    def metadata_field_specs(demandeur_modes)
-      MetadataFields.all(demandeur_modes).map { |field| metadata_spec(field) }
+    # Les colonnes système exclues dans le diff (metadata:<clé>) sont omises.
+    def metadata_field_specs(demandeur_modes, excluded_set = Set.new)
+      MetadataFields.retenues(demandeur_modes, excluded_set).map { |field| metadata_spec(field) }
     end
 
     # Construit le field spec natif d'un MetadataFields::Field.
