@@ -8,6 +8,7 @@
   %body
     %p{ style: "text-align: center" }
       = link_to 'https://www.mes-demarches.gov.pf' do
-        %img{ :src => image_url("logo-md-wide.svg"), alt: 'Mes-Démarches', width: '600px' }
+        -# PNG : Gmail et Outlook n'affichent pas les SVG dans les courriels
+        %img{ :src => image_url("logo-md-wide.png"), alt: 'Mes-Démarches', width: '600' }
     = yield
 
