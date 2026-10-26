@@ -12,6 +12,7 @@
           Table principale
           %span.badge.ms-2{ class: main_table_status_class(target) }= main_table_status_label(target)
       %div.card-body
+        = render 'homonymes_alert', homonymes: diff[:homonymes]
         - if diff[:to_add].any?
           %h3.h6.schema-builder-zone-title.text-success 🟢 À ajouter (#{diff[:to_add].size})
           - diff[:to_add].each do |field|

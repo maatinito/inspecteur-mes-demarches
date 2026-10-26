@@ -36,7 +36,8 @@ module SchemaBuilders
 
       classify(md_fields, target_fields,
                excluded_predicate: ->(f) { @target.field_excluded?(f[:id]) })
-        .merge(metadata: metadata_fields)
+        .merge(metadata: metadata_fields,
+               homonymes: Homonymes.groupes(all_descriptors.reject { |c| c.__typename == REPETITION_TYPENAME }, @type_mapper))
     end
 
     # Calcule le diff par bloc répétable :
@@ -88,6 +89,7 @@ module SchemaBuilders
 
       inner_diff = classify(inner_md_fields, inner_target_fields,
                             excluded_predicate: ->(f) { block_target.field_excluded?(f[:id]) })
+                   .merge(homonymes: Homonymes.groupes(block.champ_descriptors, @type_mapper))
 
       {
         id: block.id,

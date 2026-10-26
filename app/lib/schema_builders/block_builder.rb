@@ -99,10 +99,11 @@ module SchemaBuilders
       structural_fields(main_table_id) + business_fields(block, excluded_set: excluded_set)
     end
 
-    # Champs métier (les champ_descriptors du bloc).
+    # Champs métier (les champ_descriptors du bloc), un par libellé comme dans
+    # le diff, avant les exclusions (cf. Homonymes).
     def business_fields(block, excluded_set: Set.new)
       inner = block.respond_to?(:champ_descriptors) ? Array(block.champ_descriptors) : []
-      inner.filter_map { |c| spec_for_descriptor(c, excluded_set: excluded_set) }
+      Homonymes.retenus(inner, type_mapper).filter_map { |c| spec_for_descriptor(c, excluded_set: excluded_set) }
     end
 
     def spec_for_descriptor(descriptor, excluded_set: Set.new)

@@ -21,6 +21,7 @@
                 %strong= entry[:label]
             .ms-4.mt-2
               - inner = entry[:diff]
+              = render 'homonymes_alert', homonymes: inner[:homonymes]
               - if inner[:to_add].any?
                 %strong.text-success 🟢 À ajouter (#{inner[:to_add].size})
                 - inner[:to_add].each do |field|
