@@ -1,6 +1,25 @@
 # frozen_string_literal: true
 
 module SchemaBuilderHelper
+  TYPES_CHAMP = {
+    'TextChampDescriptor' => 'texte',
+    'TextareaChampDescriptor' => 'texte long',
+    'YesNoChampDescriptor' => 'Oui/Non',
+    'CheckboxChampDescriptor' => 'case à cocher',
+    'PieceJustificativeChampDescriptor' => 'pièce jointe',
+    'DropDownListChampDescriptor' => 'liste déroulante',
+    'MultipleDropDownListChampDescriptor' => 'choix multiple',
+    'IntegerNumberChampDescriptor' => 'nombre entier',
+    'DecimalNumberChampDescriptor' => 'nombre décimal',
+    'DateChampDescriptor' => 'date',
+    'DatetimeChampDescriptor' => 'date et heure'
+  }.freeze
+
+  # Libellé lisible d'un type de champ Mes-Démarches (avertissement homonymes).
+  def type_champ_libelle(typename)
+    TYPES_CHAMP.fetch(typename) { typename.to_s.delete_suffix('ChampDescriptor') }
+  end
+
   def main_table_status_label(target)
     if target.last_synced_at.present? && target.main_table_external_id.present?
       "Sync OK le #{l target.last_synced_at, format: :short}"

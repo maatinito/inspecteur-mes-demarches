@@ -132,6 +132,17 @@ RSpec.describe SchemaBuilders::BlockBuilder do
       end
     end
 
+    it "exclut la colonne d'un libellé partagé quand son premier champ est exclu" do
+      bloc = TestBlockRepetition.new(label: 'Plans', id: 'B9', champ_descriptors: [
+                                       TestBlockDescriptor.new(id: 'p1', label: 'Plan', typename: 'PieceJustificativeChampDescriptor'),
+                                       TestBlockDescriptor.new(id: 'p2', label: 'Plan', typename: 'PieceJustificativeChampDescriptor')
+                                     ])
+      preview = builder.preview(TestBlockDemarcheDescriptor.new([bloc], []), application_id: 17, main_table_id: 100,
+                                                                             excluded_fields_per_block: { 'B9' => ['p1'] })
+
+      expect(preview.first[:fields].map { |f| f[:name] }).not_to include('Plan')
+    end
+
     describe '#build! avec exclusions' do
       let(:inner_fields_with_ids) do
         [

@@ -202,6 +202,17 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
       expect(response.body).to include('1 champs conformes')
     end
 
+    it 'GET preview_main_table avertit des libellés portés par plusieurs champs' do
+      homonyme = test_descriptor.new(id: 'c_d_id', label: 'Adresse', __typename: 'PieceJustificativeChampDescriptor')
+      allow_any_instance_of(Admin::SchemaBuilderController)
+        .to receive(:demarche_descriptor).and_return(test_demarche_descriptor.new([champ_a, champ_b, champ_c, homonyme]))
+
+      get "/admin/demarches/#{demarche.id}/schema/targets/baserow/main_table/preview"
+
+      expect(response.body).to include('Libellés portés par plusieurs champs (1)')
+      expect(response.body).to include('texte synchronisé, pièce jointe ignoré(s)')
+    end
+
     it 'PATCH toggle exclusion bascule un champ dans Ignorés et rafraîchit le diff' do
       patch "/admin/demarches/#{demarche.id}/schema/targets/baserow/main_table/fields/c_b_id/exclusion",
             params: { excluded: 'true' },

@@ -104,7 +104,11 @@ module SchemaBuilders
 
     def build_field_specs(demarche_descriptor, include_annotations:, excluded_field_ids: [], demandeur_modes: [])
       excluded_set = Array(excluded_field_ids).to_set(&:to_s)
-      descriptor_specs = collect_descriptors(demarche_descriptor, include_annotations: include_annotations).filter_map do |descriptor|
+      # Un libellé partagé n'est représenté que par son premier champ, comme dans
+      # le diff, avant d'appliquer les exclusions (cf. Homonymes).
+      descriptors = Homonymes.retenus(collect_descriptors(demarche_descriptor, include_annotations: include_annotations),
+                                      type_mapper)
+      descriptor_specs = descriptors.filter_map do |descriptor|
         spec_for_descriptor(descriptor, excluded_set: excluded_set)
       end
       dedupe_specs(metadata_field_specs(demandeur_modes, excluded_set) + descriptor_specs)

@@ -93,6 +93,18 @@ RSpec.describe SchemaBuilders::Differ do
         expect(system.find { |f| f[:label] == 'Statut' }).to include(excluded: false, type: 'single_select')
       end
 
+      # Seul le premier champ d'un libellé partagé est synchronisé : le diff le
+      # signale pour que l'administrateur renomme les autres dans la démarche.
+      it 'signale les libellés portés par plusieurs champs' do
+        homonyme = TestDifferDescriptor.new(id: 'a2', label: 'Adresse', typename: 'PieceJustificativeChampDescriptor')
+        entete = TestDifferDescriptor.new(id: 'h', label: 'Adresse', typename: 'HeaderSectionChampDescriptor')
+        d = described_class.new(target: schema_target, adapter: adapter,
+                                demarche_descriptor: TestDifferDemarcheDescriptor.new([entete, champ_a, homonyme, champ_c]))
+
+        expect(d.main_table_diff[:homonymes]).to eq([{ label: 'Adresse', retenu: 'TextChampDescriptor',
+                                                       ecartes: ['PieceJustificativeChampDescriptor'] }])
+      end
+
       it 'classe le champ conforme dans ok' do
         diff = differ.main_table_diff
         expect(diff[:ok].map { |f| f[:id] }).to include('a')
@@ -357,6 +369,18 @@ RSpec.describe SchemaBuilders::Differ do
       # Stub par défaut : aucune table détectée par nom. Les tests qui veulent
       # vérifier l'auto-détection re-stubbent avec une liste non vide.
       allow(adapter).to receive(:list_tables).and_return([])
+    end
+
+    it "signale les libellés partagés à l'intérieur d'un bloc" do
+      bloc = TestDifferBlockDescriptor.new(id: 'bloc_new', label: 'Pièces jointes', champ_descriptors: [
+                                             TestDifferDescriptor.new(id: 'p1', label: 'Plan', typename: 'TextChampDescriptor'),
+                                             TestDifferDescriptor.new(id: 'p2', label: 'Plan', typename: 'PieceJustificativeChampDescriptor')
+                                           ])
+      d = described_class.new(target: schema_target, adapter: adapter, demarche_descriptor: TestDifferDemarcheDescriptor.new([bloc]))
+
+      entry = d.blocks_diff[:blocks].first
+      expect(entry[:diff][:homonymes]).to eq([{ label: 'Plan', retenu: 'TextChampDescriptor',
+                                                ecartes: ['PieceJustificativeChampDescriptor'] }])
     end
 
     it 'retourne le bloc exclus dans blocks_excluded' do

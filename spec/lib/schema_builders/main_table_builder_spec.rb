@@ -63,6 +63,35 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
         )
       end
 
+      # Homonymes : le diff ne montre que le premier champ d'un libellé ; le
+      # décocher doit exclure la colonne, pas laisser passer l'homonyme.
+      it "exclut la colonne d'un libellé partagé quand son premier champ est exclu" do
+        homonymes = TestMainTableDemarcheDescriptor.new(
+          [
+            descriptor(id: 'oui_non', label: 'Extrait du cadastre', typename: 'YesNoChampDescriptor'),
+            descriptor(id: 'pj', label: 'Extrait du cadastre', typename: 'PieceJustificativeChampDescriptor')
+          ],
+          []
+        )
+        preview = builder.preview(homonymes, application_id: 17, table_name: 'Dossiers', excluded_field_ids: ['oui_non'])
+
+        expect(preview[:fields].map { |f| f[:name] }).not_to include('Extrait du cadastre')
+      end
+
+      it "garde le type du premier champ d'un libellé partagé, comme le diff" do
+        homonymes = TestMainTableDemarcheDescriptor.new(
+          [
+            descriptor(id: 'entete', label: 'Avis du maire', typename: 'HeaderSectionChampDescriptor'),
+            descriptor(id: 'liste', label: 'Avis du maire', typename: 'TextChampDescriptor'),
+            descriptor(id: 'pj', label: 'Avis du maire', typename: 'PieceJustificativeChampDescriptor')
+          ],
+          []
+        )
+        fields = builder.preview(homonymes, application_id: 17, table_name: 'Dossiers')[:fields]
+
+        expect(fields.select { |f| f[:name] == 'Avis du maire' }).to contain_exactly(hash_including(type: 'text'))
+      end
+
       it 'omet les colonnes système exclues, jamais la colonne Dossier' do
         preview = builder.preview(demarche_descriptor, application_id: 17, table_name: 'Dossiers',
                                                        excluded_field_ids: %w[metadata:email_usager metadata:dossier])

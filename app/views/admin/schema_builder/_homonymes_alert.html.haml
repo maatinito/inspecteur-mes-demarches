@@ -1,0 +1,12 @@
+-# Libellés portés par plusieurs champs (cf. SchemaBuilders::Homonymes).
+-# Locals : homonymes = [{ label:, retenu:, ecartes: }]
+- if homonymes.present?
+  .alert.alert-warning.py-2.mb-3
+    %strong ⚠️ Libellés portés par plusieurs champs (#{homonymes.size})
+    %p.small.mb-1
+      Seul le premier champ est synchronisé. Renommez les autres dans la démarche pour les synchroniser aussi.
+    %ul.small.mb-0
+      - homonymes.each do |homonyme|
+        %li
+          %strong= homonyme[:label]
+          = " : #{type_champ_libelle(homonyme[:retenu])} synchronisé, #{homonyme[:ecartes].map { |t| type_champ_libelle(t) }.to_sentence} ignoré(s)"
