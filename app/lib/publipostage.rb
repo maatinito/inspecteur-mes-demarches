@@ -518,16 +518,12 @@ class Publipostage < FieldChecker
   # If value is a Hash with "" and ".xxx" keys (expanded field),
   # it transforms them into "prefix" and "prefix.xxx" keys
   def expand_hash_into_result(result, prefix, value)
-    if value.is_a?(Hash) && value.key?('')
-      # C'est un champ expansé avec la convention "" et ".xxx"
-      value.each do |key, val|
-        new_key = key.empty? ? prefix : "#{prefix}#{key}"
-        result[new_key] = val
-      end
-    else
-      # Comportement classique
-      result[prefix] = value
-    end
+    # get_values_of (V1/V2) enveloppe la valeur d'un champ dans un tableau
+    value = value.first if value.is_a?(Array) && value.size == 1 && value.first.is_a?(Hash) && value.first.key?('')
+    # Comportement classique si ce n'est pas un champ expansé avec la convention "" et ".xxx"
+    return result[prefix] = value unless value.is_a?(Hash) && value.key?('')
+
+    value.each { |key, val| result[key.empty? ? prefix : "#{prefix}#{key}"] = val }
   end
 
   # FieldList acts as a dossier allowing looking for champs

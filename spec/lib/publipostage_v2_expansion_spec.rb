@@ -242,6 +242,41 @@ RSpec.describe PublipostageV2 do
     end
   end
 
+  describe '#get_fields' do
+    let(:publipostage) { PublipostageV2.new({}) }
+    let(:navire) { { '' => 'MAGDALENA SCHULTE', '.Dernier transit' => Date.new(2026, 10, 28) } }
+
+    before { publipostage.instance_variable_set(:@dossier, double(number: 1)) }
+
+    # get_values_of enveloppe toujours la valeur dans un tableau (cas de la 2439 :
+    # « Nom du transport maritime » passé en référentiel de Polynésie)
+    it 'expands a referentiel champ of the dossier' do
+      allow(publipostage).to receive(:get_values_of).and_return([navire])
+
+      result = publipostage.send(:get_fields, nil, ['Nom du transport maritime'], 0)
+
+      expect(result['Nom du transport maritime']).to eq('MAGDALENA SCHULTE')
+      expect(result['Nom du transport maritime.Dernier transit']).to eq(Date.new(2026, 10, 28))
+    end
+
+    it 'keeps a one-row repetition as a list of rows' do
+      rows = [{ 'Rubrique' => 'R1', 'Volume' => 100 }]
+      allow(publipostage).to receive(:get_values_of).and_return(rows)
+
+      result = publipostage.send(:get_fields, nil, ['ICPE'], 0)
+
+      expect(result['ICPE']).to eq(rows)
+    end
+
+    it 'keeps plain values unchanged' do
+      allow(publipostage).to receive(:get_values_of).and_return(%w[AF074])
+
+      result = publipostage.send(:get_fields, nil, ['Nom du transport aérien'], 0)
+
+      expect(result['Nom du transport aérien']).to eq(%w[AF074])
+    end
+  end
+
   describe '#convert_column_value' do
     let(:publipostage) { PublipostageV2.new({}) }
 
