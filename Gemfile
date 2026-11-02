@@ -47,7 +47,6 @@ gem 'combine_pdf'
 gem 'csv'
 gem 'delayed_cron_job' # Cron jobs
 gem 'delayed_job_active_record'
-gem 'delayed_job_web'
 gem 'devise', '~> 5.0'
 gem 'devise-i18n'
 gem 'docx', '~> 0.8.0'

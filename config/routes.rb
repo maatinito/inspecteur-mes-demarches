@@ -60,9 +60,6 @@ Rails.application.routes.draw do
     end
   end
 
-  # view jobs
-  match '/delayed_job' => DelayedJobWeb, :anchor => false, :via => %i[get post]
-
   #
   # Letter Opener
   #
