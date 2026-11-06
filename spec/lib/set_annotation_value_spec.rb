@@ -85,6 +85,16 @@ RSpec.describe SetAnnotationValue do
         SetAnnotationValue.set_value(dossier, instructeur, 'annotation', 'libellé')
       end
     end
+
+    context 'annotation liste de choix' do
+      let(:annotation) { annotation_double('DropDownListChamp', value: nil) }
+
+      it 'utilise la mutation DropDownList' do
+        expect(SetAnnotationValue).to receive(:raw_set_value)
+          .with(dossier.id, instructeur, annotation.id, 'Vanille', query: SetAnnotationValue::Queries::SetDropDownList)
+        SetAnnotationValue.set_value(dossier, instructeur, 'annotation', 'Vanille')
+      end
+    end
   end
 
   context 'when parameters are good' do

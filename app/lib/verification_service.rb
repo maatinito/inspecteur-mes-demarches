@@ -547,7 +547,8 @@ class VerificationService
                                                                  '</tr>'
     end.join("\n")
     anomalie_table = "<table class=\"table table-striped\">#{rows}</table>"
-    fin_anomalie = anomalies.empty? ? '' : @pieces_messages[:fin_anomalie].gsub('--dossier--', modifier_url(md_dossier))
+    # fin_anomalie est facultatif (absent de NOMS_PIECES_MESSAGES)
+    fin_anomalie = anomalies.empty? ? '' : @pieces_messages[:fin_anomalie].to_s.gsub('--dossier--', modifier_url(md_dossier))
     entete_anomalies + anomalie_table + fin_anomalie
   end
 

@@ -10,7 +10,7 @@ class SetAnnotationValue
     different_value = old_value != value
     if different_value
       Rails.logger.info("Setting private annotation #{annotation_name} with #{value.to_s.gsub("\n", '\\n')}")
-      raw_set_value(md_dossier.id, instructeur_id, annotation.id, value)
+      raw_set_annotation(md_dossier.id, instructeur_id, annotation, value)
     else
       Rails.logger.info("Private annotation #{annotation_name} already set to #{value}")
     end
@@ -45,9 +45,21 @@ class SetAnnotationValue
     result
   end
 
-  def self.raw_set_value(dossier_id, instructeur_id, annotation_id, value)
+  # Écrit une valeur selon le type de l'annotation : une liste de choix a sa
+  # propre mutation (la valeur doit être une des options), les autres types
+  # sont choisis d'après la valeur convertie (cf. coerce_to_annotation_type).
+  def self.raw_set_annotation(dossier_id, instructeur_id, annotation, value)
+    value = coerce_to_annotation_type(annotation, value)
+    if annotation.__typename == 'DropDownListChamp'
+      raw_set_value(dossier_id, instructeur_id, annotation.id, value.to_s, query: Queries::SetDropDownList)
+    else
+      raw_set_value(dossier_id, instructeur_id, annotation.id, value)
+    end
+  end
+
+  def self.raw_set_value(dossier_id, instructeur_id, annotation_id, value, query: typed_query(value))
     # value = value.iso8601 if value.is_a?(Time) || value.is_a?(Date) || value.is_a?(DateTime)
-    result = MesDemarches.query(typed_query(value), variables:
+    result = MesDemarches.query(query, variables:
       {
         dossier_id:,
         instructeur_id:,
@@ -140,6 +152,21 @@ class SetAnnotationValue
       }
     }
 
+    mutation SetDropDownList($dossier_id: ID!, $instructeur_id: ID!, $annotation_id: ID!, $value: String!, $client_mutation_id: String!) {
+      dossierModifierAnnotationDropDownList(input: {
+        dossierId: $dossier_id,
+        instructeurId: $instructeur_id,
+        annotationId: $annotation_id,
+        value: $value,
+        clientMutationId: $client_mutation_id
+	    }) {
+        clientMutationId
+        errors {
+            message
+        }
+      }
+    }
+
     mutation SetInteger($dossier_id: ID!, $instructeur_id: ID!, $annotation_id: ID!, $value: Int!, $client_mutation_id: String!) {
       dossierModifierAnnotationIntegerNumber(input: {
         dossierId: $dossier_id,
@@ -188,6 +215,14 @@ class SetAnnotationValue
               id
               label
               stringValue
+              # valeurs lues par value_of sur les lignes ajoutées
+              ... on TextChamp { value }
+              ... on DropDownListChamp { value }
+              ... on IntegerNumberChamp { intValue: value }
+              ... on DecimalNumberChamp { decimalValue: value }
+              ... on DateChamp { dateValue: value }
+              ... on CheckboxChamp { checked: value }
+              ... on YesNoChamp { checked: value }
             }
           }
         }

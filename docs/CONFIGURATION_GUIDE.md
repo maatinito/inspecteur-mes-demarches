@@ -224,10 +224,16 @@ end
 | Checker | Description | Paramètres requis | Paramètres optionnels |
 |---------|-------------|-------------------|----------------------|
 | `conditional_field` | Action conditionnelle basée sur la valeur d'un champ | `champ`, `valeurs` | `etat_du_dossier` |
-| `publipostage` / `publipostage_v2` / `publipostage_v3` | Génération de documents Word | `modele`, `champ_cible`, `champs` | `type_de_document`, `nom_fichier`, `calculs`, `etat_du_dossier` |
+| `publipostage` / `publipostage_v2` / `publipostage_v3` | Génération de documents Word | `modele`, `champ_cible`, `champs` | `type_de_document`, `nom_fichier`, `calculs`, `etat_du_dossier` ; v3 : dans `champs`, `colonnes` limite un bloc répétable aux colonnes listées (document et empreinte de régénération) |
 | `daf/message` | Envoi de message ou email | `message` | `destinataires`, `champ_envoi` |
+| `dossier_link_check` | Vérifie qu'un champ « lien vers un dossier » pointe vers un dossier existant d'une des démarches attendues, et que certains champs y ont la même valeur (Numéro DN comparé sans la date de naissance) | `champ`, `demarches`, `message_mauvaise_demarche` | `champs_identiques` (champ du dossier => champ du dossier lié), `message_champs_differents` |
 | `set_field` | Modification d'une annotation | `champ`, `valeur` | `si_vide`, `decalage` |
-| `daf/copy_order` | Copie de blocs répétables de champs vers annotations | `champ_source`, `bloc_destination`, `champs_destination` | `etat_du_dossier` |
+| `daf/copy_order` | Copie de blocs répétables de champs vers annotations (`champ_source` peut viser un bloc d'un dossier lié : `"Champ de lien.Bloc"`) | `champ_source`, `bloc_destination`, `champs_destination` | `etat_du_dossier` |
+| `te_fenua_parcelles` | Recopie les parcelles d'un champ carte Te Fenua (titre et texte Te Fenua) dans un bloc répétable d'annotations, une ligne par parcelle | `champ`, `bloc_destination` | `champ_titre` (défaut « Parcelle »), `champ_texte` (texte Te Fenua complet), `champs_infos` (annotation => ligne du texte Te Fenua, ex. `"Surface (en m²)": "Surface (en m²)"`), `etat_du_dossier` |
+| `cultures_par_famille` | Regroupe par famille les choix d'une liste à choix multiple et les recopie dans un bloc répétable d'annotations, une ligne par famille | `champ`, `bloc_destination`, `familles` (famille => liste des choix) | `champ_famille` (défaut « Famille »), `champ_cultures` (défaut « Cultures »), `famille_par_defaut` (défaut « Autres »), `etat_du_dossier` |
+| `catanat/cultures_sinistrees` | CATANAT : regroupe les cultures sinistrées (une ligne par culture) par famille et mode bio / non bio pour l'indemnisation, et totalise par famille les montants calculés par les formules | `champ`, `bloc_indemnisation`, `bloc_plafond` | `champ_culture`, `champ_bio`, `champ_surface`, `etat_du_dossier` |
+| `catanat/equipements_sinistres` | CATANAT : regroupe par catégorie du barème les équipements et bâtiments endommagés (éléments, somme des devis) | `champs_source` (bloc => gabarit de description), `bloc_destination` | `champ_categorie` (défaut « Catégorie »), `champ_montant`, `etat_du_dossier` |
+| `catanat/elevages_sinistres` | CATANAT : regroupe par type d'animal les pertes d'élevage déclarées (animaux déclarés non bio / bio) | `champ`, `bloc_destination` | `champ_type`, `champ_bio`, `champ_nombre`, `etat_du_dossier` |
 | `generate_id` | Génération d'identifiant unique sécurisé (UUID v7) | `champ` | `timestamp_field`, `etat_du_dossier` |
 
 ### Trouver les paramètres d'un checker

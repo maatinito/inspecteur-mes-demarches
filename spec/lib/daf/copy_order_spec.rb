@@ -62,6 +62,44 @@ RSpec.describe Daf::CopyOrder do
     end
   end
 
+  describe 'composed text and typed destination' do
+    let(:controle) { FactoryBot.build(:copy_order) }
+    let(:gabarit) { '{Matériel agricole disponible}{ / ;Référence et caractéristique;}{ (;Année d’acquisition;)}' }
+
+    def materiel(reference)
+      double('Row', champs: [
+               double('Champ', label: 'Matériel agricole disponible', __typename: 'TextChamp', value: 'tracteur'),
+               double('Champ', label: 'Référence et caractéristique', __typename: 'TextChamp', value: reference),
+               double('Champ', label: 'Année d’acquisition', __typename: 'IntegerNumberChamp', int_value: 1978)
+             ])
+    end
+
+    before { controle.dossier = double('Dossier', id: 'D1', number: 1, champs: [], annotations: []) }
+
+    it 'joins the parts of the template' do
+      expect(controle.send(:process_text_value, materiel('MF5575'), gabarit)).to eq('tracteur / MF5575 (1978)')
+    end
+
+    it 'omits the separator of an empty part' do
+      expect(controle.send(:process_text_value, materiel(nil), gabarit)).to eq('tracteur (1978)')
+    end
+
+    it 'drops a separator left at the start when the first part is empty' do
+      gabarit = '{Catégorie}{ – ;Matériel agricole disponible;}'
+      expect(controle.send(:process_text_value, materiel('MF5575'), gabarit)).to eq('tracteur')
+    end
+
+    it 'converts the text to the type of an integer annotation and compares typed values' do
+      controle.instance_variable_set(:@demarche, double('Demarche', instructeur: 'instructeur'))
+      allow(SetAnnotationValue).to receive(:raw_set_value)
+      annotation = double('Champ', id: 'A1', label: 'Valeur à neuf', __typename: 'IntegerNumberChamp', int_value: nil)
+      expect(controle.send(:set_text_field, annotation, '10000000')).to be true
+      expect(SetAnnotationValue).to have_received(:raw_set_value).with('D1', 'instructeur', 'A1', 10_000_000)
+      deja = double('Champ', id: 'A2', label: 'Valeur à neuf', __typename: 'IntegerNumberChamp', int_value: 10_000_000)
+      expect(controle.send(:set_text_field, deja, '10000000')).to be false
+    end
+  end
+
   describe '#process_text_value' do
     let(:controle) { FactoryBot.build(:copy_order) }
     let(:row) do
@@ -76,6 +114,18 @@ RSpec.describe Daf::CopyOrder do
       # Mock champ_value pour retourner la valeur directement
       allow(controle).to receive(:champ_value) do |champ|
         champ.respond_to?(:value) ? champ.value : champ
+      end
+    end
+
+    context 'with a block of a linked dossier' do
+      it 'reads the rows of an annotation of the linked dossier' do
+        controle = FactoryBot.build(:copy_order, champ_source: 'Inscription.Élevages (copie)')
+        bloc = double('Bloc', label: 'Élevages (copie)', rows: [row])
+        lie = double('Dossier lié', champs: [], annotations: [bloc])
+        lien = double('Lien', label: 'Inscription', __typename: 'DossierLinkChamp', dossier: lie)
+        controle.dossier = double('Dossier', number: 1, champs: [lien], annotations: [])
+        allow(controle).to receive(:extract_row_data).with(row).and_return('Nom' => 'Test')
+        expect(controle.send(:orders)).to eq([{ 'Nom' => 'Test' }])
       end
     end
 

@@ -242,6 +242,20 @@ module MesDemarches
       ... on FormuleChamp {
           value
       }
+      # Zones sélectionnées sur la carte Te Fenua. Les propriétés Te Fenua
+      # (info_titre, info_texte) ne sont pas exposées par l'API : cf. TeFenuaParcelles.
+      ... on TeFenuaChamp {
+          geoAreas {
+              geometry { type coordinates }
+              ... on SelectionUtilisateur {
+                  commune
+                  communeAssociee
+                  ile
+                  section
+                  numero
+              }
+          }
+      }
     }
 
     fragment DossierInfo on Dossier {
@@ -445,6 +459,13 @@ module MesDemarches
                 ...DossierInfo
                 annotations {
                     ...ChampInfo
+                    ... on RepetitionChamp {
+                        rows {
+                          champs {
+                            ...ChampInfo
+                          }
+                        }
+                    }
                 }
                 champs {
                     ...ChampInfo
