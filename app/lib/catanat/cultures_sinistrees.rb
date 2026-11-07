@@ -43,8 +43,15 @@ module Catanat
 
     def bloc_destination = @params[:bloc_indemnisation]
 
-    # Les montants théoriques sont lus avant de réécrire le bloc : ce sont ceux
-    # que les formules ont calculés sur les lignes actuelles.
+    # Les montants théoriques sont ceux que les formules ont calculés sur les
+    # lignes actuelles, lus avant de réécrire le bloc. Ils dépendent des m²
+    # retenus (saisis par l'instructeur, ce qui relance l'inspection : pas de
+    # décalage) et de la famille et du mode écrits ici. Si une écriture change
+    # la famille ou le mode d'une ligne qui a déjà des m² retenus (lignes
+    # décalées par une culture ajoutée), le bloc plafond garde les anciens
+    # montants jusqu'à la modification suivante du dossier : le robot ne
+    # relance pas l'inspection après ses propres écritures
+    # (VerificationService#avoid_useless_checks_for).
     def ecrit_pertes
       cultures = declarations
       groupes = par_famille_et_mode(cultures)
@@ -73,11 +80,20 @@ module Catanat
       end
     end
 
+    # L'API ne donne pas le nom des colonnes du référentiel, seulement leur id :
+    # un identifiant Base64 dont la fin est « .referentiel.data.row.<colonne> ».
+    # Cela dépend d'un détail interne de mes-demarches : si le format change,
+    # la colonne n'est plus trouvée, la famille reste vide et un avertissement
+    # le signale.
     def famille(culture)
       return '' unless culture.respond_to?(:columns) && culture.columns
 
       column = culture.columns.find { |c| Base64.decode64(c.id)[REFERENTIEL_COLUMN_ID, 1]&.casecmp?('famille') }
-      option_equivalente(column&.string_value.to_s, @params[:familles])
+      unless column
+        Rails.logger.warn("Dossier #{@dossier.number} : colonne « famille » introuvable dans le référentiel de '#{culture.string_value}'")
+        return ''
+      end
+      option_equivalente(column.string_value.to_s, @params[:familles])
     end
 
     def par_famille_et_mode(cultures)

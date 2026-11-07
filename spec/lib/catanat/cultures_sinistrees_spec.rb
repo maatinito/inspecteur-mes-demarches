@@ -83,6 +83,13 @@ RSpec.describe Catanat::CulturesSinistrees do
     expect(controle.send(:option_equivalente, 'Inconnue', controle.params[:familles])).to eq('Inconnue')
   end
 
+  it 'warns and leaves the family empty when the referentiel column cannot be found' do
+    allow(Rails.logger).to receive(:warn)
+    champ = double('Champ', string_value: 'tomate', columns: [double('Column', id: Base64.encode64('autre-format'), string_value: maraichage)])
+    expect(controle.send(:famille, champ)).to eq('')
+    expect(Rails.logger).to have_received(:warn).with(/colonne « famille » introuvable/)
+  end
+
   it 'never writes the surfaces kept by the instructor' do
     ids = indemnisation.rows.flat_map(&:champs).select { it.label == described_class::RETENUS.first }.map(&:id)
     expect(SetAnnotationValue).not_to have_received(:raw_set_value).with(anything, anything, satisfy { ids.include?(it) }, anything)
