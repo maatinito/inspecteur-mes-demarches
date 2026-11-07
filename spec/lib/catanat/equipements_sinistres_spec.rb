@@ -34,8 +34,8 @@ RSpec.describe Catanat::EquipementsSinistres do
   end
   let(:rows) do
     Array.new(3) do
-      double('Row', champs: [*described_class::COLONNES, described_class::RETENU].map do |label|
-        double('Champ', id: SecureRandom.hex(4), label:, __typename: label == described_class::RETENU ? 'IntegerNumberChamp' : 'TextChamp',
+      double('Row', champs: [*described_class::COLONNES, described_class::RETENUS.first].map do |label|
+        double('Champ', id: SecureRandom.hex(4), label:, __typename: label == described_class::RETENUS.first ? 'IntegerNumberChamp' : 'TextChamp',
                         value: nil, int_value: nil)
       end)
     end
@@ -68,7 +68,7 @@ RSpec.describe Catanat::EquipementsSinistres do
   end
 
   it 'never writes the amount kept by the instructor' do
-    ids = rows.flat_map(&:champs).select { it.label == described_class::RETENU }.map(&:id)
+    ids = rows.flat_map(&:champs).select { it.label == described_class::RETENUS.first }.map(&:id)
     expect(SetAnnotationValue).not_to have_received(:raw_set_value).with(anything, anything, satisfy { ids.include?(it) }, anything)
   end
 end

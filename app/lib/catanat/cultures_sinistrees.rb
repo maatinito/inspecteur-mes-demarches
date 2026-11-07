@@ -20,13 +20,11 @@ module Catanat
   #
   # Si `champ_surfaces` est donné, cette annotation texte reçoit le total des
   # surfaces déclarées : « 6000 m² dont 500 m² en bio ».
-  class CulturesSinistrees < FieldChecker
-    include EcritureBloc
-
+  class CulturesSinistrees < PertesRegroupees
     REFERENTIEL_COLUMN_ID = /\.referentiel\.data\.row\.(\w+)\z/
-    INDEMNISATION = ['Famille de cultures', 'Cultures', 'Bio / non bio', 'm² déclarés'].freeze
+    COLONNES = ['Famille de cultures', 'Cultures', 'Bio / non bio', 'm² déclarés'].freeze
+    RETENUS = ['m² retenus'].freeze
     MONTANT = 'Montant théorique (F)'
-    RETENUS = 'm² retenus'
     PLAFOND = ['Famille (récapitulatif)', 'Montant théorique total (F)'].freeze
 
     def version
@@ -41,21 +39,21 @@ module Catanat
       super + %i[champ_culture champ_bio champ_surface champ_surfaces familles]
     end
 
-    def process(demarche, dossier)
-      super
-      return unless must_check?(dossier)
+    private
 
+    def bloc_destination = @params[:bloc_indemnisation]
+
+    # Les montants théoriques sont lus avant de réécrire le bloc : ce sont ceux
+    # que les formules ont calculés sur les lignes actuelles.
+    def ecrit_pertes
       cultures = declarations
       groupes = par_famille_et_mode(cultures)
       montants = montants_actuels
-      changed = recopie(@params[:bloc_indemnisation], groupes.map { |g| g.values_at(:famille, :cultures, :mode, :surface) },
-                        INDEMNISATION) { |row| avertir_ligne_retiree(row) }
+      changed = ecrit_lignes(groupes.map { |g| g.values_at(:famille, :cultures, :mode, :surface) })
       changed |= recopie(@params[:bloc_plafond], plafonds(groupes, montants), PLAFOND)
       changed |= ecrit_surfaces(cultures) if @params[:champ_surfaces].present?
-      dossier_updated(@dossier) if changed
+      changed
     end
-
-    private
 
     def champ_culture = @params[:champ_culture] || 'Culture'
     def champ_bio = @params[:champ_bio] || 'Culture bio ?'
@@ -63,22 +61,22 @@ module Catanat
 
     def declarations
       lignes_du_bloc(@params[:champ]).filter_map do |row|
-        culture = row.champs.find { |c| c.label == champ_culture }
+        culture = champ(row, champ_culture)
         next if culture&.string_value.blank?
 
         {
           culture: culture.string_value,
           famille: famille(culture),
-          mode: row.champs.find { |c| c.label == champ_bio }&.checked ? 'Bio' : 'Non bio',
-          surface: row.champs.find { |c| c.label == champ_surface }&.int_value.to_i
+          mode: champ(row, champ_bio)&.checked ? 'Bio' : 'Non bio',
+          surface: champ(row, champ_surface)&.int_value.to_i
         }
       end
     end
 
-    def famille(champ)
-      return '' unless champ.respond_to?(:columns) && champ.columns
+    def famille(culture)
+      return '' unless culture.respond_to?(:columns) && culture.columns
 
-      column = champ.columns.find { |c| Base64.decode64(c.id)[REFERENTIEL_COLUMN_ID, 1]&.casecmp?('famille') }
+      column = culture.columns.find { |c| Base64.decode64(c.id)[REFERENTIEL_COLUMN_ID, 1]&.casecmp?('famille') }
       option_equivalente(column&.string_value.to_s, @params[:familles])
     end
 
@@ -90,9 +88,8 @@ module Catanat
 
     # Montants théoriques déjà calculés par les formules, par [famille, mode].
     def montants_actuels
-      rows = SetAnnotationValue.get_annotation(@dossier, @params[:bloc_indemnisation])&.rows
-      Array(rows).each_with_object(Hash.new(0)) do |row, montants|
-        montants[[valeur(row, INDEMNISATION[0]), valeur(row, INDEMNISATION[2])]] += valeur(row, MONTANT).to_f.round
+      Array(lignes_actuelles(bloc_destination)).each_with_object(Hash.new(0)) do |row, montants|
+        montants[[valeur(row, COLONNES[0]), valeur(row, COLONNES[2])]] += valeur(row, MONTANT).to_f.round
       end
     end
 
@@ -106,12 +103,6 @@ module Catanat
       total = cultures.sum { it[:surface] }
       bio = cultures.select { it[:mode] == 'Bio' }.sum { it[:surface] }
       SetAnnotationValue.set_value(@dossier, @demarche.instructeur, @params[:champ_surfaces], "#{total} m² dont #{bio} m² en bio")
-    end
-
-    def avertir_ligne_retiree(row)
-      return unless valeur(row, RETENUS).to_i.positive?
-
-      Rails.logger.warn("Dossier #{@dossier.number} : une ligne de '#{@params[:bloc_indemnisation]}' n'a plus de culture déclarée mais garde des m² retenus")
     end
   end
 end

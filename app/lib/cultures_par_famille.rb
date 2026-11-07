@@ -17,6 +17,8 @@
 #   champ_cultures : annotation recevant les cultures (défaut « Cultures »)
 #   famille_par_defaut : famille des cultures absentes de la table (défaut « Autres »)
 class CulturesParFamille < FieldChecker
+  include EcritureBloc
+
   def version
     super + 1
   end
@@ -34,9 +36,11 @@ class CulturesParFamille < FieldChecker
     return unless must_check?(dossier)
 
     lignes = regroupe(cultures)
-    return if lignes.empty? && bloc_rows.blank?
+    return if lignes.empty? && lignes_actuelles(@params[:bloc_destination]).blank?
 
-    dossier_updated(@dossier) if recopie(lignes)
+    changed = recopie(@params[:bloc_destination], lignes.map { |famille, cultures| [famille, cultures.join(', ')] },
+                      [champ_famille, champ_cultures])
+    dossier_updated(@dossier) if changed
   end
 
   private
@@ -81,39 +85,5 @@ class CulturesParFamille < FieldChecker
     end
     ordre = @params[:familles].to_h.keys.map(&:to_s) << famille_par_defaut
     groupes.sort_by { |famille, _| ordre.index(famille) || ordre.size }
-  end
-
-  def bloc_rows
-    SetAnnotationValue.get_annotation(@dossier, @params[:bloc_destination])&.rows
-  end
-
-  # Écrit une ligne par famille et vide les lignes en trop.
-  def recopie(lignes)
-    bloc = SetAnnotationValue.allocate_blocks(@dossier, @demarche.instructeur, @params[:bloc_destination], lignes.size)
-    changed = false
-    bloc.rows.each_with_index do |row, index|
-      famille, cultures = lignes[index]
-      changed |= set_text(row, champ_famille, famille.to_s)
-      changed |= set_text(row, champ_cultures, cultures.to_a.join(', '))
-    end
-    changed
-  end
-
-  # Retourne un booléen de statut (comme save/update), pas un prédicat
-  def set_text(row, label, value)
-    annotation = row.champs.find { |c| c.label == label }
-    unless annotation
-      Rails.logger.warn("Champ '#{label}' introuvable dans le bloc '#{@params[:bloc_destination]}' du dossier #{@dossier.number}")
-      return false
-    end
-    return false if SetAnnotationValue.value_of(annotation).to_s == value
-
-    SetAnnotationValue.raw_set_annotation(@dossier.id, @demarche.instructeur, annotation, value)
-    true
-  rescue StandardError => e
-    # Famille en liste de choix : une famille absente des options (référentiel
-    # modifié) est refusée par le serveur et le champ reste vide.
-    Rails.logger.error("Dossier #{@dossier.number} : '#{label}' ne peut pas recevoir '#{value}' : #{e.message}")
-    false
   end
 end

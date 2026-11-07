@@ -37,14 +37,14 @@ RSpec.describe Catanat::CulturesSinistrees do
              culture('poireau', maraichage, 50, bio: true)
            ])
   end
-  let(:colonnes) { [*described_class::INDEMNISATION, described_class::RETENUS, described_class::MONTANT] }
+  let(:colonnes) { [*described_class::COLONNES, described_class::RETENUS.first, described_class::MONTANT] }
   let(:indemnisation) do
     double('Bloc', label: 'Cultures indemnisées', rows: [
              ligne(colonnes, valeurs: { 'Famille de cultures' => maraichage, 'Bio / non bio' => 'Non bio',
-                                        described_class::MONTANT => '10000.0' }, entiers: [described_class::RETENUS]),
+                                        described_class::MONTANT => '10000.0' }, entiers: [described_class::RETENUS.first]),
              ligne(colonnes, valeurs: { 'Famille de cultures' => maraichage, 'Bio / non bio' => 'Bio',
-                                        described_class::MONTANT => '1300.0' }, entiers: [described_class::RETENUS]),
-             ligne(colonnes, entiers: [described_class::RETENUS])
+                                        described_class::MONTANT => '1300.0' }, entiers: [described_class::RETENUS.first]),
+             ligne(colonnes, entiers: [described_class::RETENUS.first])
            ])
   end
   let(:plafond) do
@@ -84,7 +84,7 @@ RSpec.describe Catanat::CulturesSinistrees do
   end
 
   it 'never writes the surfaces kept by the instructor' do
-    ids = indemnisation.rows.flat_map(&:champs).select { it.label == described_class::RETENUS }.map(&:id)
+    ids = indemnisation.rows.flat_map(&:champs).select { it.label == described_class::RETENUS.first }.map(&:id)
     expect(SetAnnotationValue).not_to have_received(:raw_set_value).with(anything, anything, satisfy { ids.include?(it) }, anything)
   end
 

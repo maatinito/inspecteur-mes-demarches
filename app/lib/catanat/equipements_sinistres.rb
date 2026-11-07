@@ -15,11 +15,9 @@ module Catanat
   # Paramètres facultatifs :
   #   champ_categorie : liste de la catégorie dans les blocs source (défaut « Catégorie »)
   #   champ_montant : montant du devis / facture dans les blocs source
-  class EquipementsSinistres < FieldChecker
-    include EcritureBloc
-
+  class EquipementsSinistres < PertesRegroupees
     COLONNES = ["Catégorie d'équipement", 'Éléments', 'Montant déclaré (F)'].freeze
-    RETENU = 'Montant retenu (F)'
+    RETENUS = ['Montant retenu (F)'].freeze
 
     def version
       super + 1
@@ -33,27 +31,21 @@ module Catanat
       super + %i[champ_categorie champ_montant]
     end
 
-    def process(demarche, dossier)
-      super
-      return unless must_check?(dossier)
-
-      changed = recopie(@params[:bloc_destination], par_categorie(elements), COLONNES) { |row| avertir_ligne_retiree(row) }
-      dossier_updated(@dossier) if changed
-    end
-
     private
 
     def champ_categorie = @params[:champ_categorie] || 'Catégorie'
     def champ_montant = @params[:champ_montant] || 'Montant du devis / facture de réparation ou remplacement (F)'
 
+    def lignes = par_categorie(elements)
+
     def elements
       @params[:champs_source].to_h.flat_map do |bloc, gabarit|
         lignes_du_bloc(bloc.to_s).filter_map do |row|
-          categorie = row.champs.find { |c| c.label == champ_categorie }
+          categorie = champ(row, champ_categorie)
           next if categorie.nil? || champ_value(categorie).blank?
 
           { categorie: champ_value(categorie), description: instanciate(gabarit.to_s, row).strip,
-            montant: row.champs.find { |c| c.label == champ_montant }&.int_value.to_i }
+            montant: champ(row, champ_montant)&.int_value.to_i }
         end
       end
     end
@@ -62,12 +54,6 @@ module Catanat
       elements.group_by { it[:categorie] }.map do |categorie, liste|
         [categorie, liste.map { it[:description] }.compact_blank.join("\n"), liste.sum { it[:montant] }]
       end
-    end
-
-    def avertir_ligne_retiree(row)
-      return unless valeur(row, RETENU).to_i.positive?
-
-      Rails.logger.warn("Dossier #{@dossier.number} : une ligne de '#{@params[:bloc_destination]}' n'a plus d'élément déclaré mais garde un montant retenu")
     end
   end
 end

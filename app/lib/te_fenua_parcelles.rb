@@ -26,6 +26,8 @@
 #   champ: "N° du dossier d'inscription CATANAT.Parcelle(s) cultivée(s)"
 #   champ: "Culture sinistrée.Zone sinistrée"
 class TeFenuaParcelles < FieldChecker
+  include EcritureBloc
+
   # rayon terrestre utilisé par ol/sphere (getArea)
   RAYON_TERRE = 6_371_008.8
 
@@ -46,9 +48,11 @@ class TeFenuaParcelles < FieldChecker
     return unless must_check?(dossier)
 
     parcelles = geo_areas.map { |area| infos(area) }.compact
-    return if parcelles.empty? && bloc_rows.blank?
+    return if parcelles.empty? && lignes_actuelles(@params[:bloc_destination]).blank?
 
-    dossier_updated(@dossier) if recopie(parcelles)
+    colonnes = self.colonnes
+    lignes = parcelles.map { |parcelle| colonnes.values.map { |valeur| valeur.call(parcelle).to_s } }
+    dossier_updated(@dossier) if recopie(@params[:bloc_destination], lignes, colonnes.keys)
   end
 
   private
@@ -63,8 +67,6 @@ class TeFenuaParcelles < FieldChecker
     colonnes
   end
 
-  # Une parcelle sélectionnée sur plusieurs lignes d'un bloc (une ligne par
-  # culture) n'est recopiée qu'une fois.
   def compose(parcelle)
     Array(@params[:composition]).filter_map do |partie|
       vide = false
@@ -77,44 +79,14 @@ class TeFenuaParcelles < FieldChecker
     end.join(' - ')
   end
 
+  # Une parcelle sélectionnée sur plusieurs lignes d'un bloc (une ligne par
+  # culture) n'est recopiée qu'une fois.
   def geo_areas
     object_field_values(@dossier, @params[:champ], log_empty: false)
       .select { |champ| champ.respond_to?(:__typename) && champ.__typename == 'TeFenuaChamp' }
       .flat_map(&:geo_areas)
       .uniq { |area| area.section.present? ? [area.section, area.numero, area.commune] : area.geometry.coordinates }
   end
-
-  def bloc_rows
-    SetAnnotationValue.get_annotation(@dossier, @params[:bloc_destination])&.rows
-  end
-
-  # Écrit une ligne par parcelle et vide les lignes en trop (parcelle désélectionnée).
-  def recopie(parcelles)
-    bloc = SetAnnotationValue.allocate_blocks(@dossier, @demarche.instructeur, @params[:bloc_destination], parcelles.size)
-    changed = false
-    bloc.rows.each_with_index do |row, index|
-      parcelle = parcelles[index]
-      colonnes.each do |label, valeur|
-        changed |= set_text(row, label, parcelle ? valeur.call(parcelle).to_s : '')
-      end
-    end
-    changed
-  end
-
-  # Retourne un booléen de statut (comme save/update), pas un prédicat
-  # rubocop:disable Naming/PredicateMethod
-  def set_text(row, label, value)
-    annotation = row.champs.find { |c| c.label == label }
-    unless annotation
-      Rails.logger.warn("Champ '#{label}' introuvable dans le bloc '#{@params[:bloc_destination]}' du dossier #{@dossier.number}")
-      return false
-    end
-    return false if SetAnnotationValue.value_of(annotation).to_s == value.to_s
-
-    SetAnnotationValue.raw_set_value(@dossier.id, @demarche.instructeur, annotation.id, value)
-    true
-  end
-  # rubocop:enable Naming/PredicateMethod
 
   def infos(area)
     surface = surface(area.geometry)
