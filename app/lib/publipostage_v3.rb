@@ -202,9 +202,25 @@ class PublipostageV3 < PublipostageV2
     definitions.each do |definition|
       column, field, par_defaut = load_definition(definition)
       value = typed_values_of(row, field, par_defaut)
+      value = garde_colonnes(value, definition['colonnes']) if definition.is_a?(Hash) && definition['colonnes'].present?
       expand_hash_into_result(result, column, value)
     end
     result
+  end
+
+  # Bloc répétable : ne garde que les colonnes listées (et leurs sous-propriétés
+  # « Colonne.xxx »). Les autres colonnes — saisies de l'instructeur, formules —
+  # n'entrent ni dans le document ni dans son empreinte : les modifier ne
+  # régénère pas le document.
+  def garde_colonnes(lignes, colonnes)
+    return lignes unless lignes.is_a?(Array)
+
+    colonnes = Array(colonnes).map(&:to_s)
+    lignes.map do |ligne|
+      next ligne unless ligne.is_a?(Hash)
+
+      ligne.select { |cle, _| colonnes.any? { |c| cle == c || cle.start_with?("#{c}.") } }
+    end
   end
 
   # Surcharge pour gérer le Markdown dans les colonnes de référentiel (celles

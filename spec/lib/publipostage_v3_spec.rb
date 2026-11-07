@@ -188,6 +188,14 @@ RSpec.describe PublipostageV3 do
       expect(result['Accord']).to eq(true)
       expect(result['Options']).to eq(%w[a b])
     end
+
+    it 'ne garde que les colonnes listées d’un bloc répétable' do
+      lignes = [{ 'Famille' => 'Vanille', 'm² retenus' => 25, 'Montant (F)' => '625', 'Commune' => 'Ahe', 'Commune.ile' => 'Tuamotu' }]
+      allow(publipostage).to receive(:typed_values_of).and_return(lignes)
+      definition = { 'colonne' => 'cultures', 'champ' => 'Cultures', 'colonnes' => %w[Famille Commune] }
+      result = publipostage.send(:get_fields, dossier, [definition], 0)
+      expect(result['cultures']).to eq([{ 'Famille' => 'Vanille', 'Commune' => 'Ahe', 'Commune.ile' => 'Tuamotu' }])
+    end
   end
   describe 'traductions:' do
     let(:traductions) { { 'Femme' => 'Female / Femme', 'Prévue' => 'Planned / Prévue' } }

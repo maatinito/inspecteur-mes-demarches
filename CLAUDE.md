@@ -181,6 +181,14 @@ YAML configuration files are not versioned in Git (excluded via `.gitignore`). F
 
 **Important**: Always deploy to staging first and verify the configuration works before deploying to production.
 
+**À chaque commit** : copier dans `deployment/robot-mes-demarches-staging/` (lien vers le dossier SharePoint/OneDrive) tous les fichiers utilisés par le code commité :
+- les YAML de configuration → `deployment/robot-mes-demarches-staging/configurations/`
+- les documents de publipostage (modèles `.docx`, etc.) → `deployment/robot-mes-demarches-staging/models/<service>/` (même sous-chemin que dans `storage/models/`)
+
+Ces fichiers ne sont pas versionnés dans Git : sans cette copie, ils ne sont pas publiés et le robot de staging tourne sans eux ou avec une version périmée.
+
+La publication se fait depuis `deployment/` : `deployment/mirror_staging.sh` (ou `mirror_production.sh`) appelle le script commun `deployment/mirror.sh`, qui envoie tout le dossier sur S3 avec `mc mirror`. Il ne publie rien tant qu'un fichier Office a été modifié il y a moins de 5 minutes (réécriture par SharePoint) : relancer plus tard.
+
 ## Working with the Code
 
 When implementing a new check or task:

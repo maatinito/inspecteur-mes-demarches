@@ -4,6 +4,7 @@ module Daf
   class CopyOrder < FieldChecker
     IMAGE_EXTENSIONS = %w[.jpg .jpeg .png .gif .tiff .tif .svg .webp].freeze
     OUTPUT_DIR = 'tmp/copy_order'
+    SEPARATEURS_ORPHELINS = %r{\A[\s–,:/]+|[\s–,:/]+\z}
 
     def version
       super + 2
@@ -85,8 +86,10 @@ module Daf
         # Pas de template: joindre toutes les valeurs (compatibilité arrière)
         champs_to_values(row.champs).join(', ')
       elsif config.include?('{')
-        # Template avec syntaxe mustache
-        instanciate(config, row)
+        # Template avec syntaxe mustache. Le préfixe d'une partie ({ – ;Champ;})
+        # reste en tête quand la partie précédente est vide : on retire les
+        # séparateurs orphelins aux extrémités.
+        instanciate(config, row).gsub(SEPARATEURS_ORPHELINS, '')
       else
         # Référence directe à un champ
         field_values = object_field_values(row, config, log_empty: false)
@@ -198,14 +201,18 @@ module Daf
       changed
     end
 
+    # La valeur texte est convertie selon le type de l'annotation (nombre
+    # entier, liste de choix...). Une valeur absente des options d'une liste
+    # est refusée par le serveur : l'erreur est journalisée, le champ reste vide.
     def set_text_field(annotation, value)
+      value = SetAnnotationValue.coerce_to_annotation_type(annotation, value)
       current_value = SetAnnotationValue.value_of(annotation)
       return false if current_value == value
 
-      SetAnnotationValue.raw_set_value(
+      SetAnnotationValue.raw_set_annotation(
         @dossier.id,
         @demarche.instructeur,
-        annotation.id,
+        annotation,
         value
       )
       Rails.logger.info("Champ '#{annotation.label}' mis à jour avec '#{value}'")
@@ -310,8 +317,11 @@ module Daf
     end
     # rubocop:enable Naming/PredicateMethod
 
+    # Le bloc source est un champ ou une annotation, éventuellement d'un dossier
+    # lié : « N° du dossier d'inscription.Élevages (copie) ».
     def orders
-      rows = param_field(:champ_source)&.rows || param_annotation(:champ_source)&.rows
+      rows = object_field_values(@dossier, @params[:champ_source])
+             .find { |champ| champ.respond_to?(:rows) }&.rows
       return [] if rows.blank?
 
       rows.map { |row| extract_row_data(row) }
