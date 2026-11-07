@@ -82,10 +82,40 @@ class TeFenuaParcelles < FieldChecker
   # Une parcelle sélectionnée sur plusieurs lignes d'un bloc (une ligne par
   # culture) n'est recopiée qu'une fois.
   def geo_areas
-    object_field_values(@dossier, @params[:champ], log_empty: false)
-      .select { |champ| champ.respond_to?(:__typename) && champ.__typename == 'TeFenuaChamp' }
-      .flat_map(&:geo_areas)
-      .uniq { |area| area.section.present? ? [area.section, area.numero, area.commune] : area.geometry.coordinates }
+    champs = object_field_values(@dossier, @params[:champ], log_empty: false)
+             .select { |champ| champ.respond_to?(:__typename) && champ.__typename == 'TeFenuaChamp' }
+    return [] if champs.empty?
+
+    zones = zones_par_champ(dossiers_sources)
+    champs.flat_map { |champ| zones.fetch(champ.id, []) }
+          .uniq { |area| area.section.present? ? [area.section, area.numero, area.commune] : area.geometry.coordinates }
+  end
+
+  # Le dossier et les dossiers liés que traverse le chemin du champ
+  # (« N° du dossier d'inscription CATANAT.Parcelle(s) cultivée(s) »).
+  def dossiers_sources
+    parties = @params[:champ].to_s.split('.')
+    lies = (1...parties.size).flat_map do |n|
+      object_field_values(@dossier, parties.first(n).join('.'), log_empty: false)
+        .filter_map { |champ| champ.dossier&.number if champ.respond_to?(:dossier) }
+    end
+    [@dossier.number, *lies].uniq
+  end
+
+  # id du champ carte => zones. Les géométries ne sont pas dans la requête
+  # commune des dossiers (fragment ChampInfo) : on les charge ici. Une erreur
+  # interrompt la tâche : une liste vide ferait vider le bloc.
+  def zones_par_champ(numeros)
+    numeros.each_with_object({}) do |numero, zones|
+      reponse = MesDemarches.query(MesDemarches::Queries::TeFenuaGeoAreas, variables: { number: numero })
+      raise StandardError, reponse.errors.messages.values.join(', ') if reponse.errors.present?
+
+      dossier = reponse.data.dossier
+      [*dossier.champs, *dossier.annotations].each do |champ|
+        champs = champ.respond_to?(:rows) ? champ.rows.flat_map(&:champs) : [champ]
+        champs.each { |c| zones[c.id] = c.geo_areas if c.respond_to?(:geo_areas) }
+      end
+    end
   end
 
   def infos(area)

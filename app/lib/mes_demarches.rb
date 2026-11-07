@@ -124,6 +124,39 @@ module MesDemarches
       }
     }
 
+    # Zones des cartes Te Fenua d'un dossier, chargées seulement par
+    # TeFenuaParcelles : hors du fragment ChampInfo pour que les autres
+    # démarches à carte ne rapatrient pas les géométries à chaque inspection.
+    # L'API ne donne pas leur surface : TeFenuaParcelles la calcule.
+    query TeFenuaGeoAreas($number: Int!) {
+      dossier(number: $number) {
+        champs {
+          ...TeFenuaZones
+          ... on RepetitionChamp { rows { champs { ...TeFenuaZones } } }
+        }
+        annotations {
+          ...TeFenuaZones
+          ... on RepetitionChamp { rows { champs { ...TeFenuaZones } } }
+        }
+      }
+    }
+
+    fragment TeFenuaZones on Champ {
+      id
+      ... on TeFenuaChamp {
+        geoAreas {
+          geometry { type coordinates }
+          ... on SelectionUtilisateur {
+            commune
+            communeAssociee
+            ile
+            section
+            numero
+          }
+        }
+      }
+    }
+
     query DossierState($number: Int!) {
       dossier(number: $number) {
         id
@@ -241,20 +274,6 @@ module MesDemarches
       }
       ... on FormuleChamp {
           value
-      }
-      # Zones sélectionnées sur la carte Te Fenua. L'API ne donne pas leur
-      # surface : TeFenuaParcelles la calcule sur la géométrie.
-      ... on TeFenuaChamp {
-          geoAreas {
-              geometry { type coordinates }
-              ... on SelectionUtilisateur {
-                  commune
-                  communeAssociee
-                  ile
-                  section
-                  numero
-              }
-          }
       }
     }
 

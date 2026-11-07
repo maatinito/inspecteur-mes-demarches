@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable Metrics/BlockLength
 RSpec.describe TeFenuaParcelles do
   let(:controle) do
     described_class.new(champ: 'Parcelle(s) cultivée(s)', bloc_destination: 'Parcelles cultivées',
@@ -68,12 +69,20 @@ RSpec.describe TeFenuaParcelles do
 
   describe '#process' do
     let(:demarche) { double('Demarche', instructeur: 'instructeur') }
-    let(:te_fenua) { double('Champ', __typename: 'TeFenuaChamp', label: 'Parcelle(s) cultivée(s)', geo_areas: [rh30, rh30]) }
+    # Le champ du dossier n'a pas les géométries : elles viennent de la requête TeFenuaGeoAreas.
+    let(:te_fenua) { double('Champ', id: 'C1', __typename: 'TeFenuaChamp', label: 'Parcelle(s) cultivée(s)') }
+    let(:zones) { [rh30, rh30] }
+
+    def reponse(champs, errors: [])
+      double('Reponse', errors: double('Errors', present?: errors.any?, messages: { 'data' => errors }),
+                        data: double('Data', dossier: double('Dossier', champs:, annotations: [])))
+    end
     let(:dossier) { double('Dossier', id: 'D1', number: 1, state: 'en_construction', champs: [te_fenua], annotations: [bloc]) }
     let(:rows) { [row('Parcelle RH30 (MOOREA MAIAO)', '14411', 'Moorea'), row('ancienne', '1', 'Moorea')] }
     let(:bloc) { double('Bloc', label: 'Parcelles cultivées', rows:) }
 
     before do
+      allow(MesDemarches).to receive(:query) { reponse([double('Champ', id: 'C1', geo_areas: zones)]) }
       allow(SetAnnotationValue).to receive(:allocate_blocks).and_return(bloc)
       allow(SetAnnotationValue).to receive(:raw_set_value)
     end
@@ -81,7 +90,7 @@ RSpec.describe TeFenuaParcelles do
     it 'writes one row per distinct parcel and only changed values' do
       rh31 = double('GeoArea', geometry: rh30.geometry, section: 'RH', numero: '31', commune: 'MOOREA MAIAO',
                                commune_associee: 'HAAPITI', ile: 'Moorea')
-      allow(te_fenua).to receive(:geo_areas).and_return([rh30, rh31, rh30])
+      zones.replace([rh30, rh31, rh30])
       controle.process(demarche, dossier)
       expect(SetAnnotationValue).to have_received(:allocate_blocks).with(dossier, 'instructeur', 'Parcelles cultivées', 2)
       expect(SetAnnotationValue).to have_received(:raw_set_value).twice
@@ -106,10 +115,31 @@ RSpec.describe TeFenuaParcelles do
 
     it 'writes a summary of the parcel when composition is set, omitting missing parts' do
       controle.params[:composition] = ['{titre}', '{Surface (en m²)} m²', '{Archipel}', '{Ile}', '{Commune associée}']
-      allow(te_fenua).to receive(:geo_areas).and_return([rh30])
+      zones.replace([rh30])
       controle.process(demarche, dossier)
       expect(SetAnnotationValue).to have_received(:raw_set_value)
         .with('D1', 'instructeur', rows[0].champs[0].id, 'Parcelle RH30 (MOOREA MAIAO) - 14411 m² - Moorea - HAAPITI')
+    end
+
+    it 'loads the geometries of the dossier only, through the dedicated query' do
+      controle.process(demarche, dossier)
+      expect(MesDemarches).to have_received(:query).once.with(MesDemarches::Queries::TeFenuaGeoAreas, variables: { number: 1 })
+    end
+
+    it 'also loads the linked dossier when the field is reached through a dossier link' do
+      controle.params[:champ] = 'Inscription.Parcelle(s) cultivée(s)'
+      lie = double('Dossier', number: 2, champs: [te_fenua], annotations: [])
+      lien = double('Champ', __typename: 'DossierLinkChamp', label: 'Inscription', dossier: lie)
+      allow(dossier).to receive(:champs).and_return([lien])
+      controle.process(demarche, dossier)
+      expect(MesDemarches).to have_received(:query).with(MesDemarches::Queries::TeFenuaGeoAreas, variables: { number: 2 })
+      expect(SetAnnotationValue).to have_received(:raw_set_value).with('D1', 'instructeur', rows[1].champs[0].id, '')
+    end
+
+    it 'stops without clearing the block when the geometries cannot be loaded' do
+      allow(MesDemarches).to receive(:query).and_return(reponse([], errors: ['Accès refusé']))
+      expect { controle.process(demarche, dossier) }.to raise_error(StandardError, /Accès refusé/)
+      expect(SetAnnotationValue).not_to have_received(:raw_set_value)
     end
 
     it 'does nothing when nothing changed' do
@@ -120,3 +150,4 @@ RSpec.describe TeFenuaParcelles do
     end
   end
 end
+# rubocop:enable Metrics/BlockLength
