@@ -6,7 +6,7 @@ require 'roo'
 
 class DossierLinkCheck < FieldChecker
   def version
-    super + 4
+    super + 3
   end
 
   def required_fields
