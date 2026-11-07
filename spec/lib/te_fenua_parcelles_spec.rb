@@ -2,7 +2,6 @@
 
 require 'rails_helper'
 
-# rubocop:disable Metrics/BlockLength
 RSpec.describe TeFenuaParcelles do
   let(:controle) do
     described_class.new(champ: 'Parcelle(s) cultivée(s)', bloc_destination: 'Parcelles cultivées',
@@ -20,10 +19,8 @@ RSpec.describe TeFenuaParcelles do
     double('GeoArea', geometry: double('GeoJSON', type: 'MultiPolygon', coordinates: rh30_coordinates),
                       section: 'RH', numero: '30', commune: 'MOOREA MAIAO', commune_associee: 'HAAPITI', ile: 'Moorea')
   end
-  let(:info_texte) { "Surface (en m²): 14457\nSection: RH\nNuméro: 30\nIle: Moorea\nSource des données: https://www.tefenua.data.gov.pf" }
-  let(:tefenua_body) do
-    { type: 'FeatureCollection',
-      features: [{ properties: { id: 122_137, label: 'RH30', info_titre: 'Parcelle RH30 (MOOREA-MAIAO)', info_texte: } }] }.to_json
+  let(:info_texte) do
+    "Surface (en m²): 14411\nSection: RH\nNuméro: 30\nIle: Moorea\nCommune: MOOREA MAIAO\nCommune associée: HAAPITI"
   end
 
   def row(titre = nil, surface = nil, ile = nil)
@@ -34,45 +31,38 @@ RSpec.describe TeFenuaParcelles do
            ])
   end
 
-  describe '#point_interieur' do
-    it 'returns a point inside the parcel' do
-      lon, lat = controle.send(:point_interieur, rh30.geometry)
-      expect(lon).to be_between(-149.9105, -149.9090)
-      expect(lat).to be_between(-17.4949, -17.4934)
+  describe '#surface' do
+    def geometrie(type, coordinates) = double('GeoJSON', type:, coordinates:)
+
+    let(:carre) { [[0, 0], [0.001, 0], [0.001, 0.001], [0, 0.001], [0, 0]] }
+    let(:trou) { [[0.0004, 0.0004], [0.0006, 0.0004], [0.0006, 0.0006], [0.0004, 0.0006], [0.0004, 0.0004]] }
+
+    it 'is close to the cadastral surface (RH30 : 14457 m² on Te Fenua)' do
+      expect(controle.send(:surface, rh30.geometry)).to be_within(145).of(14_457)
     end
 
-    it 'stays inside a concave (U-shaped) polygon whose centroid is outside' do
-      u = [[[0, 0], [3, 0], [3, 3], [2, 3], [2, 1], [1, 1], [1, 3], [0, 3], [0, 0]]]
-      x, y = controle.send(:point_interieur, double(type: 'Polygon', coordinates: u))
-      expect(y).to eq(1.5)
-      expect(x).to be_between(0, 1)
+    it 'subtracts the holes of a polygon' do
+      plein = controle.send(:surface, geometrie('Polygon', [carre]))
+      expect(controle.send(:surface, geometrie('Polygon', [carre, trou]))).to be_within(1).of(plein * 0.96)
+    end
+
+    it 'is nil for a point' do
+      expect(controle.send(:surface, geometrie('Point', [0, 0]))).to be_nil
     end
   end
 
   describe '#infos' do
-    before { controle.dossier = double('Dossier', number: 1) }
-
-    it 'uses the Te Fenua titre and texte' do
-      stub_request(:get, /tefenua.gov.pf/).to_return(status: 200, body: tefenua_body)
+    it 'builds the titre and texte from the API data and the computed surface' do
       expect(controle.send(:infos, rh30)).to eq(
-        titre: 'Parcelle RH30 (MOOREA-MAIAO)', texte: info_texte,
-        infos: { 'Surface (en m²)' => '14457', 'Section' => 'RH', 'Numéro' => '30', 'Ile' => 'Moorea',
-                 'Source des données' => 'https://www.tefenua.data.gov.pf' }
+        titre: 'Parcelle RH30 (MOOREA MAIAO)', texte: info_texte,
+        infos: { 'Surface (en m²)' => '14411', 'Section' => 'RH', 'Numéro' => '30', 'Ile' => 'Moorea',
+                 'Commune' => 'MOOREA MAIAO', 'Commune associée' => 'HAAPITI' }
       )
     end
 
-    it 'falls back to the API data when Te Fenua is unavailable' do
-      stub_request(:get, /tefenua.gov.pf/).to_return(status: 503)
-      expect(controle.send(:infos, rh30)).to eq(
-        titre: 'Parcelle RH30 (MOOREA MAIAO)',
-        texte: "Section: RH\nNuméro: 30\nIle: Moorea\nCommune: MOOREA MAIAO\nCommune associée: HAAPITI",
-        infos: { 'Section' => 'RH', 'Numéro' => '30', 'Ile' => 'Moorea', 'Commune' => 'MOOREA MAIAO', 'Commune associée' => 'HAAPITI' }
-      )
-    end
-
-    it 'falls back when Te Fenua returns another parcel' do
-      stub_request(:get, /tefenua.gov.pf/).to_return(status: 200, body: tefenua_body.sub('"RH30"', '"RH31"'))
-      expect(controle.send(:infos, rh30)[:titre]).to eq('Parcelle RH30 (MOOREA MAIAO)')
+    it 'keeps a zone drawn outside the cadastre, with its surface' do
+      zone = double('GeoArea', geometry: rh30.geometry, section: nil, numero: nil, commune: nil, commune_associee: nil, ile: nil)
+      expect(controle.send(:infos, zone)).to include(titre: 'Zone sélectionnée', infos: { 'Surface (en m²)' => '14411' })
     end
   end
 
@@ -80,11 +70,10 @@ RSpec.describe TeFenuaParcelles do
     let(:demarche) { double('Demarche', instructeur: 'instructeur') }
     let(:te_fenua) { double('Champ', __typename: 'TeFenuaChamp', label: 'Parcelle(s) cultivée(s)', geo_areas: [rh30, rh30]) }
     let(:dossier) { double('Dossier', id: 'D1', number: 1, state: 'en_construction', champs: [te_fenua], annotations: [bloc]) }
-    let(:rows) { [row('Parcelle RH30 (MOOREA-MAIAO)', '14457', 'Moorea'), row('ancienne', '1', 'Moorea')] }
+    let(:rows) { [row('Parcelle RH30 (MOOREA MAIAO)', '14411', 'Moorea'), row('ancienne', '1', 'Moorea')] }
     let(:bloc) { double('Bloc', label: 'Parcelles cultivées', rows:) }
 
     before do
-      stub_request(:get, /tefenua.gov.pf/).to_return(status: 200, body: tefenua_body)
       allow(SetAnnotationValue).to receive(:allocate_blocks).and_return(bloc)
       allow(SetAnnotationValue).to receive(:raw_set_value)
     end
@@ -97,7 +86,7 @@ RSpec.describe TeFenuaParcelles do
       expect(SetAnnotationValue).to have_received(:allocate_blocks).with(dossier, 'instructeur', 'Parcelles cultivées', 2)
       expect(SetAnnotationValue).to have_received(:raw_set_value).twice
       expect(SetAnnotationValue).to have_received(:raw_set_value).with('D1', 'instructeur', rows[1].champs[0].id, 'Parcelle RH31 (MOOREA MAIAO)')
-      expect(SetAnnotationValue).to have_received(:raw_set_value).with('D1', 'instructeur', rows[1].champs[1].id, '')
+      expect(SetAnnotationValue).to have_received(:raw_set_value).with('D1', 'instructeur', rows[1].champs[1].id, '14411')
       expect(controle.dossier_updated?).to be true
     end
 
@@ -108,7 +97,7 @@ RSpec.describe TeFenuaParcelles do
       expect(SetAnnotationValue).to have_received(:raw_set_value).with('D1', 'instructeur', rows[1].champs[2].id, '')
     end
 
-    it 'also writes the full Te Fenua text when champ_texte is set' do
+    it 'also writes the full text when champ_texte is set' do
       controle.params[:champ_texte] = 'Informations'
       rows[0].champs << double('Champ', id: 'info', label: 'Informations', __typename: 'TextareaChamp', value: nil)
       controle.process(demarche, dossier)
@@ -116,11 +105,11 @@ RSpec.describe TeFenuaParcelles do
     end
 
     it 'writes a summary of the parcel when composition is set, omitting missing parts' do
-      controle.params[:composition] = ['{titre}', '{Surface (en m²)} m²', '{Archipel}', '{Ile}']
+      controle.params[:composition] = ['{titre}', '{Surface (en m²)} m²', '{Archipel}', '{Ile}', '{Commune associée}']
       allow(te_fenua).to receive(:geo_areas).and_return([rh30])
       controle.process(demarche, dossier)
       expect(SetAnnotationValue).to have_received(:raw_set_value)
-        .with('D1', 'instructeur', rows[0].champs[0].id, 'Parcelle RH30 (MOOREA-MAIAO) - 14457 m² - Moorea')
+        .with('D1', 'instructeur', rows[0].champs[0].id, 'Parcelle RH30 (MOOREA MAIAO) - 14411 m² - Moorea - HAAPITI')
     end
 
     it 'does nothing when nothing changed' do
@@ -131,4 +120,3 @@ RSpec.describe TeFenuaParcelles do
     end
   end
 end
-# rubocop:enable Metrics/BlockLength

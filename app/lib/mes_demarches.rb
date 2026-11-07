@@ -242,8 +242,8 @@ module MesDemarches
       ... on FormuleChamp {
           value
       }
-      # Zones sélectionnées sur la carte Te Fenua. Les propriétés Te Fenua
-      # (info_titre, info_texte) ne sont pas exposées par l'API : cf. TeFenuaParcelles.
+      # Zones sélectionnées sur la carte Te Fenua. L'API ne donne pas leur
+      # surface : TeFenuaParcelles la calcule sur la géométrie.
       ... on TeFenuaChamp {
           geoAreas {
               geometry { type coordinates }
