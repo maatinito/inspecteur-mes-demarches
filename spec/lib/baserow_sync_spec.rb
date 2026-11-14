@@ -194,6 +194,34 @@ RSpec.describe BaserowSync do
       expect { checker.deleted(demarche, 12_345) }.to raise_error('boum')
     end
 
+    describe '#ecoute_suppressions?' do
+      def enregistrer(mode, table_ref: '100', backend: 'baserow')
+        ReferentielTable.create!(backend:, table_ref:, mode:, proprietaire: mode == 'dlnuf' ? 7 : nil)
+      end
+
+      it 'est faux sans enregistrement, sans construire de coordinateur' do
+        expect(checker.ecoute_suppressions?(demarche)).to be(false)
+        expect(MesDemarchesToBaserow::SyncCoordinator).not_to have_received(:new)
+      end
+
+      it 'est faux pour une table enregistrée en archive' do
+        enregistrer('archive')
+        expect(checker.ecoute_suppressions?(demarche)).to be(false)
+      end
+
+      it 'est faux pour une table DLNUF d\'un autre backend ou d\'une autre table' do
+        enregistrer('dlnuf', backend: 'grist')
+        enregistrer('dlnuf', table_ref: '101')
+        expect(checker.ecoute_suppressions?(demarche)).to be(false)
+      end
+
+      it 'est vrai pour la table configurée enregistrée en DLNUF' do
+        enregistrer('dlnuf')
+        expect(checker.ecoute_suppressions?(demarche)).to be(true)
+        expect(MesDemarchesToBaserow::SyncCoordinator).not_to have_received(:new)
+      end
+    end
+
     it 'BaserowSync#deleted délègue au coordinateur de la démarche' do
       checker.deleted(demarche, 12_345)
 

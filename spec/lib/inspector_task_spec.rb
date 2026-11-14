@@ -56,4 +56,15 @@ RSpec.describe InspectorTask do
       expect(subject.errors).to include("Champ(s) manquant(s) 'required' sur test_task")
     end
   end
+
+  describe '#ecoute_suppressions?' do
+    it 'est faux pour une tâche qui ne surcharge pas deleted' do
+      expect(TestTask.new({ required: '' }).ecoute_suppressions?(nil)).to be(false)
+    end
+
+    it 'est vrai pour une tâche qui surcharge deleted' do
+      ecouteuse = Class.new(InspectorTask) { def deleted(_demarche, _number); end }
+      expect(ecouteuse.new({}).ecoute_suppressions?(nil)).to be(true)
+    end
+  end
 end

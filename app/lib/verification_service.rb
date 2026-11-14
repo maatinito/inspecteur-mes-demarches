@@ -219,11 +219,30 @@ class VerificationService
     start_time = Time.zone.now
     curseur_charge = demarche.checked_at
     since = reset ? EPOCH : curseur_charge
+    traites = Set.new
+    ecouteurs = nil
     DossierActions.on_dossiers(demarche.id, since) do |dossier|
+      if dossier.date_suppression_par_usager.present?
+        ecouteurs ||= ecouteurs(demarche, controls)
+        supprime_par_usager(demarche, ecouteurs, dossier.number, traites)
+      end
       check_dossier(demarche, dossier, controls)
     end
-    notify_deleted(demarche, since, controls)
+    notify_deleted(demarche, since, controls, traites)
     avancer_curseur(demarche, curseur_charge, start_time)
+  end
+
+  # Tâches à qui le moteur transmet les suppressions de la démarche (écoute sur option).
+  def ecouteurs(demarche, controls)
+    (controls + @ok_tasks).select { |t| t.valid? && t.ecoute_suppressions?(demarche) }
+  end
+
+  # Dossier supprimé par son usager seul : encore listé parmi les dossiers modifiés, il est
+  # transmis aux tâches à l'écoute quels que soient son état et ses contrôles.
+  def supprime_par_usager(demarche, ecouteurs, number, traites)
+    return if ecouteurs.empty? || !traites.add?(number)
+
+    deleted_by_all(demarche, ecouteurs, number)
   end
 
   # N'avance le curseur que s'il n'a pas bougé pendant le passage : un curseur remis au début
@@ -238,46 +257,68 @@ class VerificationService
     end
   end
 
-  # Informe les tâches qui surchargent `deleted` des dossiers supprimés depuis `since`.
-  # Sans tâche à l'écoute, ni requête ni accès base. Les numéros dont une tâche a échoué
-  # sont gardés en attente (SuppressionEnAttente) et rejoués à chaque passage, car le
-  # curseur de la démarche avance malgré l'échec.
-  def notify_deleted(demarche, since, controls)
-    listeners = (controls + @ok_tasks).select { |t| t.valid? && t.method(:deleted).owner != InspectorTask }
+  # Informe les tâches à l'écoute (ecoute_suppressions?, évalué APRÈS la boucle des dossiers :
+  # une table adoptée pendant le passage est déjà enregistrée) des dossiers supprimés depuis
+  # `since`. Sans tâche à l'écoute, ni requête ni accès à la file. Les numéros dont une tâche a
+  # échoué sont gardés en attente (SuppressionEnAttente) et rejoués à chaque passage, car le
+  # curseur de la démarche avance malgré l'échec. `traites` : numéros déjà transmis pendant la
+  # boucle des dossiers (supprimés par leur usager), non retraités.
+  def notify_deleted(demarche, since, controls, traites = Set.new)
+    listeners = ecouteurs(demarche, controls)
     return if listeners.empty?
 
-    traites = Set.new
     SuppressionEnAttente.where(demarche_id: demarche.id).order(:dossier).pluck(:dossier).each do |number|
-      traites << number
-      deleted_by_all(demarche, listeners, number)
+      rejouer_en_attente(demarche, listeners, number) if traites.add?(number)
     end
     DossierActions.on_deleted_dossiers(demarche.id, since) do |number|
       deleted_by_all(demarche, listeners, number) if traites.add?(number)
     end
   end
 
-  def deleted_by_all(demarche, listeners, number)
-    resultats = listeners.map { |task| apply_deleted(demarche, task, number) }
-    attente = SuppressionEnAttente.where(demarche_id: demarche.id, dossier: number)
-    if resultats.all?
-      attente.delete_all
+  # Un numéro en attente dont le dossier a été restauré entre-temps (présent, sans date de
+  # suppression par l'usager) sort de la file sans effacement. Lecture impossible : le numéro
+  # reste en file pour le passage suivant.
+  def rejouer_en_attente(demarche, listeners, number)
+    begin
+      dossier = DossierActions.on_dossier(number)
+    rescue StandardError => e
+      Rails.logger.error("Suppression en attente du dossier #{number} non rejouée : #{e.class.name}: #{e.message}")
+      return
+    end
+
+    if dossier.present? && dossier.date_suppression_par_usager.blank?
+      Rails.logger.info("Dossier #{number} restauré : retiré des suppressions en attente")
+      SuppressionEnAttente.where(demarche_id: demarche.id, dossier: number).delete_all
     else
-      attente.first || SuppressionEnAttente.create!(demarche_id: demarche.id, dossier: number)
+      deleted_by_all(demarche, listeners, number)
     end
   end
 
-  # Vrai si la tâche a traité la suppression, faux si l'erreur a été absorbée.
+  # Un courriel d'erreur au premier échec d'un numéro seulement (création de la ligne en file) ;
+  # les rejeux qui échouent de nouveau ne relancent pas de courriel. Un refus de référentiel
+  # passe par Referentiel::Alerte, déjà limité à une alerte par 24 h.
+  def deleted_by_all(demarche, listeners, number)
+    erreurs = listeners.filter_map { |task| apply_deleted(demarche, task, number) }
+    attente = SuppressionEnAttente.where(demarche_id: demarche.id, dossier: number)
+    if erreurs.empty?
+      attente.delete_all
+    elsif !attente.exists?
+      SuppressionEnAttente.create!(demarche_id: demarche.id, dossier: number)
+      erreurs.grep_v(Referentiel::Verrou::Refus).each { |e| report_error('Error applying deleted', e) }
+    end
+  end
+
+  # nil si la tâche a traité la suppression, l'erreur absorbée sinon.
   def apply_deleted(demarche, task, number)
     task.deleted(demarche, number)
-    true
+    nil
   rescue Referentiel::Verrou::Refus => e
     Referentiel::Alerte.signaler(e)
-    false
+    e
   rescue StandardError => e
     raise e unless Rails.env.production?
 
-    report_error('Error applying deleted', e)
-    false
+    e
   end
 
   def current_user_has_access_to?(demarche)

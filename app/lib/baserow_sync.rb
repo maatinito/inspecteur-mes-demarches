@@ -67,6 +67,12 @@ class BaserowSync < FieldChecker
     coordinator_for(demarche).delete_dossier(number)
   end
 
+  # N'écoute les suppressions que si CE robot a figé la table en DLNUF : une lecture en base,
+  # sans appel Baserow. Une table archive (ou de type encore inconnu) ne coûte rien de plus.
+  def ecoute_suppressions?(_demarche)
+    ReferentielTable.exists?(backend: 'baserow', table_ref: @params[:baserow]&.[]('table_id').to_s, mode: 'dlnuf')
+  end
+
   private
 
   # Créer ou réutiliser le coordinator selon la démarche
