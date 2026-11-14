@@ -29,7 +29,6 @@ module MesDemarchesToBaserow
       @main_table = get_table(@baserow_config['table_id'])
       @main_field_filter = FieldFilter.new(@baserow_config['table_id'], @baserow_config['token_config'])
       @main_field_metadata = build_field_metadata(@main_table)
-      @mode = determiner_mode!
 
       # Caches pour les blocs répétables, découverte des tables et link_row
       @block_field_metadata_cache = {}
@@ -37,6 +36,7 @@ module MesDemarchesToBaserow
       @link_row_cache = {} # { table_id => { primary_value => row_id } }
       @select_options_cache = {} # { field_id => Set[known_values] }
       @failed_uploads = []
+      @mode = determiner_mode!
     end
 
     def sync_dossier(dossier)
@@ -91,42 +91,42 @@ module MesDemarchesToBaserow
     end
 
     # Lit le type déclaré de la table (marqueur sur la colonne primaire), le confronte à
-    # l'enregistrement et, en DLNUF, refuse les colonnes fichier et un propriétaire introuvable.
-    # Un coordinateur ne vit que le temps d'une passe : le mode est donc lu une fois par passe.
+    # l'enregistrement et, en DLNUF, contrôle la structure (colonnes fichier, propriétaire).
+    # Tous les refus partent du bloc de `Verrou.mode!`, donc avant l'effacement de
+    # refus_depuis / alerte_le : l'alerte reste limitée à une par 24 h. Un coordinateur ne
+    # vit que le temps d'une passe : le mode est lu une fois par passe.
     def determiner_mode!
-      table_id = @baserow_config['table_id']
       primaire = @main_field_metadata.values.find { |meta| meta['primary'] }
-      mode = Referentiel::Verrou.mode!(
-        backend: 'baserow', table_ref: table_id.to_s,
+      Referentiel::Verrou.mode!(
+        backend: 'baserow', table_ref: @baserow_config['table_id'].to_s,
         description_primaire: primaire&.dig('description'),
         lignes: -> { @main_table.list_rows(size: 1)['count'] }
-      )
-      verifier_table_dlnuf! if mode == :dlnuf
-      mode
+      ) { |mode, table| verifier_table_dlnuf!(table) if mode == :dlnuf }
     end
 
-    def verifier_table_dlnuf!
-      enregistrement = referentiel_table
-      verifier_sans_colonne_fichier!(@main_field_metadata)
+    def verifier_table_dlnuf!(table)
+      verifier_sans_colonne_fichier!(table, @main_field_metadata)
 
-      @proprietaire = @main_field_metadata.find { |_nom, meta| meta['id'].to_s == enregistrement.proprietaire.to_s }&.first
-      return if @proprietaire
+      @proprietaire = @main_field_metadata.find { |_nom, meta| meta['id'].to_s == table.proprietaire.to_s }&.first
+      Referentiel::Verrou.refuser!(table, "le propriétaire #{table.proprietaire} ne désigne aucune colonne") unless @proprietaire
 
-      raise Referentiel::Verrou::Refus.new(
-        "Référentiel baserow table #{enregistrement.table_ref} : le propriétaire #{enregistrement.proprietaire} " \
-        'ne désigne aucune colonne.', enregistrement
-      )
+      tables_de_bloc.each_value { |table_id| verifier_sans_colonne_fichier!(table, load_block_field_metadata(table_id)) }
     end
 
-    def verifier_sans_colonne_fichier!(metadata)
+    # Tables de l'application dont la colonne « Dossier » est un link_row vers la table principale.
+    def tables_de_bloc
+      principale = @baserow_config['table_id'].to_i
+      discover_application_tables.reject { |_nom, table_id| table_id.to_i == principale }.select do |_nom, table_id|
+        dossier = load_block_field_metadata(table_id)['Dossier']
+        dossier && dossier['type'] == 'link_row' && dossier.dig('config', 'link_row_table_id').to_i == principale
+      end
+    end
+
+    def verifier_sans_colonne_fichier!(table, metadata)
       nom, = metadata.find { |_nom, meta| meta['type'] == 'file' }
       return unless nom
 
-      raise Referentiel::Verrou::Refus.new("colonne fichier #{nom} dans une table DLNUF", referentiel_table)
-    end
-
-    def referentiel_table
-      ReferentielTable.find_by!(backend: 'baserow', table_ref: @baserow_config['table_id'].to_s)
+      Referentiel::Verrou.refuser!(table, "colonne fichier #{nom} dans une table DLNUF")
     end
 
     def ensure_schema
@@ -371,9 +371,7 @@ module MesDemarchesToBaserow
 
       # Sinon, charger et mettre en cache
       field_filter = FieldFilter.new(table_id, @baserow_config['token_config'])
-      metadata = field_filter.load_baserow_fields
-      verifier_sans_colonne_fichier!(metadata) if dlnuf?
-      @block_field_metadata_cache[table_id] = metadata
+      @block_field_metadata_cache[table_id] = field_filter.load_baserow_fields
     rescue StandardError => e
       Rails.logger.error "BaserowSync: Erreur chargement métadonnées bloc #{table_id}: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")

@@ -2,14 +2,14 @@
 
 require 'rails_helper'
 
-RSpec.describe Referentiel::Verrou do
+RSpec.describe Referentiel::Verrou do # rubocop:disable Metrics/BlockLength
   let(:dlnuf7) { 'mes-demarches: referentiel=DLNUF; proprietaire=7' }
   let(:dlnuf8) { 'mes-demarches: referentiel=DLNUF; proprietaire=8' }
   let(:archive) { 'mes-demarches: referentiel=archive' }
   let(:illisible) { 'mes-demarches: referentiel' }
 
-  def mode!(description, lignes: -> { 0 })
-    described_class.mode!(backend: 'baserow', table_ref: '42', description_primaire: description, lignes:)
+  def mode!(description, lignes: -> { 0 }, &)
+    described_class.mode!(backend: 'baserow', table_ref: '42', description_primaire: description, lignes:, &)
   end
 
   def enregistrer(mode, proprietaire = nil)
@@ -42,6 +42,46 @@ RSpec.describe Referentiel::Verrou do
     table = ReferentielTable.create!(backend: 'baserow', table_ref: '42', mode: 'dlnuf', proprietaire: 7, refus_depuis: 1.day.ago, alerte_le: 1.day.ago)
     described_class.mode!(backend: 'baserow', table_ref: '42', description_primaire: 'mes-demarches: referentiel=DLNUF; proprietaire=7', lignes: -> { 3 })
     expect(table.reload).to have_attributes(refus_depuis: nil, alerte_le: nil)
+  end
+
+  describe 'bloc de contrôle' do
+    let(:marqueur) { 'mes-demarches: referentiel=DLNUF; proprietaire=7' }
+
+    it 'garde les dates de refus quand le bloc refuse' do
+      table = ReferentielTable.create!(backend: 'baserow', table_ref: '42', mode: 'dlnuf', proprietaire: 7,
+                                       refus_depuis: 1.day.ago, alerte_le: 1.hour.ago)
+      expect { mode!(marqueur) { |_mode, t| described_class.refuser!(t, 'colonne fichier') } }
+        .to raise_error(Referentiel::Verrou::Refus, /colonne fichier/)
+      expect(table.reload.refus_depuis).to be_present
+      expect(table.alerte_le).to be_present
+    end
+
+    it 'efface les dates quand le bloc passe, avec le mode et la table' do
+      table = ReferentielTable.create!(backend: 'baserow', table_ref: '42', mode: 'dlnuf', proprietaire: 7,
+                                       refus_depuis: 1.day.ago, alerte_le: 1.hour.ago)
+      vus = []
+      expect(mode!(marqueur) { |mode, t| vus << [mode, t] }).to eq(:dlnuf)
+      expect(vus).to eq([[:dlnuf, table]])
+      expect(table.reload).to have_attributes(refus_depuis: nil, alerte_le: nil)
+    end
+
+    it 'appelle le bloc à l\'adoption' do
+      vus = []
+      mode!(marqueur) { |mode, t| vus << [mode, t.table_ref] }
+      expect(vus).to eq([[:dlnuf, '42']])
+    end
+  end
+
+  describe '.refuser!' do
+    it 'date le refus, le conserve et lève Refus avec la table' do
+      table = enregistrer('dlnuf', 7)
+      expect { described_class.refuser!(table, 'raison X') }
+        .to raise_error(Referentiel::Verrou::Refus, /raison X/) { |e| expect(e.table).to eq(table) }
+      date = table.reload.refus_depuis
+      expect(date).to be_present
+      expect { described_class.refuser!(table, 'raison X') }.to raise_error(Referentiel::Verrou::Refus)
+      expect(table.reload.refus_depuis).to eq(date)
+    end
   end
 
   describe 'tableau des règles' do

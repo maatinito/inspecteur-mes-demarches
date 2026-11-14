@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metrics/BlockLength
+  include ActiveSupport::Testing::TimeHelpers
+
   describe '#sync_dossier — étape avis' do
     let(:main_table_id) { 100 }
     let(:baserow_config) { { 'table_id' => main_table_id } }
@@ -50,7 +52,7 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
     end
   end
 
-  describe 'type de table (archive ou DLNUF)' do
+  describe 'type de table (archive ou DLNUF)' do # rubocop:disable Metrics/BlockLength
     let(:main_table_id) { 100 }
     let(:baserow_config) { { 'table_id' => main_table_id } }
     let(:main_table) { instance_double(Baserow::Table, table_id: main_table_id) }
@@ -90,6 +92,14 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
       allow(Baserow::StructureClient).to receive(:new).and_return(structure_client)
       allow(structure_client).to receive(:get_table).and_return({ 'database_id' => 1 })
       allow(structure_client).to receive(:list_tables).and_return([])
+    end
+
+    around do |example|
+      adaptateur = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+      example.run
+    ensure
+      ActiveJob::Base.queue_adapter = adaptateur
     end
 
     def enregistrer(mode, proprietaire = nil)
@@ -150,21 +160,68 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
         .to raise_error(Referentiel::Verrou::Refus, /propriétaire/)
     end
 
-    it 'refuse une table de bloc DLNUF contenant une colonne fichier' do
-      block_table = instance_double(Baserow::Table, find_by_link_row_id: [])
-      allow(Baserow::Config).to receive(:table).with(200, anything).and_return(block_table)
-      allow(structure_client).to receive(:list_tables).and_return([{ 'name' => 'Bloc', 'id' => 200 }])
-      allow(field_filter).to receive(:load_baserow_fields)
-        .and_return({ 'Piece' => { 'id' => 1, 'type' => 'file', 'config' => {}, 'readonly' => false } })
-      extracteur = instance_double(MesDemarchesToBaserow::DataExtractor, label_colors: {})
-      allow(MesDemarchesToBaserow::DataExtractor).to receive(:new).and_return(extracteur)
-      allow(extracteur).to receive(:extract_all)
-        .and_return({ main_table: {}, repetable_blocks: { 'Bloc' => [{ 'Ligne' => '1' }] } })
+    context 'avec une table de bloc liée' do
+      let(:colonnes_bloc) do
+        {
+          'Dossier' => { 'id' => 1, 'type' => 'link_row', 'readonly' => false,
+                         'config' => { 'link_row_table_id' => main_table_id } },
+          'Piece' => { 'id' => 2, 'type' => 'file', 'config' => {}, 'readonly' => false }
+        }
+      end
 
-      coordinator = described_class.new(main_table_id, baserow_config, {})
+      before do
+        allow(structure_client).to receive(:list_tables)
+          .and_return([{ 'name' => 'Principale', 'id' => main_table_id }, { 'name' => 'Bloc', 'id' => 200 }])
+        allow(field_filter).to receive(:load_baserow_fields).and_return(colonnes_bloc)
+      end
 
-      expect { coordinator.sync_dossier(dossier) }
-        .to raise_error(Referentiel::Verrou::Refus, /colonne fichier Piece/)
+      it 'refuse à l\'initialisation une table de bloc DLNUF contenant une colonne fichier' do
+        expect { described_class.new(main_table_id, baserow_config, {}) }
+          .to raise_error(Referentiel::Verrou::Refus, /colonne fichier Piece/)
+      end
+
+      it 'n alerte qu une fois pour une colonne fichier dans une table de bloc' do
+        enregistrer('dlnuf', 11)
+        expect { signaler_deux_passes }.to have_enqueued_mail(NotificationMailer, :report_error).once
+        expect(ReferentielTable.last.refus_depuis).to be_present
+      end
+
+      it 'ignore une table de l\'application non liée à la table principale' do
+        colonnes_bloc['Dossier']['config']['link_row_table_id'] = 999
+
+        expect(described_class.new(main_table_id, baserow_config, {}).mode).to eq(:dlnuf)
+      end
+    end
+
+    def signaler_deux_passes
+      allow(Sentry).to receive(:capture_message)
+      2.times do
+        described_class.new(main_table_id, baserow_config, {})
+      rescue Referentiel::Verrou::Refus => e
+        Referentiel::Alerte.signaler(e)
+      end
+    end
+
+    it 'n alerte qu une fois, sans toucher la date de refus, pour une colonne fichier en DLNUF' do
+      enregistrer('dlnuf', 11)
+      champs << { 'id' => 12, 'name' => 'RIB', 'type' => 'file', 'primary' => false, 'description' => nil }
+
+      expect { signaler_deux_passes }.to have_enqueued_mail(NotificationMailer, :report_error).once
+      premier = ReferentielTable.last.refus_depuis
+      expect(premier).to be_present
+
+      travel 1.hour do
+        expect { signaler_deux_passes }.not_to have_enqueued_mail(NotificationMailer, :report_error)
+      end
+      expect(ReferentielTable.last.refus_depuis).to eq(premier)
+    end
+
+    it 'ne lit ni les tables de l\'application ni les lignes en archive' do
+      champs[0]['description'] = nil
+      expect(Baserow::StructureClient).not_to receive(:new)
+
+      expect(described_class.new(main_table_id, baserow_config, {}).mode).to eq(:archive)
+      expect(main_table).not_to have_received(:list_rows)
     end
 
     it 'ne synchronise pas les avis en DLNUF' do
