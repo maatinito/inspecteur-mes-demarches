@@ -74,7 +74,7 @@ Hors de ce dépôt, transmis à la session mes-demarches : réécriture du contr
 
 ---
 
-### Tâche 1 : analyse et rédaction du marqueur
+### Task 1: analyse et rédaction du marqueur
 
 **Fichiers :**
 - Créer : `app/lib/referentiel/marqueur.rb`
@@ -156,7 +156,7 @@ end
 
 ---
 
-### Tâche 2 : type figé, verrou et alerte
+### Task 2: type figé, verrou et alerte
 
 **Fichiers :**
 - Créer : `db/migrate/<horodatage>_create_referentiel_tables.rb`, `app/models/referentiel_table.rb`, `app/lib/referentiel/verrou.rb`, `app/lib/referentiel/alerte.rb`
@@ -231,7 +231,7 @@ end
 
 ---
 
-### Tâche 3 : colonnes DLNUF dans le builder (PJ en texte marqué, e-mail obligatoire)
+### Task 3: colonnes DLNUF dans le builder (PJ en texte marqué, e-mail obligatoire)
 
 **Fichiers :**
 - Modifier : `app/lib/schema_builders/type_mapper.rb` (`self.for`, `initialize`, `map_field_type`), `app/models/schema_target.rb`, `app/controllers/admin/schema_builder_controller.rb` (`main_table_builder_for`, `block_builder_for`, `differ_for`, `build_main_table`, `toggle_main_table_field_exclusion`), `app/views/admin/schema_builder/_field_checkbox.html.haml`
@@ -289,7 +289,7 @@ Ajouter dans `main_table_builder_spec.rb` et `block_builder_spec.rb` un cas qui 
 
 ---
 
-### Tâche 4 : choix du type et pose du marqueur dans le builder
+### Task 4: choix du type et pose du marqueur dans le builder
 
 **Fichiers :**
 - Créer : `app/lib/schema_builders/referentiel_dlnuf.rb`
@@ -391,7 +391,7 @@ it('liste les colonnes fichier') { colonnes << { 'id' => 3, 'name' => 'RIB', 'ty
 
 ---
 
-### Tâche 5 : alerte unique dans le moteur
+### Task 5: alerte unique dans le moteur
 
 **Fichiers :**
 - Modifier : `app/lib/verification_service.rb` (`apply_task`)
@@ -409,7 +409,7 @@ it('liste les colonnes fichier') { colonnes << { 'id' => 3, 'name' => 'RIB', 'ty
 
 ---
 
-### Tâche 6 : la synchro lit le type et refuse ce qui le contredit
+### Task 6: la synchro lit le type et refuse ce qui le contredit
 
 **Fichiers :**
 - Modifier : `app/lib/mes_demarches_to_baserow/sync_coordinator.rb` (`initialize`, `build_field_metadata`, `sync_dossier`, `load_block_field_metadata`), `app/lib/mes_demarches_to_baserow/field_filter.rb` si nécessaire pour exposer le type des colonnes de bloc
@@ -449,7 +449,7 @@ it 'ne synchronise pas les avis en DLNUF'                             # AvisSync
 
 ---
 
-### Tâche 7 : e-mail du titulaire en minuscules et références de pièces
+### Task 7: e-mail du titulaire en minuscules et références de pièces
 
 **Fichiers :**
 - Créer : `app/lib/referentiel/reference_pj.rb`
@@ -495,7 +495,7 @@ Dans `sync_coordinator_spec.rb` : en DLNUF, un dossier dont l'usager est `Jean.D
 
 ---
 
-### Tâche 8 : hook `deleted` et boucle des suppressions
+### Task 8: hook `deleted` et boucle des suppressions
 
 **Fichiers :**
 - Modifier : `app/lib/inspector_task.rb`, `app/lib/mes_demarches.rb` (deux requêtes à côté de `DossiersModifies`), `app/lib/dossier_actions.rb`, `app/lib/verification_service.rb` (`check_demarche`)
@@ -536,7 +536,7 @@ it 'alerte sans lever quand une tâche refuse'
 
 ---
 
-### Tâche 9 : effacement de la ligne et de ses blocs dans Baserow
+### Task 9: effacement de la ligne et de ses blocs dans Baserow
 
 **Fichiers :**
 - Modifier : `app/lib/baserow_sync.rb`, `app/lib/mes_demarches_to_baserow/sync_coordinator.rb`, `app/lib/mes_demarches.rb` (fragment `DossierInfo` : ajouter `dateSuppressionParUsager`)
@@ -575,7 +575,7 @@ it 'BaserowSync#deleted délègue au coordinateur de la démarche'
 
 ---
 
-### Tâche 10 : « Vider la table » dans le builder
+### Task 10: « Vider la table » dans le builder
 
 **Fichiers :**
 - Modifier : `app/lib/baserow/structure_client.rb`, `app/lib/schema_builders/baserow_target.rb`, `app/controllers/admin/schema_builder_controller.rb`, `config/routes.rb`, `app/views/admin/schema_builder/_main_table_section.html.haml`
@@ -603,7 +603,7 @@ Règles de l'action `vider_table` :
 
 ---
 
-### Tâche 11 : documentation et recette en staging
+### Task 11: documentation et recette en staging
 
 **Fichiers :**
 - Modifier : `app/lib/mes_demarches_to_baserow/README.md`, `docs/CONFIGURATION_GUIDE.md` (section `baserow_sync`)
