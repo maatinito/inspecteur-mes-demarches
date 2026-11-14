@@ -224,6 +224,47 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
       expect(main_table).not_to have_received(:list_rows)
     end
 
+    context 'e-mail du titulaire' do
+      let(:usager) { double('User', email: 'Jean.Dupont@Example.PF') }
+      let(:dossier_usager) do
+        double('Dossier', number: 12_345, champs: [], annotations: [], demandeur: nil, usager:,
+                          labels: nil, date_depot: nil, date_passage_en_instruction: nil,
+                          date_traitement: nil, groupe_instructeur: nil, state: 'en_instruction',
+                          instructeurs: [], traitements: [])
+      end
+
+      it 'écrit l\'e-mail en minuscules dans la colonne propriétaire, sans copier de fichier, en DLNUF' do
+        enregistrer('dlnuf', 11)
+        televerseur = instance_double(Baserow::FileUploader, download_and_upload: nil)
+        allow(Baserow::FileUploader).to receive(:new).and_return(televerseur)
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+        coordinator.sync_dossier(dossier_usager)
+
+        expect(upserter).to have_received(:upsert_row)
+          .with(12_345, hash_including('Email' => 'jean.dupont@example.pf'), existing_row: nil)
+        expect(televerseur).not_to have_received(:download_and_upload)
+      end
+
+      it 'vide la colonne propriétaire quand le dossier n\'a pas d\'usager, en DLNUF' do
+        enregistrer('dlnuf', 11)
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+        coordinator.sync_dossier(dossier)
+
+        expect(upserter).to have_received(:upsert_row)
+          .with(12_345, hash_including('Email' => nil), existing_row: nil)
+      end
+
+      it 'écrit l\'e-mail tel quel en archive' do
+        champs[0]['description'] = nil
+        champs << { 'id' => 12, 'name' => 'Email usager', 'type' => 'text', 'primary' => false, 'description' => nil }
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+        coordinator.sync_dossier(dossier_usager)
+
+        expect(upserter).to have_received(:upsert_row)
+          .with(12_345, hash_including('Email usager' => 'Jean.Dupont@Example.PF'), existing_row: nil)
+      end
+    end
+
     it 'ne synchronise pas les avis en DLNUF' do
       coordinator = described_class.new(main_table_id, baserow_config, {})
       coordinator.sync_dossier(dossier)

@@ -48,11 +48,16 @@ module MesDemarchesToBaserow
 
       # 2. Extraire les données du dossier
       data_extractor = DataExtractor.new(@main_field_metadata, @options,
-                                         block_columns: ->(label) { block_columns_by_label(label) })
+                                         block_columns: ->(label) { block_columns_by_label(label) },
+                                         referentiel: @mode)
       extracted_data = data_extractor.extract_all(dossier, existing_row)
 
       # 3. Filtrer les champs read-only
       syncable_data = @main_field_filter.filter_syncable_fields(extracted_data[:main_table])
+
+      # En DLNUF, la colonne propriétaire porte toujours l'e-mail du titulaire en minuscules
+      # (nil sans usager : la cellule est vidée), quoi que l'extracteur ait produit.
+      syncable_data[@proprietaire] = dossier.usager&.email&.downcase if dlnuf?
 
       # 4. Traiter les uploads de fichiers (téléchargement + upload multipart)
       process_file_uploads(syncable_data, @main_field_metadata)

@@ -23,15 +23,19 @@ module MesDemarchesToBaserow
     # UnfetchedFieldError hérite de NoMethodError, pas de GraphQL::Client::Error.
     CHAMP_READ_ERRORS = [GraphQL::Client::Error, GraphQL::Client::UnfetchedFieldError].freeze
 
+    IGNOREE = Object.new.freeze
+    private_constant :IGNOREE
+
     attr_reader :label_colors
 
     # `block_columns` : ->(libellé du bloc) { { nom de colonne => métadonnées } | nil },
     # fourni par le coordinateur pour remplir les sous-colonnes des champs
     # composites d'un bloc (appelé seulement si le bloc en contient).
-    def initialize(field_metadata, options = {}, block_columns: nil)
+    def initialize(field_metadata, options = {}, block_columns: nil, referentiel: :archive)
       @field_metadata = field_metadata
       @options = options
       @block_columns = block_columns
+      @referentiel = referentiel
       @existing_row = nil
       @label_colors = {}
     end
@@ -91,12 +95,12 @@ module MesDemarchesToBaserow
       data.merge!(extract_system_fields(dossier))
 
       # Champs formulaire (toujours extraits)
-      data.merge!(extract_champs(dossier))
+      data.merge!(extract_fields(dossier.champs, dossier.number))
 
       # Annotations privées : on ignore celles dont le label collisionne avec un
       # champ — le champ est la donnée canonique (saisie usager) et l'annotation
       # homonyme ne doit pas l'écraser silencieusement dans Baserow.
-      annotations_data = extract_annotations(dossier)
+      annotations_data = extract_fields(dossier.annotations, dossier.number)
       champ_labels = dossier.champs.to_set(&:label)
       collisions = annotations_data.keys.select { |k| champ_labels.include?(k) }
       if collisions.any?
@@ -140,15 +144,11 @@ module MesDemarchesToBaserow
       end
     end
 
-    def extract_champs(dossier)
-      extract_fields(dossier.champs)
+    def dlnuf?
+      @referentiel == :dlnuf
     end
 
-    def extract_annotations(dossier)
-      extract_fields(dossier.annotations)
-    end
-
-    def extract_fields(champs)
+    def extract_fields(champs, numero_dossier = nil)
       data = {}
 
       champs.each do |champ|
@@ -160,6 +160,11 @@ module MesDemarchesToBaserow
         next unless @field_metadata.key?(field_name)
 
         baserow_type = @field_metadata[field_name]['type']
+
+        if dlnuf? && champ.__typename == 'PieceJustificativeChamp'
+          extract_reference_pj(data, champ, numero_dossier)
+          next
+        end
 
         # Pour les champs fichiers, passer les fichiers existants
         # Vérifier aussi le type MD : seul PieceJustificativeChamp a la méthode `files`
@@ -224,7 +229,12 @@ module MesDemarchesToBaserow
 
           field_name = champ.label
           # Pour les blocs, on utilise tous les champs (pas de filtrage par metadata)
-          row_data[field_name] = normalize_value_simple(champ)
+          if dlnuf? && champ.__typename == 'PieceJustificativeChamp'
+            reference = reference_pj(dossier.number, champ)
+            row_data[field_name] = reference unless reference == IGNOREE
+          else
+            row_data[field_name] = normalize_value_simple(champ)
+          end
         rescue *CHAMP_READ_ERRORS => e
           Rails.logger.warn("BaserowSync: champ de bloc #{field_name} illisible (#{champ.__typename}), ignoré — #{e.message}")
         end
@@ -272,6 +282,27 @@ module MesDemarchesToBaserow
       when 'single_select' then brute.to_s.presence
       else brute.to_s
       end
+    end
+
+    # Colonne non marquée : jamais d'écriture. Colonne marquée : la référence, ou nil
+    # (pièce supprimée côté Mes-Démarches → cellule réinitialisée).
+    def extract_reference_pj(data, champ, numero_dossier)
+      unless @field_metadata[champ.label]['reference_pj']
+        Rails.logger.warn("BaserowSync: pièce jointe #{champ.label} ignorée en DLNUF, la colonne n'est pas marquée « reference=piece_justificative »")
+        return
+      end
+
+      reference = reference_pj(numero_dossier, champ)
+      data[champ.label] = reference unless reference == IGNOREE
+    end
+
+    # Référence DLNUF d'une pièce jointe. Un identifiant illisible laisse la cellule
+    # intacte (IGNOREE) plutôt que de faire échouer tout le dossier.
+    def reference_pj(numero_dossier, champ)
+      Referentiel::ReferencePj.pour(numero_dossier, champ)
+    rescue ArgumentError => e
+      Rails.logger.warn("BaserowSync: pièce jointe #{champ.label} sans référence possible, cellule laissée intacte — #{e.message}")
+      IGNOREE
     end
 
     def normalize_value(champ, baserow_type)
