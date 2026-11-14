@@ -182,6 +182,18 @@ RSpec.describe BaserowSync do
       expect(MesDemarchesToBaserow::SyncCoordinator).not_to have_received(:new)
     end
 
+    it 'BaserowSync#deleted laisse remonter un refus du verrou' do
+      allow(coordinator).to receive(:delete_dossier).and_raise(Referentiel::Verrou::Refus.new('test'))
+
+      expect { checker.deleted(demarche, 12_345) }.to raise_error(Referentiel::Verrou::Refus)
+    end
+
+    it 'BaserowSync#deleted laisse remonter une erreur ordinaire' do
+      allow(coordinator).to receive(:delete_dossier).and_raise('boum')
+
+      expect { checker.deleted(demarche, 12_345) }.to raise_error('boum')
+    end
+
     it 'BaserowSync#deleted délègue au coordinateur de la démarche' do
       checker.deleted(demarche, 12_345)
 

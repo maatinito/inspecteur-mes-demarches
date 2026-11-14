@@ -89,29 +89,49 @@ module MesDemarchesToBaserow
       Rails.logger.info "BaserowSync: Dossier #{dossier.number} synchronisé avec succès"
     end
 
-    # Efface la ligne du dossier et celles de ses blocs répétables (DLNUF seulement).
+    # Efface les lignes du dossier et celles de ses blocs répétables (DLNUF seulement).
     # Les blocs d'abord : une interruption laisse une ligne principale que le rejeu retrouvera.
     # Seules les tables liées à la table principale sont touchées (jamais une table d'archive
     # ni une table étrangère). Idempotent : sans ligne pour ce numéro, rend false.
-    def delete_dossier(number) # rubocop:disable Naming/PredicateMethod
+    # Un effacement refusé par Baserow lève : le moteur garde alors le numéro à rejouer.
+    def delete_dossier(number)
       return false unless dlnuf?
 
-      ligne = find_existing_row(@main_table, number)
-      return false unless ligne
+      efface = false
+      loop do
+        lignes = @main_table.find_by_normalized('Dossier', number.to_s)
+        break if lignes.empty?
 
-      tables_de_bloc.each_value do |table_id|
-        table = get_table(table_id)
-        table.find_by_link_row_id('Dossier', ligne['id']).each { |bloc| table.delete_row(bloc['id']) }
+        lignes.each do |ligne|
+          tables_de_bloc.each_value { |table_id| effacer_lignes_liees(get_table(table_id), ligne['id']) }
+          effacer_ligne!(@main_table, ligne['id'])
+        end
+        efface = true
       end
-      @main_table.delete_row(ligne['id'])
-      Rails.logger.info "BaserowSync: Dossier #{number} effacé de Baserow (ligne #{ligne['id']} et blocs)"
-      true
+      Rails.logger.info "BaserowSync: Dossier #{number} effacé de Baserow (lignes et blocs)" if efface
+      efface
     end
 
     private
 
     def dlnuf?
       @mode == :dlnuf
+    end
+
+    # Efface page après page les lignes d'un bloc liées à la ligne principale.
+    def effacer_lignes_liees(table, ligne_principale_id)
+      loop do
+        lignes = table.find_by_link_row_id('Dossier', ligne_principale_id)
+        break if lignes.empty?
+
+        lignes.each { |ligne| effacer_ligne!(table, ligne['id']) }
+      end
+    end
+
+    def effacer_ligne!(table, row_id)
+      return if table.delete_row(row_id)
+
+      raise "Effacement Baserow échoué : table #{table.table_id}, ligne #{row_id}"
     end
 
     # Lit le type déclaré de la table (marqueur sur la colonne primaire), le confronte à

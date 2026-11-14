@@ -294,10 +294,11 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
                                                                   .and_return(instance_double(MesDemarchesToBaserow::FieldFilter, load_baserow_fields: colonnes_bloc))
         allow(MesDemarchesToBaserow::FieldFilter).to receive(:new).with(300, anything)
                                                                   .and_return(instance_double(MesDemarchesToBaserow::FieldFilter, load_baserow_fields: colonnes_autre))
-        allow(main_table).to receive(:find_by_normalized).with('Dossier', '12345').and_return([{ 'id' => 42 }])
-        allow(main_table).to receive(:delete_row)
-        allow(bloc_table).to receive(:find_by_link_row_id).with('Dossier', 42).and_return([{ 'id' => 7 }, { 'id' => 8 }])
-        allow(bloc_table).to receive(:delete_row)
+        allow(main_table).to receive(:find_by_normalized).with('Dossier', '12345').and_return([{ 'id' => 42 }], [])
+        allow(main_table).to receive(:delete_row).and_return(true)
+        allow(bloc_table).to receive(:find_by_link_row_id).with('Dossier', 42)
+                                                          .and_return([{ 'id' => 7 }, { 'id' => 8 }], [])
+        allow(bloc_table).to receive(:delete_row).and_return(true)
       end
 
       it 'efface les lignes des blocs puis la ligne du dossier en DLNUF' do
@@ -315,8 +316,44 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
         enregistrer('dlnuf', 11)
         described_class.new(main_table_id, baserow_config, {}).delete_dossier(12_345)
 
-        expect(autre_table).not_to have_received(:delete_row) if autre_table.respond_to?(:delete_row)
         expect(Baserow::Config).not_to have_received(:table).with(300, anything)
+      end
+
+      it 'lève une erreur sans toucher la ligne principale quand l\'effacement d\'une ligne de bloc échoue' do
+        enregistrer('dlnuf', 11)
+        allow(bloc_table).to receive(:delete_row).with(7).and_return(false)
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+
+        expect { coordinator.delete_dossier(12_345) }.to raise_error(/200.*7/)
+        expect(main_table).not_to have_received(:delete_row)
+      end
+
+      it 'lève une erreur quand l\'effacement de la ligne principale échoue' do
+        enregistrer('dlnuf', 11)
+        allow(main_table).to receive(:delete_row).with(42).and_return(false)
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+
+        expect { coordinator.delete_dossier(12_345) }.to raise_error(/#{main_table_id}.*42/)
+      end
+
+      it 'efface toutes les lignes d\'un bloc réparties sur plusieurs pages' do
+        enregistrer('dlnuf', 11)
+        allow(bloc_table).to receive(:find_by_link_row_id).with('Dossier', 42)
+                                                          .and_return([{ 'id' => 7 }, { 'id' => 8 }], [{ 'id' => 9 }], [])
+        described_class.new(main_table_id, baserow_config, {}).delete_dossier(12_345)
+
+        [7, 8, 9].each { |id| expect(bloc_table).to have_received(:delete_row).with(id) }
+      end
+
+      it 'efface toutes les lignes portant le numéro du dossier' do
+        enregistrer('dlnuf', 11)
+        allow(main_table).to receive(:find_by_normalized).with('Dossier', '12345')
+                                                         .and_return([{ 'id' => 42 }, { 'id' => 43 }], [])
+        allow(bloc_table).to receive(:find_by_link_row_id).with('Dossier', 43).and_return([])
+        described_class.new(main_table_id, baserow_config, {}).delete_dossier(12_345)
+
+        expect(main_table).to have_received(:delete_row).with(42)
+        expect(main_table).to have_received(:delete_row).with(43)
       end
 
       it 'n\'efface rien en archive' do
