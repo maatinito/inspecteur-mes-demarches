@@ -68,6 +68,15 @@ module SchemaBuilders
       end
     end
 
+    # Id de la table que build! réutiliserait pour ce nom, nil s'il la créerait.
+    # Exposé pour que l'appelant contrôle la table réellement ciblée avant toute écriture.
+    def existing_table_id(application_id, table_name)
+      return nil unless target.table_exists?(application_id, table_name)
+
+      existing = find_existing_table(application_id, table_name)
+      existing && (existing['id'] || existing[:id])
+    end
+
     private
 
     # Extrait tous les RepetitionChampDescriptor (champs ET annotations).

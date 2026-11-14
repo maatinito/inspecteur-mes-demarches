@@ -111,6 +111,17 @@ RSpec.describe SchemaBuilders::BlockBuilder do
       end
     end
 
+    describe '#existing_table_id' do
+      it 'rend l\'id de la table que build! réutiliserait, nil si elle serait créée' do
+        allow(target).to receive(:table_exists?).with(17, 'Pièces').and_return(true)
+        allow(target).to receive(:table_exists?).with(17, 'Articles').and_return(false)
+        allow(target).to receive(:list_tables).with(17).and_return([{ 'id' => 50, 'name' => 'Pièces' }])
+
+        expect(builder.existing_table_id(17, 'Pièces')).to eq(50)
+        expect(builder.existing_table_id(17, 'Articles')).to be_nil
+      end
+    end
+
     describe '#build!' do
       it 'crée chaque bloc absent et update chaque bloc présent' do
         allow(target).to receive(:table_exists?).with(17, 'Articles').and_return(false)

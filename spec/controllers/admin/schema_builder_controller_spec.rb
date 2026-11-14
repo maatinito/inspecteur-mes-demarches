@@ -682,6 +682,47 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         expect(response.body).to include('créer une nouvelle table')
       end
 
+      context 'build_blocks en DLNUF : tables de bloc réutilisées' do
+        let(:blocs) do
+          instance_double(SchemaBuilders::BlockBuilder,
+                          preview: [{ table_name: 'Membres' }], existing_table_id: 862, build!: [])
+        end
+
+        before do
+          target = demarche.schema_targets.find_by!(target_type: 'baserow')
+          target.update!(application_external_id: '17')
+          allow(dlnuf_service).to receive(:type_lu).and_return(:dlnuf)
+          allow(dlnuf_service).to receive(:colonnes_fichier).with('101').and_return([])
+          allow_any_instance_of(described_class).to receive(:block_builder_for).and_return(blocs)
+        end
+
+        def construire_blocs
+          post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        end
+
+        it 'refuse une table réutilisée qui n\'est pas liée à cette table DLNUF' do
+          allow(dlnuf_service).to receive(:tables_liees).with('17', '101').and_return([])
+          expect(blocs).not_to receive(:build!)
+          construire_blocs
+          expect(response.body).to include('La table de bloc Membres n&#39;appartient pas à cette table DLNUF')
+        end
+
+        it 'refuse une table liée qui porte une colonne fichier' do
+          allow(dlnuf_service).to receive(:tables_liees).and_return([862])
+          allow(dlnuf_service).to receive(:colonnes_fichier).with(862).and_return(['Pièce'])
+          expect(blocs).not_to receive(:build!)
+          construire_blocs
+          expect(response.body).to include('Colonne(s) fichier interdite(s) dans une table DLNUF').and include('Pièce')
+        end
+
+        it 'construit quand les tables réutilisées sont liées et sans fichier' do
+          allow(dlnuf_service).to receive(:tables_liees).and_return([862])
+          allow(dlnuf_service).to receive(:colonnes_fichier).with(862).and_return([])
+          expect(blocs).to receive(:build!).and_return([])
+          construire_blocs
+        end
+      end
+
       it 'build_avis et preview_avis renvoient 412 en DLNUF' do
         post :build_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
         expect(response).to have_http_status(:precondition_failed)
@@ -729,6 +770,7 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       let(:adapter) { instance_double(SchemaBuilders::BaserowTarget) }
 
       before do
+        allow(dlnuf_service).to receive_messages(application_de: 17, tables_liees: [201, 202])
         allow_any_instance_of(described_class).to receive(:target_adapter_for).and_return(adapter)
         demarche.update!(checked_at: Time.zone.parse('2026-11-01 10:00'))
       end
@@ -743,6 +785,20 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         vider
         expect(response).to have_http_status(:forbidden)
         expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+      end
+
+      it 'rend 403 sans table principale' do
+        target.update!(main_table_external_id: nil)
+        expect(adapter).not_to receive(:vider_table)
+        vider
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it 'rend 403 pour une cible qui n\'est pas Baserow' do
+        create(:schema_target, demarche: demarche, target_type: 'grist', main_table_external_id: 'T1')
+        expect(adapter).not_to receive(:vider_table)
+        post :vider_table, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
+        expect(response).to have_http_status(:forbidden)
       end
 
       it 'rend 403 quand le marqueur est illisible' do
@@ -764,14 +820,21 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       context 'sur une table DLNUF' do
         before do
           allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:dlnuf)
-          create(:schema_block_target, schema_target: target, block_descriptor_id: 'b1', backend_table_id: '201')
-          create(:schema_block_target, schema_target: target, block_descriptor_id: 'b2', backend_table_id: '202')
-          create(:schema_block_target, schema_target: target, block_descriptor_id: 'b3', backend_table_id: nil)
+          # Un backend_table_id périmé ou détecté par nom ne doit jamais être effacé.
+          create(:schema_block_target, schema_target: target, block_descriptor_id: 'b1', backend_table_id: '999')
+        end
+
+        it 'ne vide que les tables liées à la table principale, lues sur Baserow' do
+          expect(dlnuf_service).to receive(:tables_liees).with(17, '101').and_return([201])
+          expect(adapter).to receive(:vider_table).with(201).ordered.and_return(1)
+          expect(adapter).to receive(:vider_table).with('101').ordered.and_return(1)
+          expect(adapter).not_to receive(:vider_table).with('999')
+          vider
         end
 
         it 'vide les blocs puis la table principale et remet le curseur à EPOCH' do
-          expect(adapter).to receive(:vider_table).with('201').ordered.and_return(2)
-          expect(adapter).to receive(:vider_table).with('202').ordered.and_return(0)
+          expect(adapter).to receive(:vider_table).with(201).ordered.and_return(2)
+          expect(adapter).to receive(:vider_table).with(202).ordered.and_return(0)
           expect(adapter).to receive(:vider_table).with('101').ordered.and_return(5)
           vider
           expect(response).to have_http_status(:ok)
@@ -780,8 +843,8 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         end
 
         it 'ne remet pas le curseur si l\'effacement échoue en cours de route' do
-          allow(adapter).to receive(:vider_table).with('201').and_return(2)
-          allow(adapter).to receive(:vider_table).with('202').and_raise(Baserow::APIError.new({ 'error' => 'boom' }, 500))
+          allow(adapter).to receive(:vider_table).with(201).and_return(2)
+          allow(adapter).to receive(:vider_table).with(202).and_raise(Baserow::APIError.new({ 'error' => 'boom' }, 500))
           vider
           expect(response.body).to include('alert-danger')
           expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))

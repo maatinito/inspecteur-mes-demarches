@@ -60,4 +60,27 @@ RSpec.describe SchemaBuilders::ReferentielDlnuf do
     colonnes << { 'id' => 3, 'name' => 'RIB', 'type' => 'file' }
     expect(described_class.new(client:).colonnes_fichier(861)).to eq(['RIB'])
   end
+
+  describe '#tables_liees' do
+    let(:tables) { [{ 'id' => 861, 'name' => 'Dossiers' }, { 'id' => 862, 'name' => 'Membres' }, { 'id' => 863, 'name' => 'Membres archive' }, { 'id' => 864, 'name' => 'Sans lien' }] }
+    let(:lien) { ->(cible) { [{ 'name' => 'Dossier', 'type' => 'link_row', 'link_row_table_id' => cible }] } }
+
+    before do
+      allow(client).to receive(:list_tables).with(17).and_return(tables)
+      allow(client).to receive(:get_table_fields).with(862).and_return(lien.call(861))
+      allow(client).to receive(:get_table_fields).with(863).and_return(lien.call(555))
+      allow(client).to receive(:get_table_fields).with(864).and_return([{ 'name' => 'Dossier', 'type' => 'number' }])
+    end
+
+    it 'ne rend que les tables dont la colonne Dossier pointe vers la table principale' do
+      expect(described_class.new(client:).tables_liees(17, 861)).to eq([862])
+    end
+  end
+
+  describe '#application_de' do
+    it 'lit l\'application de la table sur Baserow' do
+      allow(client).to receive(:get_table).with(861).and_return({ 'id' => 861, 'database_id' => 17 })
+      expect(described_class.new(client:).application_de(861)).to eq(17)
+    end
+  end
 end

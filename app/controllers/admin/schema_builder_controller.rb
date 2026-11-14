@@ -128,7 +128,7 @@ module Admin
     def vider_table
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       table_id = target.main_table_external_id
-      return head :forbidden if table_id.blank?
+      return head :forbidden if !target.baserow? || table_id.blank?
 
       begin
         return head :forbidden unless referentiel_dlnuf.type_lu(table_id) == :dlnuf
@@ -205,9 +205,10 @@ module Admin
       return render_build_error('blocks', 'blocks_section', target, [], erreur: erreur) if erreur
 
       builder = block_builder_for(target)
-      excluded_fields_per_block = target.schema_block_targets.to_h do |bt|
-        [bt.block_descriptor_id, bt.excluded_field_ids]
-      end
+      erreur = refus_tables_de_bloc(target, builder)
+      return render_build_error('blocks', 'blocks_section', target, [], erreur: erreur) if erreur
+
+      excluded_fields_per_block = exclusions_par_bloc(target)
       results = builder.build!(
         demarche_descriptor,
         application_id: target.application_external_id,
@@ -306,10 +307,44 @@ module Admin
       "Lecture de la table #{table_id} impossible : #{e.message}"
     end
 
+    def exclusions_par_bloc(target)
+      target.schema_block_targets.to_h { |bt| [bt.block_descriptor_id, bt.excluded_field_ids] }
+    end
+
+    # DLNUF : build! réutilise une table de même nom ; elle doit être liée à CETTE table principale
+    # et sans colonne fichier, sinon rien n'est écrit. Rend le message d'erreur, ou nil.
+    def refus_tables_de_bloc(target, builder)
+      return unless target.dlnuf?
+
+      application = target.application_external_id
+      principale = target.main_table_external_id
+      liees = referentiel_dlnuf.tables_liees(application, principale)
+      blocs = builder.preview(demarche_descriptor, application_id: application, main_table_id: principale,
+                                                   excluded_block_ids: target.excluded_block_descriptor_ids)
+      blocs.each do |bloc|
+        existante = builder.existing_table_id(application, bloc[:table_name])
+        next unless existante
+
+        unless liees.include?(existante.to_i)
+          return "La table de bloc #{bloc[:table_name]} n'appartient pas à cette table DLNUF : " \
+                 'la renommer ou choisir une autre application.'
+        end
+
+        fichiers = referentiel_dlnuf.colonnes_fichier(existante)
+        return "Colonne(s) fichier interdite(s) dans une table DLNUF : #{fichiers.join(', ')}." if fichiers.any?
+      end
+      nil
+    rescue Baserow::APIError => e
+      "Lecture des tables de bloc impossible : #{e.message}"
+    end
+
     # Efface les tables de blocs puis la principale ; le curseur n'est remis qu'une fois tout effacé.
     def vider_tables(target, table_id)
       adapter = target_adapter_for(target)
-      tables = target.schema_block_targets.pluck(:backend_table_id).compact_blank + [table_id]
+      # Tables de bloc lues sur Baserow (colonne Dossier liée à la principale), jamais les
+      # backend_table_id enregistrés : détectés par nom, ils peuvent désigner une autre table.
+      blocs = referentiel_dlnuf.tables_liees(referentiel_dlnuf.application_de(table_id), table_id)
+      tables = blocs + [table_id]
       effacees = tables.sum { |id| adapter.vider_table(id) }
       @demarche.update!(checked_at: DossierActions::EPOCH)
       "#{effacees} ligne(s) effacée(s). La démarche sera retraitée depuis le début au prochain passage du robot."

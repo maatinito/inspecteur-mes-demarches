@@ -25,6 +25,25 @@ module SchemaBuilders
       colonnes(table_id).select { |colonne| colonne['type'] == 'file' }.map { |colonne| colonne['name'] }
     end
 
+    # Application (database) qui porte la table, lue sur Baserow plutôt que dans la cible, dont
+    # l'identifiant peut être périmé.
+    def application_de(table_id)
+      @client.get_table(table_id)['database_id']
+    end
+
+    # Tables de l'application, autres que la principale, dont la colonne « Dossier » est un link_row
+    # vers la table principale : même critère que la synchronisation. Toute autre table est étrangère.
+    def tables_liees(application_id, table_id)
+      principale = table_id.to_i
+      Array(@client.list_tables(application_id)).filter_map do |table|
+        id = table['id'].to_i
+        next if id == principale
+
+        dossier = colonnes(id).find { |colonne| colonne['name'] == 'Dossier' }
+        id if dossier && dossier['type'] == 'link_row' && dossier['link_row_table_id'].to_i == principale
+      end
+    end
+
     # Pose le marqueur sur une table neuve, ou vérifie celui d'une table existante.
     # Rend l'identifiant de la colonne propriétaire.
     def finaliser!(table_id, creee:)
