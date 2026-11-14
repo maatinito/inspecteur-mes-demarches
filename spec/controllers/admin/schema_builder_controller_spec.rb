@@ -611,6 +611,15 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         expect(response).to have_http_status(:ok)
         expect(response.body).to include('alert-danger').and include('colonne Email usager absente')
       end
+
+      it 'affiche une erreur nommant la table quand le marqueur n\'a pas pu être écrit, sans erreur 500' do
+        allow(builder_double).to receive(:build!).and_return(created)
+        allow(dlnuf_service).to receive(:finaliser!).and_raise(Baserow::APIError.new({ 'error' => 'HTTP 500' }, 500))
+        construire
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger').and include('Dossiers').and include('99')
+        expect(response.body).to include('marqueur').and include('supprimer la table dans Baserow')
+      end
     end
 
     context 'table supprimée côté Baserow (archive)' do
@@ -772,6 +781,7 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       before do
         allow(dlnuf_service).to receive_messages(application_de: 17, tables_liees: [201, 202])
         allow_any_instance_of(described_class).to receive(:target_adapter_for).and_return(adapter)
+        allow(ConfigurationsBaserow).to receive(:demarches_synchronisees_vers).and_return([])
         demarche.update!(checked_at: Time.zone.parse('2026-11-01 10:00'))
       end
 
@@ -840,6 +850,36 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
           expect(response).to have_http_status(:ok)
           expect(response.body).to include('7 ligne(s) effacée(s)')
           expect(demarche.reload.checked_at).to eq(DossierActions::EPOCH)
+        end
+
+        it 'remet le curseur de toutes les démarches de ce robot qui alimentent la table et les liste' do
+          autre = create(:demarche, id: 4100, checked_at: Time.zone.parse('2026-11-01 10:00'))
+          etrangere = create(:demarche, id: 4101, checked_at: Time.zone.parse('2026-11-01 10:00'))
+          allow(ConfigurationsBaserow).to receive(:demarches_synchronisees_vers).with('101').and_return([4100, 4999])
+          allow(adapter).to receive(:vider_table).and_return(1)
+          vider
+          expect(demarche.reload.checked_at).to eq(DossierActions::EPOCH)
+          expect(autre.reload.checked_at).to eq(DossierActions::EPOCH)
+          expect(etrangere.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+          expect(response.body).to include(demarche.id.to_s).and include('4100')
+          expect(response.body).not_to include('4999')
+        end
+
+        it 'vide quand ce robot a figé la table en DLNUF' do
+          ReferentielTable.create!(backend: 'baserow', table_ref: '101', mode: 'dlnuf', proprietaire: 7)
+          expect(adapter).to receive(:vider_table).exactly(3).times.and_return(0)
+          vider
+          expect(response).to have_http_status(:ok)
+        end
+
+        %w[archive inconnu].each do |mode|
+          it "rend 403 sans rien effacer quand ce robot a figé la table en #{mode}" do
+            ReferentielTable.create!(backend: 'baserow', table_ref: '101', mode:)
+            expect(adapter).not_to receive(:vider_table)
+            vider
+            expect(response).to have_http_status(:forbidden)
+            expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+          end
         end
 
         it 'ne remet pas le curseur si l\'effacement échoue en cours de route' do

@@ -256,9 +256,11 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
       target.update!(excluded_field_ids: ['c_b_id'])
 
       build_result = { table_id: 99, table_name: 'Dossiers démarche', action: :updated, fields: [] }
-      builder_double = instance_double(SchemaBuilders::MainTableBuilder)
+      builder_double = instance_double(SchemaBuilders::MainTableBuilder, resolve_table_id: '101')
       allow_any_instance_of(Admin::SchemaBuilderController)
         .to receive(:main_table_builder_for).and_return(builder_double)
+      referentiel = instance_double(SchemaBuilders::ReferentielDlnuf, type_lu: :archive)
+      allow_any_instance_of(Admin::SchemaBuilderController).to receive(:referentiel_dlnuf).and_return(referentiel)
       expect(builder_double).to receive(:build!).with(
         anything,
         hash_including(excluded_field_ids: ['c_b_id'])
@@ -268,6 +270,23 @@ RSpec.describe 'Admin::SchemaBuilder', type: :request do
            headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
 
       expect(response).to have_http_status(:ok)
+    end
+
+    it 'POST build_main_table refuse une cible DLNUF sur une table archive, sans appeler build!' do
+      target.update!(referentiel: 'dlnuf')
+      builder_double = instance_double(SchemaBuilders::MainTableBuilder, resolve_table_id: '101')
+      allow_any_instance_of(Admin::SchemaBuilderController)
+        .to receive(:main_table_builder_for).and_return(builder_double)
+      referentiel = instance_double(SchemaBuilders::ReferentielDlnuf, type_lu: :archive)
+      allow_any_instance_of(Admin::SchemaBuilderController).to receive(:referentiel_dlnuf).and_return(referentiel)
+      expect(builder_double).not_to receive(:build!)
+
+      post "/admin/demarches/#{demarche.id}/schema/targets/baserow/main_table/build",
+           headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('alert-danger').and include('créer une nouvelle table')
+      expect(target.reload.last_synced_at).to be_nil
     end
   end
 end

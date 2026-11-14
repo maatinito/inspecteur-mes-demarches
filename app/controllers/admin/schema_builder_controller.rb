@@ -123,12 +123,15 @@ module Admin
       render_build_error('main-table', 'main_table_section', target, result)
     end
 
-    # Vide la table DLNUF (blocs puis principale) et remet le curseur de la démarche au début.
-    # L'autorisation vient du marqueur lu sur la table, jamais de la base de ce robot.
+    # Vide la table DLNUF (blocs puis principale) et remet au début le curseur de toutes les
+    # démarches de ce robot qui l'alimentent. L'autorisation vient du marqueur lu sur la table ;
+    # un type figé autrement par ce robot (archive, inconnu) refuse. Sans enregistrement local
+    # (builder sur un robot qui ne synchronise pas), seul le marqueur décide.
     def vider_table
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       table_id = target.main_table_external_id
       return head :forbidden if !target.baserow? || table_id.blank?
+      return head :forbidden if ReferentielTable.where(backend: 'baserow', table_ref: table_id.to_s).where.not(mode: 'dlnuf').exists?
 
       begin
         return head :forbidden unless referentiel_dlnuf.type_lu(table_id) == :dlnuf
@@ -338,16 +341,21 @@ module Admin
       "Lecture des tables de bloc impossible : #{e.message}"
     end
 
-    # Efface les tables de blocs puis la principale ; le curseur n'est remis qu'une fois tout effacé.
+    # Efface les tables de blocs puis la principale ; les curseurs ne sont remis qu'une fois tout
+    # effacé. Les démarches qui alimentent la table sont lues AVANT d'effacer : une configuration
+    # illisible n'efface rien.
     def vider_tables(target, table_id)
       adapter = target_adapter_for(target)
+      alimentent = ConfigurationsBaserow.demarches_synchronisees_vers(table_id) | [@demarche.id]
       # Tables de bloc lues sur Baserow (colonne Dossier liée à la principale), jamais les
       # backend_table_id enregistrés : détectés par nom, ils peuvent désigner une autre table.
       blocs = referentiel_dlnuf.tables_liees(referentiel_dlnuf.application_de(table_id), table_id)
       tables = blocs + [table_id]
       effacees = tables.sum { |id| adapter.vider_table(id) }
-      @demarche.update!(checked_at: DossierActions::EPOCH)
-      "#{effacees} ligne(s) effacée(s). La démarche sera retraitée depuis le début au prochain passage du robot."
+      numeros = Demarche.where(id: alimentent).order(:id).pluck(:id)
+      Demarche.where(id: numeros).update_all(checked_at: DossierActions::EPOCH, updated_at: Time.zone.now)
+      "#{effacees} ligne(s) effacée(s). Curseur remis au début pour la ou les démarche(s) #{numeros.join(', ')} : " \
+        'elles seront retraitées depuis le début au prochain passage du robot.'
     end
 
     # Pose ou vérifie le marqueur DLNUF après la construction de la table principale.
@@ -356,6 +364,18 @@ module Admin
       result
     rescue Referentiel::Verrou::Refus => e
       result.merge(error: e.message)
+    rescue Baserow::APIError => e
+      result.merge(error: erreur_marqueur_dlnuf(result, e))
+    end
+
+    def erreur_marqueur_dlnuf(result, erreur)
+      table = "« #{result[:table_name]} » (ID #{result[:table_id]})"
+      if result[:action] == :created
+        "Table #{table} créée, mais son marqueur DLNUF n'a pas pu être écrit (#{erreur.message}) : " \
+          'supprimer la table dans Baserow avant de construire de nouveau.'
+      else
+        "Lecture du marqueur DLNUF de la table #{table} impossible : #{erreur.message}"
+      end
     end
 
     def render_build_error(prefix, partial, target, build_result, **extra)
