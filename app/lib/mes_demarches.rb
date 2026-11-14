@@ -287,6 +287,7 @@ module MesDemarches
       dateTraitement
       dateDerniereModification
       dateDepot
+      dateSuppressionParUsager
       motivation
       prenomMandataire
       nomMandataire

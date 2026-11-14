@@ -89,6 +89,25 @@ module MesDemarchesToBaserow
       Rails.logger.info "BaserowSync: Dossier #{dossier.number} synchronisé avec succès"
     end
 
+    # Efface la ligne du dossier et celles de ses blocs répétables (DLNUF seulement).
+    # Les blocs d'abord : une interruption laisse une ligne principale que le rejeu retrouvera.
+    # Seules les tables liées à la table principale sont touchées (jamais une table d'archive
+    # ni une table étrangère). Idempotent : sans ligne pour ce numéro, rend false.
+    def delete_dossier(number) # rubocop:disable Naming/PredicateMethod
+      return false unless dlnuf?
+
+      ligne = find_existing_row(@main_table, number)
+      return false unless ligne
+
+      tables_de_bloc.each_value do |table_id|
+        table = get_table(table_id)
+        table.find_by_link_row_id('Dossier', ligne['id']).each { |bloc| table.delete_row(bloc['id']) }
+      end
+      @main_table.delete_row(ligne['id'])
+      Rails.logger.info "BaserowSync: Dossier #{number} effacé de Baserow (ligne #{ligne['id']} et blocs)"
+      true
+    end
+
     private
 
     def dlnuf?

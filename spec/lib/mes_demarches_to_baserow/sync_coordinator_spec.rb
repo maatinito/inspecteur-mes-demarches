@@ -271,5 +271,73 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
 
       expect(MesDemarchesToBaserow::AvisSyncer).not_to have_received(:new)
     end
+
+    describe '#delete_dossier' do
+      let(:bloc_table) { instance_double(Baserow::Table, table_id: 200) }
+      let(:autre_table) { instance_double(Baserow::Table, table_id: 300) }
+      let(:colonnes_bloc) do
+        { 'Dossier' => { 'id' => 1, 'type' => 'link_row', 'readonly' => false,
+                         'config' => { 'link_row_table_id' => main_table_id } } }
+      end
+      let(:colonnes_autre) do
+        { 'Dossier' => { 'id' => 1, 'type' => 'link_row', 'readonly' => false,
+                         'config' => { 'link_row_table_id' => 999 } } }
+      end
+
+      before do
+        allow(structure_client).to receive(:list_tables)
+          .and_return([{ 'name' => 'Principale', 'id' => main_table_id }, { 'name' => 'Bloc', 'id' => 200 },
+                       { 'name' => 'Autre', 'id' => 300 }])
+        allow(Baserow::Config).to receive(:table).with(200, anything).and_return(bloc_table)
+        allow(Baserow::Config).to receive(:table).with(300, anything).and_return(autre_table)
+        allow(MesDemarchesToBaserow::FieldFilter).to receive(:new).with(200, anything)
+                                                                  .and_return(instance_double(MesDemarchesToBaserow::FieldFilter, load_baserow_fields: colonnes_bloc))
+        allow(MesDemarchesToBaserow::FieldFilter).to receive(:new).with(300, anything)
+                                                                  .and_return(instance_double(MesDemarchesToBaserow::FieldFilter, load_baserow_fields: colonnes_autre))
+        allow(main_table).to receive(:find_by_normalized).with('Dossier', '12345').and_return([{ 'id' => 42 }])
+        allow(main_table).to receive(:delete_row)
+        allow(bloc_table).to receive(:find_by_link_row_id).with('Dossier', 42).and_return([{ 'id' => 7 }, { 'id' => 8 }])
+        allow(bloc_table).to receive(:delete_row)
+      end
+
+      it 'efface les lignes des blocs puis la ligne du dossier en DLNUF' do
+        enregistrer('dlnuf', 11)
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+
+        expect(bloc_table).to receive(:delete_row).with(7).ordered
+        expect(bloc_table).to receive(:delete_row).with(8).ordered
+        expect(main_table).to receive(:delete_row).with(42).ordered
+
+        expect(coordinator.delete_dossier(12_345)).to be(true)
+      end
+
+      it 'ne touche pas une table non liée à la table principale' do
+        enregistrer('dlnuf', 11)
+        described_class.new(main_table_id, baserow_config, {}).delete_dossier(12_345)
+
+        expect(autre_table).not_to have_received(:delete_row) if autre_table.respond_to?(:delete_row)
+        expect(Baserow::Config).not_to have_received(:table).with(300, anything)
+      end
+
+      it 'n\'efface rien en archive' do
+        champs[0]['description'] = nil
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+
+        expect(coordinator.delete_dossier(12_345)).to be(false)
+        expect(main_table).not_to have_received(:find_by_normalized)
+        expect(main_table).not_to have_received(:delete_row)
+        expect(bloc_table).not_to have_received(:delete_row)
+      end
+
+      it 'rend false sans erreur quand le dossier n\'a pas de ligne' do
+        enregistrer('dlnuf', 11)
+        allow(main_table).to receive(:find_by_normalized).with('Dossier', '12345').and_return([])
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+
+        expect(coordinator.delete_dossier(12_345)).to be(false)
+        expect(main_table).not_to have_received(:delete_row)
+        expect(bloc_table).not_to have_received(:delete_row)
+      end
+    end
   end
 end

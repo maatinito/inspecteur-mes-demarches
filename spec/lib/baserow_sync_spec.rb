@@ -20,7 +20,8 @@ RSpec.describe BaserowSync do
              groupe_instructeur: nil,
              date_depot: nil,
              date_passage_en_instruction: nil,
-             date_traitement: nil)
+             date_traitement: nil,
+             date_suppression_par_usager: nil)
     end
 
     let(:main_table_id) { 100 }
@@ -132,6 +133,60 @@ RSpec.describe BaserowSync do
       expect(avis_table).to have_received(:create_row).twice
       expect(avis_table).to have_received(:create_row).with(hash_including('Question' => 'Avis service A'))
       expect(avis_table).to have_received(:create_row).with(hash_including('Question' => 'Avis service B'))
+    end
+  end
+
+  describe 'dossier supprimé par l\'usager et hook deleted' do
+    let(:demarche) { double('Demarche', id: 999) }
+    let(:params) { { baserow: { 'table_id' => 100 }, etat_du_dossier: 'en_instruction' } }
+    let(:checker) { described_class.new(params) }
+    let(:coordinator) { instance_double(MesDemarchesToBaserow::SyncCoordinator, mode: :dlnuf, demarche_number: 999, delete_dossier: true, sync_dossier: nil) }
+    let(:supprime_le) { Time.zone.parse('2026-11-01 10:00') }
+    let(:dossier) do
+      double('Dossier', number: 12_345, state: 'accepte', date_suppression_par_usager: supprime_le)
+    end
+
+    before { allow(MesDemarchesToBaserow::SyncCoordinator).to receive(:new).and_return(coordinator) }
+
+    it 'efface la ligne d\'un dossier supprimé par l\'usager en DLNUF, même hors du filtre etat_du_dossier' do
+      checker.process(demarche, dossier)
+
+      expect(coordinator).to have_received(:delete_dossier).with(12_345)
+      expect(coordinator).not_to have_received(:sync_dossier)
+    end
+
+    it 'synchronise normalement un dossier supprimé par l\'usager en archive' do
+      allow(coordinator).to receive(:mode).and_return(:archive)
+      dossier = double('Dossier', number: 12_345, state: 'en_instruction', date_suppression_par_usager: supprime_le)
+
+      checker.process(demarche, dossier)
+
+      expect(coordinator).not_to have_received(:delete_dossier)
+      expect(coordinator).to have_received(:sync_dossier).with(dossier)
+    end
+
+    it 'recrée la ligne quand dateSuppressionParUsager est redevenu vide' do
+      dossier = double('Dossier', number: 12_345, state: 'en_instruction', date_suppression_par_usager: nil)
+
+      checker.process(demarche, dossier)
+
+      expect(coordinator).not_to have_received(:delete_dossier)
+      expect(coordinator).to have_received(:sync_dossier).with(dossier)
+    end
+
+    it 'ne construit pas de coordinateur pour un dossier ordinaire écarté par le filtre' do
+      dossier = double('Dossier', number: 12_345, state: 'accepte', date_suppression_par_usager: nil)
+
+      checker.process(demarche, dossier)
+
+      expect(MesDemarchesToBaserow::SyncCoordinator).not_to have_received(:new)
+    end
+
+    it 'BaserowSync#deleted délègue au coordinateur de la démarche' do
+      checker.deleted(demarche, 12_345)
+
+      expect(MesDemarchesToBaserow::SyncCoordinator).to have_received(:new).with(999, params[:baserow], {})
+      expect(coordinator).to have_received(:delete_dossier).with(12_345)
     end
   end
 end

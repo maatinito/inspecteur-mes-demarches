@@ -53,12 +53,25 @@ class BaserowSync < FieldChecker
   # Méthode FieldChecker à implémenter
   def process(demarche, dossier)
     super
+    return if supprime_par_usager?(demarche, dossier)
     return unless must_check?(dossier)
 
     Rails.logger.info "BaserowSync: Synchro dossier #{dossier.number} (démarche #{demarche.id})"
 
-    # Créer ou réutiliser le coordinator selon la démarche
-    # Cela permet de bénéficier des caches pour tous les dossiers d'une même démarche
+    coordinator_for(demarche).sync_dossier(dossier)
+  end
+
+  # Hook du moteur : dossier supprimé ou en corbeille. Le filtre etat_du_dossier ne s'applique pas.
+  # Les erreurs se propagent : le moteur garde le numéro dans sa file de reprise.
+  def deleted(demarche, number)
+    coordinator_for(demarche).delete_dossier(number)
+  end
+
+  private
+
+  # Créer ou réutiliser le coordinator selon la démarche
+  # Cela permet de bénéficier des caches pour tous les dossiers d'une même démarche
+  def coordinator_for(demarche)
     if @coordinator.nil? || @coordinator.demarche_number != demarche.id
       @coordinator = MesDemarchesToBaserow::SyncCoordinator.new(
         demarche.id,
@@ -66,7 +79,19 @@ class BaserowSync < FieldChecker
         @params[:options] || {}
       )
     end
+    @coordinator
+  end
 
-    @coordinator.sync_dossier(dossier)
+  # Dossier supprimé par l'usager seul : en DLNUF la ligne est effacée, quel que soit l'état du
+  # dossier (testé avant must_check?). En archive, le dossier est synchronisé comme d'habitude.
+  # La date est testée en premier : aucun coordinateur n'est construit pour un dossier ordinaire.
+  def supprime_par_usager?(demarche, dossier)
+    return false if dossier.date_suppression_par_usager.blank?
+
+    coordinator = coordinator_for(demarche)
+    return false unless coordinator.mode == :dlnuf
+
+    coordinator.delete_dossier(dossier.number)
+    true
   end
 end
