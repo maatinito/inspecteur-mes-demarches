@@ -723,6 +723,71 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         expect(response.body).to include('alert-danger').and include('inconnue de ce robot')
       end
     end
+
+    describe 'POST #vider_table' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
+      let(:adapter) { instance_double(SchemaBuilders::BaserowTarget) }
+
+      before do
+        allow_any_instance_of(described_class).to receive(:target_adapter_for).and_return(adapter)
+        demarche.update!(checked_at: Time.zone.parse('2026-11-01 10:00'))
+      end
+
+      def vider
+        post :vider_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      end
+
+      it 'rend 403 sur une table sans marqueur DLNUF, sans rien effacer' do
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:archive)
+        expect(adapter).not_to receive(:vider_table)
+        vider
+        expect(response).to have_http_status(:forbidden)
+        expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+      end
+
+      it 'rend 403 quand le marqueur est illisible' do
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:invalid)
+        expect(adapter).not_to receive(:vider_table)
+        vider
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it 'affiche l\'erreur de lecture du marqueur sans rien effacer' do
+        allow(dlnuf_service).to receive(:type_lu).and_raise(Baserow::APIError.new({ 'error' => 'boom' }, 500))
+        expect(adapter).not_to receive(:vider_table)
+        vider
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger')
+        expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+      end
+
+      context 'sur une table DLNUF' do
+        before do
+          allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:dlnuf)
+          create(:schema_block_target, schema_target: target, block_descriptor_id: 'b1', backend_table_id: '201')
+          create(:schema_block_target, schema_target: target, block_descriptor_id: 'b2', backend_table_id: '202')
+          create(:schema_block_target, schema_target: target, block_descriptor_id: 'b3', backend_table_id: nil)
+        end
+
+        it 'vide les blocs puis la table principale et remet le curseur à EPOCH' do
+          expect(adapter).to receive(:vider_table).with('201').ordered.and_return(2)
+          expect(adapter).to receive(:vider_table).with('202').ordered.and_return(0)
+          expect(adapter).to receive(:vider_table).with('101').ordered.and_return(5)
+          vider
+          expect(response).to have_http_status(:ok)
+          expect(response.body).to include('7 ligne(s) effacée(s)')
+          expect(demarche.reload.checked_at).to eq(DossierActions::EPOCH)
+        end
+
+        it 'ne remet pas le curseur si l\'effacement échoue en cours de route' do
+          allow(adapter).to receive(:vider_table).with('201').and_return(2)
+          allow(adapter).to receive(:vider_table).with('202').and_raise(Baserow::APIError.new({ 'error' => 'boom' }, 500))
+          vider
+          expect(response.body).to include('alert-danger')
+          expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+        end
+      end
+    end
   end
 end
 # rubocop:enable Metrics/BlockLength

@@ -5,6 +5,8 @@ require 'json'
 
 module Baserow
   class StructureClient
+    ROWS_BATCH_SIZE = 200
+
     attr_reader :base_url
 
     def initialize(jwt_token = nil)
@@ -105,6 +107,30 @@ module Baserow
     def list_tables(database_id)
       response = make_request(:get, "/api/database/tables/database/#{database_id}/")
       handle_response(response)
+    end
+
+    # Identifiants de toutes les lignes d'une table (pages de 200, limite de l'API Baserow).
+    def list_row_ids(table_id)
+      ids = []
+      page = 1
+      loop do
+        response = make_request(:get, "/api/database/rows/table/#{table_id}/?size=#{ROWS_BATCH_SIZE}&page=#{page}")
+        data = handle_response(response)
+        ids.concat(data['results'].map { |row| row['id'] })
+        break if data['next'].blank?
+
+        page += 1
+      end
+      ids
+    end
+
+    # Efface des lignes par lots (maxItems 200 sur batch-delete, vérifié dans le schéma d'API 2.0.6).
+    # Lève Baserow::APIError dès qu'un lot est refusé.
+    def delete_rows(table_id, ids)
+      ids.each_slice(ROWS_BATCH_SIZE) do |lot|
+        response = make_request(:post, "/api/database/rows/table/#{table_id}/batch-delete/", body: { items: lot }.to_json)
+        handle_response(response)
+      end
     end
 
     private

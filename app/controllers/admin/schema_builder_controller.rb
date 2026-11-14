@@ -123,6 +123,23 @@ module Admin
       render_build_error('main-table', 'main_table_section', target, result)
     end
 
+    # Vide la table DLNUF (blocs puis principale) et remet le curseur de la démarche au début.
+    # L'autorisation vient du marqueur lu sur la table, jamais de la base de ce robot.
+    def vider_table
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      table_id = target.main_table_external_id
+      return head :forbidden if table_id.blank?
+
+      begin
+        return head :forbidden unless referentiel_dlnuf.type_lu(table_id) == :dlnuf
+
+        result = { info: vider_tables(target, table_id) }
+      rescue Baserow::APIError => e
+        result = { error: "Effacement interrompu : #{e.message}. Le curseur de la démarche n'a pas été modifié." }
+      end
+      render_build_error('main-table', 'main_table_section', target, result)
+    end
+
     def preview_avis
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       return head :precondition_failed if target.main_table_external_id.blank? || target.dlnuf?
@@ -287,6 +304,15 @@ module Admin
       "Colonne(s) fichier interdite(s) dans une table DLNUF : #{fichiers.join(', ')}." if fichiers.any?
     rescue Baserow::APIError => e
       "Lecture de la table #{table_id} impossible : #{e.message}"
+    end
+
+    # Efface les tables de blocs puis la principale ; le curseur n'est remis qu'une fois tout effacé.
+    def vider_tables(target, table_id)
+      adapter = target_adapter_for(target)
+      tables = target.schema_block_targets.pluck(:backend_table_id).compact_blank + [table_id]
+      effacees = tables.sum { |id| adapter.vider_table(id) }
+      @demarche.update!(checked_at: DossierActions::EPOCH)
+      "#{effacees} ligne(s) effacée(s). La démarche sera retraitée depuis le début au prochain passage du robot."
     end
 
     # Pose ou vérifie le marqueur DLNUF après la construction de la table principale.

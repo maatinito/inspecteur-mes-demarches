@@ -101,4 +101,20 @@ RSpec.describe SchemaBuilders::BaserowTarget do
       expect(target.field_exists?(100, 'Inconnu')).to be false
     end
   end
+
+  describe '#vider_table' do
+    it 'efface toutes les lignes et rend leur nombre' do
+      expect(client).to receive(:list_row_ids).with(100).and_return([4, 5, 6])
+      expect(client).to receive(:delete_rows).with(100, [4, 5, 6])
+
+      expect(target.vider_table(100)).to eq(3)
+    end
+
+    it 'ne supprime rien sur une table vide' do
+      allow(client).to receive(:list_row_ids).with(100).and_return([])
+      expect(client).not_to receive(:delete_rows)
+
+      expect(target.vider_table(100)).to eq(0)
+    end
+  end
 end

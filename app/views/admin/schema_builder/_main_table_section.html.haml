@@ -13,6 +13,7 @@
           %span.badge.ms-2{ class: main_table_status_class(target) }= main_table_status_label(target)
       %div.card-body
         = render 'retablir_marqueur', target: target
+        = render 'vider_table', target: target
         = render 'homonymes_alert', homonymes: diff[:homonymes]
         - if diff[:to_add].any?
           %h3.h6.schema-builder-zone-title.text-success 🟢 À ajouter (#{diff[:to_add].size})
@@ -68,6 +69,7 @@
       %div.card-body
         = render 'build_result', build_result: build_result
         = render 'retablir_marqueur', target: target
+        = render 'vider_table', target: target
         %div.mt-3
           = button_to 'Recharger l\'aperçu',
                       preview_main_table_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),

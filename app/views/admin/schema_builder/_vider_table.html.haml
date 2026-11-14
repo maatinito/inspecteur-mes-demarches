@@ -1,0 +1,11 @@
+-# Bouton destructif : visible seulement pour une cible DLNUF avec table principale.
+-# La protection réelle est le contrôle du marqueur côté serveur (vider_table).
+- if target.baserow? && target.dlnuf? && target.main_table_external_id.present?
+  %div.mb-3
+    = button_to 'Vider la table',
+                vider_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
+                method: :post,
+                class: 'btn btn-outline-danger btn-sm',
+                form: { data: { turbo_frame: "main-table-#{target.id}", turbo_confirm: 'Toutes les lignes seront effacées, puis tous les dossiers de la démarche seront retraités au prochain passage du robot, y compris par les autres tâches de sa configuration. Continuer ?' } }
+    %small.form-text.text-muted
+      Le curseur n'est remis au début que pour ce robot : si la synchronisation tourne sur un autre robot, lancer l'action depuis le builder de celui-là.

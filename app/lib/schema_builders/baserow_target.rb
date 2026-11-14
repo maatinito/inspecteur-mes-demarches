@@ -80,5 +80,13 @@ module SchemaBuilders
     def get_table_fields(table_id)
       @client.get_table_fields(table_id)
     end
+
+    # Efface toutes les lignes d'une table. Rend le nombre de lignes effacées.
+    # L'autorisation (table DLNUF) est décidée par l'appelant.
+    def vider_table(table_id)
+      ids = @client.list_row_ids(table_id)
+      @client.delete_rows(table_id, ids) if ids.any?
+      ids.size
+    end
   end
 end
