@@ -50,7 +50,8 @@ module Admin
 
     def update_target_selection
       target = @demarche.schema_targets.find_by!(target_type: params[:target_type])
-      target.update!(target_selection_params)
+      return head :unprocessable_entity unless target.update(target_selection_params)
+
       head :ok
     end
 
@@ -86,6 +87,9 @@ module Admin
 
     def build_main_table
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      erreur = refus_avant_ecriture(target)
+      return render_build_error('main-table', 'main_table_section', target, { error: erreur }) if erreur
+
       builder = main_table_builder_for(target)
       result = builder.build!(
         demarche_descriptor,
@@ -96,6 +100,7 @@ module Admin
         demandeur_modes: demandeur_modes
       )
       target.update!(main_table_external_id: result[:table_id].to_s, last_synced_at: Time.current)
+      result = finaliser_dlnuf(result) if target.dlnuf?
 
       render turbo_stream: turbo_stream.replace(
         "main-table-#{target.id}",
@@ -104,9 +109,20 @@ module Admin
       )
     end
 
+    def retablir_marqueur
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      result = begin
+        referentiel_dlnuf.retablir!(target.main_table_external_id)
+        { info: 'Marqueur rétabli.' }
+      rescue Referentiel::Verrou::Refus => e
+        { error: e.message }
+      end
+      render_build_error('main-table', 'main_table_section', target, result)
+    end
+
     def preview_avis
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
-      return head :precondition_failed if target.main_table_external_id.blank?
+      return head :precondition_failed if target.main_table_external_id.blank? || target.dlnuf?
 
       diff = compute_avis_diff(target)
 
@@ -126,7 +142,7 @@ module Admin
 
     def build_avis
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
-      return head :precondition_failed if target.main_table_external_id.blank?
+      return head :precondition_failed if target.main_table_external_id.blank? || target.dlnuf?
 
       builder = avis_builder_for(target)
       result = builder.build!(application_id: target.application_external_id, main_table_id: target.main_table_external_id,
@@ -164,6 +180,9 @@ module Admin
     def build_blocks
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       return head :precondition_failed if target.main_table_external_id.blank?
+
+      erreur = refus_avant_ecriture(target)
+      return render_build_error('blocks', 'blocks_section', target, [], erreur: erreur) if erreur
 
       builder = block_builder_for(target)
       excluded_fields_per_block = target.schema_block_targets.to_h do |bt|
@@ -246,6 +265,42 @@ module Admin
 
     private
 
+    def referentiel_dlnuf
+      SchemaBuilders::ReferentielDlnuf.new(client: Baserow::StructureClient.new)
+    end
+
+    # Avant toute écriture sur une table principale existante (Baserow) : le type lu sur la
+    # table doit être celui de la cible, et une table DLNUF ne porte aucune colonne fichier.
+    # Rend le message d'erreur, ou nil.
+    def refus_avant_ecriture(target)
+      return unless target.baserow? && target.main_table_external_id.present?
+
+      table_id = target.main_table_external_id
+      lu = referentiel_dlnuf.type_lu(table_id)
+      return 'Marqueur illisible sur la table.' if lu == :invalid
+      return 'Le type d\'une table ne change pas : créer une nouvelle table.' unless lu.to_s == target.referentiel
+      return unless target.dlnuf?
+
+      fichiers = referentiel_dlnuf.colonnes_fichier(table_id)
+      "Colonne(s) fichier interdite(s) dans une table DLNUF : #{fichiers.join(', ')}." if fichiers.any?
+    end
+
+    # Pose ou vérifie le marqueur DLNUF après la construction de la table principale.
+    def finaliser_dlnuf(result)
+      referentiel_dlnuf.finaliser!(result[:table_id], creee: result[:action] == :created)
+      result
+    rescue Referentiel::Verrou::Refus => e
+      result.merge(error: e.message)
+    end
+
+    def render_build_error(prefix, partial, target, build_result, **extra)
+      render turbo_stream: turbo_stream.replace(
+        "#{prefix}-#{target.id}",
+        partial: partial,
+        locals: { target: target, build_result: build_result, **extra }
+      )
+    end
+
     def differ_for(target)
       SchemaBuilders::Differ.new(
         target: target,
@@ -264,7 +319,7 @@ module Admin
     end
 
     def target_selection_params
-      params.permit(:workspace_external_id, :application_external_id, :main_table_external_id)
+      params.permit(:workspace_external_id, :application_external_id, :main_table_external_id, :referentiel)
     end
 
     def target_adapter

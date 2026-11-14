@@ -535,6 +535,8 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
     before do
       allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
       allow_any_instance_of(described_class).to receive(:block_builder_for).and_return(builder_double)
+      allow_any_instance_of(described_class).to receive(:referentiel_dlnuf)
+        .and_return(instance_double(SchemaBuilders::ReferentielDlnuf, type_lu: :archive))
     end
 
     it 'crée des SchemaBlockTarget pour chaque résultat' do
@@ -572,6 +574,122 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         )
       ).and_return([])
       post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+    end
+  end
+
+  describe 'type de référentiel (archive ou DLNUF)' do
+    let(:dlnuf_service) { instance_double(SchemaBuilders::ReferentielDlnuf, colonnes_fichier: []) }
+    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder) }
+    let(:created) { { table_id: 99, table_name: 'Dossiers', action: :created, fields: [] } }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
+      allow_any_instance_of(described_class).to receive(:main_table_builder_for).and_return(builder_double)
+      allow_any_instance_of(described_class).to receive(:referentiel_dlnuf).and_return(dlnuf_service)
+    end
+
+    def construire(table = 'baserow')
+      post :build_main_table, params: { demarche_demarche_id: demarche.id, target: table }, format: :turbo_stream
+    end
+
+    context 'table neuve en DLNUF' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: nil, referentiel: 'dlnuf') }
+
+      it 'appelle finaliser! avec creee: true' do
+        allow(builder_double).to receive(:build!).and_return(created)
+        expect(dlnuf_service).to receive(:finaliser!).with(99, creee: true).and_return(9115)
+        construire
+        expect(response.body).to include('créée')
+      end
+
+      it 'affiche le refus de finaliser! en alert-danger, sans erreur 500' do
+        allow(builder_double).to receive(:build!).and_return(created)
+        allow(dlnuf_service).to receive(:finaliser!).and_raise(Referentiel::Verrou::Refus, 'colonne Email usager absente')
+        construire
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger').and include('colonne Email usager absente')
+      end
+    end
+
+    context 'table existante' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101', referentiel: 'dlnuf') }
+
+      it 'DLNUF pointée sur une table sans marqueur : aucune écriture' do
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:archive)
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('créer une nouvelle table')
+      end
+
+      it 'archive pointée sur une table marquée DLNUF : aucune écriture' do
+        target.update!(referentiel: 'archive')
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:dlnuf)
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('créer une nouvelle table')
+      end
+
+      it 'marqueur illisible : aucune écriture' do
+        allow(dlnuf_service).to receive(:type_lu).and_return(:invalid)
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('Marqueur illisible')
+      end
+
+      it 'DLNUF avec colonne fichier : aucune écriture' do
+        allow(dlnuf_service).to receive_messages(type_lu: :dlnuf, colonnes_fichier: %w[RIB Photo])
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('Colonne(s) fichier interdite(s) dans une table DLNUF : RIB, Photo.')
+      end
+
+      it 'build_blocks applique les mêmes refus' do
+        allow(dlnuf_service).to receive(:type_lu).and_return(:archive)
+        expect_any_instance_of(described_class).not_to receive(:block_builder_for)
+        post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response.body).to include('créer une nouvelle table')
+      end
+
+      it 'build_avis et preview_avis renvoient 412 en DLNUF' do
+        post :build_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response).to have_http_status(:precondition_failed)
+        get :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response).to have_http_status(:precondition_failed)
+      end
+    end
+
+    describe 'PATCH selection du référentiel' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow') }
+
+      it 'enregistre referentiel=dlnuf avant synchronisation' do
+        patch :update_target_selection, params: { demarche_demarche_id: demarche.id, target_type: 'baserow', referentiel: 'dlnuf' }
+        expect(response).to have_http_status(:ok)
+        expect(target.reload).to be_dlnuf
+      end
+
+      it 'renvoie 422 après synchronisation' do
+        target.update!(last_synced_at: Time.current)
+        patch :update_target_selection, params: { demarche_demarche_id: demarche.id, target_type: 'baserow', referentiel: 'dlnuf' }
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(target.reload).not_to be_dlnuf
+      end
+    end
+
+    describe 'POST #retablir_marqueur' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
+
+      it 'rétablit le marqueur' do
+        expect(dlnuf_service).to receive(:retablir!).with('101')
+        post :retablir_marqueur, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response.body).to include('Marqueur rétabli')
+      end
+
+      it 'affiche le refus en alert-danger' do
+        allow(dlnuf_service).to receive(:retablir!).and_raise(Referentiel::Verrou::Refus, 'inconnue de ce robot')
+        post :retablir_marqueur, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger').and include('inconnue de ce robot')
+      end
     end
   end
 end
