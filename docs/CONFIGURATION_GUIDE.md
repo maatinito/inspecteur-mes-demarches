@@ -898,6 +898,20 @@ ls storage/configurations/*.yml
 test -f storage/configurations/ma_config.yml && echo "OK" || echo "Fichier ignoré"
 ```
 
+## Référentiel DLNUF (`baserow_sync`)
+
+Le bloc `baserow_sync` peut alimenter deux types de tables Baserow : une **archive** (copie des dossiers, rien n'est jamais effacé) ou une table **DLNUF**, référentiel dont les lignes disparaissent avec leur dossier Mes-Démarches et qui ne contient aucun fichier (les pièces jointes y sont remplacées par une référence texte `md:<dossier>:<stable_id>`).
+
+**Aucun nouveau paramètre YAML n'existe** : le bloc `baserow_sync` s'écrit comme avant et le type vient de la table. Il se choisit dans le builder du schéma (page admin de la démarche, « Type de référentiel »), à la création de la table, et ne peut plus changer ensuite : pour changer de type, créer une autre table.
+
+Ce qu'il faut savoir en tant que rédacteur de configuration :
+
+- Une table DLNUF est contrôlée à chaque passage (marqueur sur la colonne primaire, colonne « Email usager », absence de colonne fichier). En cas d'anomalie, la synchronisation et l'effacement de cette table sont suspendus et un courriel est envoyé. Dans le builder, « Rétablir le marqueur » (sur le robot qui synchronise) répare un marqueur modifié ; le robot rejoue ensuite seul ce qui était en attente, sans recul de curseur à faire.
+- « Vider la table » (builder) efface toutes les lignes et fait resynchroniser la démarche depuis le début, y compris pour les autres tâches de la configuration : à réserver à la publication.
+- Avant de déployer cette fonction, vérifier que la description de la colonne primaire des tables déjà synchronisées ne contient pas de ligne commençant par « Mes démarches : » en texte libre.
+
+Détails (création, effacement, alertes, un robot qui construit et un autre qui synchronise) : [`app/lib/mes_demarches_to_baserow/README.md`](../app/lib/mes_demarches_to_baserow/README.md#référentiel-dlnuf).
+
 ## Ressources
 
 - **Exemples en production** : `storage/configurations/` (privilégier les fichiers récents)

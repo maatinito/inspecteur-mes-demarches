@@ -637,3 +637,16 @@ Amendements du contrat `2026-11-06-contrat-referentiel-dlnuf.md` :
 - **§5.2 (suite)** : un dossier portant `dateSuppressionParUsager` voit sa ligne effacée par la synchro, même s'il reste visible de l'administration.
 - **§5.3** : en DLNUF, MD ne propose que les lignes dont le dossier source est encore `visible_by_user` pour le titulaire. Depuis la décision 5 bis le robot efface déjà ces lignes ; ce filtre n'est plus qu'une seconde protection, utile entre le clic de l'usager et le passage suivant du robot. À garder ou non, au choix de la session mes-demarches.
 - **Table 861 (DJS)** : à recréer en DLNUF par le builder ; elle est aujourd'hui alimentée comme une archive.
+
+## Écarts d'exécution
+
+Décisions prises pendant l'exécution du plan ; elles priment sur le texte des tâches ci-dessus.
+
+1. **Plus de recul manuel du curseur après une alerte.** Les suppressions dont l'effacement échoue (table refusée, Baserow indisponible) sont inscrites dans la table `suppressions_en_attente` et rejouées à chaque passage jusqu'à réussite. Les dossiers dont l'écriture est refusée restent en échec et sont rejoués par le mécanisme habituel. Après une alerte, la seule action est de rétablir le marqueur (ou de corriger la table).
+2. **Tous les contrôles d'une table DLNUF se font au démarrage de la synchro** : marqueur conforme au type figé, colonne propriétaire existante, aucune colonne fichier dans la table principale ni dans les tables liées. Un refus suspend écriture et effacement pour toute la table, avec un courriel au plus par table et par 24 h.
+3. **Tables de blocs = tables liées.** Une table de bloc est une table de la même application Baserow dont la colonne `Dossier` est un lien vers la table principale. C'est ce critère qui décide de l'effacement, de « Vider la table » et, en DLNUF, de la construction des blocs : le builder refuse de réutiliser une table de bloc du même nom qui n'est pas liée à la table DLNUF ou qui contient une colonne fichier.
+4. **Le builder contrôle la table réellement utilisée**, y compris quand elle est retrouvée par son nom sans avoir été sélectionnée.
+5. **Effacement** : une suppression refusée par Baserow lève une erreur (et repart en file d'attente) ; toutes les lignes d'un bloc sont effacées, quel que soit leur nombre ; toutes les lignes principales portant le numéro du dossier sont effacées.
+6. **Le robot n'écrase plus un curseur déplacé pendant son passage** : « Vider la table » peut être utilisé pendant un passage en cours.
+7. **Avant le déploiement** : vérifier que la description de la colonne primaire des tables déjà synchronisées ne contient pas de ligne en texte libre commençant par « Mes démarches : » (elle serait lue comme un marqueur illisible et la table refusée).
+8. Deux tables ajoutées en base : `referentiel_tables`, `suppressions_en_attente` ; une colonne `schema_targets.referentiel`.
