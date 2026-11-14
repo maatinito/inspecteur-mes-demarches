@@ -214,7 +214,7 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
   describe 'POST #build_main_table' do
     let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: nil) }
     let(:build_result) { { table_id: 99, table_name: 'Dossiers', action: :created, fields: [] } }
-    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder, build!: build_result) }
+    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder, build!: build_result, resolve_table_id: nil) }
 
     before do
       allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
@@ -579,7 +579,8 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
 
   describe 'type de référentiel (archive ou DLNUF)' do
     let(:dlnuf_service) { instance_double(SchemaBuilders::ReferentielDlnuf, colonnes_fichier: []) }
-    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder) }
+    let(:resolu) { '101' }
+    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder, resolve_table_id: resolu) }
     let(:created) { { table_id: 99, table_name: 'Dossiers', action: :created, fields: [] } }
 
     before do
@@ -593,6 +594,7 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
     end
 
     context 'table neuve en DLNUF' do
+      let(:resolu) { nil }
       let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: nil, referentiel: 'dlnuf') }
 
       it 'appelle finaliser! avec creee: true' do
@@ -608,6 +610,18 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         construire
         expect(response).to have_http_status(:ok)
         expect(response.body).to include('alert-danger').and include('colonne Email usager absente')
+      end
+    end
+
+    context 'table supprimée côté Baserow (archive)' do
+      let(:resolu) { nil }
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+
+      it 'ne vérifie rien et laisse build! recréer la table' do
+        expect(dlnuf_service).not_to receive(:type_lu)
+        expect(builder_double).to receive(:build!).and_return(created)
+        construire
+        expect(target.reload.main_table_external_id).to eq('99')
       end
     end
 
@@ -641,6 +655,24 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         expect(builder_double).not_to receive(:build!)
         construire
         expect(response.body).to include('Colonne(s) fichier interdite(s) dans une table DLNUF : RIB, Photo.')
+      end
+
+      it 'vérifie la table retrouvée par nom quand aucun id n\'est sélectionné' do
+        target.update!(main_table_external_id: nil)
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:archive)
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('créer une nouvelle table')
+        expect(target.reload.main_table_external_id).to be_nil
+        expect(target.last_synced_at).to be_nil
+      end
+
+      it 'affiche une erreur API de lecture sans erreur 500' do
+        allow(dlnuf_service).to receive(:type_lu).and_raise(Baserow::APIError.new({ 'error' => 'HTTP 500' }, 500))
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger').and include('Lecture de la table 101 impossible')
       end
 
       it 'build_blocks applique les mêmes refus' do

@@ -87,15 +87,18 @@ module Admin
 
     def build_main_table
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
-      erreur = refus_avant_ecriture(target)
+      builder = main_table_builder_for(target)
+      table_name = main_table_name_for(target)
+      table_id = builder.resolve_table_id(application_id: target.application_external_id, table_name: table_name,
+                                          existing_table_id: target.main_table_external_id.presence)
+      erreur = refus_avant_ecriture(target, table_id)
       return render_build_error('main-table', 'main_table_section', target, { error: erreur }) if erreur
 
-      builder = main_table_builder_for(target)
       result = builder.build!(
         demarche_descriptor,
         application_id: target.application_external_id,
-        table_name: main_table_name_for(target),
-        existing_table_id: target.main_table_external_id.presence,
+        table_name: table_name,
+        existing_table_id: table_id,
         excluded_field_ids: target.exclusions_effectives,
         demandeur_modes: demandeur_modes
       )
@@ -181,7 +184,7 @@ module Admin
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       return head :precondition_failed if target.main_table_external_id.blank?
 
-      erreur = refus_avant_ecriture(target)
+      erreur = refus_avant_ecriture(target, target.main_table_external_id)
       return render_build_error('blocks', 'blocks_section', target, [], erreur: erreur) if erreur
 
       builder = block_builder_for(target)
@@ -266,16 +269,15 @@ module Admin
     private
 
     def referentiel_dlnuf
-      SchemaBuilders::ReferentielDlnuf.new(client: Baserow::StructureClient.new)
+      @referentiel_dlnuf ||= SchemaBuilders::ReferentielDlnuf.new(client: Baserow::StructureClient.new)
     end
 
     # Avant toute écriture sur une table principale existante (Baserow) : le type lu sur la
     # table doit être celui de la cible, et une table DLNUF ne porte aucune colonne fichier.
     # Rend le message d'erreur, ou nil.
-    def refus_avant_ecriture(target)
-      return unless target.baserow? && target.main_table_external_id.present?
+    def refus_avant_ecriture(target, table_id)
+      return unless target.baserow? && table_id.present?
 
-      table_id = target.main_table_external_id
       lu = referentiel_dlnuf.type_lu(table_id)
       return 'Marqueur illisible sur la table.' if lu == :invalid
       return 'Le type d\'une table ne change pas : créer une nouvelle table.' unless lu.to_s == target.referentiel
@@ -283,6 +285,8 @@ module Admin
 
       fichiers = referentiel_dlnuf.colonnes_fichier(table_id)
       "Colonne(s) fichier interdite(s) dans une table DLNUF : #{fichiers.join(', ')}." if fichiers.any?
+    rescue Baserow::APIError => e
+      "Lecture de la table #{table_id} impossible : #{e.message}"
     end
 
     # Pose ou vérifie le marqueur DLNUF après la construction de la table principale.
