@@ -366,47 +366,49 @@ Dans le builder (page admin du schéma de la démarche), choisir « DLNUF (effac
 - ne crée pas la table « Avis » (la section Avis du builder disparaît) ;
 - impose la colonne « Email usager », qu'on ne peut pas exclure.
 
-Le type se choisit une fois : il est verrouillé dans le builder dès la première synchronisation, et il n'existe aucun moyen de changer le type d'une table. Pour passer d'archive à DLNUF (ou l'inverse), créer une nouvelle table.
+Le type se choisit une fois : le sélecteur est verrouillé dans le builder dès la première construction de la table principale, et il n'existe aucun moyen de changer le type d'une table. Pour passer d'archive à DLNUF (ou l'inverse), créer une nouvelle table.
 
-Le builder lit toujours le type sur la table Baserow, jamais dans sa propre base. Il refuse d'écrire sur une table dont le marqueur est illisible ou ne correspond pas au type de la cible, et refuse toute table (principale ou de bloc) qui contient une colonne fichier. En DLNUF, une table de bloc existante portant le même nom n'est réutilisée que si c'est une table liée à la table principale (voir plus bas).
+Le builder lit toujours le type sur la table Baserow, jamais dans sa propre base. Il refuse d'écrire sur une table dont le marqueur est illisible ou ne correspond pas au type de la cible et, en DLNUF, refuse toute table (principale ou de bloc) qui contient une colonne fichier. En DLNUF, une table de bloc existante portant le même nom n'est réutilisée que si c'est une table liée à la table principale (voir plus bas).
 
 ### Ce que la synchronisation fait différemment
 
-- **Contrôles au démarrage** : à chaque passage, avant toute écriture, le robot lit le marqueur et le confronte au type qu'il a enregistré. Il vérifie en DLNUF que la colonne propriétaire existe et qu'aucune colonne fichier n'est présente dans la table principale ni dans les tables de blocs. Un échec **suspend l'écriture et l'effacement pour toute la table** et envoie un courriel (au plus un par table et par 24 h) et un message Sentry.
-- **Type figé** : le type est celui du marqueur lors de la première lecture par ce robot ; il est ensuite enregistré dans la table `referentiel_tables` du robot. Une table vide ou une table déjà remplie est adoptée ; une table DLNUF déjà remplie déclenche un courriel d'information (adoption, nombre de lignes présentes).
-- **Pièces jointes** : aucun fichier n'est téléchargé. La cellule contient une référence texte `md:<numéro du dossier>:<stable_id du champ>`, ou `md:<numéro>:<stable_id>:<row_id>` dans un bloc répétable (une référence par cellule). Cellule vide : le dossier n'a plus de pièce, la cellule est vidée au passage suivant.
+- **Contrôles au démarrage** : quand un dossier de la table est traité (synchronisation ou effacement), avant toute écriture, le robot lit le marqueur, une fois par passage, et le confronte au type qu'il a enregistré. Il vérifie en DLNUF que la colonne propriétaire existe et qu'aucune colonne fichier n'est présente dans la table principale ni dans les tables de blocs. Un échec **suspend l'écriture et l'effacement pour toute la table** et envoie un courriel (au plus un par table et par 24 h) et un message Sentry.
+- **Type figé** : le type est celui du marqueur lors de la première lecture par ce robot ; il est ensuite enregistré dans la table `referentiel_tables` du robot. Une table vide ou une table déjà remplie est adoptée ; une table DLNUF déjà remplie déclenche un courriel d'information (adoption, nombre de lignes présentes). Si le marqueur est illisible dès cette première lecture, la table est refusée et son type reste **inconnu** (jamais figé en archive) jusqu'à ce que le marqueur redevienne lisible : la première lecture lisible l'adopte alors comme une table neuve. « Rétablir le marqueur » ne peut rien pour une table de type inconnu : corriger le marqueur à la main dans Baserow.
+- **Pièces jointes** : aucun fichier n'est téléchargé. La cellule contient une référence texte `md:<numéro du dossier>:<stable_id du champ>`, ou `md:<numéro>:<stable_id>:<row_id>` dans un bloc répétable (une référence par cellule). Quand le dossier n'a plus la pièce jointe, la cellule est vidée. Une colonne de pièce jointe sans le marqueur `mes-demarches: reference=piece_justificative` n'est jamais écrite.
 - **Propriétaire** : la colonne « Email usager » reçoit toujours l'e-mail du titulaire **en minuscules**.
-- **Effacement** : une ligne est effacée, avec toutes les lignes de ses blocs, quand son dossier est supprimé ou mis à la corbeille, **ou** quand l'usager seul l'a supprimé (`dateSuppressionParUsager`), même si le dossier reste visible de l'administration (par exemple un dossier accepté). L'effacement est idempotent : une ligne absente n'est pas une erreur. Si le dossier est restauré, la ligne est recréée au passage suivant.
+- **Effacement** : une ligne est effacée, avec toutes les lignes de ses blocs, quand son dossier est supprimé ou mis à la corbeille, **ou** quand l'usager seul l'a supprimé (`dateSuppressionParUsager`), même si le dossier reste visible de l'administration (par exemple un dossier accepté). Ce dernier cas est traité quels que soient l'état du dossier, le filtre `etat_du_dossier` et les contrôles de la configuration. L'effacement est idempotent : une ligne absente n'est pas une erreur. Si le dossier est restauré, la ligne est recréée au passage suivant (la restauration modifie le dossier, qui revient par le curseur), à condition que `baserow_sync` soit déclaré sous `when_ok` et qu'aucun contrôle du dossier ne soit en échec ; un dossier restauré alors que sa suppression était en file d'attente est retiré de la file sans effacement.
+- **Écoute des suppressions** : le robot ne demande à Mes-Démarches les dossiers supprimés ou en corbeille que pour une table qu'il a enregistrée en DLNUF ; une démarche synchronisée vers une table archive ne fait aucune requête de plus.
 - **Tables de blocs** : ce sont les tables de la même application Baserow dont la colonne `Dossier` est un lien vers la table principale. Toute autre table de l'application n'est jamais touchée par l'effacement ni par « Vider la table ».
-- **Avis** : la table « Avis » est ignorée en DLNUF, même si elle existe.
+- **Avis** : le builder ne crée jamais de table « Avis » en DLNUF et la synchronisation n'y écrit pas. Une table « Avis » existante dont la colonne `Dossier` est liée à la table DLNUF est traitée comme une table liée : refusée si elle contient une colonne fichier, et ses lignes sont effacées avec le dossier.
 - Le mode archive est inchangé : copie des fichiers, aucun effacement.
 
 ### Après une alerte
 
 Le courriel d'alerte (« Référentiel baserow table N : … ») indique la cause : marqueur illisible, type ou propriétaire modifié, colonne fichier, colonne propriétaire absente. Tant que le refus dure, rien n'est écrit ni effacé pour cette table.
 
-Il n'y a **aucun recul de curseur à faire à la main** : les suppressions dont l'effacement a échoué sont mises en file d'attente (table `suppressions_en_attente`) et rejouées à chaque passage jusqu'à réussite ; les dossiers dont l'écriture a été refusée restent en échec et sont rejoués par le mécanisme habituel.
+Il n'y a **aucun recul de curseur à faire à la main** : les suppressions dont l'effacement a échoué sont mises en file d'attente (table `suppressions_en_attente`) et rejouées à chaque passage jusqu'à réussite (un seul courriel d'erreur par dossier, au premier échec) ; les dossiers dont l'écriture a été refusée restent en échec et sont rejoués par la reprise habituelle des contrôles en échec : au prochain passage après 8 h, ou au redémarrage du robot.
 
 La marche à suivre :
 
-1. Si une colonne fichier a été ajoutée à la main, la supprimer ; si la colonne propriétaire a été supprimée, la recréer (puis rétablir le marqueur).
+1. Si une colonne fichier a été ajoutée à la main, la supprimer. Si la colonne propriétaire a été supprimée, la table ne peut pas être réparée (une colonne recréée a un nouvel identifiant, alors que le marqueur et le type figé gardent l'ancien) : construire une nouvelle table.
 2. Si la description de la colonne primaire a été modifiée, cliquer sur « Rétablir le marqueur » (voir ci-dessous).
-3. Au passage suivant, la table est de nouveau acceptée, l'alerte est réinitialisée et le robot rejoue seul ce qui était en attente.
+3. Au passage suivant, la table est de nouveau acceptée et l'alerte est réinitialisée. Le robot rejoue seul les suppressions en file d'attente dès ce passage ; les dossiers dont l'écriture a été refusée sont rejoués au prochain passage après 8 h, ou au redémarrage du robot.
 
 ### « Rétablir le marqueur »
 
-Bouton du builder, sous la table principale. Il réécrit le marqueur d'après le type **enregistré par le robot sur lequel vous êtes**, en conservant le reste de la description. Il n'apparaît que sur le robot qui synchronise la table (celui qui a un enregistrement pour elle) ; sur un autre robot (dev, staging), il est absent ou répond « table inconnue de ce robot ».
+Bouton du builder, sous la table principale. Il réécrit le marqueur d'après le type **enregistré par le robot sur lequel vous êtes**, en conservant le reste de la description. Il n'apparaît que sur le robot qui synchronise la table (celui qui a un enregistrement pour elle) ; sur un autre robot (dev, staging), il est absent ou répond « table inconnue de ce robot ». Sur une table de type inconnu (marqueur illisible dès la première lecture), il refuse : corriger le marqueur à la main.
 
 ### « Vider la table »
 
-Bouton du builder (cible DLNUF avec table principale), à utiliser typiquement à la publication d'une démarche, pour retirer les dossiers de test. Il efface toutes les lignes des tables de blocs liées, puis celles de la table principale, et remet le curseur (`checked_at`) de la démarche au début : tous les dossiers sont resynchronisés au passage suivant, **y compris par les autres tâches de la configuration**. L'autorisation vient du marqueur lu sur la table (refus si ce n'est pas du DLNUF) ; une erreur Baserow en cours d'effacement laisse le curseur inchangé. On peut l'utiliser pendant un passage en cours : le robot n'écrase pas le curseur déplacé.
+Bouton du builder (cible DLNUF avec table principale), à utiliser typiquement à la publication d'une démarche, pour retirer les dossiers de test. Il efface toutes les lignes des tables de blocs liées, puis celles de la table principale, et remet au début le curseur (`checked_at`) de **chaque démarche de ce robot qui alimente la table** (toute entrée de configuration contenant, à n'importe quelle profondeur, un `baserow_sync` vers cette table, plus la démarche de la page) ; le message liste les démarches concernées. Tous leurs dossiers sont resynchronisés au passage suivant, **y compris par les autres tâches de leur configuration**. L'autorisation vient du marqueur lu sur la table (refus si ce n'est pas du DLNUF) ; refus aussi si ce robot a figé la table autrement qu'en DLNUF (archive ou inconnu). Une erreur Baserow en cours d'effacement laisse les curseurs inchangés. On peut l'utiliser pendant un passage en cours : le robot n'écrase pas le curseur déplacé.
 
 ### Construire sur un robot, synchroniser sur un autre
 
 Le builder peut tourner sur dev ou staging alors que la synchronisation se fait en production. Le builder ne lit et n'écrit jamais `referentiel_tables` (sauf « Rétablir le marqueur ») : il décide d'après le marqueur de la table. Le robot qui synchronise adopte la table à sa première lecture (sans courriel si elle est vide, avec un courriel d'information si elle contient déjà des lignes). Conséquences :
 
 - « Rétablir le marqueur » se clique sur le robot qui a émis l'alerte.
-- « Vider la table » remet le curseur du robot sur lequel on clique : si la synchronisation tourne sur un autre robot, lancer l'action depuis le builder de celui-là.
+- « Vider la table » remet les curseurs du robot sur lequel on clique : si la synchronisation tourne sur un autre robot, lancer l'action depuis le builder de celui-là.
+- Si l'écriture du marqueur échoue juste après la création d'une table DLNUF, le builder l'indique en nommant la table : la supprimer dans Baserow avant de construire de nouveau (sans marqueur, elle serait lue comme une archive et toute construction serait refusée).
 - Une table ne doit être synchronisée que par un seul robot.
 
 ### Avant le déploiement
