@@ -17,7 +17,7 @@ module MesDemarchesToBaserow
 
     DEFAULT_OPTION_COLORS = %w[blue green red yellow orange purple pink light-blue light-green light-red].freeze
 
-    attr_reader :demarche_number, :baserow_config, :options
+    attr_reader :demarche_number, :baserow_config, :options, :mode
 
     def initialize(demarche_number, baserow_config, options = {})
       @demarche_number = demarche_number
@@ -29,6 +29,7 @@ module MesDemarchesToBaserow
       @main_table = get_table(@baserow_config['table_id'])
       @main_field_filter = FieldFilter.new(@baserow_config['table_id'], @baserow_config['token_config'])
       @main_field_metadata = build_field_metadata(@main_table)
+      @mode = determiner_mode!
 
       # Caches pour les blocs répétables, découverte des tables et link_row
       @block_field_metadata_cache = {}
@@ -73,7 +74,7 @@ module MesDemarchesToBaserow
       sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks], main_row_id)
 
       # 7b. Synchroniser les avis du dossier vers la table "Avis" (auto-découverte)
-      sync_avis(dossier, main_row_id)
+      sync_avis(dossier, main_row_id) unless dlnuf?
 
       # 8. Si des fichiers ont échoué, lever une exception APRÈS l'upsert
       # pour que le framework marque le dossier en échec et le retente.
@@ -84,6 +85,49 @@ module MesDemarchesToBaserow
     end
 
     private
+
+    def dlnuf?
+      @mode == :dlnuf
+    end
+
+    # Lit le type déclaré de la table (marqueur sur la colonne primaire), le confronte à
+    # l'enregistrement et, en DLNUF, refuse les colonnes fichier et un propriétaire introuvable.
+    # Un coordinateur ne vit que le temps d'une passe : le mode est donc lu une fois par passe.
+    def determiner_mode!
+      table_id = @baserow_config['table_id']
+      primaire = @main_field_metadata.values.find { |meta| meta['primary'] }
+      mode = Referentiel::Verrou.mode!(
+        backend: 'baserow', table_ref: table_id.to_s,
+        description_primaire: primaire&.dig('description'),
+        lignes: -> { @main_table.list_rows(size: 1)['count'] }
+      )
+      verifier_table_dlnuf! if mode == :dlnuf
+      mode
+    end
+
+    def verifier_table_dlnuf!
+      enregistrement = referentiel_table
+      verifier_sans_colonne_fichier!(@main_field_metadata)
+
+      @proprietaire = @main_field_metadata.find { |_nom, meta| meta['id'].to_s == enregistrement.proprietaire.to_s }&.first
+      return if @proprietaire
+
+      raise Referentiel::Verrou::Refus.new(
+        "Référentiel baserow table #{enregistrement.table_ref} : le propriétaire #{enregistrement.proprietaire} " \
+        'ne désigne aucune colonne.', enregistrement
+      )
+    end
+
+    def verifier_sans_colonne_fichier!(metadata)
+      nom, = metadata.find { |_nom, meta| meta['type'] == 'file' }
+      return unless nom
+
+      raise Referentiel::Verrou::Refus.new("colonne fichier #{nom} dans une table DLNUF", referentiel_table)
+    end
+
+    def referentiel_table
+      ReferentielTable.find_by!(backend: 'baserow', table_ref: @baserow_config['table_id'].to_s)
+    end
 
     def ensure_schema
       # TODO: Implémenter si nécessaire (SchemaBuilder)
@@ -128,6 +172,8 @@ module MesDemarchesToBaserow
           'id' => field['id'],
           'type' => field['type'],
           'primary' => field['primary'],
+          'description' => field['description'],
+          'reference_pj' => Referentiel::Marqueur.reference_pj?(field['description']),
           'readonly' => readonly_types.include?(field['type'])
         }
 
@@ -325,7 +371,9 @@ module MesDemarchesToBaserow
 
       # Sinon, charger et mettre en cache
       field_filter = FieldFilter.new(table_id, @baserow_config['token_config'])
-      @block_field_metadata_cache[table_id] = field_filter.load_baserow_fields
+      metadata = field_filter.load_baserow_fields
+      verifier_sans_colonne_fichier!(metadata) if dlnuf?
+      @block_field_metadata_cache[table_id] = metadata
     rescue StandardError => e
       Rails.logger.error "BaserowSync: Erreur chargement métadonnées bloc #{table_id}: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")

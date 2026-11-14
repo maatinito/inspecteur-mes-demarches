@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe MesDemarchesToBaserow::SyncCoordinator do
+RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metrics/BlockLength
   describe '#sync_dossier — étape avis' do
     let(:main_table_id) { 100 }
     let(:baserow_config) { { 'table_id' => main_table_id } }
@@ -47,6 +47,131 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do
       coordinator.sync_dossier(dossier)
 
       expect(avis_syncer).to have_received(:sync).with(dossier, 42, kind_of(Proc))
+    end
+  end
+
+  describe 'type de table (archive ou DLNUF)' do
+    let(:main_table_id) { 100 }
+    let(:baserow_config) { { 'table_id' => main_table_id } }
+    let(:main_table) { instance_double(Baserow::Table, table_id: main_table_id) }
+    let(:upserter) { instance_double(MesDemarchesToBaserow::RowUpserter, upsert_row: 42) }
+    let(:client) { instance_double(Baserow::Client) }
+    let(:field_filter) { instance_double(MesDemarchesToBaserow::FieldFilter) }
+    let(:avis_syncer) { instance_double(MesDemarchesToBaserow::AvisSyncer, sync: nil) }
+    let(:dossier) do
+      double('Dossier', number: 12_345, champs: [], annotations: [], demandeur: nil, usager: nil,
+                        labels: nil, date_depot: nil, date_passage_en_instruction: nil,
+                        date_traitement: nil, groupe_instructeur: nil, state: 'en_instruction',
+                        instructeurs: [], traitements: [])
+    end
+    let(:description_dlnuf) { Referentiel::Marqueur.description_table(mode: :dlnuf, proprietaire: 11) }
+    let(:champs_dlnuf) do
+      [
+        { 'id' => 10, 'name' => 'Dossier', 'type' => 'text', 'primary' => true, 'description' => description_dlnuf },
+        { 'id' => 11, 'name' => 'Email', 'type' => 'text', 'primary' => false, 'description' => nil }
+      ]
+    end
+    let(:champs) { champs_dlnuf }
+    let(:structure_client) { instance_double(Baserow::StructureClient) }
+
+    before do
+      allow(Baserow::Config).to receive(:table).with(main_table_id, anything).and_return(main_table)
+      allow(Baserow::Config).to receive(:client).and_return(client)
+      allow(client).to receive(:list_fields).with(main_table_id).and_return(champs)
+      allow(main_table).to receive(:list_rows).and_return({ 'count' => 0, 'results' => [] })
+      allow(MesDemarchesToBaserow::FieldFilter).to receive(:new).and_return(field_filter)
+      allow(field_filter).to receive(:filter_syncable_fields) { |data| data }
+      allow(main_table).to receive(:find_by_normalized).and_return([])
+      allow(MesDemarchesToBaserow::RowUpserter).to receive(:new).and_return(upserter)
+      allow(MesDemarchesToBaserow::AvisSyncer).to receive(:new).and_return(avis_syncer)
+      allow(Baserow::FileUploader).to receive(:new)
+        .and_return(instance_double(Baserow::FileUploader, download_and_upload: nil))
+
+      allow(Baserow::StructureClient).to receive(:new).and_return(structure_client)
+      allow(structure_client).to receive(:get_table).and_return({ 'database_id' => 1 })
+      allow(structure_client).to receive(:list_tables).and_return([])
+    end
+
+    def enregistrer(mode, proprietaire = nil)
+      ReferentielTable.create!(backend: 'baserow', table_ref: main_table_id.to_s, mode:, proprietaire:)
+    end
+
+    context 'sans marqueur' do
+      let(:champs) do
+        [{ 'id' => 10, 'name' => 'Dossier', 'type' => 'text', 'primary' => true, 'description' => nil }]
+      end
+
+      it 'reste en archive sans marqueur et synchronise comme avant' do
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+        coordinator.sync_dossier(dossier)
+
+        expect(coordinator.mode).to eq(:archive)
+        expect(avis_syncer).to have_received(:sync).with(dossier, 42, kind_of(Proc))
+      end
+    end
+
+    it 'passe en DLNUF quand le marqueur et l\'enregistrement concordent' do
+      enregistrer('dlnuf', 11)
+
+      coordinator = described_class.new(main_table_id, baserow_config, {})
+
+      expect(coordinator.mode).to eq(:dlnuf)
+    end
+
+    it 'adopte en DLNUF une table marquée qu\'il voit pour la première fois' do
+      coordinator = described_class.new(main_table_id, baserow_config, {})
+
+      expect(coordinator.mode).to eq(:dlnuf)
+      expect(ReferentielTable.find_by(backend: 'baserow', table_ref: '100'))
+        .to have_attributes(mode: 'dlnuf', proprietaire: 11)
+    end
+
+    it 'refuse une table DLNUF dont le marqueur a été retiré' do
+      enregistrer('dlnuf', 11)
+      champs[0]['description'] = nil
+
+      expect { described_class.new(main_table_id, baserow_config, {}) }
+        .to raise_error(Referentiel::Verrou::Refus)
+    end
+
+    it 'refuse une table DLNUF contenant une colonne fichier' do
+      champs << { 'id' => 12, 'name' => 'RIB', 'type' => 'file', 'primary' => false, 'description' => nil }
+
+      expect { described_class.new(main_table_id, baserow_config, {}) }
+        .to raise_error(Referentiel::Verrou::Refus, /colonne fichier RIB/) { |e|
+          expect(e.table).to eq(ReferentielTable.find_by(backend: 'baserow', table_ref: '100'))
+        }
+    end
+
+    it 'refuse une table DLNUF dont le propriétaire ne désigne aucune colonne' do
+      champs.pop
+
+      expect { described_class.new(main_table_id, baserow_config, {}) }
+        .to raise_error(Referentiel::Verrou::Refus, /propriétaire/)
+    end
+
+    it 'refuse une table de bloc DLNUF contenant une colonne fichier' do
+      block_table = instance_double(Baserow::Table, find_by_link_row_id: [])
+      allow(Baserow::Config).to receive(:table).with(200, anything).and_return(block_table)
+      allow(structure_client).to receive(:list_tables).and_return([{ 'name' => 'Bloc', 'id' => 200 }])
+      allow(field_filter).to receive(:load_baserow_fields)
+        .and_return({ 'Piece' => { 'id' => 1, 'type' => 'file', 'config' => {}, 'readonly' => false } })
+      extracteur = instance_double(MesDemarchesToBaserow::DataExtractor, label_colors: {})
+      allow(MesDemarchesToBaserow::DataExtractor).to receive(:new).and_return(extracteur)
+      allow(extracteur).to receive(:extract_all)
+        .and_return({ main_table: {}, repetable_blocks: { 'Bloc' => [{ 'Ligne' => '1' }] } })
+
+      coordinator = described_class.new(main_table_id, baserow_config, {})
+
+      expect { coordinator.sync_dossier(dossier) }
+        .to raise_error(Referentiel::Verrou::Refus, /colonne fichier Piece/)
+    end
+
+    it 'ne synchronise pas les avis en DLNUF' do
+      coordinator = described_class.new(main_table_id, baserow_config, {})
+      coordinator.sync_dossier(dossier)
+
+      expect(MesDemarchesToBaserow::AvisSyncer).not_to have_received(:new)
     end
   end
 end
