@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_260_604_013_631) do
+ActiveRecord::Schema[7.2].define(version: 20_261_113_100_000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -101,6 +101,18 @@ ActiveRecord::Schema[7.2].define(version: 20_260_604_013_631) do
     t.string 'field'
     t.string 'value'
     t.index ['check_id'], name: 'index_messages_on_check_id'
+  end
+
+  create_table 'referentiel_tables', force: :cascade do |t|
+    t.string 'backend', null: false
+    t.string 'table_ref', null: false
+    t.string 'mode', null: false
+    t.bigint 'proprietaire'
+    t.datetime 'refus_depuis'
+    t.datetime 'alerte_le'
+    t.datetime 'created_at', null: false
+    t.datetime 'updated_at', null: false
+    t.index %w[backend table_ref], name: 'index_referentiel_tables_on_backend_and_table_ref', unique: true
   end
 
   create_table 'scheduled_tasks', force: :cascade do |t|
