@@ -217,13 +217,25 @@ class VerificationService
 
     set_demarche(controls, demarche)
     start_time = Time.zone.now
-    since = reset ? EPOCH : demarche.checked_at
+    curseur_charge = demarche.checked_at
+    since = reset ? EPOCH : curseur_charge
     DossierActions.on_dossiers(demarche.id, since) do |dossier|
       check_dossier(demarche, dossier, controls)
     end
     notify_deleted(demarche, since, controls)
-    demarche.checked_at = start_time
-    demarche.save
+    avancer_curseur(demarche, curseur_charge, start_time)
+  end
+
+  # N'avance le curseur que s'il n'a pas bougé pendant le passage : un curseur remis au début
+  # par ailleurs (« Vider la table » du builder) ne doit pas être rattrapé.
+  def avancer_curseur(demarche, curseur_charge, start_time)
+    avance = Demarche.where(id: demarche.id, checked_at: curseur_charge).update_all(checked_at: start_time, updated_at: Time.zone.now)
+    if avance.positive?
+      demarche.checked_at = start_time
+      demarche.clear_attribute_changes([:checked_at])
+    else
+      demarche.reload
+    end
   end
 
   # Informe les tâches qui surchargent `deleted` des dossiers supprimés depuis `since`.

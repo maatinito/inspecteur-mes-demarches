@@ -61,6 +61,23 @@ RSpec.describe VerificationService do
       expect(demarche.reload.checked_at).to be > ancien_curseur
     end
 
+    it 'avance le curseur à l\'heure de début quand personne ne l\'a touché pendant le passage' do
+      passer([InspectorTask.new({})])
+
+      expect(demarche.reload.checked_at).to be > ancien_curseur
+      expect(demarche.checked_at).to be_within(1.minute).of(Time.zone.now)
+    end
+
+    it 'ne rattrape pas un curseur remis au début pendant le passage' do
+      allow(DossierActions).to receive(:on_dossiers) do
+        Demarche.where(id: 3604).update_all(checked_at: DossierActions::EPOCH)
+      end
+
+      passer([InspectorTask.new({})])
+
+      expect(Demarche.find(3604).checked_at).to eq(DossierActions::EPOCH)
+    end
+
     it 'appelle deleted sur chaque tâche qui le surcharge, avec le curseur de la démarche' do
       controle = tache
       ok = tache
