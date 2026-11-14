@@ -67,6 +67,10 @@ module SchemaBuilders
     def retablir!(table_id)
       table = ReferentielTable.find_by(backend: 'baserow', table_ref: table_id.to_s)
       refuser!("table #{table_id} inconnue de ce robot : rien à rétablir") unless table
+      if table.inconnu?
+        refuser!("le type de cette table n'est pas encore connu de ce robot (marqueur illisible dès sa " \
+                 'première lecture) : corriger le marqueur à la main dans Baserow')
+      end
 
       primaire = primaire(colonnes(table_id))
       refuser!("table #{table_id} sans colonne primaire") unless primaire

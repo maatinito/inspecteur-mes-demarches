@@ -56,6 +56,13 @@ RSpec.describe SchemaBuilders::ReferentielDlnuf do
     described_class.new(client:).retablir!(861)
   end
 
+  it 'refuse de rétablir le marqueur d\'une table dont le type est encore inconnu' do
+    ReferentielTable.create!(backend: 'baserow', table_ref: '861', mode: 'inconnu')
+    expect(client).not_to receive(:update_field)
+    expect { described_class.new(client:).retablir!(861) }
+      .to raise_error(Referentiel::Verrou::Refus, /type de cette table n'est pas encore connu de ce robot.*à la main/)
+  end
+
   it 'liste les colonnes fichier' do
     colonnes << { 'id' => 3, 'name' => 'RIB', 'type' => 'file' }
     expect(described_class.new(client:).colonnes_fichier(861)).to eq(['RIB'])

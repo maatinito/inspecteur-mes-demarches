@@ -27,6 +27,14 @@ RSpec.describe ReferentielTable do
     expect(described_class.new(attributs.merge(backend: 'grist'))).to be_valid
   end
 
+  it 'accepte le mode inconnu (marqueur illisible à la première lecture)' do
+    table = described_class.new(attributs.merge(mode: 'inconnu'))
+    expect(table).to be_valid
+    expect(table.inconnu?).to be(true)
+    expect(table.dlnuf?).to be(false)
+    expect(described_class.new(attributs).inconnu?).to be(false)
+  end
+
   it 'dlnuf? vaut vrai seulement en mode dlnuf' do
     expect(described_class.new(attributs.merge(mode: 'dlnuf')).dlnuf?).to be(true)
     expect(described_class.new(attributs).dlnuf?).to be(false)

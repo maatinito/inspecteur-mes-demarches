@@ -209,6 +209,11 @@ RSpec.describe BaserowSync do
         expect(checker.ecoute_suppressions?(demarche)).to be(false)
       end
 
+      it 'est faux pour une table de type encore inconnu' do
+        enregistrer('inconnu')
+        expect(checker.ecoute_suppressions?(demarche)).to be(false)
+      end
+
       it 'est faux pour une table DLNUF d\'un autre backend ou d\'une autre table' do
         enregistrer('dlnuf', backend: 'grist')
         enregistrer('dlnuf', table_ref: '101')

@@ -192,6 +192,14 @@ RSpec.describe VerificationService do
         expect(DossierActions).not_to have_received(:on_deleted_dossiers)
       end
 
+      it 'une synchro dont le type est encore inconnu n\'écoute pas les suppressions' do
+        enregistrer('inconnu')
+
+        passer([synchro])
+
+        expect(DossierActions).not_to have_received(:on_deleted_dossiers)
+      end
+
       it 'une synchro DLNUF écoute les suppressions' do
         enregistrer('dlnuf', 7)
 

@@ -85,9 +85,40 @@ RSpec.describe Referentiel::Verrou do # rubocop:disable Metrics/BlockLength
   end
 
   describe 'tableau des règles' do
-    it 'marqueur illisible sans enregistrement : crée archive puis refuse' do
+    it 'marqueur illisible sans enregistrement : crée inconnu puis refuse' do
       expect { mode!(illisible) }.to raise_error(Referentiel::Verrou::Refus, /marqueur illisible/)
-      expect(ReferentielTable.find_by(table_ref: '42')).to have_attributes(mode: 'archive')
+      expect(ReferentielTable.find_by(table_ref: '42')).to have_attributes(mode: 'inconnu', proprietaire: nil)
+      expect(ReferentielTable.find_by(table_ref: '42').refus_depuis).to be_present
+    end
+
+    it 'marqueur illisible avec enregistrement inconnu : refuse, mode inchangé' do
+      enregistrer('inconnu')
+      expect { mode!(illisible) }.to raise_error(Referentiel::Verrou::Refus, /marqueur illisible/)
+      expect(ReferentielTable.find_by(table_ref: '42')).to have_attributes(mode: 'inconnu', proprietaire: nil)
+    end
+
+    it 'inconnu + DLNUF lisible : adopté en dlnuf comme à une première lecture, dates de refus effacées' do
+      table = ReferentielTable.create!(backend: 'baserow', table_ref: '42', mode: 'inconnu',
+                                       refus_depuis: 1.day.ago, alerte_le: 1.hour.ago)
+      expect(Referentiel::Alerte).to receive(:informer).once.with(table, /adoptée en DLNUF, 5 lignes/)
+      vus = []
+      expect(mode!(dlnuf7, lignes: -> { 5 }) { |mode, t| vus << [mode, t] }).to eq(:dlnuf)
+      expect(table.reload).to have_attributes(mode: 'dlnuf', proprietaire: 7, refus_depuis: nil, alerte_le: nil)
+      expect(vus).to eq([[:dlnuf, table]])
+    end
+
+    it 'inconnu + archive lisible : adopté en archive sans compter les lignes' do
+      enregistrer('inconnu')
+      expect(mode!(archive, lignes: -> { raise 'ne doit pas être appelé' })).to eq(:archive)
+      expect(ReferentielTable.find_by(table_ref: '42')).to have_attributes(mode: 'archive', proprietaire: nil)
+    end
+
+    it 'inconnu + DLNUF lisible, bloc qui refuse : adopté, dates de refus gardées' do
+      table = ReferentielTable.create!(backend: 'baserow', table_ref: '42', mode: 'inconnu', refus_depuis: 1.day.ago)
+      expect { mode!(dlnuf7) { |_mode, t| described_class.refuser!(t, 'colonne fichier') } }
+        .to raise_error(Referentiel::Verrou::Refus, /colonne fichier/)
+      expect(table.reload).to have_attributes(mode: 'dlnuf', proprietaire: 7)
+      expect(table.refus_depuis).to be_present
     end
 
     it 'marqueur illisible avec enregistrement archive : refuse' do
