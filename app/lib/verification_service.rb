@@ -439,6 +439,12 @@ class VerificationService
     check.failed = !task.valid?
     check.failed_at = nil unless check.failed
     task.process(demarche, md_dossier) if task.valid?
+  rescue Referentiel::Verrou::Refus => e
+    # Refus de référentiel : le contrôle est en échec, mais l'alerte est unique (24 h,
+    # gérée par Alerte.signaler) au lieu d'un courriel d'erreur par dossier.
+    check.failed = true
+    check.failed_at = Time.current
+    Referentiel::Alerte.signaler(e)
   rescue StandardError => e
     check.failed = true
     check.failed_at = Time.current
