@@ -132,6 +132,16 @@ RSpec.describe SchemaBuilders::BlockBuilder do
       end
     end
 
+    it 'sort une PJ de bloc en texte marqué avec le mapper DLNUF' do
+      dlnuf = described_class.new(target: target, type_mapper: SchemaBuilders::TypeMapper.for(:baserow, referentiel: :dlnuf))
+      bloc = TestBlockRepetition.new(label: 'Plans', id: 'B9', champ_descriptors: [
+                                       TestBlockDescriptor.new(id: 'p1', label: 'Plan', typename: 'PieceJustificativeChampDescriptor')
+                                     ])
+      preview = dlnuf.preview(TestBlockDemarcheDescriptor.new([bloc], []), application_id: 17, main_table_id: 100)
+
+      expect(preview.first[:fields]).to include(type: 'text', name: 'Plan', description: 'mes-demarches: reference=piece_justificative')
+    end
+
     it "exclut la colonne d'un libellé partagé quand son premier champ est exclu" do
       bloc = TestBlockRepetition.new(label: 'Plans', id: 'B9', champ_descriptors: [
                                        TestBlockDescriptor.new(id: 'p1', label: 'Plan', typename: 'PieceJustificativeChampDescriptor'),

@@ -396,6 +396,15 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       expect(target.reload.excluded_field_ids).not_to include('champ_xyz')
     end
 
+    it "refuse d'exclure Email usager en DLNUF (422)" do
+      target.update!(referentiel: 'dlnuf')
+      patch :toggle_main_table_field_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', field_id: 'metadata:email_usager', excluded: 'true' },
+            format: :turbo_stream
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(target.reload.excluded_field_ids).to be_empty
+    end
+
     it 'renvoie un Turbo Stream remplaçant la frame main-table' do
       patch :toggle_main_table_field_exclusion,
             params: { demarche_demarche_id: demarche.id, target: 'baserow', field_id: 'champ_xyz', excluded: 'true' },

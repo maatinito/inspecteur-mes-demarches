@@ -92,7 +92,7 @@ module Admin
         application_id: target.application_external_id,
         table_name: main_table_name_for(target),
         existing_table_id: target.main_table_external_id.presence,
-        excluded_field_ids: target.excluded_field_ids,
+        excluded_field_ids: target.exclusions_effectives,
         demandeur_modes: demandeur_modes
       )
       target.update!(main_table_external_id: result[:table_id].to_s, last_synced_at: Time.current)
@@ -192,6 +192,8 @@ module Admin
     def toggle_main_table_field_exclusion
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       excluded = ActiveModel::Type::Boolean.new.cast(params[:excluded])
+      return head :unprocessable_entity if excluded && target.dlnuf? && params[:field_id] == SchemaTarget::EMAIL_USAGER_ID
+
       if excluded
         target.exclude_field!(params[:field_id])
       else
@@ -248,7 +250,7 @@ module Admin
       SchemaBuilders::Differ.new(
         target: target,
         adapter: target_adapter_for(target),
-        type_mapper: SchemaBuilders::TypeMapper.for(target.target_type.to_sym),
+        type_mapper: target.type_mapper,
         demarche_descriptor: demarche_descriptor,
         demandeur_modes: demandeur_modes
       )
@@ -275,7 +277,7 @@ module Admin
 
     def main_table_builder_for(target)
       adapter = target_adapter_for(target)
-      type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
+      type_mapper = target.type_mapper
       field_filter = build_field_filter(target)
 
       SchemaBuilders::MainTableBuilder.new(target: adapter, type_mapper: type_mapper, field_filter: field_filter)
@@ -283,13 +285,13 @@ module Admin
 
     def avis_builder_for(target)
       adapter = target_adapter_for(target)
-      type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
+      type_mapper = target.type_mapper
       SchemaBuilders::AvisBuilder.new(target: adapter, type_mapper: type_mapper)
     end
 
     def block_builder_for(target)
       adapter = target_adapter_for(target)
-      type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
+      type_mapper = target.type_mapper
       field_filter = build_field_filter(target)
       SchemaBuilders::BlockBuilder.new(target: adapter, type_mapper: type_mapper, field_filter: field_filter)
     end
