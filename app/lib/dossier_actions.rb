@@ -60,6 +60,8 @@ class DossierActions
     end
   end
 
+  private_class_method :each_deleted_page
+
   def self.on_dossier(dossier_number)
     response = MesDemarches.query(MesDemarches::Queries::Dossier,
                                   variables: { dossier: dossier_number })

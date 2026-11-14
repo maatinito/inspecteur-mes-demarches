@@ -11,8 +11,8 @@ module Referentiel
       return false if table.alerte_le && table.alerte_le > FREQUENCE.ago
 
       message = "#{refus.message} Synchronisation et effacement suspendus. " \
-                'Rétablir le marqueur dans le builder, puis reculer le curseur de la démarche au ' \
-                "#{table.refus_depuis} pour rejouer les suppressions manquées."
+                'Rétablir le marqueur dans le builder : les dossiers en échec et les suppressions ' \
+                'mises en attente seront rejoués automatiquement.'
       envoyer(message)
       Sentry.capture_message(message)
       table.update_columns(alerte_le: Time.current)

@@ -227,24 +227,45 @@ class VerificationService
   end
 
   # Informe les tâches qui surchargent `deleted` des dossiers supprimés depuis `since`.
-  # Sans tâche à l'écoute, aucune requête n'est émise.
+  # Sans tâche à l'écoute, ni requête ni accès base. Les numéros dont une tâche a échoué
+  # sont gardés en attente (SuppressionEnAttente) et rejoués à chaque passage, car le
+  # curseur de la démarche avance malgré l'échec.
   def notify_deleted(demarche, since, controls)
     listeners = (controls + @ok_tasks).select { |t| t.valid? && t.method(:deleted).owner != InspectorTask }
     return if listeners.empty?
 
+    traites = Set.new
+    SuppressionEnAttente.where(demarche_id: demarche.id).order(:dossier).pluck(:dossier).each do |number|
+      traites << number
+      deleted_by_all(demarche, listeners, number)
+    end
     DossierActions.on_deleted_dossiers(demarche.id, since) do |number|
-      listeners.each { |task| apply_deleted(demarche, task, number) }
+      deleted_by_all(demarche, listeners, number) if traites.add?(number)
     end
   end
 
+  def deleted_by_all(demarche, listeners, number)
+    resultats = listeners.map { |task| apply_deleted(demarche, task, number) }
+    attente = SuppressionEnAttente.where(demarche_id: demarche.id, dossier: number)
+    if resultats.all?
+      attente.delete_all
+    else
+      attente.first || SuppressionEnAttente.create!(demarche_id: demarche.id, dossier: number)
+    end
+  end
+
+  # Vrai si la tâche a traité la suppression, faux si l'erreur a été absorbée.
   def apply_deleted(demarche, task, number)
     task.deleted(demarche, number)
+    true
   rescue Referentiel::Verrou::Refus => e
     Referentiel::Alerte.signaler(e)
+    false
   rescue StandardError => e
     raise e unless Rails.env.production?
 
     report_error('Error applying deleted', e)
+    false
   end
 
   def current_user_has_access_to?(demarche)

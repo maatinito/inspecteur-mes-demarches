@@ -23,6 +23,7 @@ RSpec.describe Referentiel::Alerte do
       .to have_enqueued_mail(NotificationMailer, :report_error)
     expect(table.reload.alerte_le).to be_within(5.seconds).of(Time.zone.now)
     expect(Sentry).to have_received(:capture_message).with(/Synchronisation et effacement suspendus/)
+    expect(Sentry).to have_received(:capture_message).with(/rejoués automatiquement/)
   end
 
   it 'n envoie rien au second appel dans les 24 h' do
