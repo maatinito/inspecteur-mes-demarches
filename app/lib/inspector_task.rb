@@ -33,6 +33,10 @@ class InspectorTask
     %i[scheduled]
   end
 
+  # Hook appelé par le moteur pour chaque dossier supprimé ou en corbeille de la démarche
+  # depuis le dernier passage. Ne fait rien par défaut ; les tâches intéressées le surchargent.
+  def deleted(demarche, number); end
+
   def old_name
     name.gsub(/^[0-9]+:/, '')
   end

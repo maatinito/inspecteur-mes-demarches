@@ -221,8 +221,30 @@ class VerificationService
     DossierActions.on_dossiers(demarche.id, since) do |dossier|
       check_dossier(demarche, dossier, controls)
     end
+    notify_deleted(demarche, since, controls)
     demarche.checked_at = start_time
     demarche.save
+  end
+
+  # Informe les tâches qui surchargent `deleted` des dossiers supprimés depuis `since`.
+  # Sans tâche à l'écoute, aucune requête n'est émise.
+  def notify_deleted(demarche, since, controls)
+    listeners = (controls + @ok_tasks).select { |t| t.valid? && t.method(:deleted).owner != InspectorTask }
+    return if listeners.empty?
+
+    DossierActions.on_deleted_dossiers(demarche.id, since) do |number|
+      listeners.each { |task| apply_deleted(demarche, task, number) }
+    end
+  end
+
+  def apply_deleted(demarche, task, number)
+    task.deleted(demarche, number)
+  rescue Referentiel::Verrou::Refus => e
+    Referentiel::Alerte.signaler(e)
+  rescue StandardError => e
+    raise e unless Rails.env.production?
+
+    report_error('Error applying deleted', e)
   end
 
   def current_user_has_access_to?(demarche)
