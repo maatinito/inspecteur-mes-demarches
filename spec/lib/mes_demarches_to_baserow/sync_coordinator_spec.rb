@@ -356,6 +356,26 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
         expect(main_table).to have_received(:delete_row).with(43)
       end
 
+      it 'lève quand Baserow liste encore exactement les lignes principales qui viennent d\'être effacées' do
+        enregistrer('dlnuf', 11)
+        allow(main_table).to receive(:find_by_normalized).with('Dossier', '12345').and_return([{ 'id' => 42 }])
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+
+        expect { Timeout.timeout(2) { coordinator.delete_dossier(12_345) } }
+          .to raise_error(RuntimeError, /Effacement Baserow sans effet.*#{main_table_id}.*42/)
+        expect(main_table).to have_received(:delete_row).with(42).once
+      end
+
+      it 'lève quand Baserow liste encore exactement les lignes de bloc qui viennent d\'être effacées' do
+        enregistrer('dlnuf', 11)
+        allow(bloc_table).to receive(:find_by_link_row_id).with('Dossier', 42).and_return([{ 'id' => 7 }, { 'id' => 8 }])
+        coordinator = described_class.new(main_table_id, baserow_config, {})
+
+        expect { Timeout.timeout(2) { coordinator.delete_dossier(12_345) } }
+          .to raise_error(RuntimeError, /Effacement Baserow sans effet.*200.*7, 8/)
+        expect(main_table).not_to have_received(:delete_row)
+      end
+
       it 'n\'efface rien en archive' do
         champs[0]['description'] = nil
         coordinator = described_class.new(main_table_id, baserow_config, {})

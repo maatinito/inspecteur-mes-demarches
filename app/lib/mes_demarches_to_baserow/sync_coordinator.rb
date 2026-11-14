@@ -98,14 +98,17 @@ module MesDemarchesToBaserow
       return false unless dlnuf?
 
       efface = false
+      effacees = nil
       loop do
         lignes = @main_table.find_by_normalized('Dossier', number.to_s)
         break if lignes.empty?
 
+        verifier_progression!(@main_table, lignes, effacees)
         lignes.each do |ligne|
           tables_de_bloc.each_value { |table_id| effacer_lignes_liees(get_table(table_id), ligne['id']) }
           effacer_ligne!(@main_table, ligne['id'])
         end
+        effacees = lignes
         efface = true
       end
       Rails.logger.info "BaserowSync: Dossier #{number} effacé de Baserow (lignes et blocs)" if efface
@@ -120,12 +123,24 @@ module MesDemarchesToBaserow
 
     # Efface page après page les lignes d'un bloc liées à la ligne principale.
     def effacer_lignes_liees(table, ligne_principale_id)
+      effacees = nil
       loop do
         lignes = table.find_by_link_row_id('Dossier', ligne_principale_id)
         break if lignes.empty?
 
+        verifier_progression!(table, lignes, effacees)
         lignes.each { |ligne| effacer_ligne!(table, ligne['id']) }
+        effacees = lignes
       end
+    end
+
+    # Garde de progression : si Baserow accepte l'effacement mais liste encore exactement les
+    # lignes qui viennent d'être effacées, la boucle ne finirait jamais.
+    def verifier_progression!(table, lignes, effacees)
+      ids = lignes.map { |ligne| ligne['id'] }
+      return unless effacees && ids.sort == effacees.map { |ligne| ligne['id'] }.sort
+
+      raise "Effacement Baserow sans effet : table #{table.table_id}, lignes #{ids.join(', ')} toujours listées"
     end
 
     def effacer_ligne!(table, row_id)
