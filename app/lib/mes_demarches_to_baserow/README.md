@@ -446,8 +446,8 @@ Une table **socle** a des colonnes communes à plusieurs démarches dont les cha
 1. colonne absente de la table ;
 2. gabarit sur une colonne d'un type non admis ;
 3. `stable_id` inconnu des révisions (brouillon et publiée) de la démarche ;
-4. `stable_id` d'une annotation privée (le socle ne reprend que ce que l'usager a saisi) ;
-5. libellé `{…}` d'un gabarit inconnu de la démarche — sans ce contrôle, un champ renommé viderait la cellule en silence ;
+4. `stable_id` d'une annotation privée (le socle ne reprend que ce que l'usager a saisi), ou d'un champ jamais synchronisé (bloc répétable, titre d'identité, titre de section, explication) ;
+5. libellé `{…}` d'un gabarit inconnu de la démarche — sans ce contrôle, un champ renommé viderait la cellule en silence. Sont acceptés : le libellé exact (y compris terminé par « ? »), un chemin pointé dont la racine est un libellé (`{N° Tahiti.adresse}`), un attribut du dossier en minuscules (`{number}`, `{demandeur.nom}`) ;
 6. texte fait uniquement de chiffres (`"140066"` entre guillemets) : gardé comme constante, mais signalé (« stable_id attendu ? »).
 
 Une valeur ni nombre ni texte (liste, décimal…) est une erreur de configuration du bloc.
