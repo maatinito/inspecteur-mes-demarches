@@ -33,4 +33,15 @@ RSpec.describe Referentiel::ReferencePj do
     expect(described_class.pour(686_128, champ('Champ-155122|01HZX3AB-D', padding: true))).to eq(attendu)
     expect(described_class.pour(686_128, champ('Champ-155122|01HZX3AB-D', urlsafe: false))).to eq(attendu)
   end
+
+  describe '.stable_id' do
+    it 'rend le stable_id entier d\'un champ de bloc ou de la table principale' do
+      expect(described_class.stable_id(champ('Champ-155122|01HZX'))).to eq(155_122)
+      expect(described_class.stable_id(champ('Champ-140107'))).to eq(140_107)
+    end
+
+    it 'refuse un identifiant inattendu' do
+      expect { described_class.stable_id(champ('Dossier-12')) }.to raise_error(ArgumentError)
+    end
+  end
 end

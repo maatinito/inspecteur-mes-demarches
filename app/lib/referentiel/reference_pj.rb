@@ -19,6 +19,12 @@ module Referentiel
       ['md', numero_dossier, stable_id, row_id].compact.join(':')
     end
 
+    # stable_id entier d'un champ ou d'un descripteur de champ (même encodage `Champ-<stable_id>`).
+    # @raise [ArgumentError] si l'identifiant n'a pas la forme attendue
+    def self.stable_id(champ)
+      decoder(champ.id).first.to_i
+    end
+
     def self.decoder(identifiant)
       clair = decoder_base64(identifiant.to_s)
       correspondance = IDENTIFIANT.match(clair) or
