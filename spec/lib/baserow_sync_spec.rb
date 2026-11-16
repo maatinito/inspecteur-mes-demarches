@@ -234,5 +234,34 @@ RSpec.describe BaserowSync do
       expect(coordinator).to have_received(:delete_dossier).with(12_345)
     end
   end
+
+  describe 'configuration du mapping' do
+    def tache(mapping)
+      described_class.new(baserow: { 'table_id' => 1 }, mapping:)
+    end
+
+    it 'refuse une valeur qui n\'est ni un stable_id ni un gabarit' do
+      expect(tache('A' => [1]).errors.join).to include('ni un stable_id')
+    end
+
+    it 'accepte stable_id et gabarit' do
+      expect(tache('A' => 140_066, 'B' => 'DIREN').errors).to be_empty
+    end
+
+    it 'transmet le mapping et un gabarit instancié par la tâche au coordinateur' do
+      coordinateur = instance_double(MesDemarchesToBaserow::SyncCoordinator, demarche_number: 999, delete_dossier: true)
+      gabarit = nil
+      allow(MesDemarchesToBaserow::SyncCoordinator).to receive(:new) do |*_args, **kwargs|
+        gabarit = kwargs[:gabarit]
+        coordinateur
+      end
+
+      tache('Service' => 'DIREN').deleted(double('Demarche', id: 999), 1)
+
+      expect(MesDemarchesToBaserow::SyncCoordinator).to have_received(:new)
+        .with(999, { 'table_id' => 1 }, {}, mapping: { 'Service' => 'DIREN' }, gabarit: kind_of(Proc))
+      expect(gabarit.call('DIREN')).to eq('DIREN')
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength

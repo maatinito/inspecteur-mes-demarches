@@ -50,6 +50,47 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
 
       expect(avis_syncer).to have_received(:sync).with(dossier, 42, kind_of(Proc))
     end
+
+    context 'avec un mapping' do
+      def descripteur(stable_id, label)
+        double(id: Base64.urlsafe_encode64("Champ-#{stable_id}"), label:)
+      end
+
+      let(:revision) do
+        double(champ_descriptors: [descripteur(140_066, 'NOM Président(e)')],
+               annotation_descriptors: [descripteur(160_000, 'Montant accordé')])
+      end
+
+      before do
+        resultat = double(data: double(demarche: double(draft_revision: revision, published_revision: nil)))
+        allow(MesDemarches).to receive(:query).and_return(resultat)
+        allow(Rails.logger).to receive(:warn)
+      end
+
+      it 'journalise les avertissements du Mapping une seule fois par passe' do
+        coordinator = described_class.new(main_table_id, baserow_config, options,
+                                          mapping: { 'Inconnue' => 140_066 }, gabarit: ->(texte) { texte })
+        2.times { coordinator.sync_dossier(dossier) }
+
+        expect(Rails.logger).to have_received(:warn).with(/BaserowSync mapping: démarche 100.*Inconnue/).once
+      end
+
+      it 'ne synchronise aucun bloc répétable' do
+        coordinator = described_class.new(main_table_id, baserow_config, options,
+                                          mapping: { 'Inconnue' => 140_066 }, gabarit: ->(texte) { texte })
+        allow(coordinator).to receive(:sync_repetable_blocks)
+        coordinator.sync_dossier(dossier)
+
+        expect(coordinator).not_to have_received(:sync_repetable_blocks)
+      end
+    end
+
+    it 'sans mapping, ne lit pas la révision de la démarche' do
+      allow(MesDemarches).to receive(:query)
+      described_class.new(main_table_id, baserow_config, options)
+
+      expect(MesDemarches).not_to have_received(:query)
+    end
   end
 
   describe 'type de table (archive ou DLNUF)' do # rubocop:disable Metrics/BlockLength

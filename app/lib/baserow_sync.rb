@@ -5,6 +5,7 @@ require_relative 'mes_demarches_to_baserow/sync_coordinator'
 require_relative 'mes_demarches_to_baserow/data_extractor'
 require_relative 'mes_demarches_to_baserow/field_filter'
 require_relative 'mes_demarches_to_baserow/row_upserter'
+require_relative 'mes_demarches_to_baserow/mapping'
 require_relative 'mes_demarches_to_baserow/avis_syncer'
 require_relative 'mes_demarches_to_baserow/avis_table_builder'
 
@@ -22,6 +23,9 @@ require_relative 'mes_demarches_to_baserow/avis_table_builder'
 #       token_config: 'tftn'
 #     options:
 #       supprimer_orphelins: true
+#     mapping:                         # Optionnel - table socle (voir README)
+#       Représentant nom: 140066       # stable_id
+#       Service: DIREN                 # gabarit / constante
 class BaserowSync < FieldChecker
   def version
     super + 1
@@ -32,7 +36,7 @@ class BaserowSync < FieldChecker
   end
 
   def authorized_fields
-    super + %i[options]
+    super + %i[options mapping]
   end
 
   def initialize(*args)
@@ -46,6 +50,8 @@ class BaserowSync < FieldChecker
       blocks = @params.dig(:options, 'repetable_blocks')
       @errors << "Configuration 'options.repetable_blocks' invalide ou vide sur baserow_sync" if blocks.nil? || !blocks.is_a?(Array) || blocks.empty?
     end
+
+    @errors.concat(MesDemarchesToBaserow::Mapping.erreurs_de_config(@params[:mapping]).map { |erreur| "baserow_sync : #{erreur}" }) if @params.key?(:mapping)
 
     @coordinator = nil # Créer le coordinator à la demande pour réutiliser les caches
   end
@@ -82,10 +88,18 @@ class BaserowSync < FieldChecker
       @coordinator = MesDemarchesToBaserow::SyncCoordinator.new(
         demarche.id,
         @params[:baserow],
-        @params[:options] || {}
+        @params[:options] || {},
+        **options_mapping
       )
     end
     @coordinator
+  end
+
+  # Le gabarit s'instancie sur @dossier, posé par FieldChecker#process avant chaque synchronisation.
+  def options_mapping
+    return {} unless @params[:mapping]
+
+    { mapping: @params[:mapping], gabarit: ->(texte) { instanciate(texte) } }
   end
 
   # Dossier supprimé par l'usager seul : en DLNUF la ligne est effacée, quel que soit l'état du

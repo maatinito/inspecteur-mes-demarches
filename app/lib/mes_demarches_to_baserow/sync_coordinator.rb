@@ -19,7 +19,7 @@ module MesDemarchesToBaserow
 
     attr_reader :demarche_number, :baserow_config, :options, :mode
 
-    def initialize(demarche_number, baserow_config, options = {})
+    def initialize(demarche_number, baserow_config, options = {}, mapping: nil, gabarit: nil)
       @demarche_number = demarche_number
       @baserow_config = baserow_config.is_a?(Hash) ? baserow_config.deep_stringify_keys : baserow_config
       @options = options.is_a?(Hash) ? options.deep_stringify_keys : options
@@ -37,6 +37,8 @@ module MesDemarchesToBaserow
       @select_options_cache = {} # { field_id => Set[known_values] }
       @failed_uploads = []
       @mode = determiner_mode!
+      @gabarit = gabarit
+      @mapping = construire_mapping(mapping) if mapping
     end
 
     def sync_dossier(dossier)
@@ -49,7 +51,7 @@ module MesDemarchesToBaserow
       # 2. Extraire les données du dossier
       data_extractor = DataExtractor.new(@main_field_metadata, @options,
                                          block_columns: ->(label) { block_columns_by_label(label) },
-                                         referentiel: @mode)
+                                         referentiel: @mode, mapping: @mapping, gabarit: @gabarit)
       extracted_data = data_extractor.extract_all(dossier, existing_row)
 
       # 3. Filtrer les champs read-only
@@ -76,7 +78,7 @@ module MesDemarchesToBaserow
 
       # 7. Synchroniser les blocs répétables (auto-découverte)
       # Passer main_row_id pour éviter une recherche inutile
-      sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks], main_row_id)
+      sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks], main_row_id) unless @mapping
 
       # 7b. Synchroniser les avis du dossier vers la table "Avis" (auto-découverte)
       sync_avis(dossier, main_row_id) unless dlnuf?
@@ -119,6 +121,31 @@ module MesDemarchesToBaserow
 
     def dlnuf?
       @mode == :dlnuf
+    end
+
+    # Mapping confronté à la table et aux révisions (brouillon ∪ publiée) de la démarche.
+    # Construit une fois par passe : ses avertissements sont journalisés une fois.
+    def construire_mapping(config)
+      revisions = revisions_demarche
+      mapping = Mapping.new(config, field_metadata: @main_field_metadata,
+                                    champs: descripteurs_par_stable_id(revisions, :champ_descriptors),
+                                    annotations: descripteurs_par_stable_id(revisions, :annotation_descriptors))
+      mapping.avertissements.each { |message| Rails.logger.warn("BaserowSync mapping: démarche #{@demarche_number}, #{message}") }
+      mapping
+    end
+
+    def revisions_demarche
+      result = MesDemarches.query(MesDemarches::Queries::DemarcheRevision, variables: { demarche: @demarche_number })
+      demarche = result.data&.demarche
+      raise "BaserowSync mapping: démarche #{@demarche_number} illisible (#{result.errors&.messages})" unless demarche
+
+      [demarche.draft_revision, demarche.published_revision].compact
+    end
+
+    def descripteurs_par_stable_id(revisions, type)
+      revisions.flat_map(&type).to_h do |descripteur|
+        [Referentiel::ReferencePj.stable_id(descripteur), descripteur.label]
+      end
     end
 
     # Efface page après page les lignes d'un bloc liées à la ligne principale.
