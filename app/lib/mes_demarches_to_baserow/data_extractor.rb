@@ -31,8 +31,13 @@ module MesDemarchesToBaserow
     # `block_columns` : ->(libellé du bloc) { { nom de colonne => métadonnées } | nil },
     # fourni par le coordinateur pour remplir les sous-colonnes des champs
     # composites d'un bloc (appelé seulement si le bloc en contient).
-    def initialize(field_metadata, options = {}, block_columns: nil, referentiel: :archive)
+    # `mapping` : MesDemarchesToBaserow::Mapping ou nil. Déclaré, il rend l'extraction
+    # exclusive : métadonnées système + colonnes du mapping, sans appariement par libellé.
+    # `gabarit` : ->(String) { String }, instancie un gabarit du mapping pour le dossier courant.
+    def initialize(field_metadata, options = {}, block_columns: nil, referentiel: :archive, mapping: nil, gabarit: nil)
       @field_metadata = field_metadata
+      @mapping = mapping
+      @gabarit = gabarit
       @options = options
       @block_columns = block_columns
       @referentiel = referentiel
@@ -89,6 +94,8 @@ module MesDemarchesToBaserow
     private
 
     def extract_main_table(dossier)
+      return extract_system_fields(dossier).merge(extract_mapped(dossier)) if @mapping
+
       data = {}
 
       # Champs système (toujours extraits)
@@ -159,26 +166,7 @@ module MesDemarchesToBaserow
         field_name = champ.label
         next unless @field_metadata.key?(field_name)
 
-        baserow_type = @field_metadata[field_name]['type']
-
-        if dlnuf? && champ.__typename == 'PieceJustificativeChamp'
-          extract_reference_pj(data, champ, numero_dossier)
-          next
-        end
-
-        # Pour les champs fichiers, passer les fichiers existants
-        # Vérifier aussi le type MD : seul PieceJustificativeChamp a la méthode `files`
-        value = if baserow_type == 'file' && champ.__typename == 'PieceJustificativeChamp' && @existing_row
-                  existing_files = @existing_row[field_name] || []
-                  normalize_files(champ, existing_files)
-                else
-                  normalize_value(champ, baserow_type)
-                end
-
-        # Les nil sont conservés : ils signifient « champ vidé côté Mes-Démarches »
-        # et déclenchent la réinitialisation de la cellule Baserow dans RowUpserter.
-        # (les fichiers ne sont jamais nil : normalize_files préserve l'existant)
-        data[field_name] = value
+        ecrire_colonne(data, field_name, champ, numero_dossier)
       rescue *CHAMP_READ_ERRORS => e
         Rails.logger.warn("BaserowSync: champ #{field_name} illisible (#{champ.__typename}), cellule laissée intacte — #{e.message}")
       end
@@ -186,7 +174,52 @@ module MesDemarchesToBaserow
       data
     end
 
+    # Écrit dans `colonne` la valeur de `champ`, convertie selon le type de la colonne.
+    # Les nil sont conservés : ils signifient « champ vidé côté Mes-Démarches » et
+    # déclenchent la réinitialisation de la cellule Baserow dans RowUpserter
+    # (les fichiers ne sont jamais nil : normalize_files préserve l'existant).
+    def ecrire_colonne(data, colonne, champ, numero_dossier)
+      return extract_reference_pj(data, colonne, champ, numero_dossier) if dlnuf? && champ.__typename == 'PieceJustificativeChamp'
+
+      baserow_type = @field_metadata[colonne]['type']
+      # Seul PieceJustificativeChamp a la méthode `files`
+      data[colonne] = if baserow_type == 'file' && champ.__typename == 'PieceJustificativeChamp' && @existing_row
+                        normalize_files(champ, @existing_row[colonne] || [])
+                      else
+                        normalize_value(champ, baserow_type)
+                      end
+    end
+
+    # Colonnes du mapping. Un champ connu de la démarche mais absent du dossier (masqué
+    # par une condition, ajouté après le dépôt) vide la colonne ; un gabarit vide aussi.
+    def extract_mapped(dossier)
+      champs = champs_par_stable_id(dossier.champs)
+      @mapping.entrees.each_with_object({}) do |entree, data|
+        if entree.gabarit
+          data[entree.colonne] = @gabarit.call(entree.gabarit).presence
+        elsif (champ = champs[entree.stable_id])
+          ecrire_colonne(data, entree.colonne, champ, dossier.number)
+        else
+          data[entree.colonne] = nil
+        end
+      rescue *CHAMP_READ_ERRORS => e
+        Rails.logger.warn("BaserowSync mapping: colonne #{entree.colonne} illisible, cellule laissée intacte — #{e.message}")
+      end
+    end
+
+    def champs_par_stable_id(champs)
+      champs.each_with_object({}) do |champ, index|
+        next if champ.__typename == 'RepetitionChamp' || ignored_champ?(champ)
+
+        index[Referentiel::ReferencePj.stable_id(champ)] = champ
+      rescue ArgumentError => e
+        Rails.logger.warn("BaserowSync mapping: champ #{champ.label} sans stable_id lisible, ignoré — #{e.message}")
+      end
+    end
+
     def extract_repetable_blocks(dossier)
+      return {} if @mapping
+
       blocks_data = {}
 
       # Auto-découvrir tous les champs de type RepetitionChamp dans champs ET annotations
@@ -286,14 +319,14 @@ module MesDemarchesToBaserow
 
     # Colonne non marquée : jamais d'écriture. Colonne marquée : la référence, ou nil
     # (pièce supprimée côté Mes-Démarches → cellule réinitialisée).
-    def extract_reference_pj(data, champ, numero_dossier)
-      unless @field_metadata[champ.label]['reference_pj']
-        Rails.logger.warn("BaserowSync: pièce jointe #{champ.label} ignorée en DLNUF, la colonne n'est pas marquée « reference=piece_justificative »")
+    def extract_reference_pj(data, colonne, champ, numero_dossier)
+      unless @field_metadata[colonne]['reference_pj']
+        Rails.logger.warn("BaserowSync: pièce jointe #{colonne} ignorée en DLNUF, la colonne n'est pas marquée « reference=piece_justificative »")
         return
       end
 
       reference = reference_pj(numero_dossier, champ)
-      data[champ.label] = reference unless reference == IGNOREE
+      data[colonne] = reference unless reference == IGNOREE
     end
 
     # Référence DLNUF d'une pièce jointe. Un identifiant illisible laisse la cellule
