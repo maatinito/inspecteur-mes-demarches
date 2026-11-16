@@ -13,8 +13,16 @@ module MesDemarchesToBaserow
 
     TYPES_GABARIT = %w[text long_text single_select email url].freeze
 
-    # Même découpage que FieldChecker#instanciate_once : {préfixe;Champ;suffixe}.
+    # Champs que la synchro ne sait jamais écrire : les désigner viderait la colonne à chaque dossier.
+    TYPES_NON_INSCRIPTIBLES = %w[RepetitionChampDescriptor TitreIdentiteChampDescriptor
+                                 HeaderSectionChampDescriptor ExplicationChampDescriptor].freeze
+
+    # Mêmes découpages que FieldChecker#instanciate_once : ternaires d'abord, puis {préfixe;Champ;suffixe}.
+    TERNAIRE = /{([^{}]+\?[^{}]+:[^{}]+)}/
     PLACEHOLDER = /{(?:([^{};]*);)?([^{}]+?)(?:;([^{};]*))?}/
+
+    # Attribut ou chemin du dossier ({number}, {demandeur.nom}) : résolu par instanciate, non contrôlé.
+    ATTRIBUT_DOSSIER = /\A[a-z_][a-z0-9_.]*\z/
 
     attr_reader :entrees, :avertissements
 
@@ -29,9 +37,11 @@ module MesDemarchesToBaserow
 
     # @param champs [Hash{Integer => String}] stable_id => libellé des champs usager (révisions)
     # @param annotations [Hash{Integer => String}] idem pour les annotations privées
-    def initialize(config, field_metadata:, champs:, annotations:)
+    # @param types [Hash{Integer => String}] stable_id => __typename du descripteur de champ
+    def initialize(config, field_metadata:, champs:, annotations:, types: {})
       @field_metadata = field_metadata
       @champs = champs
+      @types = types
       @annotations = annotations
       @libelles = (champs.values + annotations.values).to_set
       @avertissements = []
@@ -48,6 +58,7 @@ module MesDemarchesToBaserow
     end
 
     def entree_stable_id(colonne, stable_id)
+      return avertir("colonne « #{colonne} » : #{stable_id} est un champ #{@types[stable_id]}, jamais synchronisé, ignorée") if TYPES_NON_INSCRIPTIBLES.include?(@types[stable_id])
       return Entree.new(colonne, stable_id, nil) if @champs.key?(stable_id)
 
       if @annotations.key?(stable_id)
@@ -60,15 +71,31 @@ module MesDemarchesToBaserow
     def entree_gabarit(colonne, gabarit, type)
       return avertir("colonne « #{colonne} » de type #{type} : un gabarit n'y est pas admis (stable_id attendu), ignorée") unless TYPES_GABARIT.include?(type)
 
-      inconnus = libelles(gabarit).reject { |libelle| @libelles.include?(libelle) }
+      inconnus = libelles(gabarit).reject { |libelle| libelle_connu?(libelle) }
       return avertir("colonne « #{colonne} » : libellé(s) #{inconnus.join(', ')} inconnu(s) de la démarche, ignorée") if inconnus.any?
 
       avertir("colonne « #{colonne} » : « #{gabarit} » écrit comme constante — stable_id attendu ? (sans guillemets)") if gabarit.match?(/\A\d+\z/)
       Entree.new(colonne, nil, gabarit)
     end
 
+    # Noms référencés, lus comme instanciate : la condition d'un ternaire valide (« ? » avant
+    # le dernier « : »), puis les autres {…} une fois les ternaires retirés.
     def libelles(gabarit)
-      gabarit.scan(PLACEHOLDER).map { |_prefixe, nom, _suffixe| nom.split('?').first.strip }
+      conditions = []
+      reste = gabarit.gsub(TERNAIRE) do |brut|
+        expression = Regexp.last_match(1)
+        question = expression.index('?')
+        next brut unless question < expression.rindex(':')
+
+        conditions << expression[0...question].strip
+        ''
+      end
+      conditions + reste.scan(PLACEHOLDER).map { |_prefixe, nom, _suffixe| nom.strip }
+    end
+
+    # Libellé exact, racine d'un chemin pointé ({N° Tahiti.adresse}), ou attribut du dossier.
+    def libelle_connu?(nom)
+      @libelles.include?(nom) || @libelles.include?(nom.split('.').first.strip) || nom.match?(ATTRIBUT_DOSSIER)
     end
 
     def avertir(message)

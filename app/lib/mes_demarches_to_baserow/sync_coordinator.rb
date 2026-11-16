@@ -129,7 +129,8 @@ module MesDemarchesToBaserow
       revisions = revisions_demarche
       mapping = Mapping.new(config, field_metadata: @main_field_metadata,
                                     champs: descripteurs_par_stable_id(revisions, :champ_descriptors),
-                                    annotations: descripteurs_par_stable_id(revisions, :annotation_descriptors))
+                                    annotations: descripteurs_par_stable_id(revisions, :annotation_descriptors),
+                                    types: revisions.flat_map(&:champ_descriptors).to_h { |d| [Referentiel::ReferencePj.stable_id(d), d.__typename] })
       mapping.avertissements.each { |message| Rails.logger.warn("BaserowSync mapping: démarche #{@demarche_number}, #{message}") }
       mapping
     end

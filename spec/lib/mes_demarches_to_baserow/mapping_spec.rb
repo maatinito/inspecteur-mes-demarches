@@ -7,11 +7,15 @@ RSpec.describe MesDemarchesToBaserow::Mapping do
     { 'Service' => { 'type' => 'single_select' }, 'Représentant nom' => { 'type' => 'text' },
       'Statuts' => { 'type' => 'text', 'reference_pj' => true }, 'Début de mandat' => { 'type' => 'date' } }
   end
-  let(:champs) { { 140_066 => 'NOM Président(e)', 140_102 => 'Statuts en vigueur', 150_001 => 'Adresse postale' } }
+  let(:champs) do
+    { 140_066 => 'NOM Président(e)', 140_102 => 'Statuts en vigueur', 150_001 => 'Adresse postale',
+      150_002 => 'Êtes-vous assujetti ?', 150_003 => 'N° Tahiti', 140_200 => 'Membres', 140_123 => 'Pièce d\'identité' }
+  end
+  let(:types) { { 140_200 => 'RepetitionChampDescriptor', 140_123 => 'TitreIdentiteChampDescriptor' } }
   let(:annotations) { { 160_000 => 'Montant accordé' } }
 
   def mapping(config)
-    described_class.new(config, field_metadata: metadata, champs:, annotations:)
+    described_class.new(config, field_metadata: metadata, champs:, annotations:, types:)
   end
 
   it 'retient un stable_id et une constante sur single_select' do
@@ -58,6 +62,27 @@ RSpec.describe MesDemarchesToBaserow::Mapping do
     m = mapping('Représentant nom' => '{Adresse postale ? oui : non}{BP ;Montant accordé; F}')
     expect(m.entrees.size).to eq(1)
     expect(m.avertissements).to be_empty
+  end
+
+  it 'accepte la syntaxe complète de instanciate : libellé en question, chemin pointé, attribut du dossier' do
+    m = mapping('Représentant nom' => '{Êtes-vous assujetti ?}{N° Tahiti.adresse}{number}')
+    expect(m.entrees.size).to eq(1)
+    expect(m.avertissements).to be_empty
+  end
+
+  it 'accepte un ternaire dont une branche contient un point-virgule' do
+    expect(mapping('Représentant nom' => '{Adresse postale ? x;y : z}').entrees.size).to eq(1)
+  end
+
+  it 'rejette un chemin pointé dont la racine est inconnue' do
+    expect(mapping('Représentant nom' => '{Inconnu.adresse}').entrees).to be_empty
+  end
+
+  it 'ignore un stable_id de bloc répétable ou de titre d\'identité, jamais inscriptible' do
+    m = mapping('Représentant nom' => 140_200, 'Début de mandat' => 140_123)
+    expect(m.entrees).to be_empty
+    expect(m.avertissements.size).to eq(2)
+    expect(m.avertissements.first).to include('RepetitionChampDescriptor')
   end
 
   it 'garde une chaîne numérique comme constante mais avertit' do

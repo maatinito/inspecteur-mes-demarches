@@ -52,12 +52,13 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
     end
 
     context 'avec un mapping' do
-      def descripteur(stable_id, label)
-        double(id: Base64.urlsafe_encode64("Champ-#{stable_id}"), label:)
+      def descripteur(stable_id, label, typename = 'TextChampDescriptor')
+        double(id: Base64.urlsafe_encode64("Champ-#{stable_id}"), label:, __typename: typename)
       end
 
       let(:revision) do
-        double(champ_descriptors: [descripteur(140_066, 'NOM Président(e)')],
+        double(champ_descriptors: [descripteur(140_066, 'NOM Président(e)'),
+                                   descripteur(140_200, 'Membres', 'RepetitionChampDescriptor')],
                annotation_descriptors: [descripteur(160_000, 'Montant accordé')])
       end
 
@@ -73,6 +74,13 @@ RSpec.describe MesDemarchesToBaserow::SyncCoordinator do # rubocop:disable Metri
         2.times { coordinator.sync_dossier(dossier) }
 
         expect(Rails.logger).to have_received(:warn).with(/BaserowSync mapping: démarche 100.*Inconnue/).once
+      end
+
+      it 'écarte, avec un avertissement, un stable_id de bloc répétable' do
+        allow(client).to receive(:list_fields).and_return([{ 'id' => 1, 'name' => 'Membres', 'type' => 'text' }])
+        described_class.new(main_table_id, baserow_config, options, mapping: { 'Membres' => 140_200 }, gabarit: ->(texte) { texte })
+
+        expect(Rails.logger).to have_received(:warn).with(/Membres.*RepetitionChampDescriptor/)
       end
 
       it 'ne synchronise aucun bloc répétable' do
