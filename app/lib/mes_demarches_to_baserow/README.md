@@ -415,6 +415,47 @@ Le builder peut tourner sur dev ou staging alors que la synchronisation se fait 
 
 Vérifier que la description de la colonne primaire des tables **déjà synchronisées** ne contient pas de ligne en texte libre commençant par « Mes démarches : » (ou une variante proche : « mes-demarches », « Mes_démarche »…). Une telle ligne serait lue comme un marqueur illisible et la table serait refusée à la première synchronisation.
 
+## Mapping vers une table socle (`mapping:`)
+
+Une table **socle** a des colonnes communes à plusieurs démarches dont les champs portent des libellés différents (« NOM Président(e) », « Nom responsable (*) » → colonne « Représentant nom »). L'appariement par libellé ne convient plus : le bloc `mapping:` déclare, colonne par colonne, d'où vient la valeur.
+
+```yaml
+- baserow_sync:
+    baserow:
+      table_id: 1046
+      token_config: 'Financeurs'
+    mapping:
+      Représentant nom: 140066                            # nombre → stable_id du champ
+      Statuts: 140102                                     # pièce jointe → stable_id obligatoire
+      Service: DIREN                                      # texte sans accolade → constante
+      Représentant fonction: Président                    # constante (rôle imposé par le formulaire)
+      Adresse: "{Adresse postale}{, BP ;Boîte postale}"   # gabarit
+```
+
+**Deux formes de valeur :**
+
+- **Un nombre** est le `stable_id` d'un champ usager (`bin/describe_demarche <n>` les liste). Il survit au renommage du champ et donne une valeur typée. C'est la **seule forme admise** pour les colonnes fichier, date, nombre, téléphone, booléen, multi-choix ou lien.
+- **Un texte** est un gabarit, avec la syntaxe habituelle du robot : `{Champ}`, `{préfixe;Champ;suffixe}` (préfixe et suffixe n'apparaissent que si le champ est rempli), ternaire `{Champ ? oui : non}`. Sans accolade, c'est une **constante** écrite sur toutes les lignes. Le résultat est toujours du texte : admis seulement sur les colonnes texte, texte long, choix unique, e-mail, URL. Un gabarit vide écrit une cellule vide.
+
+**Une constante seulement si le formulaire impose réellement la valeur** : `Service` (aucun champ ne le porte) ou la fonction du représentant quand le formulaire ne demande que le président. Pas pour une démarche dont les porteurs varient (maire, président, directeur).
+
+**Ce que change la présence d'un `mapping:`** (mode exclusif) : seules les colonnes déclarées sont écrites, plus les métadonnées système par leur nom (« Raison sociale », « Numéro TAHITI », « Date de dépôt »…) et, en DLNUF, la colonne propriétaire. Plus aucun appariement par libellé : un champ homonyme d'une colonne non déclarée n'est pas écrit, les annotations privées ne le sont pas non plus, ni les blocs répétables. Un champ connu de la démarche mais absent du dossier (masqué par une condition, ajouté après le dépôt) vide sa colonne.
+
+**Garde-fous, tous non destructifs** : l'entrée est écartée (la colonne n'est jamais écrite) et un avertissement `BaserowSync mapping: démarche <n>, …` est journalisé une fois par passage, sans rien bloquer :
+
+1. colonne absente de la table ;
+2. gabarit sur une colonne d'un type non admis ;
+3. `stable_id` inconnu des révisions (brouillon et publiée) de la démarche ;
+4. `stable_id` d'une annotation privée (le socle ne reprend que ce que l'usager a saisi) ;
+5. libellé `{…}` d'un gabarit inconnu de la démarche — sans ce contrôle, un champ renommé viderait la cellule en silence ;
+6. texte fait uniquement de chiffres (`"140066"` entre guillemets) : gardé comme constante, mais signalé (« stable_id attendu ? »).
+
+Une valeur ni nombre ni texte (liste, décimal…) est une erreur de configuration du bloc.
+
+**À savoir :** un gabarit peut lire une annotation privée (le moteur de gabarit les trouve), ce qui sort de la règle « socle = saisie usager » ; une colonne composée (adresse + BP) ne se redécoupe pas au préremplissage d'un autre formulaire.
+
+**La table socle ne se construit pas avec le builder**, qui crée une colonne par champ d'une démarche. Elle se crée à la main ou par script, en respectant le contrat DLNUF (marqueur sur la colonne `Dossier`, colonnes de pièces en texte marquées `mes-demarches: reference=piece_justificative`, aucune colonne fichier). Ne jamais pointer le builder sur une table socle : il y ajouterait les colonnes de la démarche sous leurs libellés locaux.
+
 ## Tests
 
 ```bash
