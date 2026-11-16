@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["workspace", "application", "table"]
+  static targets = ["workspace", "application", "table", "referentiel"]
   static values = { targetType: String, demarcheId: Number, schemaTargetId: Number }
 
   connect() {
@@ -58,6 +58,9 @@ export default class extends Controller {
       application_external_id: this.applicationTarget.value,
       main_table_external_id: this.tableTarget.value
     }
+    if (this.hasReferentielTarget && !this.referentielTarget.disabled) {
+      payload.referentiel = this.referentielTarget.value
+    }
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
     const response = await fetch(`/admin/demarches/${this.demarcheIdValue}/schema/targets/${this.targetTypeValue}/selection`, {
       method: 'PATCH',
@@ -75,6 +78,12 @@ export default class extends Controller {
     if (response.ok) {
       this.#reloadSectionFrames()
     }
+  }
+
+  // Le type change la structure du panneau (section Avis absente en DLNUF) : rechargement complet.
+  async onReferentielChange() {
+    await this.onSelectionChange()
+    window.location.reload()
   }
 
   #reloadSectionFrames() {

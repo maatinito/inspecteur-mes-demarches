@@ -17,9 +17,9 @@ module MesDemarchesToBaserow
 
     DEFAULT_OPTION_COLORS = %w[blue green red yellow orange purple pink light-blue light-green light-red].freeze
 
-    attr_reader :demarche_number, :baserow_config, :options
+    attr_reader :demarche_number, :baserow_config, :options, :mode
 
-    def initialize(demarche_number, baserow_config, options = {})
+    def initialize(demarche_number, baserow_config, options = {}, mapping: nil, gabarit: nil)
       @demarche_number = demarche_number
       @baserow_config = baserow_config.is_a?(Hash) ? baserow_config.deep_stringify_keys : baserow_config
       @options = options.is_a?(Hash) ? options.deep_stringify_keys : options
@@ -36,6 +36,9 @@ module MesDemarchesToBaserow
       @link_row_cache = {} # { table_id => { primary_value => row_id } }
       @select_options_cache = {} # { field_id => Set[known_values] }
       @failed_uploads = []
+      @mode = determiner_mode!
+      @gabarit = gabarit
+      @mapping = construire_mapping(mapping) if mapping
     end
 
     def sync_dossier(dossier)
@@ -47,11 +50,16 @@ module MesDemarchesToBaserow
 
       # 2. Extraire les données du dossier
       data_extractor = DataExtractor.new(@main_field_metadata, @options,
-                                         block_columns: ->(label) { block_columns_by_label(label) })
+                                         block_columns: ->(label) { block_columns_by_label(label) },
+                                         referentiel: @mode, mapping: @mapping, gabarit: @gabarit)
       extracted_data = data_extractor.extract_all(dossier, existing_row)
 
       # 3. Filtrer les champs read-only
       syncable_data = @main_field_filter.filter_syncable_fields(extracted_data[:main_table])
+
+      # En DLNUF, la colonne propriétaire porte toujours l'e-mail du titulaire en minuscules
+      # (nil sans usager : la cellule est vidée), quoi que l'extracteur ait produit.
+      syncable_data[@proprietaire] = dossier.usager&.email&.downcase if dlnuf?
 
       # 4. Traiter les uploads de fichiers (téléchargement + upload multipart)
       process_file_uploads(syncable_data, @main_field_metadata)
@@ -70,10 +78,10 @@ module MesDemarchesToBaserow
 
       # 7. Synchroniser les blocs répétables (auto-découverte)
       # Passer main_row_id pour éviter une recherche inutile
-      sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks], main_row_id)
+      sync_repetable_blocks(dossier.number, extracted_data[:repetable_blocks], main_row_id) unless @mapping
 
       # 7b. Synchroniser les avis du dossier vers la table "Avis" (auto-découverte)
-      sync_avis(dossier, main_row_id)
+      sync_avis(dossier, main_row_id) unless dlnuf?
 
       # 8. Si des fichiers ont échoué, lever une exception APRÈS l'upsert
       # pour que le framework marque le dossier en échec et le retente.
@@ -83,7 +91,130 @@ module MesDemarchesToBaserow
       Rails.logger.info "BaserowSync: Dossier #{dossier.number} synchronisé avec succès"
     end
 
+    # Efface les lignes du dossier et celles de ses blocs répétables (DLNUF seulement).
+    # Les blocs d'abord : une interruption laisse une ligne principale que le rejeu retrouvera.
+    # Seules les tables liées à la table principale sont touchées (jamais une table d'archive
+    # ni une table étrangère). Idempotent : sans ligne pour ce numéro, rend false.
+    # Un effacement refusé par Baserow lève : le moteur garde alors le numéro à rejouer.
+    def delete_dossier(number)
+      return false unless dlnuf?
+
+      efface = false
+      effacees = nil
+      loop do
+        lignes = @main_table.find_by_normalized('Dossier', number.to_s)
+        break if lignes.empty?
+
+        verifier_progression!(@main_table, lignes, effacees)
+        lignes.each do |ligne|
+          tables_de_bloc.each_value { |table_id| effacer_lignes_liees(get_table(table_id), ligne['id']) }
+          effacer_ligne!(@main_table, ligne['id'])
+        end
+        effacees = lignes
+        efface = true
+      end
+      Rails.logger.info "BaserowSync: Dossier #{number} effacé de Baserow (lignes et blocs)" if efface
+      efface
+    end
+
     private
+
+    def dlnuf?
+      @mode == :dlnuf
+    end
+
+    # Mapping confronté à la table et aux révisions (brouillon ∪ publiée) de la démarche.
+    # Construit une fois par passe : ses avertissements sont journalisés une fois.
+    def construire_mapping(config)
+      revisions = revisions_demarche
+      mapping = Mapping.new(config, field_metadata: @main_field_metadata,
+                                    champs: descripteurs_par_stable_id(revisions, :champ_descriptors),
+                                    annotations: descripteurs_par_stable_id(revisions, :annotation_descriptors),
+                                    types: revisions.flat_map(&:champ_descriptors).to_h { |d| [Referentiel::ReferencePj.stable_id(d), d.__typename] })
+      mapping.avertissements.each { |message| Rails.logger.warn("BaserowSync mapping: démarche #{@demarche_number}, #{message}") }
+      mapping
+    end
+
+    def revisions_demarche
+      result = MesDemarches.query(MesDemarches::Queries::DemarcheRevision, variables: { demarche: @demarche_number })
+      demarche = result.data&.demarche
+      raise "BaserowSync mapping: démarche #{@demarche_number} illisible (#{result.errors&.messages})" unless demarche
+
+      [demarche.draft_revision, demarche.published_revision].compact
+    end
+
+    def descripteurs_par_stable_id(revisions, type)
+      revisions.flat_map(&type).to_h do |descripteur|
+        [Referentiel::ReferencePj.stable_id(descripteur), descripteur.label]
+      end
+    end
+
+    # Efface page après page les lignes d'un bloc liées à la ligne principale.
+    def effacer_lignes_liees(table, ligne_principale_id)
+      effacees = nil
+      loop do
+        lignes = table.find_by_link_row_id('Dossier', ligne_principale_id)
+        break if lignes.empty?
+
+        verifier_progression!(table, lignes, effacees)
+        lignes.each { |ligne| effacer_ligne!(table, ligne['id']) }
+        effacees = lignes
+      end
+    end
+
+    # Garde de progression : si Baserow accepte l'effacement mais liste encore exactement les
+    # lignes qui viennent d'être effacées, la boucle ne finirait jamais.
+    def verifier_progression!(table, lignes, effacees)
+      ids = lignes.map { |ligne| ligne['id'] }
+      return unless effacees && ids.sort == effacees.map { |ligne| ligne['id'] }.sort
+
+      raise "Effacement Baserow sans effet : table #{table.table_id}, lignes #{ids.join(', ')} toujours listées"
+    end
+
+    def effacer_ligne!(table, row_id)
+      return if table.delete_row(row_id)
+
+      raise "Effacement Baserow échoué : table #{table.table_id}, ligne #{row_id}"
+    end
+
+    # Lit le type déclaré de la table (marqueur sur la colonne primaire), le confronte à
+    # l'enregistrement et, en DLNUF, contrôle la structure (colonnes fichier, propriétaire).
+    # Tous les refus partent du bloc de `Verrou.mode!`, donc avant l'effacement de
+    # refus_depuis / alerte_le : l'alerte reste limitée à une par 24 h. Un coordinateur ne
+    # vit que le temps d'une passe : le mode est lu une fois par passe.
+    def determiner_mode!
+      primaire = @main_field_metadata.values.find { |meta| meta['primary'] }
+      Referentiel::Verrou.mode!(
+        backend: 'baserow', table_ref: @baserow_config['table_id'].to_s,
+        description_primaire: primaire&.dig('description'),
+        lignes: -> { @main_table.list_rows(size: 1)['count'] }
+      ) { |mode, table| verifier_table_dlnuf!(table) if mode == :dlnuf }
+    end
+
+    def verifier_table_dlnuf!(table)
+      verifier_sans_colonne_fichier!(table, @main_field_metadata)
+
+      @proprietaire = @main_field_metadata.find { |_nom, meta| meta['id'].to_s == table.proprietaire.to_s }&.first
+      Referentiel::Verrou.refuser!(table, "le propriétaire #{table.proprietaire} ne désigne aucune colonne") unless @proprietaire
+
+      tables_de_bloc.each_value { |table_id| verifier_sans_colonne_fichier!(table, load_block_field_metadata(table_id)) }
+    end
+
+    # Tables de l'application dont la colonne « Dossier » est un link_row vers la table principale.
+    def tables_de_bloc
+      principale = @baserow_config['table_id'].to_i
+      discover_application_tables.reject { |_nom, table_id| table_id.to_i == principale }.select do |_nom, table_id|
+        dossier = load_block_field_metadata(table_id)['Dossier']
+        dossier && dossier['type'] == 'link_row' && dossier.dig('config', 'link_row_table_id').to_i == principale
+      end
+    end
+
+    def verifier_sans_colonne_fichier!(table, metadata)
+      nom, = metadata.find { |_nom, meta| meta['type'] == 'file' }
+      return unless nom
+
+      Referentiel::Verrou.refuser!(table, "colonne fichier #{nom} dans une table DLNUF")
+    end
 
     def ensure_schema
       # TODO: Implémenter si nécessaire (SchemaBuilder)
@@ -128,6 +259,8 @@ module MesDemarchesToBaserow
           'id' => field['id'],
           'type' => field['type'],
           'primary' => field['primary'],
+          'description' => field['description'],
+          'reference_pj' => Referentiel::Marqueur.reference_pj?(field['description']),
           'readonly' => readonly_types.include?(field['type'])
         }
 

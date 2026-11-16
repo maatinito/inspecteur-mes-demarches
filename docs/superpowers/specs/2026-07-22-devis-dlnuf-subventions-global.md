@@ -65,13 +65,44 @@ Deux contraintes déterminantes, propres à la moitié écriture, structurent le
 - La canonicalisation est garantie par construction : c'est la synchro (robot) qui écrit le
   mail normalisé ; la clé est donc la même chaîne à l'écriture et à la lecture.
 
-### 2.2 Mapping : configuration YAML séparée, clé par `stable_id`
+### 2.2 Mapping : configuration YAML séparée, deux formes de valeur
 
-- Un bloc **`mapping: { ColonneCanonique: stable_id }`** est ajouté à la configuration
-  `baserow_sync` de chaque démarche.
-- L'extraction est **keyée par `stable_id`** (identifiant stable, survit au renommage du champ),
-  et non plus par libellé. Repli sur le comportement actuel par libellé pour les tables
-  **dédiées** (non-socle), qui restent en « convention over configuration ».
+- Un bloc **`mapping: { ColonneCanonique: valeur }`** est ajouté à la configuration
+  `baserow_sync` de chaque démarche. La valeur prend **deux formes** (révision 16/11/2026,
+  remplace le bloc `constantes:` envisagé) :
+  - **un nombre = `stable_id`** du champ. Extraction keyée par identifiant stable (survit au
+    renommage), valeur typée native. **Seule forme admise** pour les colonnes fichier, date,
+    nombre et téléphone.
+  - **une chaîne = gabarit**, instancié par `FieldChecker#instanciate`
+    (`app/lib/field_checker.rb:312`, `BaserowSync` hérite de `FieldChecker`) : syntaxe déjà en
+    usage dans le robot — `{Champ}`, `{préfixe;Champ;suffixe}`, ternaire `{Champ ? oui : non}`.
+    Sans accolade, c'est une **constante** écrite sur toutes les lignes. Résultat toujours texte.
+  ```yaml
+  mapping:
+    Représentant nom: 140066                            # stable_id
+    Statuts: 140102                                     # fichier → stable_id obligatoire
+    Service: DIREN                                      # constante
+    Représentant fonction: Président                    # constante (rôle imposé par le formulaire)
+    Adresse: "{Adresse postale}{, BP ;Boîte postale}"   # composition
+  ```
+- Usages des constantes : `Service` (aucun champ ne le porte, et la formule « Libellé » en
+  dépend) ; `Représentant fonction` quand le formulaire impose le rôle (« NOM Président(e) » →
+  `Président`). Règle : constante **seulement si le formulaire impose réellement la valeur**
+  (pas pour Contrat de ville, dont les porteurs varient) — à valider avec chaque service en D2.
+- **Garde-fous** (tous non destructifs : warning journalisé, colonne non écrite, pas de blocage
+  au chargement) :
+  1. **Libellé de gabarit introuvable.** Un gabarit référence les champs par libellé ;
+     `get_values_of` ne distingue pas champ absent et champ vide (`''`), et la synchro vide la
+     cellule sur valeur vide. Un champ renommé effacerait donc la cellule en silence. → Chaque
+     `{Champ}` est vérifié contre le schéma de la démarche ; introuvable ⇒ warning, colonne sautée.
+  2. **Gabarit sur colonne non texte** (fichier, date, nombre, téléphone) ⇒ warning, colonne sautée.
+  3. **Chaîne purement numérique** (`"140066"` entre guillemets) ⇒ warning « stable_id attendu ? »
+     (sinon on écrirait le texte « 140066 »).
+- Points à documenter dans le guide de configuration : un gabarit peut lire une annotation
+  privée (`get_values_of` les trouve), ce qui sort de la règle « socle = champs usager » ; une
+  colonne composée ne se re-découpe pas au préremplissage (cible = champ unique).
+- Repli sur le comportement actuel par libellé pour les tables **dédiées** (non-socle), qui
+  restent en « convention over configuration ». Parité Grist si le socle y est branché.
 - **Le mapping écriture n'est pas unifiable avec le prefill de lecture.** Le préremplissage de
   Mes-Démarches est un mécanisme **interne à la plateforme, ni interrogeable ni remplaçable**
   depuis le robot. Les deux correspondances coexistent donc nécessairement, chacune de son côté.
@@ -115,7 +146,7 @@ Le devis est **global** : chaque ligne est facturée pour elle-même.
 | Lot | Contenu | Charge |
 |---|---|---|
 | **P0 — Mise en place du socle** | Figer le jeu de **colonnes canoniques** (strate A pérenne + B-générique de la grille de fusion) ; **cartographie `stable_id → colonne canonique`** par démarche (harvest MCP `lire_demarche` sur les démarches porteuses) qui alimente le `mapping:` YAML ; **création de la table socle Baserow** via le schema-builder existant (colonnes texte, select, fichier, colonne « propriétaire » e-mail). | **~1,5–2 j** |
-| **W1 — Mapping dans la synchro** | Bloc `mapping: { ColonneCanonique: stable_id }` dans la config `baserow_sync` ; extraction **keyée `stable_id`** (repli libellé pour tables dédiées) ; écriture de l'**e-mail titulaire minusculé** dans la colonne propriétaire ; **pièces de la strate A** (statuts, RIB…) mappées en colonnes fichier (dédup nom+taille déjà gérée) ; tests unitaires (résolution mapping, keying, minusculisation) + test système. | **~3 j** |
+| **W1 — Mapping dans la synchro** | Bloc `mapping: { ColonneCanonique: valeur }` dans la config `baserow_sync`, **deux formes** : nombre = `stable_id` (extraction keyée stable_id, valeur typée), chaîne = gabarit via `instanciate` existant (constante, composition, ternaire ; texte seul) ; **garde-fous non destructifs** (libellé de gabarit vérifié contre le schéma, gabarit refusé sur colonne non texte, chaîne numérique signalée) ; repli libellé pour tables dédiées ; écriture de l'**e-mail titulaire minusculé** dans la colonne propriétaire ; **pièces de la strate A** (statuts, RIB…) mappées en colonnes fichier (dédup nom+taille déjà gérée) ; tests unitaires (deux formes, garde-fous, keying, minusculisation) + test système. | **~3 j** |
 | **W2 — Propagation de suppression** | Hook générique **`InspectorTask#deleted(demarche, number)`** ; boucle jumelle dans `VerificationService` sur **même curseur `checked_at`** ; requête **`deletedDossiers(deletedSince:)`** + `DossierActions.on_deleted_dossiers` ; implémentations **`BaserowSync#deleted` ET `GristSync#deleted`** (parité) ; tests unitaires + système. | **~2–2,5 j** |
 | **L0 — Socle technique de lecture** | Infra du champ `referentiel_de_polynesie` : transmission `champ_id` à l'endpoint `#search` ; autorisation 403 (le dossier doit appartenir au user) ; résolution serveur ; **fail-closed** générique ; lecture de la config méta (colonne « propriétaire »). Prérequis commun de B et C. | **~2 j** |
 | **B — Dites-le-nous une fois** | Détection du mode via la colonne « propriétaire » (table méta) + **fail-closed si id mort** + diagnostic ; scope titulaire `dossier.user.email` ; endpoint acceptant un **`q` vide** quand scopé ; ergonomie **liste des 0/1/N lignes de l'usager + auto-remplissage si une seule** au focus ; messages n'échoant jamais le mail ; tests. | **~2,5–3 j** |

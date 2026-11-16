@@ -33,6 +33,17 @@ class InspectorTask
     %i[scheduled]
   end
 
+  # Hook appelé par le moteur pour chaque dossier supprimé ou en corbeille de la démarche
+  # depuis le dernier passage. Ne fait rien par défaut ; les tâches intéressées le surchargent.
+  def deleted(demarche, number); end
+
+  # Vrai si le moteur doit appeler `deleted` pour cette démarche (requêtes des suppressions,
+  # file d'attente). Par défaut : la tâche surcharge `deleted`. Une tâche peut restreindre
+  # l'écoute (BaserowSync : seulement vers une table DLNUF).
+  def ecoute_suppressions?(_demarche)
+    method(:deleted).owner != InspectorTask
+  end
+
   def old_name
     name.gsub(/^[0-9]+:/, '')
   end

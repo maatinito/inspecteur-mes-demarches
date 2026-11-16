@@ -43,6 +43,8 @@ Rails.application.routes.draw do
         get    'targets/:target_type/tables/:application_id',      to: 'schema_builder#list_tables',       as: :list_tables
         get    'targets/:target/main_table/preview',               to: 'schema_builder#preview_main_table', as: :preview_main_table
         post   'targets/:target/main_table/build',                 to: 'schema_builder#build_main_table',   as: :build_main_table
+        post   'targets/:target/main_table/retablir_marqueur',     to: 'schema_builder#retablir_marqueur', as: :retablir_marqueur
+        post   'targets/:target/main_table/vider',                 to: 'schema_builder#vider_table',       as: :vider
         get    'targets/:target/avis/preview',                     to: 'schema_builder#preview_avis',       as: :preview_avis
         post   'targets/:target/avis/build',                       to: 'schema_builder#build_avis',         as: :build_avis
         get    'targets/:target/blocks/preview',                   to: 'schema_builder#preview_blocks',     as: :preview_blocks

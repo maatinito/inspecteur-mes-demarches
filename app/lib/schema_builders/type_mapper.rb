@@ -95,10 +95,15 @@ module SchemaBuilders
 
     # --- Factory + accesseurs ---
 
-    def self.for(target)
+    # `referentiel: :dlnuf` (Baserow seulement) : les pièces jointes deviennent
+    # des colonnes texte marquées, qui portent une référence de pièce.
+    def self.for(target, referentiel: :archive)
+      raise ArgumentError, "unknown referentiel #{referentiel.inspect}" unless %i[archive dlnuf].include?(referentiel)
+      raise ArgumentError, 'referentiel dlnuf : Baserow uniquement' if referentiel == :dlnuf && target != :baserow
+
       case target
-      when :baserow then new(target: :baserow)
-      when :grist   then new(target: :grist)
+      when :baserow then new(target: :baserow, referentiel: referentiel)
+      when :grist   then new(target: :grist, referentiel: referentiel)
       else
         raise ArgumentError, "unknown target #{target.inspect}"
       end
@@ -121,10 +126,16 @@ module SchemaBuilders
       end
     end
 
-    attr_reader :target
+    DLNUF_PJ_MAPPING = {
+      type: 'text',
+      config: { description: Referentiel::Marqueur::LIGNE_REFERENCE_PJ }
+    }.freeze
 
-    def initialize(target:)
+    attr_reader :target, :referentiel
+
+    def initialize(target:, referentiel: :archive)
       @target = target
+      @referentiel = referentiel
       @mappings = self.class.mappings_for(target)
     end
 
@@ -145,6 +156,7 @@ module SchemaBuilders
       ensure_supported!(mes_demarches_type)
 
       mapping = @mappings[mes_demarches_type].dup
+      mapping = DLNUF_PJ_MAPPING.dup if referentiel == :dlnuf && mes_demarches_type == 'PieceJustificativeChampDescriptor'
 
       case mes_demarches_type
       when 'DropDownListChampDescriptor', 'MultipleDropDownListChampDescriptor'

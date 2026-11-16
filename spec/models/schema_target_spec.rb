@@ -8,6 +8,7 @@
 #  excluded_block_descriptor_ids :jsonb            not null
 #  excluded_field_ids            :jsonb            not null
 #  last_synced_at                :datetime
+#  referentiel                   :string           default("archive"), not null
 #  target_type                   :string           not null
 #  created_at                    :datetime         not null
 #  updated_at                    :datetime         not null
@@ -175,6 +176,36 @@ RSpec.describe SchemaTarget, type: :model do
         target.include_block!('absent')
         expect(target.reload.excluded_block_descriptor_ids).to eq(['a'])
       end
+    end
+  end
+  describe 'référentiel DLNUF' do
+    it 'ne laisse pas exclure Email usager en DLNUF' do
+      cible = build(:schema_target, referentiel: 'dlnuf', excluded_field_ids: %w[metadata:email_usager metadata:labels])
+      expect(cible.exclusions_effectives).to eq(%w[metadata:labels])
+    end
+
+    it 'garde les exclusions telles quelles en archive' do
+      cible = build(:schema_target, excluded_field_ids: %w[metadata:email_usager])
+      expect(cible.exclusions_effectives).to eq(%w[metadata:email_usager])
+    end
+
+    it 'interdit de changer de type après la première synchronisation du schéma' do
+      cible = create(:schema_target, referentiel: 'archive', last_synced_at: Time.zone.now)
+      expect(cible.update(referentiel: 'dlnuf')).to be false
+    end
+
+    it 'autorise de changer de type avant la première synchronisation' do
+      cible = create(:schema_target, referentiel: 'archive')
+      expect(cible.update(referentiel: 'dlnuf')).to be true
+    end
+
+    it 'refuse DLNUF sur une cible Grist' do
+      expect(build(:schema_target, target_type: 'grist', referentiel: 'dlnuf')).not_to be_valid
+    end
+
+    it 'fournit le mapper du mode de la cible' do
+      mapper = build(:schema_target, referentiel: 'dlnuf').type_mapper
+      expect(mapper.field_spec('P', 'PieceJustificativeChampDescriptor')).to include(type: 'text')
     end
   end
 end

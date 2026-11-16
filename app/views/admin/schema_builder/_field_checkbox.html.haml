@@ -7,10 +7,13 @@
 -#   block_id  : (optionnel) requis pour scope :block_field
 -#   divergence: (optionnel) message à afficher pour les champs à modifier
 - checkbox_data = { controller: 'exclusion-toggle', action: 'change->exclusion-toggle#toggle', exclusion_toggle_url_value: toggle_url_for(target, scope, field, block_id: local_assigns[:block_id]) }
+- obligatoire = scope == :main_table && target.dlnuf? && field[:id].to_s == SchemaTarget::EMAIL_USAGER_ID
 .form-check
-  = check_box_tag "exclusion_#{field[:id]}", '1', checked, class: 'form-check-input', data: checkbox_data
+  = check_box_tag "exclusion_#{field[:id]}", '1', checked || obligatoire, class: 'form-check-input', disabled: obligatoire, data: checkbox_data
   %label.form-check-label
     = field[:label]
     %code.ms-2= field[:type]
+    - if obligatoire
+      %small.text-muted.ms-2 (obligatoire en DLNUF)
     - if local_assigns[:divergence].present?
       %small.text-muted.ms-2= "(#{divergence})"

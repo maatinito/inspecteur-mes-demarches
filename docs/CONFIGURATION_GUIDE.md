@@ -898,6 +898,63 @@ ls storage/configurations/*.yml
 test -f storage/configurations/ma_config.yml && echo "OK" || echo "Fichier ignoré"
 ```
 
+## Référentiel DLNUF (`baserow_sync`)
+
+Le bloc `baserow_sync` peut alimenter deux types de tables Baserow : une **archive** (copie des dossiers, rien n'est jamais effacé) ou une table **DLNUF**, référentiel dont les lignes disparaissent avec leur dossier Mes-Démarches et qui ne contient aucun fichier (les pièces jointes y sont remplacées par une référence texte `md:<dossier>:<stable_id>`).
+
+**Aucun nouveau paramètre YAML n'existe pour le type de table** (le bloc `mapping:`, section suivante, concerne les tables socle) : le bloc `baserow_sync` s'écrit comme avant et le type vient de la table. Il se choisit dans le builder du schéma (page admin de la démarche, « Type de référentiel »), avant la création de la table : le choix est verrouillé dès la première construction de la table principale et ne peut plus changer ensuite : pour changer de type, créer une autre table.
+
+Ce qu'il faut savoir en tant que rédacteur de configuration :
+
+- Une table DLNUF est contrôlée quand un de ses dossiers est traité (marqueur sur la colonne primaire, colonne « Email usager », absence de colonne fichier). En cas d'anomalie, la synchronisation et l'effacement de cette table sont suspendus et un courriel est envoyé. Dans le builder, « Rétablir le marqueur » (sur le robot qui synchronise) répare un marqueur modifié. Ensuite, sans recul de curseur à faire, les suppressions en file d'attente sont rejouées dès le passage suivant, et les dossiers dont l'écriture a été refusée au prochain passage après 8 h ou au redémarrage du robot. Un marqueur illisible dès la première lecture laisse le type de la table inconnu jusqu'à ce qu'il redevienne lisible (à corriger à la main).
+- Un dossier supprimé par son usager seul est effacé de la table DLNUF quels que soient son état, le filtre `etat_du_dossier` et les contrôles. Un dossier restauré est recréé au passage suivant si `baserow_sync` est sous `when_ok` et qu'aucun contrôle du dossier n'est en échec.
+- Le robot ne demande les dossiers supprimés à Mes-Démarches que pour une table DLNUF : une table archive ne coûte aucune requête de plus.
+- « Vider la table » (builder) efface toutes les lignes et fait resynchroniser depuis le début toutes les démarches de ce robot qui alimentent la table (listées dans le message), y compris pour les autres tâches de leur configuration : à réserver à la publication.
+- Avant de déployer cette fonction, vérifier que la description de la colonne primaire des tables déjà synchronisées ne contient pas de ligne commençant par « Mes démarches : » en texte libre.
+
+Détails (création, effacement, alertes, un robot qui construit et un autre qui synchronise) : [`app/lib/mes_demarches_to_baserow/README.md`](../app/lib/mes_demarches_to_baserow/README.md#référentiel-dlnuf).
+
+## Mapping vers une table socle (`baserow_sync` → `mapping:`)
+
+Une table **socle** a des colonnes communes à plusieurs démarches dont les champs portent des libellés différents (« NOM Président(e) », « Nom responsable (*) » → colonne « Représentant nom »). L'appariement par libellé ne convient plus : le bloc `mapping:` déclare, colonne par colonne, d'où vient la valeur.
+
+```yaml
+- baserow_sync:
+    baserow:
+      table_id: 1046
+      token_config: 'Financeurs'
+    mapping:
+      Représentant nom: 140066                            # nombre → stable_id du champ
+      Statuts: 140102                                     # pièce jointe → stable_id obligatoire
+      Service: DIREN                                      # texte sans accolade → constante
+      Représentant fonction: Président                    # constante (rôle imposé par le formulaire)
+      Adresse: "{Adresse postale}{, BP ;Boîte postale}"   # gabarit
+```
+
+**Deux formes de valeur :**
+
+- **Un nombre** est le `stable_id` d'un champ usager (`bin/describe_demarche <n>` les liste). Il survit au renommage du champ et donne une valeur typée. C'est la **seule forme admise** pour les colonnes fichier, date, nombre, téléphone, booléen, multi-choix ou lien.
+- **Un texte** est un gabarit, avec la syntaxe habituelle du robot : `{Champ}`, `{préfixe;Champ;suffixe}` (préfixe et suffixe n'apparaissent que si le champ est rempli), ternaire `{Champ ? oui : non}`. Sans accolade, c'est une **constante** écrite sur toutes les lignes. Le résultat est toujours du texte : admis seulement sur les colonnes texte, texte long, choix unique, e-mail, URL. Un gabarit vide écrit une cellule vide.
+
+**Une constante seulement si le formulaire impose réellement la valeur** : `Service` (aucun champ ne le porte) ou la fonction du représentant quand le formulaire ne demande que le président. Pas pour une démarche dont les porteurs varient (maire, président, directeur).
+
+**Ce que change la présence d'un `mapping:`** (mode exclusif) : seules les colonnes déclarées sont écrites, plus les métadonnées système par leur nom (« Raison sociale », « Numéro TAHITI », « Date de dépôt »…) et, en DLNUF, la colonne propriétaire. Plus aucun appariement par libellé : un champ homonyme d'une colonne non déclarée n'est pas écrit, les annotations privées ne le sont pas non plus, ni les blocs répétables. Un champ connu de la démarche mais absent du dossier (masqué par une condition, ajouté après le dépôt) vide sa colonne.
+
+**Garde-fous, tous non destructifs** : l'entrée est écartée (la colonne n'est jamais écrite) et un avertissement `BaserowSync mapping: démarche <n>, …` est journalisé une fois par passage, sans rien bloquer :
+
+1. colonne absente de la table ;
+2. gabarit sur une colonne d'un type non admis ;
+3. `stable_id` inconnu des révisions (brouillon et publiée) de la démarche ;
+4. `stable_id` d'une annotation privée (le socle ne reprend que ce que l'usager a saisi), ou d'un champ jamais synchronisé (bloc répétable, titre d'identité, titre de section, explication) ;
+5. libellé `{…}` d'un gabarit inconnu de la démarche — sans ce contrôle, un champ renommé viderait la cellule en silence. Sont acceptés : le libellé exact (y compris terminé par « ? »), un chemin pointé dont la racine est un libellé (`{N° Tahiti.adresse}`), un attribut du dossier en minuscules (`{number}`, `{demandeur.nom}`) ;
+6. texte fait uniquement de chiffres (`"140066"` entre guillemets) : gardé comme constante, mais signalé (« stable_id attendu ? »).
+
+Une valeur ni nombre ni texte (liste, décimal…) est une erreur de configuration du bloc.
+
+**À savoir :** un gabarit peut lire une annotation privée (le moteur de gabarit les trouve), ce qui sort de la règle « socle = saisie usager » ; une colonne composée (adresse + BP) ne se redécoupe pas au préremplissage d'un autre formulaire.
+
+**La table socle ne se construit pas avec le builder**, qui crée une colonne par champ d'une démarche. Elle se crée à la main ou par script, en respectant le contrat DLNUF (marqueur sur la colonne `Dossier`, colonnes de pièces en texte marquées `mes-demarches: reference=piece_justificative`, aucune colonne fichier). Ne jamais pointer le builder sur une table socle : il y ajouterait les colonnes de la démarche sous leurs libellés locaux.
+
 ## Ressources
 
 - **Exemples en production** : `storage/configurations/` (privilégier les fichiers récents)

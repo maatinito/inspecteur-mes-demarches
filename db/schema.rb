@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_260_604_013_631) do
+ActiveRecord::Schema[7.2].define(version: 20_261_113_120_000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension 'plpgsql'
 
@@ -103,6 +103,18 @@ ActiveRecord::Schema[7.2].define(version: 20_260_604_013_631) do
     t.index ['check_id'], name: 'index_messages_on_check_id'
   end
 
+  create_table 'referentiel_tables', force: :cascade do |t|
+    t.string 'backend', null: false
+    t.string 'table_ref', null: false
+    t.string 'mode', null: false
+    t.bigint 'proprietaire'
+    t.datetime 'refus_depuis'
+    t.datetime 'alerte_le'
+    t.datetime 'created_at', null: false
+    t.datetime 'updated_at', null: false
+    t.index %w[backend table_ref], name: 'index_referentiel_tables_on_backend_and_table_ref', unique: true
+  end
+
   create_table 'scheduled_tasks', force: :cascade do |t|
     t.integer 'dossier'
     t.string 'task'
@@ -138,6 +150,7 @@ ActiveRecord::Schema[7.2].define(version: 20_260_604_013_631) do
     t.datetime 'updated_at', null: false
     t.jsonb 'excluded_field_ids', default: [], null: false
     t.jsonb 'excluded_block_descriptor_ids', default: [], null: false
+    t.string 'referentiel', default: 'archive', null: false
     t.index %w[demarche_id target_type], name: 'index_schema_targets_on_demarche_id_and_target_type', unique: true
     t.index ['demarche_id'], name: 'index_schema_targets_on_demarche_id'
   end
@@ -150,6 +163,14 @@ ActiveRecord::Schema[7.2].define(version: 20_260_604_013_631) do
     t.datetime 'created_at', null: false
     t.datetime 'updated_at', null: false
     t.index %w[name date], name: 'index_sessions_on_name_and_date', unique: true
+  end
+
+  create_table 'suppressions_en_attente', force: :cascade do |t|
+    t.bigint 'demarche_id', null: false
+    t.integer 'dossier', null: false
+    t.datetime 'created_at', null: false
+    t.datetime 'updated_at', null: false
+    t.index %w[demarche_id dossier], name: 'index_suppressions_en_attente_on_demarche_id_and_dossier', unique: true
   end
 
   create_table 'syncs', force: :cascade do |t|

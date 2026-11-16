@@ -8,6 +8,7 @@
 #  excluded_block_descriptor_ids :jsonb            not null
 #  excluded_field_ids            :jsonb            not null
 #  last_synced_at                :datetime
+#  referentiel                   :string           default("archive"), not null
 #  target_type                   :string           not null
 #  created_at                    :datetime         not null
 #  updated_at                    :datetime         not null

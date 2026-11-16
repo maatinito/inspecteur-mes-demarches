@@ -186,6 +186,23 @@ RSpec.describe SchemaBuilders::TypeMapper do
     end
   end
 
+  describe 'référentiel DLNUF' do
+    it 'mappe une PJ en texte marqué pour une table DLNUF' do
+      mapper = described_class.for(:baserow, referentiel: :dlnuf)
+      expect(mapper.field_spec('Statuts', 'PieceJustificativeChampDescriptor', {}))
+        .to eq(type: 'text', name: 'Statuts', description: 'mes-demarches: reference=piece_justificative')
+    end
+
+    it 'garde la PJ en fichier pour une table archive' do
+      expect(described_class.for(:baserow).field_spec('Statuts', 'PieceJustificativeChampDescriptor', {}))
+        .to eq(type: 'file', name: 'Statuts')
+    end
+
+    it 'refuse DLNUF pour Grist' do
+      expect { described_class.for(:grist, referentiel: :dlnuf) }.to raise_error(ArgumentError)
+    end
+  end
+
   describe '#generate_field_name' do
     let(:mapper) { described_class.for(:baserow) }
 

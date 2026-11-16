@@ -1,0 +1,8 @@
+-# Bouton visible seulement sur le robot qui synchronise la table (enregistrement ReferentielTable).
+- if target.baserow? && target.main_table_external_id.present? && ReferentielTable.exists?(backend: 'baserow', table_ref: target.main_table_external_id)
+  %div.mb-3
+    = button_to 'Rétablir le marqueur',
+                retablir_marqueur_admin_demarche_schema_path(demarche_demarche_id: target.demarche_id, target: target.target_type),
+                method: :post,
+                class: 'btn btn-outline-warning btn-sm',
+                form: { data: { turbo_frame: "main-table-#{target.id}", turbo_confirm: 'Réécrire le marqueur de la table d\'après le type enregistré ?' } }

@@ -63,6 +63,8 @@
       .card-header
         %h2.h5.mb-0.schema-builder-card-title Blocs répétables
       .card-body
+        - if local_assigns[:erreur]
+          %div.alert.alert-danger= erreur
         %h3.h6.schema-builder-zone-title Résultat
         %ul.list-unstyled
           - build_result.each do |block|

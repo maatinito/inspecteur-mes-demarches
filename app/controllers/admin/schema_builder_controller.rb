@@ -50,7 +50,8 @@ module Admin
 
     def update_target_selection
       target = @demarche.schema_targets.find_by!(target_type: params[:target_type])
-      target.update!(target_selection_params)
+      return head :unprocessable_entity unless target.update(target_selection_params)
+
       head :ok
     end
 
@@ -87,15 +88,22 @@ module Admin
     def build_main_table
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       builder = main_table_builder_for(target)
+      table_name = main_table_name_for(target)
+      table_id = builder.resolve_table_id(application_id: target.application_external_id, table_name: table_name,
+                                          existing_table_id: target.main_table_external_id.presence)
+      erreur = refus_avant_ecriture(target, table_id)
+      return render_build_error('main-table', 'main_table_section', target, { error: erreur }) if erreur
+
       result = builder.build!(
         demarche_descriptor,
         application_id: target.application_external_id,
-        table_name: main_table_name_for(target),
-        existing_table_id: target.main_table_external_id.presence,
-        excluded_field_ids: target.excluded_field_ids,
+        table_name: table_name,
+        existing_table_id: table_id,
+        excluded_field_ids: target.exclusions_effectives,
         demandeur_modes: demandeur_modes
       )
       target.update!(main_table_external_id: result[:table_id].to_s, last_synced_at: Time.current)
+      result = finaliser_dlnuf(result) if target.dlnuf?
 
       render turbo_stream: turbo_stream.replace(
         "main-table-#{target.id}",
@@ -104,9 +112,40 @@ module Admin
       )
     end
 
+    def retablir_marqueur
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      result = begin
+        referentiel_dlnuf.retablir!(target.main_table_external_id)
+        { info: 'Marqueur rétabli.' }
+      rescue Referentiel::Verrou::Refus => e
+        { error: e.message }
+      end
+      render_build_error('main-table', 'main_table_section', target, result)
+    end
+
+    # Vide la table DLNUF (blocs puis principale) et remet au début le curseur de toutes les
+    # démarches de ce robot qui l'alimentent. L'autorisation vient du marqueur lu sur la table ;
+    # un type figé autrement par ce robot (archive, inconnu) refuse. Sans enregistrement local
+    # (builder sur un robot qui ne synchronise pas), seul le marqueur décide.
+    def vider_table
+      target = @demarche.schema_targets.find_by!(target_type: params[:target])
+      table_id = target.main_table_external_id
+      return head :forbidden if !target.baserow? || table_id.blank?
+      return head :forbidden if ReferentielTable.where(backend: 'baserow', table_ref: table_id.to_s).where.not(mode: 'dlnuf').exists?
+
+      begin
+        return head :forbidden unless referentiel_dlnuf.type_lu(table_id) == :dlnuf
+
+        result = { info: vider_tables(target, table_id) }
+      rescue Baserow::APIError => e
+        result = { error: "Effacement interrompu : #{e.message}. Le curseur de la démarche n'a pas été modifié." }
+      end
+      render_build_error('main-table', 'main_table_section', target, result)
+    end
+
     def preview_avis
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
-      return head :precondition_failed if target.main_table_external_id.blank?
+      return head :precondition_failed if target.main_table_external_id.blank? || target.dlnuf?
 
       diff = compute_avis_diff(target)
 
@@ -126,7 +165,7 @@ module Admin
 
     def build_avis
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
-      return head :precondition_failed if target.main_table_external_id.blank?
+      return head :precondition_failed if target.main_table_external_id.blank? || target.dlnuf?
 
       builder = avis_builder_for(target)
       result = builder.build!(application_id: target.application_external_id, main_table_id: target.main_table_external_id,
@@ -165,10 +204,14 @@ module Admin
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       return head :precondition_failed if target.main_table_external_id.blank?
 
+      erreur = refus_avant_ecriture(target, target.main_table_external_id)
+      return render_build_error('blocks', 'blocks_section', target, [], erreur: erreur) if erreur
+
       builder = block_builder_for(target)
-      excluded_fields_per_block = target.schema_block_targets.to_h do |bt|
-        [bt.block_descriptor_id, bt.excluded_field_ids]
-      end
+      erreur = refus_tables_de_bloc(target, builder)
+      return render_build_error('blocks', 'blocks_section', target, [], erreur: erreur) if erreur
+
+      excluded_fields_per_block = exclusions_par_bloc(target)
       results = builder.build!(
         demarche_descriptor,
         application_id: target.application_external_id,
@@ -192,6 +235,8 @@ module Admin
     def toggle_main_table_field_exclusion
       target = @demarche.schema_targets.find_by!(target_type: params[:target])
       excluded = ActiveModel::Type::Boolean.new.cast(params[:excluded])
+      return head :unprocessable_entity if excluded && target.dlnuf? && params[:field_id] == SchemaTarget::EMAIL_USAGER_ID
+
       if excluded
         target.exclude_field!(params[:field_id])
       else
@@ -244,11 +289,108 @@ module Admin
 
     private
 
+    def referentiel_dlnuf
+      @referentiel_dlnuf ||= SchemaBuilders::ReferentielDlnuf.new(client: Baserow::StructureClient.new)
+    end
+
+    # Avant toute écriture sur une table principale existante (Baserow) : le type lu sur la
+    # table doit être celui de la cible, et une table DLNUF ne porte aucune colonne fichier.
+    # Rend le message d'erreur, ou nil.
+    def refus_avant_ecriture(target, table_id)
+      return unless target.baserow? && table_id.present?
+
+      lu = referentiel_dlnuf.type_lu(table_id)
+      return 'Marqueur illisible sur la table.' if lu == :invalid
+      return 'Le type d\'une table ne change pas : créer une nouvelle table.' unless lu.to_s == target.referentiel
+      return unless target.dlnuf?
+
+      fichiers = referentiel_dlnuf.colonnes_fichier(table_id)
+      "Colonne(s) fichier interdite(s) dans une table DLNUF : #{fichiers.join(', ')}." if fichiers.any?
+    rescue Baserow::APIError => e
+      "Lecture de la table #{table_id} impossible : #{e.message}"
+    end
+
+    def exclusions_par_bloc(target)
+      target.schema_block_targets.to_h { |bt| [bt.block_descriptor_id, bt.excluded_field_ids] }
+    end
+
+    # DLNUF : build! réutilise une table de même nom ; elle doit être liée à CETTE table principale
+    # et sans colonne fichier, sinon rien n'est écrit. Rend le message d'erreur, ou nil.
+    def refus_tables_de_bloc(target, builder)
+      return unless target.dlnuf?
+
+      application = target.application_external_id
+      principale = target.main_table_external_id
+      liees = referentiel_dlnuf.tables_liees(application, principale)
+      blocs = builder.preview(demarche_descriptor, application_id: application, main_table_id: principale,
+                                                   excluded_block_ids: target.excluded_block_descriptor_ids)
+      blocs.each do |bloc|
+        existante = builder.existing_table_id(application, bloc[:table_name])
+        next unless existante
+
+        unless liees.include?(existante.to_i)
+          return "La table de bloc #{bloc[:table_name]} n'appartient pas à cette table DLNUF : " \
+                 'la renommer ou choisir une autre application.'
+        end
+
+        fichiers = referentiel_dlnuf.colonnes_fichier(existante)
+        return "Colonne(s) fichier interdite(s) dans une table DLNUF : #{fichiers.join(', ')}." if fichiers.any?
+      end
+      nil
+    rescue Baserow::APIError => e
+      "Lecture des tables de bloc impossible : #{e.message}"
+    end
+
+    # Efface les tables de blocs puis la principale ; les curseurs ne sont remis qu'une fois tout
+    # effacé. Les démarches qui alimentent la table sont lues AVANT d'effacer : une configuration
+    # illisible n'efface rien.
+    def vider_tables(target, table_id)
+      adapter = target_adapter_for(target)
+      alimentent = ConfigurationsBaserow.demarches_synchronisees_vers(table_id) | [@demarche.id]
+      # Tables de bloc lues sur Baserow (colonne Dossier liée à la principale), jamais les
+      # backend_table_id enregistrés : détectés par nom, ils peuvent désigner une autre table.
+      blocs = referentiel_dlnuf.tables_liees(referentiel_dlnuf.application_de(table_id), table_id)
+      tables = blocs + [table_id]
+      effacees = tables.sum { |id| adapter.vider_table(id) }
+      numeros = Demarche.where(id: alimentent).order(:id).pluck(:id)
+      Demarche.where(id: numeros).update_all(checked_at: DossierActions::EPOCH, updated_at: Time.zone.now)
+      "#{effacees} ligne(s) effacée(s). Curseur remis au début pour la ou les démarche(s) #{numeros.join(', ')} : " \
+        'elles seront retraitées depuis le début au prochain passage du robot.'
+    end
+
+    # Pose ou vérifie le marqueur DLNUF après la construction de la table principale.
+    def finaliser_dlnuf(result)
+      referentiel_dlnuf.finaliser!(result[:table_id], creee: result[:action] == :created)
+      result
+    rescue Referentiel::Verrou::Refus => e
+      result.merge(error: e.message)
+    rescue Baserow::APIError => e
+      result.merge(error: erreur_marqueur_dlnuf(result, e))
+    end
+
+    def erreur_marqueur_dlnuf(result, erreur)
+      table = "« #{result[:table_name]} » (ID #{result[:table_id]})"
+      if result[:action] == :created
+        "Table #{table} créée, mais son marqueur DLNUF n'a pas pu être écrit (#{erreur.message}) : " \
+          'supprimer la table dans Baserow avant de construire de nouveau.'
+      else
+        "Lecture du marqueur DLNUF de la table #{table} impossible : #{erreur.message}"
+      end
+    end
+
+    def render_build_error(prefix, partial, target, build_result, **extra)
+      render turbo_stream: turbo_stream.replace(
+        "#{prefix}-#{target.id}",
+        partial: partial,
+        locals: { target: target, build_result: build_result, **extra }
+      )
+    end
+
     def differ_for(target)
       SchemaBuilders::Differ.new(
         target: target,
         adapter: target_adapter_for(target),
-        type_mapper: SchemaBuilders::TypeMapper.for(target.target_type.to_sym),
+        type_mapper: target.type_mapper,
         demarche_descriptor: demarche_descriptor,
         demandeur_modes: demandeur_modes
       )
@@ -262,7 +404,7 @@ module Admin
     end
 
     def target_selection_params
-      params.permit(:workspace_external_id, :application_external_id, :main_table_external_id)
+      params.permit(:workspace_external_id, :application_external_id, :main_table_external_id, :referentiel)
     end
 
     def target_adapter
@@ -275,7 +417,7 @@ module Admin
 
     def main_table_builder_for(target)
       adapter = target_adapter_for(target)
-      type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
+      type_mapper = target.type_mapper
       field_filter = build_field_filter(target)
 
       SchemaBuilders::MainTableBuilder.new(target: adapter, type_mapper: type_mapper, field_filter: field_filter)
@@ -283,13 +425,13 @@ module Admin
 
     def avis_builder_for(target)
       adapter = target_adapter_for(target)
-      type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
+      type_mapper = target.type_mapper
       SchemaBuilders::AvisBuilder.new(target: adapter, type_mapper: type_mapper)
     end
 
     def block_builder_for(target)
       adapter = target_adapter_for(target)
-      type_mapper = SchemaBuilders::TypeMapper.for(target.target_type.to_sym)
+      type_mapper = target.type_mapper
       field_filter = build_field_filter(target)
       SchemaBuilders::BlockBuilder.new(target: adapter, type_mapper: type_mapper, field_filter: field_filter)
     end

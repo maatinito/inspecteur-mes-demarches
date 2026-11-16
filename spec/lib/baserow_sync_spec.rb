@@ -20,7 +20,8 @@ RSpec.describe BaserowSync do
              groupe_instructeur: nil,
              date_depot: nil,
              date_passage_en_instruction: nil,
-             date_traitement: nil)
+             date_traitement: nil,
+             date_suppression_par_usager: nil)
     end
 
     let(:main_table_id) { 100 }
@@ -132,6 +133,134 @@ RSpec.describe BaserowSync do
       expect(avis_table).to have_received(:create_row).twice
       expect(avis_table).to have_received(:create_row).with(hash_including('Question' => 'Avis service A'))
       expect(avis_table).to have_received(:create_row).with(hash_including('Question' => 'Avis service B'))
+    end
+  end
+
+  describe 'dossier supprimé par l\'usager et hook deleted' do
+    let(:demarche) { double('Demarche', id: 999) }
+    let(:params) { { baserow: { 'table_id' => 100 }, etat_du_dossier: 'en_instruction' } }
+    let(:checker) { described_class.new(params) }
+    let(:coordinator) { instance_double(MesDemarchesToBaserow::SyncCoordinator, mode: :dlnuf, demarche_number: 999, delete_dossier: true, sync_dossier: nil) }
+    let(:supprime_le) { Time.zone.parse('2026-11-01 10:00') }
+    let(:dossier) do
+      double('Dossier', number: 12_345, state: 'accepte', date_suppression_par_usager: supprime_le)
+    end
+
+    before { allow(MesDemarchesToBaserow::SyncCoordinator).to receive(:new).and_return(coordinator) }
+
+    it 'efface la ligne d\'un dossier supprimé par l\'usager en DLNUF, même hors du filtre etat_du_dossier' do
+      checker.process(demarche, dossier)
+
+      expect(coordinator).to have_received(:delete_dossier).with(12_345)
+      expect(coordinator).not_to have_received(:sync_dossier)
+    end
+
+    it 'synchronise normalement un dossier supprimé par l\'usager en archive' do
+      allow(coordinator).to receive(:mode).and_return(:archive)
+      dossier = double('Dossier', number: 12_345, state: 'en_instruction', date_suppression_par_usager: supprime_le)
+
+      checker.process(demarche, dossier)
+
+      expect(coordinator).not_to have_received(:delete_dossier)
+      expect(coordinator).to have_received(:sync_dossier).with(dossier)
+    end
+
+    it 'recrée la ligne quand dateSuppressionParUsager est redevenu vide' do
+      dossier = double('Dossier', number: 12_345, state: 'en_instruction', date_suppression_par_usager: nil)
+
+      checker.process(demarche, dossier)
+
+      expect(coordinator).not_to have_received(:delete_dossier)
+      expect(coordinator).to have_received(:sync_dossier).with(dossier)
+    end
+
+    it 'ne construit pas de coordinateur pour un dossier ordinaire écarté par le filtre' do
+      dossier = double('Dossier', number: 12_345, state: 'accepte', date_suppression_par_usager: nil)
+
+      checker.process(demarche, dossier)
+
+      expect(MesDemarchesToBaserow::SyncCoordinator).not_to have_received(:new)
+    end
+
+    it 'BaserowSync#deleted laisse remonter un refus du verrou' do
+      allow(coordinator).to receive(:delete_dossier).and_raise(Referentiel::Verrou::Refus.new('test'))
+
+      expect { checker.deleted(demarche, 12_345) }.to raise_error(Referentiel::Verrou::Refus)
+    end
+
+    it 'BaserowSync#deleted laisse remonter une erreur ordinaire' do
+      allow(coordinator).to receive(:delete_dossier).and_raise('boum')
+
+      expect { checker.deleted(demarche, 12_345) }.to raise_error('boum')
+    end
+
+    describe '#ecoute_suppressions?' do
+      def enregistrer(mode, table_ref: '100', backend: 'baserow')
+        ReferentielTable.create!(backend:, table_ref:, mode:, proprietaire: mode == 'dlnuf' ? 7 : nil)
+      end
+
+      it 'est faux sans enregistrement, sans construire de coordinateur' do
+        expect(checker.ecoute_suppressions?(demarche)).to be(false)
+        expect(MesDemarchesToBaserow::SyncCoordinator).not_to have_received(:new)
+      end
+
+      it 'est faux pour une table enregistrée en archive' do
+        enregistrer('archive')
+        expect(checker.ecoute_suppressions?(demarche)).to be(false)
+      end
+
+      it 'est faux pour une table de type encore inconnu' do
+        enregistrer('inconnu')
+        expect(checker.ecoute_suppressions?(demarche)).to be(false)
+      end
+
+      it 'est faux pour une table DLNUF d\'un autre backend ou d\'une autre table' do
+        enregistrer('dlnuf', backend: 'grist')
+        enregistrer('dlnuf', table_ref: '101')
+        expect(checker.ecoute_suppressions?(demarche)).to be(false)
+      end
+
+      it 'est vrai pour la table configurée enregistrée en DLNUF' do
+        enregistrer('dlnuf')
+        expect(checker.ecoute_suppressions?(demarche)).to be(true)
+        expect(MesDemarchesToBaserow::SyncCoordinator).not_to have_received(:new)
+      end
+    end
+
+    it 'BaserowSync#deleted délègue au coordinateur de la démarche' do
+      checker.deleted(demarche, 12_345)
+
+      expect(MesDemarchesToBaserow::SyncCoordinator).to have_received(:new).with(999, params[:baserow], {})
+      expect(coordinator).to have_received(:delete_dossier).with(12_345)
+    end
+  end
+
+  describe 'configuration du mapping' do
+    def tache(mapping)
+      described_class.new(baserow: { 'table_id' => 1 }, mapping:)
+    end
+
+    it 'refuse une valeur qui n\'est ni un stable_id ni un gabarit' do
+      expect(tache('A' => [1]).errors.join).to include('ni un stable_id')
+    end
+
+    it 'accepte stable_id et gabarit' do
+      expect(tache('A' => 140_066, 'B' => 'DIREN').errors).to be_empty
+    end
+
+    it 'transmet le mapping et un gabarit instancié par la tâche au coordinateur' do
+      coordinateur = instance_double(MesDemarchesToBaserow::SyncCoordinator, demarche_number: 999, delete_dossier: true)
+      gabarit = nil
+      allow(MesDemarchesToBaserow::SyncCoordinator).to receive(:new) do |*_args, **kwargs|
+        gabarit = kwargs[:gabarit]
+        coordinateur
+      end
+
+      tache('Service' => 'DIREN').deleted(double('Demarche', id: 999), 1)
+
+      expect(MesDemarchesToBaserow::SyncCoordinator).to have_received(:new)
+        .with(999, { 'table_id' => 1 }, {}, mapping: { 'Service' => 'DIREN' }, gabarit: kind_of(Proc))
+      expect(gabarit.call('DIREN')).to eq('DIREN')
     end
   end
 end

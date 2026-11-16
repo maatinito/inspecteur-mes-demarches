@@ -596,5 +596,156 @@ RSpec.describe MesDemarchesToBaserow::DataExtractor do
       expect(extractor.label_colors).to eq('Urgent' => 'red')
     end
   end
+  describe 'références de pièces en DLNUF' do
+    let(:field_metadata) do
+      {
+        'RIB' => { 'type' => 'text', 'id' => 1, 'reference_pj' => true },
+        'Justificatif' => { 'type' => 'text', 'id' => 2, 'reference_pj' => false },
+        'Notes' => { 'type' => 'text', 'id' => 3 }
+      }
+    end
+    let(:extractor) { described_class.new(field_metadata, options, referentiel: :dlnuf) }
+    let(:fichier) { double('File', filename: 'rib.pdf', url: 'https://md/rib.pdf', byte_size: 10) }
+
+    def pj(label, id_clair, fichiers: [fichier])
+      double('PieceJustificativeChamp', __typename: 'PieceJustificativeChamp', label:,
+                                        id: Base64.urlsafe_encode64(id_clair), files: fichiers)
+    end
+
+    it 'écrit la référence sur une colonne marquée' do
+      data = extractor.send(:extract_fields, [pj('RIB', 'Champ-155122')], 42)
+
+      expect(data['RIB']).to eq('md:42:155122')
+    end
+
+    it 'conserve nil pour une pièce supprimée (la cellule sera réinitialisée)' do
+      data = extractor.send(:extract_fields, [pj('RIB', 'Champ-155122', fichiers: [])], 42)
+
+      expect(data).to have_key('RIB')
+      expect(data['RIB']).to be_nil
+    end
+
+    it 'ignore, avec un avertissement, une pièce sur une colonne non marquée' do
+      allow(Rails.logger).to receive(:warn)
+
+      data = extractor.send(:extract_fields, [pj('Justificatif', 'Champ-155123')], 42)
+
+      expect(data).not_to have_key('Justificatif')
+      expect(Rails.logger).to have_received(:warn).with(/Justificatif/)
+    end
+
+    it 'laisse la cellule intacte quand l\'identifiant est inattendu' do
+      allow(Rails.logger).to receive(:warn)
+
+      data = extractor.send(:extract_fields, [pj('RIB', 'Dossier-12')], 42)
+
+      expect(data).not_to have_key('RIB')
+      expect(Rails.logger).to have_received(:warn).with(/RIB/)
+    end
+
+    it 'écrit une référence à quatre segments pour une pièce de bloc répétable' do
+      ligne = double('Row', champs: [pj('RIB', 'Champ-155122|01HZX3ABCD')])
+      bloc = double('RepetitionChamp', label: 'Bloc', rows: [ligne])
+      dossier = double('Dossier', number: 42)
+
+      rows = extractor.send(:extract_block_rows, dossier, bloc)
+
+      expect(rows.first['RIB']).to eq('md:42:155122:01HZX3ABCD')
+    end
+
+    it 'garde la copie des fichiers en archive' do
+      archive = described_class.new(field_metadata.transform_values { |m| m.merge('type' => 'file') }, options)
+
+      data = archive.send(:extract_fields, [pj('RIB', 'Champ-155122')], 42)
+
+      expect(data['RIB']).to eq([{ url: 'https://md/rib.pdf', visible_name: 'rib.pdf' }])
+    end
+  end
+
+  describe 'avec mapping' do
+    let(:field_metadata) do
+      {
+        'Représentant nom' => { 'type' => 'text', 'id' => 1 },
+        'Service' => { 'type' => 'single_select', 'id' => 2 },
+        'Adresse' => { 'type' => 'text', 'id' => 3 },
+        'Statuts' => { 'type' => 'text', 'id' => 4, 'reference_pj' => true },
+        'Début de mandat' => { 'type' => 'date', 'id' => 5 },
+        'Commune' => { 'type' => 'text', 'id' => 6 }
+      }
+    end
+    let(:entree) { MesDemarchesToBaserow::Mapping::Entree }
+    let(:mapping) do
+      instance_double(MesDemarchesToBaserow::Mapping, entrees: [
+                        entree.new('Représentant nom', 140_066, nil),
+                        entree.new('Statuts', 140_102, nil),
+                        entree.new('Début de mandat', 140_070, nil),
+                        entree.new('Service', nil, 'DIREN'),
+                        entree.new('Adresse', nil, '{Vide}')
+                      ])
+    end
+    let(:gabarit) { ->(texte) { texte == '{Vide}' ? '' : texte } }
+    let(:extractor) { described_class.new(field_metadata, options, referentiel: :dlnuf, mapping:, gabarit:) }
+    let(:fichier) { double('File', filename: 'statuts.pdf', url: 'https://md/s.pdf', byte_size: 10) }
+
+    def champ(typename, label, stable_id, **attrs)
+      double(typename, __typename: typename, label:, id: Base64.urlsafe_encode64("Champ-#{stable_id}"), **attrs)
+    end
+
+    def dossier_avec(*champs)
+      double('Dossier', number: 42, champs:, annotations: [champ('TextChamp', 'Commune', 170_000, value: 'Papeete')])
+    end
+
+    before do
+      allow(extractor).to receive(:extract_system_fields).and_return('Raison sociale' => 'Asso', 'Numéro TAHITI' => 'A12345')
+    end
+
+    let(:nom) { champ('TextChamp', 'NOM Président(e)', 140_066, value: 'Teriierooiterai', string_value: 'Teriierooiterai') }
+    let(:statuts) { champ('PieceJustificativeChamp', 'Statuts en vigueur', 140_102, files: [fichier]) }
+    let(:homonyme) { champ('TextChamp', 'Commune', 150_000, value: 'Faaa', string_value: 'Faaa') }
+
+    it 'écrit la valeur du champ désigné par son stable_id sous le nom canonique' do
+      data = extractor.extract_all(dossier_avec(nom))[:main_table]
+
+      expect(data['Représentant nom']).to eq('Teriierooiterai')
+      expect(data).not_to have_key('NOM Président(e)')
+    end
+
+    it 'vide la colonne quand le champ est absent du dossier (masqué par une condition)' do
+      data = extractor.extract_all(dossier_avec)[:main_table]
+
+      expect(data).to include('Représentant nom' => nil, 'Début de mandat' => nil)
+    end
+
+    it 'écrit la constante, et nil pour un gabarit qui s\'instancie à vide' do
+      data = extractor.extract_all(dossier_avec(nom))[:main_table]
+
+      expect(data).to include('Service' => 'DIREN', 'Adresse' => nil)
+    end
+
+    it 'garde les métadonnées système' do
+      data = extractor.extract_all(dossier_avec(nom))[:main_table]
+
+      expect(data).to include('Raison sociale' => 'Asso', 'Numéro TAHITI' => 'A12345')
+    end
+
+    it 'n\'écrit ni un champ homonyme d\'une colonne non mappée, ni une annotation' do
+      data = extractor.extract_all(dossier_avec(nom, homonyme))[:main_table]
+
+      expect(data).not_to have_key('Commune')
+    end
+
+    it 'écrit en DLNUF la référence d\'une pièce mappée, avec le stable_id source' do
+      data = extractor.extract_all(dossier_avec(statuts))[:main_table]
+
+      expect(data['Statuts']).to eq('md:42:140102')
+    end
+
+    it 'ne produit aucun bloc répétable' do
+      bloc = double('RepetitionChamp', __typename: 'RepetitionChamp', label: 'Bloc', rows: [],
+                                       id: Base64.urlsafe_encode64('Champ-1'))
+
+      expect(extractor.extract_all(dossier_avec(nom, bloc))[:repetable_blocks]).to eq({})
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength

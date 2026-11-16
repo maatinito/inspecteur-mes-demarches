@@ -18,7 +18,17 @@
       %select.form-select{ data: { cascade_select_target: 'table', action: 'change->cascade-select#onSelectionChange', selected_value: target.main_table_external_id } }
         %option{ value: '' } —
 
+  - if target.baserow?
+    %div.row.g-3.mt-1
+      %div.col-md-4
+        %label.form-label Type de référentiel
+        %select.form-select{ disabled: target.last_synced_at.present?, title: (target.last_synced_at.present? ? 'Le type ne change plus après la première synchronisation.' : nil),
+                             data: { cascade_select_target: 'referentiel', action: 'change->cascade-select#onReferentielChange' } }
+          %option{ value: 'archive', selected: !target.dlnuf? } Archive (copie des dossiers)
+          %option{ value: 'dlnuf', selected: target.dlnuf? } DLNUF (effacé avec le dossier)
+
   %hr
   = render 'main_table_section', target: target
-  = render 'avis_section', target: target
+  - unless target.dlnuf?
+    = render 'avis_section', target: target
   = render 'blocks_section', target: target

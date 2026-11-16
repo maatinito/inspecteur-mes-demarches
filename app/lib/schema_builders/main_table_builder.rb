@@ -67,6 +67,12 @@ module SchemaBuilders
       end
     end
 
+    # Id de la table que build! utilisera (sélectionnée ou trouvée par nom), nil si elle sera créée.
+    # Exposé pour que l'appelant vérifie la table réellement ciblée avant toute écriture.
+    def resolve_table_id(application_id:, table_name:, existing_table_id: nil)
+      resolve_existing_table_id(application_id, table_name, existing_table_id)
+    end
+
     private
 
     # Détermine l'id de la table à mettre à jour, ou nil s'il faut la créer.

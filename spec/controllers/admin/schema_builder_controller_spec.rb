@@ -214,7 +214,7 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
   describe 'POST #build_main_table' do
     let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: nil) }
     let(:build_result) { { table_id: 99, table_name: 'Dossiers', action: :created, fields: [] } }
-    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder, build!: build_result) }
+    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder, build!: build_result, resolve_table_id: nil) }
 
     before do
       allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
@@ -396,6 +396,15 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
       expect(target.reload.excluded_field_ids).not_to include('champ_xyz')
     end
 
+    it "refuse d'exclure Email usager en DLNUF (422)" do
+      target.update!(referentiel: 'dlnuf')
+      patch :toggle_main_table_field_exclusion,
+            params: { demarche_demarche_id: demarche.id, target: 'baserow', field_id: 'metadata:email_usager', excluded: 'true' },
+            format: :turbo_stream
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(target.reload.excluded_field_ids).to be_empty
+    end
+
     it 'renvoie un Turbo Stream remplaçant la frame main-table' do
       patch :toggle_main_table_field_exclusion,
             params: { demarche_demarche_id: demarche.id, target: 'baserow', field_id: 'champ_xyz', excluded: 'true' },
@@ -526,6 +535,8 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
     before do
       allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
       allow_any_instance_of(described_class).to receive(:block_builder_for).and_return(builder_double)
+      allow_any_instance_of(described_class).to receive(:referentiel_dlnuf)
+        .and_return(instance_double(SchemaBuilders::ReferentielDlnuf, type_lu: :archive))
     end
 
     it 'crée des SchemaBlockTarget pour chaque résultat' do
@@ -563,6 +574,322 @@ RSpec.describe Admin::SchemaBuilderController, type: :controller do
         )
       ).and_return([])
       post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+    end
+  end
+
+  describe 'type de référentiel (archive ou DLNUF)' do
+    let(:dlnuf_service) { instance_double(SchemaBuilders::ReferentielDlnuf, colonnes_fichier: []) }
+    let(:resolu) { '101' }
+    let(:builder_double) { instance_double(SchemaBuilders::MainTableBuilder, resolve_table_id: resolu) }
+    let(:created) { { table_id: 99, table_name: 'Dossiers', action: :created, fields: [] } }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:demarche_descriptor).and_return(double(:descriptor))
+      allow_any_instance_of(described_class).to receive(:main_table_builder_for).and_return(builder_double)
+      allow_any_instance_of(described_class).to receive(:referentiel_dlnuf).and_return(dlnuf_service)
+    end
+
+    def construire(table = 'baserow')
+      post :build_main_table, params: { demarche_demarche_id: demarche.id, target: table }, format: :turbo_stream
+    end
+
+    context 'table neuve en DLNUF' do
+      let(:resolu) { nil }
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: nil, referentiel: 'dlnuf') }
+
+      it 'appelle finaliser! avec creee: true' do
+        allow(builder_double).to receive(:build!).and_return(created)
+        expect(dlnuf_service).to receive(:finaliser!).with(99, creee: true).and_return(9115)
+        construire
+        expect(response.body).to include('créée')
+      end
+
+      it 'affiche le refus de finaliser! en alert-danger, sans erreur 500' do
+        allow(builder_double).to receive(:build!).and_return(created)
+        allow(dlnuf_service).to receive(:finaliser!).and_raise(Referentiel::Verrou::Refus, 'colonne Email usager absente')
+        construire
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger').and include('colonne Email usager absente')
+      end
+
+      it 'affiche une erreur nommant la table quand le marqueur n\'a pas pu être écrit, sans erreur 500' do
+        allow(builder_double).to receive(:build!).and_return(created)
+        allow(dlnuf_service).to receive(:finaliser!).and_raise(Baserow::APIError.new({ 'error' => 'HTTP 500' }, 500))
+        construire
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger').and include('Dossiers').and include('99')
+        expect(response.body).to include('marqueur').and include('supprimer la table dans Baserow')
+      end
+    end
+
+    context 'table supprimée côté Baserow (archive)' do
+      let(:resolu) { nil }
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101') }
+
+      it 'ne vérifie rien et laisse build! recréer la table' do
+        expect(dlnuf_service).not_to receive(:type_lu)
+        expect(builder_double).to receive(:build!).and_return(created)
+        construire
+        expect(target.reload.main_table_external_id).to eq('99')
+      end
+    end
+
+    context 'table existante' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', application_external_id: '17', main_table_external_id: '101', referentiel: 'dlnuf') }
+
+      it 'DLNUF pointée sur une table sans marqueur : aucune écriture' do
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:archive)
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('créer une nouvelle table')
+      end
+
+      it 'archive pointée sur une table marquée DLNUF : aucune écriture' do
+        target.update!(referentiel: 'archive')
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:dlnuf)
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('créer une nouvelle table')
+      end
+
+      it 'marqueur illisible : aucune écriture' do
+        allow(dlnuf_service).to receive(:type_lu).and_return(:invalid)
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('Marqueur illisible')
+      end
+
+      it 'DLNUF avec colonne fichier : aucune écriture' do
+        allow(dlnuf_service).to receive_messages(type_lu: :dlnuf, colonnes_fichier: %w[RIB Photo])
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('Colonne(s) fichier interdite(s) dans une table DLNUF : RIB, Photo.')
+      end
+
+      it 'vérifie la table retrouvée par nom quand aucun id n\'est sélectionné' do
+        target.update!(main_table_external_id: nil)
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:archive)
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response.body).to include('créer une nouvelle table')
+        expect(target.reload.main_table_external_id).to be_nil
+        expect(target.last_synced_at).to be_nil
+      end
+
+      it 'affiche une erreur API de lecture sans erreur 500' do
+        allow(dlnuf_service).to receive(:type_lu).and_raise(Baserow::APIError.new({ 'error' => 'HTTP 500' }, 500))
+        expect(builder_double).not_to receive(:build!)
+        construire
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger').and include('Lecture de la table 101 impossible')
+      end
+
+      it 'build_blocks applique les mêmes refus' do
+        allow(dlnuf_service).to receive(:type_lu).and_return(:archive)
+        expect_any_instance_of(described_class).not_to receive(:block_builder_for)
+        post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response.body).to include('créer une nouvelle table')
+      end
+
+      context 'build_blocks en DLNUF : tables de bloc réutilisées' do
+        let(:blocs) do
+          instance_double(SchemaBuilders::BlockBuilder,
+                          preview: [{ table_name: 'Membres' }], existing_table_id: 862, build!: [])
+        end
+
+        before do
+          target = demarche.schema_targets.find_by!(target_type: 'baserow')
+          target.update!(application_external_id: '17')
+          allow(dlnuf_service).to receive(:type_lu).and_return(:dlnuf)
+          allow(dlnuf_service).to receive(:colonnes_fichier).with('101').and_return([])
+          allow_any_instance_of(described_class).to receive(:block_builder_for).and_return(blocs)
+        end
+
+        def construire_blocs
+          post :build_blocks, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        end
+
+        it 'refuse une table réutilisée qui n\'est pas liée à cette table DLNUF' do
+          allow(dlnuf_service).to receive(:tables_liees).with('17', '101').and_return([])
+          expect(blocs).not_to receive(:build!)
+          construire_blocs
+          expect(response.body).to include('La table de bloc Membres n&#39;appartient pas à cette table DLNUF')
+        end
+
+        it 'refuse une table liée qui porte une colonne fichier' do
+          allow(dlnuf_service).to receive(:tables_liees).and_return([862])
+          allow(dlnuf_service).to receive(:colonnes_fichier).with(862).and_return(['Pièce'])
+          expect(blocs).not_to receive(:build!)
+          construire_blocs
+          expect(response.body).to include('Colonne(s) fichier interdite(s) dans une table DLNUF').and include('Pièce')
+        end
+
+        it 'construit quand les tables réutilisées sont liées et sans fichier' do
+          allow(dlnuf_service).to receive(:tables_liees).and_return([862])
+          allow(dlnuf_service).to receive(:colonnes_fichier).with(862).and_return([])
+          expect(blocs).to receive(:build!).and_return([])
+          construire_blocs
+        end
+      end
+
+      it 'build_avis et preview_avis renvoient 412 en DLNUF' do
+        post :build_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response).to have_http_status(:precondition_failed)
+        get :preview_avis, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response).to have_http_status(:precondition_failed)
+      end
+    end
+
+    describe 'PATCH selection du référentiel' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow') }
+
+      it 'enregistre referentiel=dlnuf avant synchronisation' do
+        patch :update_target_selection, params: { demarche_demarche_id: demarche.id, target_type: 'baserow', referentiel: 'dlnuf' }
+        expect(response).to have_http_status(:ok)
+        expect(target.reload).to be_dlnuf
+      end
+
+      it 'renvoie 422 après synchronisation' do
+        target.update!(last_synced_at: Time.current)
+        patch :update_target_selection, params: { demarche_demarche_id: demarche.id, target_type: 'baserow', referentiel: 'dlnuf' }
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(target.reload).not_to be_dlnuf
+      end
+    end
+
+    describe 'POST #retablir_marqueur' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
+
+      it 'rétablit le marqueur' do
+        expect(dlnuf_service).to receive(:retablir!).with('101')
+        post :retablir_marqueur, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response.body).to include('Marqueur rétabli')
+      end
+
+      it 'affiche le refus en alert-danger' do
+        allow(dlnuf_service).to receive(:retablir!).and_raise(Referentiel::Verrou::Refus, 'inconnue de ce robot')
+        post :retablir_marqueur, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger').and include('inconnue de ce robot')
+      end
+    end
+
+    describe 'POST #vider_table' do
+      let!(:target) { create(:schema_target, demarche: demarche, target_type: 'baserow', main_table_external_id: '101') }
+      let(:adapter) { instance_double(SchemaBuilders::BaserowTarget) }
+
+      before do
+        allow(dlnuf_service).to receive_messages(application_de: 17, tables_liees: [201, 202])
+        allow_any_instance_of(described_class).to receive(:target_adapter_for).and_return(adapter)
+        allow(ConfigurationsBaserow).to receive(:demarches_synchronisees_vers).and_return([])
+        demarche.update!(checked_at: Time.zone.parse('2026-11-01 10:00'))
+      end
+
+      def vider
+        post :vider_table, params: { demarche_demarche_id: demarche.id, target: 'baserow' }, format: :turbo_stream
+      end
+
+      it 'rend 403 sur une table sans marqueur DLNUF, sans rien effacer' do
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:archive)
+        expect(adapter).not_to receive(:vider_table)
+        vider
+        expect(response).to have_http_status(:forbidden)
+        expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+      end
+
+      it 'rend 403 sans table principale' do
+        target.update!(main_table_external_id: nil)
+        expect(adapter).not_to receive(:vider_table)
+        vider
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it 'rend 403 pour une cible qui n\'est pas Baserow' do
+        create(:schema_target, demarche: demarche, target_type: 'grist', main_table_external_id: 'T1')
+        expect(adapter).not_to receive(:vider_table)
+        post :vider_table, params: { demarche_demarche_id: demarche.id, target: 'grist' }, format: :turbo_stream
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it 'rend 403 quand le marqueur est illisible' do
+        allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:invalid)
+        expect(adapter).not_to receive(:vider_table)
+        vider
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it 'affiche l\'erreur de lecture du marqueur sans rien effacer' do
+        allow(dlnuf_service).to receive(:type_lu).and_raise(Baserow::APIError.new({ 'error' => 'boom' }, 500))
+        expect(adapter).not_to receive(:vider_table)
+        vider
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('alert-danger')
+        expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+      end
+
+      context 'sur une table DLNUF' do
+        before do
+          allow(dlnuf_service).to receive(:type_lu).with('101').and_return(:dlnuf)
+          # Un backend_table_id périmé ou détecté par nom ne doit jamais être effacé.
+          create(:schema_block_target, schema_target: target, block_descriptor_id: 'b1', backend_table_id: '999')
+        end
+
+        it 'ne vide que les tables liées à la table principale, lues sur Baserow' do
+          expect(dlnuf_service).to receive(:tables_liees).with(17, '101').and_return([201])
+          expect(adapter).to receive(:vider_table).with(201).ordered.and_return(1)
+          expect(adapter).to receive(:vider_table).with('101').ordered.and_return(1)
+          expect(adapter).not_to receive(:vider_table).with('999')
+          vider
+        end
+
+        it 'vide les blocs puis la table principale et remet le curseur à EPOCH' do
+          expect(adapter).to receive(:vider_table).with(201).ordered.and_return(2)
+          expect(adapter).to receive(:vider_table).with(202).ordered.and_return(0)
+          expect(adapter).to receive(:vider_table).with('101').ordered.and_return(5)
+          vider
+          expect(response).to have_http_status(:ok)
+          expect(response.body).to include('7 ligne(s) effacée(s)')
+          expect(demarche.reload.checked_at).to eq(DossierActions::EPOCH)
+        end
+
+        it 'remet le curseur de toutes les démarches de ce robot qui alimentent la table et les liste' do
+          autre = create(:demarche, id: 4100, checked_at: Time.zone.parse('2026-11-01 10:00'))
+          etrangere = create(:demarche, id: 4101, checked_at: Time.zone.parse('2026-11-01 10:00'))
+          allow(ConfigurationsBaserow).to receive(:demarches_synchronisees_vers).with('101').and_return([4100, 4999])
+          allow(adapter).to receive(:vider_table).and_return(1)
+          vider
+          expect(demarche.reload.checked_at).to eq(DossierActions::EPOCH)
+          expect(autre.reload.checked_at).to eq(DossierActions::EPOCH)
+          expect(etrangere.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+          expect(response.body).to include(demarche.id.to_s).and include('4100')
+          expect(response.body).not_to include('4999')
+        end
+
+        it 'vide quand ce robot a figé la table en DLNUF' do
+          ReferentielTable.create!(backend: 'baserow', table_ref: '101', mode: 'dlnuf', proprietaire: 7)
+          expect(adapter).to receive(:vider_table).exactly(3).times.and_return(0)
+          vider
+          expect(response).to have_http_status(:ok)
+        end
+
+        %w[archive inconnu].each do |mode|
+          it "rend 403 sans rien effacer quand ce robot a figé la table en #{mode}" do
+            ReferentielTable.create!(backend: 'baserow', table_ref: '101', mode:)
+            expect(adapter).not_to receive(:vider_table)
+            vider
+            expect(response).to have_http_status(:forbidden)
+            expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+          end
+        end
+
+        it 'ne remet pas le curseur si l\'effacement échoue en cours de route' do
+          allow(adapter).to receive(:vider_table).with(201).and_return(2)
+          allow(adapter).to receive(:vider_table).with(202).and_raise(Baserow::APIError.new({ 'error' => 'boom' }, 500))
+          vider
+          expect(response.body).to include('alert-danger')
+          expect(demarche.reload.checked_at).to eq(Time.zone.parse('2026-11-01 10:00'))
+        end
+      end
     end
   end
 end

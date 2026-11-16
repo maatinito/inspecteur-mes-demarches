@@ -287,6 +287,7 @@ module MesDemarches
       dateTraitement
       dateDerniereModification
       dateDepot
+      dateSuppressionParUsager
       motivation
       prenomMandataire
       nomMandataire
@@ -435,6 +436,34 @@ module MesDemarches
         }
       }
     }
+    query DossiersEnCorbeille($demarche: Int!, $since: ISO8601DateTime!, $cursor: String) {
+      demarche(number: $demarche) {
+        pendingDeletedDossiers(deletedSince: $since, after: $cursor) {
+          pageInfo {
+            endCursor
+            hasNextPage
+          }
+          nodes {
+            number
+          }
+        }
+      }
+    }
+
+    query DossiersSupprimes($demarche: Int!, $since: ISO8601DateTime!, $cursor: String) {
+      demarche(number: $demarche) {
+        deletedDossiers(deletedSince: $since, after: $cursor) {
+          pageInfo {
+            endCursor
+            hasNextPage
+          }
+          nodes {
+            number
+          }
+        }
+      }
+    }
+
     query Dossier($dossier: Int!) {
       dossier(number: $dossier) {
           state

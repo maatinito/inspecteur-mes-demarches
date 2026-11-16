@@ -52,6 +52,16 @@ RSpec.describe SchemaBuilders::MainTableBuilder do
     let(:builder) { described_class.new(target: target, type_mapper: type_mapper) }
 
     describe '#preview' do
+      it 'sort une PJ en texte marqué avec le mapper DLNUF' do
+        dlnuf = described_class.new(target: target, type_mapper: SchemaBuilders::TypeMapper.for(:baserow, referentiel: :dlnuf))
+        descripteur = TestMainTableDemarcheDescriptor.new(
+          [descriptor(id: 'pj', label: 'Statuts', typename: 'PieceJustificativeChampDescriptor')], []
+        )
+        fields = dlnuf.preview(descripteur, application_id: 17, table_name: 'Dossiers')[:fields]
+
+        expect(fields).to include(type: 'text', name: 'Statuts', description: 'mes-demarches: reference=piece_justificative')
+      end
+
       it 'retourne table_name + application_id + fields (specs natifs Baserow)' do
         preview = builder.preview(demarche_descriptor, application_id: 17, table_name: 'Dossiers')
 
