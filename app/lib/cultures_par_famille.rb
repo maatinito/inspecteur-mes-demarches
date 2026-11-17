@@ -27,6 +27,10 @@
 #   champ_famille : annotation recevant la famille (défaut « Famille »)
 #   champ_cultures : annotation recevant les cultures (défaut « Cultures »)
 #   famille_par_defaut : famille des cultures absentes de la table (défaut « Autres »)
+#   conserver_si_vide : si vrai, ne touche pas au bloc de destination quand le
+#     dossier ne déclare plus aucune culture. Sert quand le champ source a été
+#     retiré du formulaire : les dossiers déjà recopiés gardent leur recopie au
+#     lieu de la voir effacée. Par défaut, la recopie est vidée.
 class CulturesParFamille < FieldChecker
   include EcritureBloc
 
@@ -40,7 +44,7 @@ class CulturesParFamille < FieldChecker
 
   def authorized_fields
     super + %i[champ_famille champ_cultures famille_par_defaut bloc_detail champ_culture champ_surface champ_bio
-               champ_surface_cultivee champ_surface_bio]
+               champ_surface_cultivee champ_surface_bio conserver_si_vide]
   end
 
   def process(demarche, dossier)
@@ -48,7 +52,7 @@ class CulturesParFamille < FieldChecker
     return unless must_check?(dossier)
 
     lignes = regroupe(cultures)
-    return if lignes.empty? && lignes_actuelles(@params[:bloc_destination]).blank?
+    return if lignes.empty? && (@params[:conserver_si_vide] || lignes_actuelles(@params[:bloc_destination]).blank?)
 
     changed = recopie(@params[:bloc_destination], lignes.map { |famille, textes| [famille, textes.join(', ')] },
                       [champ_famille, champ_cultures])
