@@ -65,6 +65,37 @@ RSpec.describe CulturesParFamille do
     expect(controle.dossier_updated?).to be false
   end
 
+  context 'when no crop is declared any more (source field removed from the form)' do
+    let(:dossier) { double('Dossier', id: 'D1', number: 1, state: 'en_construction', champs: [], annotations: [bloc]) }
+
+    it 'clears the copy by default' do
+      controle.process(demarche, dossier)
+      ecrit?(0, 0, '')
+      ecrit?(0, 1, '')
+    end
+
+    context 'with conserver_si_vide' do
+      let(:controle) do
+        described_class.new(champ: 'Cultures sur ces parcelles', bloc_destination: 'Cultures par famille',
+                            conserver_si_vide: true, familles: { Vanille: ['vanille'] })
+      end
+
+      it 'leaves the copy untouched' do
+        controle.process(demarche, dossier)
+        expect(SetAnnotationValue).not_to have_received(:allocate_blocks)
+        expect(SetAnnotationValue).not_to have_received(:raw_set_value)
+        expect(controle.dossier_updated?).to be false
+      end
+
+      it 'still rewrites the copy when crops are declared' do
+        allow(dossier).to receive(:champs).and_return([source])
+        allow(source).to receive(:string_value).and_return('vanille')
+        controle.process(demarche, dossier)
+        ecrit?(1, 0, '')
+      end
+    end
+  end
+
   context 'with Détail culture' do
     let(:controle) do
       described_class.new(champ: 'Cultures sur ces parcelles', bloc_destination: 'Cultures par famille', bloc_detail: 'Détail culture',

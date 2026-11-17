@@ -1,5 +1,5 @@
 ### ---------- STAGE 1: Builder ----------
-FROM ruby:3.4.4-slim AS builder
+FROM ruby:3.4.12-slim AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -60,7 +60,7 @@ RUN SECRET_KEY_BASE="temp-key-for-asset-compilation-only" \
     bundle exec rails assets:precompile
 
 ### ---------- STAGE 2: Final image ----------
-FROM ruby:3.4.4-slim
+FROM ruby:3.4.12-slim
 
 # Install runtime dependencies + LibreOffice + Fonts
 ENV DEBIAN_FRONTEND=noninteractive

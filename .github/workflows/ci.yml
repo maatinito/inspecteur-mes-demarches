@@ -8,7 +8,7 @@ on:
 jobs:
   linters:
     name: Linters
-    runs-on: ubuntu-24.04 # Ruby 3.4.4 absent des images ubuntu-26.04 (ubuntu-latest depuis le 13/11/2026)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -58,7 +58,7 @@ jobs:
 
   unit_tests:
     name: Unit tests
-    runs-on: ubuntu-24.04 # Ruby 3.4.4 absent des images ubuntu-26.04 (ubuntu-latest depuis le 13/11/2026)
+    runs-on: ubuntu-latest
     env:
       OFFICE_PATH: /bin/office
     services:
@@ -97,7 +97,7 @@ jobs:
           path: tmp/rspec_${{ github.job }}.junit.xml
 
   docker:
-    runs-on: ubuntu-24.04 # Ruby 3.4.4 absent des images ubuntu-26.04 (ubuntu-latest depuis le 13/11/2026)
+    runs-on: ubuntu-latest
     needs: [linters, unit_tests]
     env:
       repo: "matau/inspecteur-mes-demarches" # remove variable when getting back to maatinito dockerhub account
