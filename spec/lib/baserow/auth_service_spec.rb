@@ -34,6 +34,19 @@ RSpec.describe Baserow::AuthService do
       expect { described_class.jwt_token }.to raise_error(Baserow::AuthService::AuthError, /Authentification refusée/)
     end
 
+    it 'lève une AuthError explicite quand la double authentification est activée sur le compte' do
+      allow(ENV).to receive(:fetch).with('BASEROW_URL', anything).and_return('https://test.baserow.io')
+      allow(ENV).to receive(:fetch).with('BASEROW_MASTER_EMAIL').and_return('robot@example.com')
+      allow(ENV).to receive(:fetch).with('BASEROW_MASTER_PASSWORD').and_return('password123')
+
+      # Baserow répond 200 mais ne donne qu'un jeton de défi, à échanger contre le code 2FA
+      body = { 'two_factor_auth' => { 'type' => 'totp' }, 'token' => 'jeton-de-defi' }.to_json
+      allow(Typhoeus::Request).to receive(:new).and_return(double('request', run: double('response', code: 200, body:)))
+
+      expect { described_class.jwt_token }
+        .to raise_error(Baserow::AuthService::AuthError, /double authentification.*robot@example\.com/i)
+    end
+
     it 'raises AuthError when environment variables are missing' do
       allow(ENV).to receive(:fetch).with('BASEROW_URL', anything).and_return('https://test.baserow.io')
       key_error = KeyError.new('key not found: "BASEROW_MASTER_EMAIL"')

@@ -77,6 +77,13 @@ module Baserow
       case response.code
       when 200
         data = JSON.parse(response.body)
+        # Avec la 2FA, Baserow répond 200 mais `token` n'est qu'un jeton de défi : pris pour un
+        # JWT, il ferait échouer chaque appel suivant en « Token JWT expiré ou invalide ».
+        if data.key?('two_factor_auth')
+          raise AuthError, "Double authentification (2FA) activée sur le compte Baserow #{@email} : " \
+                           'un compte de service robot doit en être dépourvu'
+        end
+
         token = data['access_token'] || data['token']
 
         raise AuthError, "Token JWT non trouvé dans la réponse: #{data.inspect}" if token.nil?
