@@ -70,6 +70,9 @@ class AvisToBlocRepetable < FieldChecker
     }
   QUERY
 
+  # Libellé de la réponse à la question fermée d'un avis (nil : pas de question posée)
+  POSITIONS = { true => '✓ Favorable', false => '✗ Défavorable' }.freeze
+
   private
 
   def fetch_avis(dossier)
@@ -110,6 +113,8 @@ class AvisToBlocRepetable < FieldChecker
       'reponse' => avis.reponse,
       'question_label' => avis.question_label,
       'question_answer' => avis.question_answer,
+      # Position tirée de la question fermée ; vide quand elle n'a pas été posée
+      'position' => POSITIONS[avis.question_answer],
       'date_question' => avis.date_question,
       'date_reponse' => avis.date_reponse,
 

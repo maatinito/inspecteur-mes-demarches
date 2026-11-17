@@ -234,6 +234,26 @@ RSpec.describe AvisToBlocRepetable do
       )
     end
 
+    context 'position (réponse à la question fermée)' do
+      def position_pour(reponse_fermee)
+        allow(avis).to receive(:question_answer).and_return(reponse_fermee)
+        subject.send(:flatten_avis, avis)['position']
+      end
+
+      it 'vaut Favorable quand la réponse est oui' do
+        expect(position_pour(true)).to eq('✓ Favorable')
+      end
+
+      it 'vaut Défavorable quand la réponse est non' do
+        expect(position_pour(false)).to eq('✗ Défavorable')
+      end
+
+      it 'reste vide quand aucune question fermée n\'a de réponse' do
+        expect(position_pour(nil)).to be_nil
+        expect(subject.instanciate('{position}', subject.send(:flatten_avis, avis))).to eq('')
+      end
+    end
+
     context 'with baserow data' do
       let(:baserow_table) { double('baserow_table') }
       let(:baserow_params) do
