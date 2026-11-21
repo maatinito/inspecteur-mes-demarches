@@ -39,8 +39,14 @@ RSpec.describe Travail::DaethRepartition do
   def texte((etp, etp_non_classe), (unites, unites_non_classe))
     ['Statut ; ETP A ; B ; C ; D | Unités A ; B ; C ; D',
      *['FPT', 'FPT stagiaire', 'ANFA', 'ANT'].each_with_index.map { |statut, i| "#{statut} ; #{etp[i]} | #{unites[i]}" },
-     "Non classé ; #{etp_non_classe} | #{unites_non_classe}"].join("\n")
+     "Non classé ; #{etp_non_classe} | #{unites_non_classe}",
+     'Reconnaissance ; COTOREP A ; B ; C ; AT-MP ; Pensionnés ; Non classé',
+     "ETP ; #{reco}"].join("\n")
   end
+
+  # Ligne « reconnaissance » attendue pour le jeu de travailleurs par défaut.
+  let(:reco) { '0,504 ; 1 ; 1 ; 0 ; 1 ; 0' }
+  let(:reco_zeros) { '0 ; 0 ; 0 ; 0 ; 0 ; 0' }
 
   let(:zeros) { '0 ; 0 ; 0 ; 0' }
 
@@ -87,7 +93,9 @@ RSpec.describe Travail::DaethRepartition do
         "FPT stagiaire ; 0 ; 0 ; 0 ; 0 | 0 ; 0 ; 0 ; 0\n" \
         "ANFA ; 0 ; 0 ; 0 ; 1 | 0 ; 0 ; 0 ; 1\n" \
         "ANT ; 0 ; 0 ; 0,504 ; 0 | 0 ; 0 ; 0,504 ; 0\n" \
-        'Non classé ; 0 | 0'
+        "Non classé ; 0 | 0\n" \
+        "Reconnaissance ; COTOREP A ; B ; C ; AT-MP ; Pensionnés ; Non classé\n" \
+        'ETP ; 0,504 ; 1 ; 1 ; 0 ; 1 ; 0'
       )
     end
 
@@ -124,6 +132,7 @@ RSpec.describe Travail::DaethRepartition do
 
     context 'sans travailleur' do
       let(:disabled_workers) { [] }
+      let(:reco) { reco_zeros }
 
       it 'écrit une grille de zéros' do
         subject
@@ -162,6 +171,7 @@ RSpec.describe Travail::DaethRepartition do
           contract_begin: DateValue.new(2025, 7, 2) }.merge(annee)
       end
       let(:disabled_workers) { [worker_c] }
+      let(:reco) { '0 ; 0 ; 0,501 ; 0 ; 0 ; 0' }
 
       it 'arrondit les unités comme Daeth' do
         expect(controle).to receive(:declaration_year).at_least(:once).and_return(2025)
@@ -180,6 +190,7 @@ RSpec.describe Travail::DaethRepartition do
           contract_begin: DateValue.new(2025, 6, 1), contract_end: DateValue.new(2025, 3, 1) }.merge(annee)
       end
       let(:disabled_workers) { [worker_c] }
+      let(:reco) { reco_zeros }
 
       it "n'écrit pas de valeur négative" do
         subject
@@ -193,6 +204,7 @@ RSpec.describe Travail::DaethRepartition do
     context "quand l'année déclarée n'est pas l'année précédente" do
       before { allow(controle).to receive(:declared_year).with(nil).and_return(2023) }
       let(:disabled_workers) { [worker_c] }
+      let(:reco) { reco_zeros }
 
       it "calcule sur l'année déclarée du dossier" do
         subject
@@ -212,6 +224,25 @@ RSpec.describe Travail::DaethRepartition do
 
       it "laisse remonter l'erreur : c'est une erreur de configuration" do
         expect { subject }.to raise_error(/Unable to find annotation/)
+      end
+    end
+
+    context 'avec un accident du travail avec rente et une catégorie de handicap inconnue' do
+      let(:worker_d) do
+        { status: Travail::Daeth::STATUS_PDD, contract_type: 'FPT', category: 'C - Agent technique', pdd_rate: 30, annuity: true }
+      end
+      let(:worker_a) do
+        { status: Travail::Daeth::STATUS_COTOREP, contract_type: 'FPT', category: 'A - Ingénieur', cotorep_category: nil }.merge(annee)
+      end
+      let(:reco) { '0,504 ; 0 ; 1 ; 1 ; 1 ; 1' }
+
+      it 'les compte en AT-MP et en « Non classé » de la reconnaissance' do
+        subject
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          dossier, instructeur, 'Détails des bénéficiaires',
+          texte(bloc('ETP', '1 ; 1 ; 1 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0'),
+                bloc('Unités', '1 ; 2 ; 1 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0'))
+        )
       end
     end
 

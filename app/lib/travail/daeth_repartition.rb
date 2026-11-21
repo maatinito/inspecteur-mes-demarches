@@ -18,6 +18,11 @@ module Travail
   #   FPT ; 2 ; 2,901 ; 2,732 ; 7 | 2 ; 2,901 ; 2,732 ; 8
   #   …
   #   Non classé ; 0 | 0
+  #   Reconnaissance ; COTOREP A ; B ; C ; AT-MP ; Pensionnés ; Non classé
+  #   ETP ; 0 ; 13,707 ; 1 ; 1 ; 1 ; 0
+  #
+  # Les deux dernières lignes redécoupent le même ETP par motif de
+  # reconnaissance (tableau C.3 de la déclaration de la Polynésie française).
   #
   # ETP = prorata de temps de présence ; unités = même prorata, pondéré
   # (COTOREP C = 2). Six lignes seulement : l'agent lit l'annotation à l'écran.
@@ -38,6 +43,10 @@ module Travail
     SEPARATEUR = ' ; '
     SEPARATEUR_MESURES = ' | '
     ENTETE = 'Statut ; ETP A ; B ; C ; D | Unités A ; B ; C ; D'
+    ENTETE_RECONNAISSANCE = 'Reconnaissance ; COTOREP A ; B ; C ; AT-MP ; Pensionnés ; Non classé'
+    COTOREP_CATEGORIES = %w[A B C].freeze
+    AT_MP = :at_mp
+    PENSIONNES = :pensionnes
     # Début du message levé par SetAnnotationValue.set_value.
     ANNOTATION_ABSENTE = 'Unable to find annotation'
     ETATS_CLOS = %w[accepte refuse sans_suite].freeze
@@ -50,8 +59,8 @@ module Travail
 
     def compute_and_save
       @year = declared_year(nil)
-      etp, unites = repartition
-      save_annotation(@params[:annotation_details], texte(etp, unites))
+      etp, unites, reconnaissance = repartition
+      save_annotation(@params[:annotation_details], texte(etp, unites, reconnaissance))
     rescue RuntimeError => e
       # Un dossier clos resté sur une ancienne révision n'a pas l'annotation :
       # il ne doit pas interrompre le traitement des autres dossiers. Sur un
@@ -71,27 +80,46 @@ module Travail
     end
 
     # Deux grilles { [statut, catégorie] => somme }, la clé NON_CLASSE recevant
-    # les travailleurs dont le statut ou le cadre d'emplois n'est pas reconnu.
+    # les travailleurs dont le statut ou le cadre d'emplois n'est pas reconnu,
+    # puis le même ETP par motif de reconnaissance.
     def repartition
       etp = Hash.new(0.0)
       unites = Hash.new(0.0)
+      reconnaissance = Hash.new(0.0)
       disabled_workers.each do |worker|
         next if worker[:contract_type] == CONTRACT_SITH
 
         poids, = payload(worker)
         next unless poids.positive?
 
-        # Une date de sortie antérieure à la date d'entrée donne un taux
-        # négatif : borné à zéro pour ne pas retrancher d'une case.
-        hebdo = compute_weekly_presence_rate(worker)
-        annuel = [compute_year_presence_rate(worker), 0].max
+        presence, unites_du_travailleur = mesures(worker, poids)
         case_grille = case_de(worker)
-        etp[case_grille] += (hebdo * annuel).round(3)
-        # Un seul arrondi, dans l'ordre de Daeth#disabled_worker_fte : la somme
-        # des unités doit retomber sur « ETP Bénéficiaires ».
-        unites[case_grille] += (poids * hebdo * annuel).round(3)
+        etp[case_grille] += presence
+        unites[case_grille] += unites_du_travailleur
+        reconnaissance[motif_de(worker)] += presence
       end
-      [etp, unites]
+      [etp, unites, reconnaissance]
+    end
+
+    # [ETP, unités] d'un travailleur.
+    def mesures(worker, poids)
+      # Une date de sortie antérieure à la date d'entrée donne un taux négatif :
+      # borné à zéro pour ne pas retrancher d'une case.
+      hebdo = compute_weekly_presence_rate(worker)
+      annuel = [compute_year_presence_rate(worker), 0].max
+      # Un seul arrondi, dans l'ordre de Daeth#disabled_worker_fte : la somme
+      # des unités doit retomber sur « ETP Bénéficiaires ».
+      [(hebdo * annuel).round(3), (poids * hebdo * annuel).round(3)]
+    end
+
+    def motif_de(worker)
+      case worker[:status]
+      when STATUS_COTOREP
+        COTOREP_CATEGORIES.include?(worker[:cotorep_category]) ? worker[:cotorep_category] : NON_CLASSE
+      when STATUS_PDD then AT_MP
+      when STATUS_PENSION then PENSIONNES
+      else NON_CLASSE
+      end
     end
 
     def case_de(worker)
@@ -109,11 +137,13 @@ module Travail
       STATUTS.find { |statut| statut == valeur }
     end
 
-    def texte(etp, unites)
+    def texte(etp, unites, reconnaissance)
       lignes = STATUTS.map do |statut|
         "#{statut}#{SEPARATEUR}#{valeurs(etp, statut)}#{SEPARATEUR_MESURES}#{valeurs(unites, statut)}"
       end
-      [ENTETE, *lignes, "#{NON_CLASSE}#{SEPARATEUR}#{nombre(etp[NON_CLASSE])}#{SEPARATEUR_MESURES}#{nombre(unites[NON_CLASSE])}"].join("\n")
+      non_classe = "#{NON_CLASSE}#{SEPARATEUR}#{nombre(etp[NON_CLASSE])}#{SEPARATEUR_MESURES}#{nombre(unites[NON_CLASSE])}"
+      motifs = [*COTOREP_CATEGORIES, AT_MP, PENSIONNES, NON_CLASSE].map { |motif| nombre(reconnaissance[motif]) }
+      [ENTETE, *lignes, non_classe, ENTETE_RECONNAISSANCE, ['ETP', *motifs].join(SEPARATEUR)].join("\n")
     end
 
     def valeurs(grille, statut)
