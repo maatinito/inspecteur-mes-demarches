@@ -37,6 +37,7 @@ module Travail
     SEPARATEUR = ' ; '
     # Début du message levé par SetAnnotationValue.set_value.
     ANNOTATION_ABSENTE = 'Unable to find annotation'
+    ETATS_CLOS = %w[accepte refuse sans_suite].freeze
 
     def required_fields
       super - ASSESSMENT_FIELDS + %i[champ_categorie annotation_details]
@@ -50,11 +51,16 @@ module Travail
       save_annotation(@params[:annotation_details], [bloc('ETP', etp), bloc('Unités', unites)].join("\n\n"))
     rescue RuntimeError => e
       # Un dossier clos resté sur une ancienne révision n'a pas l'annotation :
-      # il ne doit pas interrompre le traitement des autres dossiers. Toute
-      # autre erreur (réseau, API) remonte, pour que le dossier soit rejoué.
-      raise unless e.message.start_with?(ANNOTATION_ABSENTE)
+      # il ne doit pas interrompre le traitement des autres dossiers. Sur un
+      # dossier encore ouvert, la même absence est une erreur de configuration
+      # (libellé mal saisi) et doit remonter, comme toute autre erreur.
+      raise unless annotation_absente_sur_dossier_clos?(e)
 
       Rails.logger.error("DaethRepartition: dossier #{@dossier.number} non traité : #{e.message}")
+    end
+
+    def annotation_absente_sur_dossier_clos?(erreur)
+      erreur.message.start_with?(ANNOTATION_ABSENTE) && ETATS_CLOS.include?(@dossier.state)
     end
 
     def disabled_worker_attributes(fields)
@@ -72,10 +78,15 @@ module Travail
         poids, = payload(worker)
         next unless poids.positive?
 
-        presence = (compute_weekly_presence_rate(worker) * compute_year_presence_rate(worker)).round(3)
+        # Une date de sortie antérieure à la date d'entrée donne un taux
+        # négatif : borné à zéro pour ne pas retrancher d'une case.
+        hebdo = compute_weekly_presence_rate(worker)
+        annuel = [compute_year_presence_rate(worker), 0].max
         case_grille = case_de(worker)
-        etp[case_grille] += presence
-        unites[case_grille] += (poids * presence).round(3)
+        etp[case_grille] += (hebdo * annuel).round(3)
+        # Un seul arrondi, dans l'ordre de Daeth#disabled_worker_fte : la somme
+        # des unités doit retomber sur « ETP Bénéficiaires ».
+        unites[case_grille] += (poids * hebdo * annuel).round(3)
       end
       [etp, unites]
     end

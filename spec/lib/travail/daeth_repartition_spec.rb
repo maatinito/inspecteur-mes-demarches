@@ -143,6 +143,68 @@ RSpec.describe Travail::DaethRepartition do
       end
     end
 
+    # La somme des unités doit retomber sur « ETP Bénéficiaires » : même
+    # arrondi unique que Daeth#disabled_worker_fte, et non un arrondi de la
+    # présence suivi d'un arrondi du produit (1,002 au lieu de 1,003 ici).
+    context 'avec un poids 2 sur une présence partielle' do
+      let(:worker_c) do
+        { status: Travail::Daeth::STATUS_COTOREP, contract_type: 'ANT', category: 'AN3 - CC3', cotorep_category: 'C',
+          contract_begin: DateValue.new(2025, 7, 2) }.merge(annee)
+      end
+      let(:disabled_workers) { [worker_c] }
+
+      it 'arrondit les unités comme Daeth' do
+        expect(controle).to receive(:declaration_year).at_least(:once).and_return(2025)
+        subject
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          dossier, instructeur, 'Détails des bénéficiaires',
+          [bloc('ETP', zeros, zeros, zeros, '0 ; 0 ; 0,501 ; 0'), bloc('Unités', zeros, zeros, zeros, '0 ; 0 ; 1,003 ; 0')].join("\n\n")
+        )
+        expect(controle.disabled_worker_fte).to eq(1.003)
+      end
+    end
+
+    context "avec une date de sortie antérieure à la date d'entrée" do
+      let(:worker_c) do
+        { status: Travail::Daeth::STATUS_COTOREP, contract_type: 'ANT', category: 'AN3 - CC3', cotorep_category: 'A',
+          contract_begin: DateValue.new(2025, 6, 1), contract_end: DateValue.new(2025, 3, 1) }.merge(annee)
+      end
+      let(:disabled_workers) { [worker_c] }
+
+      it "n'écrit pas de valeur négative" do
+        subject
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          dossier, instructeur, 'Détails des bénéficiaires',
+          [bloc('ETP', zeros, zeros, zeros, zeros), bloc('Unités', zeros, zeros, zeros, zeros)].join("\n\n")
+        )
+      end
+    end
+
+    context "quand l'année déclarée n'est pas l'année précédente" do
+      before { allow(controle).to receive(:declared_year).with(nil).and_return(2023) }
+      let(:disabled_workers) { [worker_c] }
+
+      it "calcule sur l'année déclarée du dossier" do
+        subject
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          dossier, instructeur, 'Détails des bénéficiaires',
+          [bloc('ETP', zeros, zeros, zeros, zeros), bloc('Unités', zeros, zeros, zeros, zeros)].join("\n\n")
+        )
+      end
+    end
+
+    context "quand l'annotation est absente d'un dossier encore en instruction" do
+      let(:state) { 'en_instruction' }
+
+      before do
+        allow(SetAnnotationValue).to receive(:set_value).and_raise("Unable to find annotation 'Détails des bénéficiaires' on dossier 438520")
+      end
+
+      it "laisse remonter l'erreur : c'est une erreur de configuration" do
+        expect { subject }.to raise_error(/Unable to find annotation/)
+      end
+    end
+
     context 'hors des états configurés' do
       let(:state) { 'en_construction' }
 
