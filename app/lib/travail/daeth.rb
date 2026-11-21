@@ -20,9 +20,15 @@ module Travail
       super + 4
     end
 
+    # Paramètres du calcul de l'assiette et des montants, séparés de ceux du
+    # calcul par travailleur : une tâche dérivée qui ne reprend que ce dernier
+    # (Travail::DaethRepartition) n'a pas à déclarer les cellules du classeur.
+    ASSESSMENT_FIELDS = %i[champ_effectifs champ_effectif cellule_annee cellule_ETP cellule_ETP_ECAP cellule_assiette cellule_obligation cellule_licenciement
+                           champ_prestations].freeze
+    WORKER_FIELDS = %i[champ_travailleurs champs_par_travailleur].freeze
+
     def required_fields
-      super + %i[champ_effectifs champ_effectif cellule_annee cellule_ETP cellule_ETP_ECAP cellule_assiette cellule_obligation cellule_licenciement champ_prestations champ_travailleurs
-                 champs_par_travailleur]
+      super + ASSESSMENT_FIELDS + WORKER_FIELDS
     end
 
     def authorized_fields
@@ -152,6 +158,14 @@ module Travail
       return unless dossier_has_right_state?
 
       @msgs = []
+      compute_and_save
+    end
+
+    private
+
+    # Corps du traitement, isolé pour qu'une tâche dérivée le remplace sans
+    # reprendre la mise en place ni la garde d'état de `process`.
+    def compute_and_save
       @numbers = default_numbers
       # return unless @numbers[DEFAULT_DUTY] >= 0
 
@@ -164,8 +178,6 @@ module Travail
       save_results(@numbers)
       save_messages(@msgs.join("\n"))
     end
-
-    private
 
     def final_duty
       duty = (@numbers[DEFAULT_DUTY] - @numbers[OUTSOURCING] - @numbers[DISMISSED_FTE] - @numbers[DISABLED_WORKER_FTE]).round(3)
