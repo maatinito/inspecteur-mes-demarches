@@ -10,16 +10,17 @@ module Travail
   # plus bouger. La démarche du privé, qui partage Travail::Daeth, ne l'utilise
   # pas.
   #
-  # L'annotation porte deux blocs au format fixe, découpés ensuite par des
-  # colonnes formule côté Grist — ne pas en changer la forme sans les adapter :
+  # L'annotation porte, par statut, deux mesures côte à côte au format fixe,
+  # découpées ensuite par des colonnes formule côté Grist — ne pas en changer la
+  # forme sans les adapter :
   #
-  #   ETP ; A ; B ; C ; D        prorata de temps de présence
-  #   FPT ; 1 ; 1 ; 0 ; 0
+  #   Statut ; ETP A ; B ; C ; D | Unités A ; B ; C ; D
+  #   FPT ; 2 ; 2,901 ; 2,732 ; 7 | 2 ; 2,901 ; 2,732 ; 8
   #   …
-  #   Non classé ; 0
+  #   Non classé ; 0 | 0
   #
-  #   Unités ; A ; B ; C ; D     même prorata, pondéré (COTOREP C = 2)
-  #   …
+  # ETP = prorata de temps de présence ; unités = même prorata, pondéré
+  # (COTOREP C = 2). Six lignes seulement : l'agent lit l'annotation à l'écran.
   #
   # Un travailleur qui vaut 0 unité (accident du travail sans rente, IPP
   # insuffisant) n'est pas bénéficiaire : il est absent des deux blocs.
@@ -35,6 +36,8 @@ module Travail
     }.freeze
     NON_CLASSE = 'Non classé'
     SEPARATEUR = ' ; '
+    SEPARATEUR_MESURES = ' | '
+    ENTETE = 'Statut ; ETP A ; B ; C ; D | Unités A ; B ; C ; D'
     # Début du message levé par SetAnnotationValue.set_value.
     ANNOTATION_ABSENTE = 'Unable to find annotation'
     ETATS_CLOS = %w[accepte refuse sans_suite].freeze
@@ -48,7 +51,7 @@ module Travail
     def compute_and_save
       @year = declared_year(nil)
       etp, unites = repartition
-      save_annotation(@params[:annotation_details], [bloc('ETP', etp), bloc('Unités', unites)].join("\n\n"))
+      save_annotation(@params[:annotation_details], texte(etp, unites))
     rescue RuntimeError => e
       # Un dossier clos resté sur une ancienne révision n'a pas l'annotation :
       # il ne doit pas interrompre le traitement des autres dossiers. Sur un
@@ -106,11 +109,15 @@ module Travail
       STATUTS.find { |statut| statut == valeur }
     end
 
-    def bloc(titre, grille)
+    def texte(etp, unites)
       lignes = STATUTS.map do |statut|
-        [statut, *CATEGORIES.map { |categorie| nombre(grille[[statut, categorie]]) }].join(SEPARATEUR)
+        "#{statut}#{SEPARATEUR}#{valeurs(etp, statut)}#{SEPARATEUR_MESURES}#{valeurs(unites, statut)}"
       end
-      [[titre, *CATEGORIES].join(SEPARATEUR), *lignes, [NON_CLASSE, nombre(grille[NON_CLASSE])].join(SEPARATEUR)].join("\n")
+      [ENTETE, *lignes, "#{NON_CLASSE}#{SEPARATEUR}#{nombre(etp[NON_CLASSE])}#{SEPARATEUR_MESURES}#{nombre(unites[NON_CLASSE])}"].join("\n")
+    end
+
+    def valeurs(grille, statut)
+      CATEGORIES.map { |categorie| nombre(grille[[statut, categorie]]) }.join(SEPARATEUR)
     end
 
     # Virgule décimale, trois décimales au plus, sans zéros de fin.

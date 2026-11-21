@@ -31,9 +31,15 @@ RSpec.describe Travail::DaethRepartition do
   end
   let(:disabled_workers) { [worker_a, worker_b, worker_c, worker_d, worker_e] }
 
-  def bloc(titre, *lignes, non_classe: '0')
-    ["#{titre} ; A ; B ; C ; D", *['FPT', 'FPT stagiaire', 'ANFA', 'ANT'].zip(lignes).map { |statut, valeurs| "#{statut} ; #{valeurs}" },
-     "Non classé ; #{non_classe}"].join("\n")
+  # Valeurs d'une mesure : les quatre lignes de statut, puis « Non classé ».
+  def bloc(_titre, *lignes, non_classe: '0')
+    [lignes, non_classe]
+  end
+
+  def texte((etp, etp_non_classe), (unites, unites_non_classe))
+    ['Statut ; ETP A ; B ; C ; D | Unités A ; B ; C ; D',
+     *['FPT', 'FPT stagiaire', 'ANFA', 'ANT'].each_with_index.map { |statut, i| "#{statut} ; #{etp[i]} | #{unites[i]}" },
+     "Non classé ; #{etp_non_classe} | #{unites_non_classe}"].join("\n")
   end
 
   let(:zeros) { '0 ; 0 ; 0 ; 0' }
@@ -72,12 +78,16 @@ RSpec.describe Travail::DaethRepartition do
 
     subject { controle.process(demarche, dossier) }
 
-    it 'écrit les deux blocs, la catégorie de handicap C comptant double dans les unités' do
+    it 'écrit les deux mesures côte à côte, la catégorie de handicap C comptant double dans les unités' do
       subject
       expect(SetAnnotationValue).to have_received(:set_value).with(
         dossier, instructeur, 'Détails des bénéficiaires',
-        "ETP ; A ; B ; C ; D\nFPT ; 1 ; 1 ; 0 ; 0\nFPT stagiaire ; 0 ; 0 ; 0 ; 0\nANFA ; 0 ; 0 ; 0 ; 1\nANT ; 0 ; 0 ; 0,504 ; 0\nNon classé ; 0\n\n" \
-        "Unités ; A ; B ; C ; D\nFPT ; 1 ; 2 ; 0 ; 0\nFPT stagiaire ; 0 ; 0 ; 0 ; 0\nANFA ; 0 ; 0 ; 0 ; 1\nANT ; 0 ; 0 ; 0,504 ; 0\nNon classé ; 0"
+        "Statut ; ETP A ; B ; C ; D | Unités A ; B ; C ; D\n" \
+        "FPT ; 1 ; 1 ; 0 ; 0 | 1 ; 2 ; 0 ; 0\n" \
+        "FPT stagiaire ; 0 ; 0 ; 0 ; 0 | 0 ; 0 ; 0 ; 0\n" \
+        "ANFA ; 0 ; 0 ; 0 ; 1 | 0 ; 0 ; 0 ; 1\n" \
+        "ANT ; 0 ; 0 ; 0,504 ; 0 | 0 ; 0 ; 0,504 ; 0\n" \
+        'Non classé ; 0 | 0'
       )
     end
 
@@ -93,8 +103,8 @@ RSpec.describe Travail::DaethRepartition do
         subject
         expect(SetAnnotationValue).to have_received(:set_value).with(
           dossier, instructeur, 'Détails des bénéficiaires',
-          [bloc('ETP', '0 ; 1 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1'),
-           bloc('Unités', '0 ; 2 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1')].join("\n\n")
+          texte(bloc('ETP', '0 ; 1 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1'),
+                bloc('Unités', '0 ; 2 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1'))
         )
       end
     end
@@ -106,8 +116,8 @@ RSpec.describe Travail::DaethRepartition do
         subject
         expect(SetAnnotationValue).to have_received(:set_value).with(
           dossier, instructeur, 'Détails des bénéficiaires',
-          [bloc('ETP', '0 ; 1 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1'),
-           bloc('Unités', '0 ; 2 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1')].join("\n\n")
+          texte(bloc('ETP', '0 ; 1 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1'),
+                bloc('Unités', '0 ; 2 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1'))
         )
       end
     end
@@ -119,7 +129,7 @@ RSpec.describe Travail::DaethRepartition do
         subject
         expect(SetAnnotationValue).to have_received(:set_value).with(
           dossier, instructeur, 'Détails des bénéficiaires',
-          [bloc('ETP', zeros, zeros, zeros, zeros), bloc('Unités', zeros, zeros, zeros, zeros)].join("\n\n")
+          texte(bloc('ETP', zeros, zeros, zeros, zeros), bloc('Unités', zeros, zeros, zeros, zeros))
         )
       end
     end
@@ -158,7 +168,7 @@ RSpec.describe Travail::DaethRepartition do
         subject
         expect(SetAnnotationValue).to have_received(:set_value).with(
           dossier, instructeur, 'Détails des bénéficiaires',
-          [bloc('ETP', zeros, zeros, zeros, '0 ; 0 ; 0,501 ; 0'), bloc('Unités', zeros, zeros, zeros, '0 ; 0 ; 1,003 ; 0')].join("\n\n")
+          texte(bloc('ETP', zeros, zeros, zeros, '0 ; 0 ; 0,501 ; 0'), bloc('Unités', zeros, zeros, zeros, '0 ; 0 ; 1,003 ; 0'))
         )
         expect(controle.disabled_worker_fte).to eq(1.003)
       end
@@ -175,7 +185,7 @@ RSpec.describe Travail::DaethRepartition do
         subject
         expect(SetAnnotationValue).to have_received(:set_value).with(
           dossier, instructeur, 'Détails des bénéficiaires',
-          [bloc('ETP', zeros, zeros, zeros, zeros), bloc('Unités', zeros, zeros, zeros, zeros)].join("\n\n")
+          texte(bloc('ETP', zeros, zeros, zeros, zeros), bloc('Unités', zeros, zeros, zeros, zeros))
         )
       end
     end
@@ -188,7 +198,7 @@ RSpec.describe Travail::DaethRepartition do
         subject
         expect(SetAnnotationValue).to have_received(:set_value).with(
           dossier, instructeur, 'Détails des bénéficiaires',
-          [bloc('ETP', zeros, zeros, zeros, zeros), bloc('Unités', zeros, zeros, zeros, zeros)].join("\n\n")
+          texte(bloc('ETP', zeros, zeros, zeros, zeros), bloc('Unités', zeros, zeros, zeros, zeros))
         )
       end
     end
