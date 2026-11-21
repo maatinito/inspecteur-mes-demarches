@@ -1,0 +1,155 @@
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe Travail::DaethRepartition do
+  let(:instructeur) { 'instructeur' }
+  let(:demarche) { double(Demarche, instructeur:) }
+  let(:state) { 'accepte' }
+  let(:dossier) { Struct.new(:number, :state, :date_depot).new(438_520, state, Date.new(2026, 2, 1)) }
+  let(:controle) { FactoryBot.build :daeth_repartition }
+
+  let(:annee) { { cotorep_begin: DateValue.new(2025, 1, 1), cotorep_end: DateValue.new(2026, 1, 1) } }
+  let(:statut_a) { 'FPT' }
+  let(:cadre_a) { 'A - Ingénieur' }
+  let(:worker_a) do
+    { status: Travail::Daeth::STATUS_COTOREP, contract_type: statut_a, category: cadre_a, cotorep_category: 'B' }.merge(annee)
+  end
+  let(:worker_b) do
+    { status: Travail::Daeth::STATUS_COTOREP, contract_type: 'FPT', category: 'B - Technicien', cotorep_category: 'C' }.merge(annee)
+  end
+  let(:worker_c) do
+    { status: Travail::Daeth::STATUS_COTOREP, contract_type: 'ANT', category: 'AN3 - CC3', cotorep_category: 'A',
+      contract_begin: DateValue.new(2025, 7, 1) }.merge(annee)
+  end
+  # Accident du travail sans rente : 0 unité, donc exclu des deux blocs.
+  let(:worker_d) do
+    { status: Travail::Daeth::STATUS_PDD, contract_type: 'FPT', category: 'C - Agent technique', pdd_rate: 30, annuity: false }
+  end
+  let(:worker_e) do
+    { status: Travail::Daeth::STATUS_PENSION, contract_type: 'ANFA, PNNIM, ENIM, DI, SR, AVOC', category: 'AN5 - CC5' }
+  end
+  let(:disabled_workers) { [worker_a, worker_b, worker_c, worker_d, worker_e] }
+
+  def bloc(titre, *lignes, non_classe: '0')
+    ["#{titre} ; A ; B ; C ; D", *['FPT', 'FPT stagiaire', 'ANFA', 'ANT'].zip(lignes).map { |statut, valeurs| "#{statut} ; #{valeurs}" },
+     "Non classé ; #{non_classe}"].join("\n")
+  end
+
+  let(:zeros) { '0 ; 0 ; 0 ; 0' }
+
+  describe 'configuration' do
+    it "n'exige aucun paramètre de cellule Excel" do
+      expect(controle.errors).to be_empty
+      expect(controle.valid?).to be_truthy
+    end
+
+    it 'refuse une configuration sans champ_categorie' do
+      controle = described_class.new(FactoryBot.attributes_for(:daeth_repartition).except(:champ_categorie))
+      expect(controle.valid?).to be_falsey
+      expect(controle.errors.first).to include('champ_categorie')
+    end
+  end
+
+  describe '#disabled_workers' do
+    it "lit le cadre d'emplois dans la ligne du bloc" do
+      champ = ->(label, value) { double(label, label:, __typename: 'TextChamp', value:) }
+      row = double('Row', champs: [champ.call('Situation', Travail::Daeth::STATUS_PENSION), champ.call('Statut', 'FPT'),
+                                   champ.call("Catégorie et cadre d'emplois ou équivalent", 'A - Ingénieur')])
+      allow(controle).to receive(:declaration_year).and_return(2025)
+      allow(controle).to receive(:param_field).and_return(double('Bloc', rows: [row]))
+
+      expect(controle.disabled_workers.first).to include(contract_type: 'FPT', category: 'A - Ingénieur')
+    end
+  end
+
+  describe '#process' do
+    before do
+      allow(controle).to receive(:declared_year).and_return(2025)
+      allow(controle).to receive(:disabled_workers).and_return(disabled_workers)
+      allow(SetAnnotationValue).to receive(:set_value).and_return(false)
+    end
+
+    subject { controle.process(demarche, dossier) }
+
+    it 'écrit les deux blocs, la catégorie de handicap C comptant double dans les unités' do
+      subject
+      expect(SetAnnotationValue).to have_received(:set_value).with(
+        dossier, instructeur, 'Détails des bénéficiaires',
+        "ETP ; A ; B ; C ; D\nFPT ; 1 ; 1 ; 0 ; 0\nFPT stagiaire ; 0 ; 0 ; 0 ; 0\nANFA ; 0 ; 0 ; 0 ; 1\nANT ; 0 ; 0 ; 0,504 ; 0\nNon classé ; 0\n\n" \
+        "Unités ; A ; B ; C ; D\nFPT ; 1 ; 2 ; 0 ; 0\nFPT stagiaire ; 0 ; 0 ; 0 ; 0\nANFA ; 0 ; 0 ; 0 ; 1\nANT ; 0 ; 0 ; 0,504 ; 0\nNon classé ; 0"
+      )
+    end
+
+    it "n'écrit aucune autre annotation" do
+      subject
+      expect(SetAnnotationValue).to have_received(:set_value).once
+    end
+
+    context 'avec un travailleur au statut vide' do
+      let(:statut_a) { nil }
+
+      it 'le range en « Non classé »' do
+        subject
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          dossier, instructeur, 'Détails des bénéficiaires',
+          [bloc('ETP', '0 ; 1 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1'),
+           bloc('Unités', '0 ; 2 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1')].join("\n\n")
+        )
+      end
+    end
+
+    context "avec un cadre d'emplois inconnu" do
+      let(:cadre_a) { 'Z - Inconnu' }
+
+      it 'le range en « Non classé »' do
+        subject
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          dossier, instructeur, 'Détails des bénéficiaires',
+          [bloc('ETP', '0 ; 1 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1'),
+           bloc('Unités', '0 ; 2 ; 0 ; 0', zeros, '0 ; 0 ; 0 ; 1', '0 ; 0 ; 0,504 ; 0', non_classe: '1')].join("\n\n")
+        )
+      end
+    end
+
+    context 'sans travailleur' do
+      let(:disabled_workers) { [] }
+
+      it 'écrit une grille de zéros' do
+        subject
+        expect(SetAnnotationValue).to have_received(:set_value).with(
+          dossier, instructeur, 'Détails des bénéficiaires',
+          [bloc('ETP', zeros, zeros, zeros, zeros), bloc('Unités', zeros, zeros, zeros, zeros)].join("\n\n")
+        )
+      end
+    end
+
+    context "quand l'annotation est absente du dossier (dossier clos non rebasé)" do
+      before do
+        allow(SetAnnotationValue).to receive(:set_value).and_raise("Unable to find annotation 'Détails des bénéficiaires' on dossier 438520")
+      end
+
+      it 'journalise le dossier et continue' do
+        expect(Rails.logger).to receive(:error).with(/438520/)
+        expect { subject }.not_to raise_error
+      end
+    end
+
+    context "quand l'écriture échoue pour une autre raison" do
+      before { allow(SetAnnotationValue).to receive(:set_value).and_raise('HTTP 502') }
+
+      it "laisse remonter l'erreur, pour que le dossier soit rejoué" do
+        expect { subject }.to raise_error('HTTP 502')
+      end
+    end
+
+    context 'hors des états configurés' do
+      let(:state) { 'en_construction' }
+
+      it 'ne fait rien' do
+        subject
+        expect(SetAnnotationValue).not_to have_received(:set_value)
+      end
+    end
+  end
+end

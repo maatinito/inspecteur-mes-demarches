@@ -21,4 +21,17 @@ FactoryBot.define do
 
     initialize_with { Travail::Daeth.new(attributes) }
   end
+
+  factory :daeth_repartition, class: Travail::DaethRepartition do
+    etat_du_dossier { 'en_instruction, accepte, refuse, sans_suite' }
+    champ_travailleurs { 'Travailleur handicapé ou assimilé' }
+    champs_par_travailleur do
+      "Situation, Statut, Date d'entrée, Date de sortie, Heures par semaine, Catégorie de handicap, " \
+        "Date de début des droits COTOREP, Date de fin des droits COTOREP, Taux d'IPP, Rente"
+    end
+    champ_categorie { "Catégorie et cadre d'emplois ou équivalent" }
+    annotation_details { 'Détails des bénéficiaires' }
+
+    initialize_with { Travail::DaethRepartition.new(attributes) }
+  end
 end
